@@ -13,11 +13,7 @@ function Home(): JSX.Element {
                     Algorand Blockchain Explorer
                 </div>
                 <div className="search-section">
-                    <Grid container spacing={2}>
-                        <Grid item xs={12} sm={12} md={6} lg={6} xl={6}>
-                            <Search></Search>
-                        </Grid>
-                    </Grid>
+                    <Search></Search>
                 </div>
                 <div className="live-section">
                     <Grid container spacing={2}>
