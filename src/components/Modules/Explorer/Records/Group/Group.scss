@@ -17,31 +17,36 @@
         margin-bottom: 20px;
         font-weight: normal;
       }
-      .property {
-        display: flex;
-        justify-content: space-between;
-        margin-top: 20px;
-        .key {
-          font-family: PoppinsBold !important;
-          .mini-alert {
-            padding: 5px 10px;
-            border-radius: 4px;
-            display: inline-block;
-            margin: 5px 5px 0 0;
-            font-weight: bold;
-            text-align: center;
-            font-size: 13px;
-            .MuiAlert-message {
-              padding: 0;
+      .props {
+        max-width: 500px;
+        margin-top: 30px;
+        padding-right: 8px;
+        .property {
+          display: flex;
+          justify-content: space-between;
+          margin-top: 20px;
+          .key {
+            font-family: PoppinsBold !important;
+            .mini-alert {
+              padding: 5px 10px;
+              border-radius: 4px;
+              display: inline-block;
+              margin: 5px 5px 0 0;
+              font-weight: bold;
+              text-align: center;
+              font-size: 13px;
+              .MuiAlert-message {
+                padding: 0;
+              }
             }
           }
-        }
-        .value {
-          color: $color-grey-dark;
-          .algo-icon {
-            margin-left: 5px;
-          }
+          .value {
+            color: $color-grey-dark;
+            .algo-icon {
+              margin-left: 5px;
+            }
 
+          }
         }
       }
       .group-tabs {

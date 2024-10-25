@@ -298,7 +298,6 @@ function Settings(): JSX.Element {
                                             size={"large"}
                                             color={"primary"}
                                             style={{marginLeft: 15}}
-                                            className="black-button"
                                             onClick={() => {
                                                 saveConfig();
                                             }}

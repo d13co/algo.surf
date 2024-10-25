@@ -64,7 +64,7 @@ function LeftBar(): JSX.Element {
                   navigate('/');
               }}>
                   <div className="text">
-                      A.O
+                      A<span style={{letterSpacing: '-2px'}}>.O</span>
                   </div>
               </div>
 

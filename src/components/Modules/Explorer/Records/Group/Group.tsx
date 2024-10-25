@@ -47,55 +47,51 @@ function Group(): JSX.Element {
 
 
                 <div className="props">
-                    <Grid container spacing={2}>
-                        <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
-                            <div className="property">
-                                <div className="key">
-                                    Block
-                                </div>
-                                <div className="value">
-                                    <LinkToBlock id={groupInstance.getBlock()}></LinkToBlock>
-                                </div>
+                    <div className="property">
+                        <div className="key">
+                            Block
+                        </div>
+                        <div className="value">
+                            <LinkToBlock id={groupInstance.getBlock()}></LinkToBlock>
+                        </div>
+                    </div>
+
+                    <div className="property">
+                        <div className="key">
+                            Timestamp
+                        </div>
+                        <div className="value">
+                            {groupInstance.getTimestampDisplayValue()}
+                        </div>
+                    </div>
+
+                    <div className="property">
+                        <div className="key">
+                            Age
+                        </div>
+                        <div className="value">
+                            {groupInstance.getTimestampDuration()} Ago
+                        </div>
+                    </div>
+
+
+                    <div className="property">
+                        <div className="key">
+                            Total transactions : {groupInstance.getTransactionsCount()}
+                            <div>
+                                {txnTypesList.map((type) => {
+                                    return <Alert key={type} color={'success'} icon={false} className="mini-alert">
+                                        {type}
+                                    </Alert>
+                                })}
                             </div>
-
-                            <div className="property">
-                                <div className="key">
-                                    Timestamp
-                                </div>
-                                <div className="value">
-                                    {groupInstance.getTimestampDisplayValue()}
-                                </div>
-                            </div>
-
-                            <div className="property">
-                                <div className="key">
-                                    Age
-                                </div>
-                                <div className="value">
-                                    {groupInstance.getTimestampDuration()} Ago
-                                </div>
-                            </div>
+                        </div>
+                        <div className="value">
 
 
-                            <div className="property">
-                                <div className="key">
-                                    Total transactions : {groupInstance.getTransactionsCount()}
-                                    <div>
-                                        {txnTypesList.map((type) => {
-                                            return <Alert key={type} color={'success'} icon={false} className="mini-alert">
-                                                {type}
-                                            </Alert>
-                                        })}
-                                    </div>
-                                </div>
-                                <div className="value">
+                        </div>
+                    </div>
 
-
-                                </div>
-                            </div>
-
-                        </Grid>
-                    </Grid>
                 </div>
 
 
