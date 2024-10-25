@@ -21,6 +21,7 @@ import LinkToAccount from "../../Common/Links/LinkToAccount";
 import LinkToApplication from "../../Common/Links/LinkToApplication";
 import CustomNoRowsOverlay from "../../Common/CustomNoRowsOverlay/CustomNoRowsOverlay";
 import {A_Application, A_AppsLocalState} from "../../../../../packages/core-sdk/types";
+import Copyable from '../../../../Common/Copyable/Copyable';
 
 interface ApplicationsListProps {
     applications: A_Application[] | A_AppsLocalState[];
@@ -69,12 +70,7 @@ function ApplicationsList({applications = [], loading = false, fields = ['id', '
             renderCell: (params: GridValueGetterParams) => {
                 const appInstance = new CoreApplication(params.row);
                 return <div>
-                    <Tooltip title="Click to copy">
-                        <ContentCopyIcon className="copy-content" onClick={(ev) => {
-                            copyContent(ev, dispatch, appInstance.getId().toString(), 'Application id copied');
-                        }
-                        }></ContentCopyIcon>
-                    </Tooltip>
+                    <Copyable value={appInstance.getId()} />
                     <LinkToApplication id={appInstance.getId()}></LinkToApplication>
                 </div>;
             }
@@ -89,13 +85,7 @@ function ApplicationsList({applications = [], loading = false, fields = ['id', '
             renderCell: (params: GridValueGetterParams) => {
                 const appInstance = new CoreApplication(params.row);
                 return <div>
-                    <Tooltip title="Click to copy">
-                        <ContentCopyIcon className="copy-content" onClick={(ev) => {
-                            copyContent(ev, dispatch, appInstance.getCreator(), 'Address copied');
-                        }
-                        }></ContentCopyIcon>
-                    </Tooltip>
-                    <LinkToAccount address={appInstance.getCreator()}></LinkToAccount>
+                    <LinkToAccount copy="left" address={appInstance.getCreator()}></LinkToAccount>
                 </div>;
             }
         });

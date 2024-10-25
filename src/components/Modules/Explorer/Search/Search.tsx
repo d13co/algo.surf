@@ -154,12 +154,13 @@ function Search(): JSX.Element {
                  placeholder="Address / Transaction / Asset / Application"
                 style={{
                     padding: 3,
-                    paddingLeft: 20,
+                    paddingLeft: 10,
                     fontSize: 14,
-                    border: '1px solid ' + theme.palette.grey[200]
+                    border: '1px solid ' + theme.palette.grey[200],
+                    borderRadius: '64px',
                 }}
                 value={searchStr}
-                endAdornment={<IconButton color="primary" onClick={() => {
+                startAdornment={<IconButton color="primary" onClick={() => {
                     doSearch();
                 }}>
                     <SearchIcon />

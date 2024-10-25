@@ -7,7 +7,6 @@ import {
     CircularProgress, Pagination,
     Tooltip
 } from "@mui/material";
-import {microalgosToAlgos} from "algosdk";
 import NumberFormat from 'react-number-format';
 import {
     DataGrid,
@@ -19,7 +18,7 @@ import {
 } from "@mui/x-data-grid";
 import {dataGridCellConfig, dataGridStyles} from "../../../../../theme/styles/datagrid";
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import {copyContent} from "../../../../../utils/common";
+import {microalgosToAlgos, copyContent} from "../../../../../utils/common";
 import AlgoIcon from "../../AlgoIcon/AlgoIcon";
 import LinkToAccount from "../../Common/Links/LinkToAccount";
 import CustomNoRowsOverlay from "../../Common/CustomNoRowsOverlay/CustomNoRowsOverlay";
@@ -63,15 +62,7 @@ function Accounts(): JSX.Element {
             headerName: 'Address',
             flex: 2,
             renderCell: (params: GridValueGetterParams) => {
-                return <div>
-                    <Tooltip title="Click to copy">
-                        <ContentCopyIcon className="copy-content" onClick={(ev) => {
-                            copyContent(ev, dispatch, params.row.address, 'Address copied');
-                        }
-                        }></ContentCopyIcon>
-                    </Tooltip>
-                    <LinkToAccount address={params.row.address} strip={30}></LinkToAccount>
-                </div>;
+                return <LinkToAccount copy="left" address={params.row.address} strip={30}></LinkToAccount>
             }
         },
         {

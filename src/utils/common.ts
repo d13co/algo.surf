@@ -3,6 +3,10 @@ import {showSnack} from "../redux/common/actions/snackbar";
 import {theme} from "../theme";
 import pSBC from 'shade-blend-color';
 
+export function microalgosToAlgos(n) {
+    return n / 1e6;
+}
+
 export function copyContent(ev, dispatch, content: string, message: string) {
     copy(content, {
         message: 'Press #{key} to copy',

@@ -7,11 +7,10 @@ import {RootState} from "../../../../redux/store";
 import {deleteAbi, loadAbi, updateAbi, updateAppId} from "../../../../redux/abi/actions/abiStudio";
 import {ABIContractParams} from "algosdk";
 import {CoreNode} from "../../../../packages/core-sdk/classes/core/CoreNode";
-
+import { useLocation } from 'react-router-dom';
 
 function ABIStudio(): JSX.Element {
-
-
+    const location = useLocation();
     const dispatch = useDispatch();
     const wallet = useSelector((state: RootState) => state.wallet);
     const abiStudio = useSelector((state: RootState) => state.abiStudio);
@@ -22,6 +21,10 @@ function ABIStudio(): JSX.Element {
     useEffect(() => {
         dispatch(loadAbi());
     }, []);
+
+    useEffect(() => {
+        document.title = 'V.O: ABI Studio';
+    }, [location]);
 
     return (<div className={"abi-studio-wrapper"}>
         <div className={"abi-studio-container"}>

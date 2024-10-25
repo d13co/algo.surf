@@ -9,7 +9,8 @@ export interface Block {
     information: A_Block,
     error: boolean,
     loading: boolean,
-    hash: string
+    hash: string,
+    proposer?: string
 }
 
 const initialState: Block = {
@@ -35,6 +36,7 @@ export const loadBlock = createAsyncThunk(
             const blockInfo = await blockClient.get(id);
             dispatch(setLoading(false));
             dispatch(loadBlockHash(id));
+            dispatch(loadBlockProposer(id));
             return blockInfo;
         }
         catch (e: any) {
@@ -60,6 +62,20 @@ export const loadBlockHash = createAsyncThunk(
     }
 );
 
+export const loadBlockProposer = createAsyncThunk(
+    'block/loadBlockProposer',
+    async (id: number, thunkAPI) => {
+        const {dispatch} = thunkAPI;
+        try {
+            const blockClient = new BlockClient(explorer.network);
+            const proposer = await blockClient.getBlockProposer(id);
+            return proposer;
+        }
+        catch (e: any) {
+            dispatch(handleException(e));
+        }
+    }
+);
 
 export const blockSlice = createSlice({
     name: 'block',
@@ -77,6 +93,11 @@ export const blockSlice = createSlice({
         builder.addCase(loadBlock.fulfilled, (state, action: PayloadAction<A_Block>) => {
             if (action.payload) {
                 state.information = action.payload;
+            }
+        });
+        builder.addCase(loadBlockProposer.fulfilled, (state, action: PayloadAction<string>) => {
+            if (action.payload) {
+                state.proposer = action.payload;
             }
         });
         builder.addCase(loadBlockHash.fulfilled, (state, action: PayloadAction<string>) => {

@@ -9,6 +9,7 @@ export enum TXN_TYPES {
 }
 
 export enum TEXT_ENCODING {
+    JSON = 'json',
     BASE64 = 'base64',
     TEXT = 'text',
     MSG_PACK = 'msgpack',
@@ -29,4 +30,4 @@ export enum NETWORKS {
     SANDBOX = 'sandbox'
 }
 
-export const BLOCK_TIME = 3.6;
+export const BLOCK_TIME = 3.3;

@@ -6,6 +6,7 @@ import {
 import {useDispatch, useSelector} from "react-redux";
 import React from "react";
 import SettingsIcon from '@mui/icons-material/Settings';
+import GitHubIcon from '@mui/icons-material/GitHub';
 import {showSettings} from "../../redux/settings/actions/settings";
 import Logo from '../../assets/images/logo-black.png';
 import {useLocation, useNavigate} from "react-router-dom";
@@ -16,6 +17,7 @@ import StorageIcon from '@mui/icons-material/Storage';
 import GavelIcon from '@mui/icons-material/Gavel';
 import DeveloperBoardIcon from '@mui/icons-material/DeveloperBoard';
 import ShowerIcon from '@mui/icons-material/Shower';
+import RecordVoiceOverIcon from '@mui/icons-material/RecordVoiceOver';
 import InsertChartIcon from '@mui/icons-material/InsertChart';
 import {CoreNode} from "../../packages/core-sdk/classes/core/CoreNode";
 import {supportSettings} from "../../utils/nodeConfig";
@@ -27,7 +29,7 @@ import SwapCallsIcon from '@mui/icons-material/SwapCalls';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
-
+import MonitorHeartIcon from '@mui/icons-material/MonitorHeart';
 
 function LeftBar(): JSX.Element {
     const dispatch = useDispatch();
@@ -62,10 +64,8 @@ function LeftBar(): JSX.Element {
                   navigate('/');
               }}>
                   <div className="text">
-                      <img src={Logo} alt="logo"/>
-                      Dappflow
+                      A.O
                   </div>
-
               </div>
 
               <div className="menu-list">
@@ -82,39 +82,30 @@ function LeftBar(): JSX.Element {
                           display: "none"
                       }
                   }}>
-                      <Tab icon={<StorageIcon></StorageIcon>} iconPosition="start" label="Explorer" value="explorer" onClick={() => {
+                      <Tab icon={<StorageIcon></StorageIcon>} iconPosition="start" label={<span className="label">Explorer</span>} value="explorer" onClick={() => {
                           navigate('/explorer');
                       }}/>
-                      <Tab icon={<DeveloperBoardIcon></DeveloperBoardIcon>} iconPosition="start" label="ABI Studio" value="abi-studio" onClick={() => {
-                          navigate('/abi-studio');
-                      }}/>
-                      <Tab icon={<CodeIcon></CodeIcon>} iconPosition="start" label="Developer API" value="developer-api" onClick={() => {
-                          navigate('/developer-api');
-                      }}/>
-                      <Tab icon={<GavelIcon></GavelIcon>} iconPosition="start" label="ARC Portal" value="arc-portal" onClick={() => {
-                          navigate('/arc-portal');
-                      }}/>
-                      <Tab icon={<ShowerIcon></ShowerIcon>} iconPosition="start" label="Dispenser" value="dispenser" onClick={() => {
+                      <Tab icon={<ShowerIcon></ShowerIcon>} iconPosition="start" label={<span className="label">Dispenser</span>} value="dispenser" onClick={() => {
                           navigate('/dispenser');
                       }}/>
-                      <Tab icon={<InsertChartIcon></InsertChartIcon>} iconPosition="start" label="Node Status" value="node-status" onClick={() => {
+                      <Tab icon={<DeveloperBoardIcon></DeveloperBoardIcon>} iconPosition="start" label={<span className="label">ABI Studio</span>} value="abi-studio" onClick={() => {
+                          navigate('/abi-studio');
+                      }}/>
+                      <Tab icon={<CodeIcon></CodeIcon>} iconPosition="start" label={<span className="label">Developer API</span>}value="developer-api" onClick={() => {
+                          navigate('/developer-api');
+                      }}/>
+                      <Tab icon={<GavelIcon></GavelIcon>} iconPosition="start" label={<span className="label">ARC Portal</span>} value="arc-portal" onClick={() => {
+                          navigate('/arc-portal');
+                      }}/>
+                      <Tab icon={<InsertChartIcon></InsertChartIcon>} iconPosition="start" label={<span className="label">Node Status</span>} value="node-status" onClick={() => {
                           navigate('/node-status');
                       }}/>
-                      <Tab icon={<CreditCardIcon></CreditCardIcon>} iconPosition="start" label="Dev Wallets" value="dev-wallets" onClick={() => {
+                      <Tab icon={<CreditCardIcon></CreditCardIcon>} iconPosition="start" label={<span className="label">Dev Wallets</span>} value="dev-wallets" onClick={() => {
                           navigate('/dev-wallets');
                       }}/>
-
                   </Tabs>
-
-
-
-
               </div>
-
               <div className="footer">
-
-
-
                   <div className="bottom-menu-item-wrapper" onClick={(ev) => {
                       if (supportSettings) {
                           dispatch(showSettings());
@@ -129,7 +120,7 @@ function LeftBar(): JSX.Element {
 
                                   <div>
                                       <SettingsIcon fontSize={"small"} sx={{verticalAlign: 'middle'}} color={success ? 'primary' : 'warning'}></SettingsIcon>
-                                      {success ? <span>
+                                      {success ? <span className="label">
                                   {new CoreNode(node.status, node.versionsCheck, node.genesis, node.health).getGenesisId()}
                               </span> : <span>
                                   Unable to connect</span>}
@@ -214,17 +205,19 @@ function LeftBar(): JSX.Element {
                                            onClick={() => {
                                                dispatch(showConnectWallet());
                                            }}
-                          >Connect wallet</Button>}
+                          ><span className="label">Connect wallet</span><span className="small-label">🔌</span></Button>}
 
                           <ConnectWallet></ConnectWallet>
                       </div>
                   </div>
 
-
-
+                  <div className="bottom-menu-item-wrapper">
+                      <div className="bottom-menu-item-container"  onClick={() => window.open('https://github.com/d13co/algorand-observer')} style={{borderTopColor: shadedClr2}}>
+                          <GitHubIcon/>
+                      </div>
+                  </div>
 
               </div>
-
           </div>
       </div>
   );

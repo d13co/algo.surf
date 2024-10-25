@@ -4,9 +4,8 @@ import {Grid} from "@mui/material";
 import {CoreTransaction} from "../../../../../../../packages/core-sdk/classes/core/CoreTransaction";
 import AlgoIcon from "../../../../AlgoIcon/AlgoIcon";
 import NumberFormat from "react-number-format";
-import {microalgosToAlgos} from "algosdk";
 import LinkToAccount from "../../../../Common/Links/LinkToAccount";
-import {shadedClr} from "../../../../../../../utils/common";
+import {microalgosToAlgos,shadedClr} from "../../../../../../../utils/common";
 
 
 function PaymentTransaction(props): JSX.Element {

@@ -2,16 +2,30 @@
   .app-container {
     display: flex;
     justify-content: start;
-    .app-left {
-      width: 250px;
+    @media only screen and (max-width: 900px) {
+      .app-left {
+        width: 50px;
+      }
+    }
+    @media only screen and (min-width: 901px) {
+      .app-left {
+        width: 250px;
+      }
     }
     .app-right {
       width: 100%;
       .content-wrapper {
         height: 100vh;
         overflow: auto;
-        .content-container {
-          margin: 20px 100px 100px 100px;
+        @media only screen and (max-width: 900px) {
+          .content-container {
+            margin: 0px 0px 0px 10px;
+          }
+        }
+        @media only screen and (min-width: 901px) {
+          .content-container {
+            margin: 20px 100px 100px 100px;
+          }
         }
       }
     }

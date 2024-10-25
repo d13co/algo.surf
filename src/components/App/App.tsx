@@ -3,8 +3,7 @@ import './App.scss';
 import AppRouter from "./AppRouter";
 import {useDispatch} from "react-redux";
 import {initApp} from "../../redux/app/actions/app";
-
-
+import { useLocation } from 'react-router-dom';
 
 function App(): JSX.Element {
     const dispatch = useDispatch();

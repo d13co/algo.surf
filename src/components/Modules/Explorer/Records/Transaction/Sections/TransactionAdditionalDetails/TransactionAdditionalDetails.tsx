@@ -3,10 +3,9 @@ import React from "react";
 import {Accordion, AccordionDetails, AccordionSummary, Grid, Typography} from "@mui/material";
 import {ExpandMore} from "@mui/icons-material";
 import NumberFormat from "react-number-format";
-import {microalgosToAlgos} from "algosdk";
 import AlgoIcon from "../../../../AlgoIcon/AlgoIcon";
 import {CoreTransaction} from "../../../../../../../packages/core-sdk/classes/core/CoreTransaction";
-import {shadedClr} from "../../../../../../../utils/common";
+import {shadedClr,microalgosToAlgos} from "../../../../../../../utils/common";
 
 
 function TransactionAdditionalDetails(props): JSX.Element {

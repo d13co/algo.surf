@@ -6,7 +6,7 @@ import NumberFormat from "react-number-format";
 import {defaultAccount} from "../../../../../redux/wallet/actions/wallet";
 import {AccountClient} from "../../../../../packages/core-sdk/clients/accountClient";
 import {CoreAccount} from "../../../../../packages/core-sdk/classes/core/CoreAccount";
-import {microalgosToAlgos} from "algosdk";
+import {microalgosToAlgos} from "../../../../../utils/common";
 
 
 interface AccountBalanceProps {

@@ -6,7 +6,6 @@ import {
     Pagination,
     Tooltip
 } from "@mui/material";
-import {microalgosToAlgos} from "algosdk";
 import NumberFormat from 'react-number-format';
 import {
     DataGrid,
@@ -18,7 +17,7 @@ import {
 } from "@mui/x-data-grid";
 import {dataGridCellConfig, dataGridStyles} from "../../../../../theme/styles/datagrid";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import {copyContent} from "../../../../../utils/common";
+import {microalgosToAlgos, copyContent} from "../../../../../utils/common";
 import AlgoIcon from "../../AlgoIcon/AlgoIcon";
 import {CoreTransaction} from "../../../../../packages/core-sdk/classes/core/CoreTransaction";
 import {TXN_TYPES} from "../../../../../packages/core-sdk/constants";
@@ -32,6 +31,7 @@ import {A_SearchTransaction} from "../../../../../packages/core-sdk/types";
 import LinkToGroup from "../../Common/Links/LinkToGroup";
 import {Alert} from "@mui/lab";
 import AssetBalance from "../../Common/AssetBalance/AssetBalance";
+import Copyable from "../../../../Common/Copyable/Copyable";
 
 interface TransactionsListProps {
     transactions: A_SearchTransaction[];
@@ -87,12 +87,7 @@ function TransactionsList({transactions = [], loading = false, reachedLastPage =
                 const showGroupIcon = groupId && record !== 'group';
 
                 return <div className="cell-content">
-                    <Tooltip title="Click to copy">
-                        <ContentCopyIcon className="copy-content" onClick={(ev) => {
-                            copyContent(ev, dispatch, txnId, 'Txn ID copied');
-                        }
-                        }></ContentCopyIcon>
-                    </Tooltip>
+                    <Copyable value={txnId} />
                     {showGroupIcon ? <span className="group-txn-icon"><LinkToGroup id={groupId} blockId={txnInstance.getBlock()} icon={true}></LinkToGroup></span> : ''}
                     <LinkToTransaction id={txnId}></LinkToTransaction>
 

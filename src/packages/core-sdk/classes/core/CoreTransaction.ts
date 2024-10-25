@@ -198,12 +198,27 @@ export class CoreTransaction {
         return this.txn["receiver-rewards"]
     }
 
+    getNoteJSON(): string {
+        try {
+            const text = atob(this.txn.note);
+            const parsed = JSON.parse(text);
+            return JSON.stringify(parsed, null, 4);
+        } catch(e) {
+        }
+    }
+
     getNote(encoding: string = TEXT_ENCODING.BASE64): string {
+        if (encoding === TEXT_ENCODING.JSON) {
+            return this.getNoteJSON();
+        }
         if(encoding === TEXT_ENCODING.BASE64) {
             return this.txn.note;
         }
         if(encoding === TEXT_ENCODING.TEXT) {
             return atob(this.txn.note);
+        }
+        if(encoding === TEXT_ENCODING.HEX) {
+            return base64ToHex(this.txn.note);
         }
         if(encoding === TEXT_ENCODING.MSG_PACK) {
             try {
@@ -212,7 +227,6 @@ export class CoreTransaction {
             catch (e) {
                 return msgpack.decode(Buffer.from(this.txn.note, 'base64'));
             }
-
         }
     }
 
@@ -343,3 +357,14 @@ export class CoreTransaction {
         }
     }
 }
+
+function base64ToHex(str) {
+  const raw = atob(str);
+  let result = '';
+  for (let i = 0; i < raw.length; i++) {
+    const hex = raw.charCodeAt(i).toString(16);
+    result += (hex.length === 2 ? hex : '0' + hex);
+  }
+  return result;
+}
+

@@ -20,35 +20,31 @@ function Header(): JSX.Element {
 
     return (<div className={"header-wrapper"}>
         <div className={"header-container"}>
-
-
             <div>
                 <Grid container>
-                    <Tabs sx={{marginLeft: '-20px', borderBottom: '1px solid #f2f2f2'}} value={route} TabIndicatorProps={{ children: <span className="MuiTabs-indicatorSpan" />}}>
+                    <Tabs variant="scrollable" scrollButtons="auto" sx={{marginLeft: '-20px', borderBottom: '1px solid #f2f2f2'}} value={route} TabIndicatorProps={{ children: <span className="MuiTabs-indicatorSpan" />}}>
                         <Tab label="Home" value="home" onClick={() => {
                             navigate('/explorer/home');
                         }}/>
                         <Tab label="Accounts" value="accounts" onClick={() => {
                             navigate('/explorer/accounts');
                         }}/>
-                        <Tab label="Transactions" value="transactions" onClick={() => {
+                        <Tab label="Txns" value="transactions" onClick={() => {
                             navigate('/explorer/transactions');
                         }}/>
                         <Tab label="Assets" value="assets" onClick={() => {
                             navigate('/explorer/assets');
                         }}/>
-                        <Tab label="Applications" value="applications" onClick={() => {
+                        <Tab label="Apps" value="applications" onClick={() => {
                             navigate('/explorer/applications');
                         }}/>
                     </Tabs>
                 </Grid>
             </div>
 
-            <div style={{minWidth: 500}}>
+            <div>
                 <Search></Search>
             </div>
-
-
         </div>
     </div>);
 }

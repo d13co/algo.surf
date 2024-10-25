@@ -12,6 +12,7 @@ interface Wallet {
 
 export const defaultAccount: A_AccountInformation = {
     address: "",
+    "auth-addr": "",
     amount: 0,
     "min-balance": 0,
     "amount-without-pending-rewards": 0,

@@ -5,7 +5,6 @@ import {
     Grid
 } from "@mui/material";
 import {CoreTransaction} from "../../../../../../packages/core-sdk/classes/core/CoreTransaction";
-import {microalgosToAlgos} from "algosdk";
 import AlgoIcon from "../../../AlgoIcon/AlgoIcon";
 import {TXN_TYPES} from "../../../../../../packages/core-sdk/constants";
 import PaymentTransaction from '../Types/PaymentTransaction/PaymentTransaction';
@@ -15,7 +14,7 @@ import KeyRegTransaction from "../Types/KeyRegTransaction/KeyRegTransaction";
 import AppCallTransaction from "../Types/AppCallTransaction/AppCallTransaction";
 import TransactionAdditionalDetails from "../Sections/TransactionAdditionalDetails/TransactionAdditionalDetails";
 import TransactionNote from "../Sections/TransactionNotes/TransactionNote";
-import {shadedClr} from "../../../../../../utils/common";
+import {microalgosToAlgos,shadedClr} from "../../../../../../utils/common";
 import JsonViewer from "../../../../../Common/JsonViewer/JsonViewer";
 
 

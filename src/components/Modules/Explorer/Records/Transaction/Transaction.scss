@@ -16,6 +16,15 @@
         font-size: 18px;
         margin-bottom: 20px;
         font-weight: normal;
+        .id {
+          display: flex;
+          align-items: center;
+        }
+        .long-id {
+          text-overflow: ellipsis;
+          overflow: hidden;
+          max-width: calc(100vw - 100px);
+        }
       }
 
       .props {

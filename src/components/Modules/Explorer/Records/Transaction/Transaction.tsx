@@ -8,7 +8,6 @@ import {
 } from "@mui/material";
 import {loadTransaction} from "../../../../../redux/explorer/actions/transaction";
 import {CoreTransaction} from "../../../../../packages/core-sdk/classes/core/CoreTransaction";
-import {microalgosToAlgos} from "algosdk";
 import AlgoIcon from "../../AlgoIcon/AlgoIcon";
 import {TXN_TYPES} from "../../../../../packages/core-sdk/constants";
 import PaymentTransaction from './Types/PaymentTransaction/PaymentTransaction';
@@ -20,7 +19,7 @@ import LinkToBlock from "../../Common/Links/LinkToBlock";
 import LoadingTile from "../../../../Common/LoadingTile/LoadingTile";
 import TransactionAdditionalDetails from "./Sections/TransactionAdditionalDetails/TransactionAdditionalDetails";
 import TransactionNote from "./Sections/TransactionNotes/TransactionNote";
-import {shadedClr} from "../../../../../utils/common";
+import {microalgosToAlgos,shadedClr} from "../../../../../utils/common";
 import TransactionMultiSig from "./Sections/TransactionMultiSig/TransactionMultiSig";
 import TransactionLogicSig from "./Sections/TransactionLogicSig/TransactionLogicSig";
 import JsonViewer from "../../../../Common/JsonViewer/JsonViewer";
@@ -29,7 +28,7 @@ import {RootState} from "../../../../../redux/store";
 import CustomError from '../../Common/CustomError/CustomError';
 import AssetFreezeTransaction from "./Types/AssetFreezeTransaction/AssetFreezeTransaction";
 import StateProofTransaction from "./Types/StateProofTransaction/StateProofTransaction";
-
+import Copyable from '../../../../Common/Copyable/Copyable';
 
 function Transaction(): JSX.Element {
     const dispatch = useDispatch();
@@ -45,6 +44,7 @@ function Transaction(): JSX.Element {
 
     useEffect(() => {
         dispatch(loadTransaction(id));
+        document.title = `V.O: Txn ${id}`
     }, [dispatch, id]);
 
     return (<div className={"transaction-wrapper"}>
@@ -62,7 +62,7 @@ function Transaction(): JSX.Element {
 
                 {transaction.loading ? <LoadingTile></LoadingTile> : <div className="transaction-body">
                     <div className="index">
-                        {txnInstance.getId()}
+                        <div className="id"><div className="long-id">{txnInstance.getId()}</div> <Copyable value={txnInstance.getId()} /></div>
                         <div style={{marginTop: 15}}>
                             <Chip color={"warning"} variant={"outlined"} label={txnInstance.getTypeDisplayValue()} size={"small"}></Chip>
                             {txnInstance.isMultiSig() ? <Chip style={{marginLeft: 10}} color={"warning"} label="MultiSig" size={"small"} variant={"outlined"}></Chip> : ''}
@@ -93,6 +93,7 @@ function Transaction(): JSX.Element {
                                     </div>
                                     <div className="value">
                                         <LinkToBlock id={txnInstance.getBlock()}></LinkToBlock>
+                                        <Copyable value={txnInstance.getBlock()} />
                                     </div>
                                 </div>
                             </Grid>
@@ -120,6 +121,7 @@ function Transaction(): JSX.Element {
                                     </div>
                                     <div className="value">
                                         {txnInstance.getTimestampDisplayValue()}
+                                        <Copyable value={txnInstance.getTimestampDisplayValue()} />
                                     </div>
                                 </div>
                             </Grid>
@@ -131,6 +133,7 @@ function Transaction(): JSX.Element {
                                     </div>
                                     <div className="value small">
                                         <LinkToGroup id={txnInstance.getGroup()} blockId={txnInstance.getBlock()}></LinkToGroup>
+                                        <Copyable value={txnInstance.getGroup()} />
                                     </div>
                                 </div>
                             </Grid> : ''}

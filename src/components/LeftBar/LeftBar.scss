@@ -3,7 +3,7 @@
 .qr-code-wrapper {
   .qr-code-container {
     text-align: center;
-    margin-bottom: 50px;
+    margin-bottom: 44px;
   }
 }
 
@@ -23,8 +23,18 @@
           text-align: center;
           font-size: 13px;
           color: $color-dark;
-          svg {
-            margin-right: 5px;
+          @media only screen and (min-width: 901px) {
+            svg {
+              margin-right: 5px;
+            }
+          }
+        }
+        @media only screen and (max-width: 900px) {
+          .label {
+            display: none;
+          }
+          .node .node-url svg {
+            margin-right: 0;
           }
         }
       }
@@ -44,6 +54,19 @@
           }
           &:hover {
             cursor: pointer;
+          }
+          @media only screen and (max-width: 900px) {
+            button {
+              min-width: 0;
+            }
+            .label {
+              display: none;
+            }
+          }
+          @media only screen and (min-width: 901px) {
+            .small-label {
+              display: none;
+            }
           }
         }
       }
@@ -70,6 +93,19 @@
     .menu-list {
       margin: 50px auto 0;
       width: 80%;
+      @media only screen and (max-width: 901px) {
+        margin: 25px auto 0;
+        .label {
+          display: none;
+        }
+        button.MuiTab-root {
+          min-width: 0;
+          border-radius: 0;
+          .MuiTab-iconWrapper {
+            margin-right: 0;
+          }
+        }
+      }
     }
   }
 }

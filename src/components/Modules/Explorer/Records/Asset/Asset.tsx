@@ -13,7 +13,8 @@ import {shadedClr} from "../../../../../utils/common";
 import JsonViewer from "../../../../Common/JsonViewer/JsonViewer";
 import CustomError from "../../Common/CustomError/CustomError";
 import AssetARCValidator from "./Actions/AssetARCValidator/AssetARCValidator";
-
+import MultiFormatViewer from "../../../../../components/Common/MultiFormatViewer/MultiFormatViewer";
+import Copyable from "../../../../../components/Common/Copyable/Copyable";
 
 function Asset(): JSX.Element {
     const dispatch = useDispatch();
@@ -26,7 +27,10 @@ function Asset(): JSX.Element {
 
     useEffect(() => {
         dispatch(loadAsset(Number(id)));
+        document.title = `V.O: Asset ${id}`
     }, [dispatch, id]);
+
+    const b64Name = !assetInstance.getName()
 
     return (<div className={"asset-wrapper"}>
         <div className={"asset-container"}>
@@ -46,9 +50,11 @@ function Asset(): JSX.Element {
 
                 {asset.loading ? <LoadingTile></LoadingTile> : <div className="asset-body">
                     <div className="index">
-                        #{assetInstance.getIndex()}
+                        <div><span className="no-select">#</span>{assetInstance.getIndex()}<Copyable value={assetInstance.getIndex()} /></div>
                         <div style={{marginTop: 5}}>
-                            {assetInstance.getUrl() ? <Link href={assetInstance.getUrl()} target={"_blank"} style={{fontSize: 13, marginTop: 10}}>{assetInstance.getUrl()}</Link> : ''}
+                            {assetInstance.getUrl() ? <>
+                                <Link href={assetInstance.getUrl()} target={"_blank"} style={{fontSize: 13, marginTop: 10}}>{assetInstance.getUrl()}</Link><Copyable value={assetInstance.getUrl()} />
+                            </>: ''}
                         </div>
                     </div>
 
@@ -59,8 +65,8 @@ function Asset(): JSX.Element {
                                     <div className="key">
                                         Name
                                     </div>
-                                    <div className="value">
-                                        {assetInstance.getName()}
+                                    <div className="value" style={{wordBreak: b64Name ? 'break-word' : 'inherit'}}>
+                                        <MultiFormatViewer view={b64Name ? 'base64' : 'utf8'} value={assetInstance.getNameB64()} />
                                     </div>
                                 </div>
                             </Grid>
@@ -71,7 +77,7 @@ function Asset(): JSX.Element {
                                         Unit
                                     </div>
                                     <div className="value">
-                                        {assetInstance.getUnitName()}
+                                        <MultiFormatViewer view={assetInstance.getUnitName() ? 'utf8' : 'base64'} value={assetInstance.getUnitNameB64()} />
                                     </div>
                                 </div>
                             </Grid>
@@ -86,7 +92,8 @@ function Asset(): JSX.Element {
                                             value={assetInstance.getTotalSupply()}
                                             displayType={'text'}
                                             thousandSeparator={true}
-                                        ></NumberFormat>
+                                        />
+                                        <Copyable value={assetInstance.getTotalSupply()} />
                                     </div>
                                 </div>
                             </Grid>

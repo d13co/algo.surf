@@ -15,12 +15,9 @@ export function getNodeConfig(): NodeConnectionParams {
         if (network === NETWORKS.TESTNET) {
             return availableNodes[1];
         }
-        if (network === NETWORKS.MAINNET) {
-            return availableNodes[2];
-        }
     }
 
-    const defaultNode = availableNodes[2];
+    const defaultNode = availableNodes[1];
 
     return {
         ...defaultNode,
@@ -67,89 +64,18 @@ export function getNodes(): NodeConnectionParams[] {
         }
     },
         {
-            id: 'algonode_testnet',
-            label: 'Algonode testnet',
+            id: 'nodely_mainnet',
+            label: 'Nodely Mainnet (Nodely)',
             algod: {
-                url: 'https://testnet-api.algonode.cloud',
-                port: '',
+                url: 'https://mainnet-api.4160.nodely.dev',
+                port: '443',
                 token: '',
             },
             indexer: {
-                url: 'https://testnet-idx.algonode.cloud',
-                port: '',
+                url: 'https://mainnet-idx.4160.nodely.dev',
+                port: '443',
                 token: '',
             }
         },
-        {
-            id: 'algonode_mainnet',
-            label: 'Algonode mainnet',
-            algod: {
-                url: 'https://mainnet-api.algonode.cloud',
-                port: '',
-                token: '',
-            },
-            indexer: {
-                url: 'https://mainnet-idx.algonode.cloud',
-                port: '',
-                token: '',
-            }
-        },
-        {
-            id: 'algonode_betanet',
-            label: 'Algonode betanet',
-            algod: {
-                url: 'https://betanet-api.algonode.cloud',
-                port: '',
-                token: '',
-            },
-            indexer: {
-                url: 'https://betanet-idx.algonode.cloud',
-                port: '',
-                token: '',
-            }
-        },
-        {
-            id: 'algoexplorer_testnet',
-            label: 'AlgoExplorer testnet',
-            algod: {
-                url: 'https://node.testnet.algoexplorerapi.io',
-                port: '',
-                token: '',
-            },
-            indexer: {
-                url: 'https://algoindexer.testnet.algoexplorerapi.io',
-                port: '',
-                token: '',
-            }
-        },
-        {
-            id: 'algoexplorer_mainnet',
-            label: 'AlgoExplorer mainnet',
-            algod: {
-                url: 'https://node.algoexplorerapi.io',
-                port: '',
-                token: '',
-            },
-            indexer: {
-                url: 'https://algoindexer.algoexplorerapi.io',
-                port: '',
-                token: '',
-            }
-        },
-        {
-            id: 'algoexplorer_betanet',
-            label: 'AlgoExplorer betanet',
-            algod: {
-                url: 'https://node.betanet.algoexplorerapi.io',
-                port: '',
-                token: '',
-            },
-            indexer: {
-                url: 'https://algoindexer.betanet.algoexplorerapi.io',
-                port: '',
-                token: '',
-            }
-        }];
+    ];
 }
-
-

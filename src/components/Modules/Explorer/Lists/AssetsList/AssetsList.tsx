@@ -23,6 +23,7 @@ import CustomNoRowsOverlay from "../../Common/CustomNoRowsOverlay/CustomNoRowsOv
 import {A_AccountInformation, A_Asset} from "../../../../../packages/core-sdk/types";
 import {CoreAccount} from "../../../../../packages/core-sdk/classes/core/CoreAccount";
 import NumberFormat from "react-number-format";
+import Copyable from '../../../../Common/Copyable/Copyable';
 
 interface AssetsListProps {
     assets: A_Asset[];
@@ -81,12 +82,7 @@ function AssetsList({assets = [], loading = false, accountInfo, fields = ['name'
             renderCell: (params: GridValueGetterParams) => {
                 const assetInstance = new CoreAsset(params.row);
                 return <div>
-                    <Tooltip title="Click to copy">
-                        <ContentCopyIcon className="copy-content" onClick={(ev) => {
-                            copyContent(ev, dispatch, assetInstance.getIndex().toString(), 'Asset id copied');
-                        }
-                        }></ContentCopyIcon>
-                    </Tooltip>
+                    <Copyable value={assetInstance.getIndex()} />
                     <LinkToAsset id={assetInstance.getIndex()}></LinkToAsset>
                 </div>;
             }
@@ -123,13 +119,7 @@ function AssetsList({assets = [], loading = false, accountInfo, fields = ['name'
             renderCell: (params: GridValueGetterParams) => {
                 const assetInstance = new CoreAsset(params.row);
                 return <div>
-                    <Tooltip title="Click to copy">
-                        <ContentCopyIcon className="copy-content" onClick={(ev) => {
-                            copyContent(ev, dispatch, assetInstance.getCreator(), 'Address copied');
-                        }
-                        }></ContentCopyIcon>
-                    </Tooltip>
-                    <LinkToAccount address={assetInstance.getCreator()} strip={30}></LinkToAccount>
+                    <LinkToAccount copy="left" address={assetInstance.getCreator()} strip={30}></LinkToAccount>
                 </div>;
             }
         },
@@ -165,7 +155,7 @@ function AssetsList({assets = [], loading = false, accountInfo, fields = ['name'
         <div className={"assets-list-container"}>
             <div className="assets-list-body">
 
-                <div style={{ width: '100%' }}>
+                <div style={{ width: '100%', minWidth: '480px', }}>
                     <DataGrid
                         loading={loading}
                         rows={assets}

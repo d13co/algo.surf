@@ -37,3 +37,19 @@ body {
     cursor: pointer;
   }
 }
+
+.HFlex {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.no-select {
+  user-select: none;
+}
+
+.hover-cursor-pointer {
+  &:hover {
+    cursor: pointer;
+  }
+}

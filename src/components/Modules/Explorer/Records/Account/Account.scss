@@ -16,11 +16,13 @@
         font-size: 18px;
         margin-bottom: 20px;
         font-weight: normal;
+        word-break: break-word;
       }
       .property {
         display: flex;
         justify-content: space-between;
         margin-top: 15px;
+        align-items: center;
         .key {
           font-family: PoppinsBold !important;
         }

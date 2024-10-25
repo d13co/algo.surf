@@ -12,7 +12,6 @@ function DeveloperApi(): JSX.Element {
     const navigate = useNavigate();
     const location = useLocation();
 
-
     let route: string = location.pathname;
     route = route.substring(1);
     route = route.split('/')[1];
@@ -20,6 +19,10 @@ function DeveloperApi(): JSX.Element {
     useEffect(() => {
         dispatch(loadIndexerSpec());
     }, [dispatch]);
+
+    useEffect(() => {
+        document.title = 'V.O: Developer API';
+    }, [location]);
 
     return (<div className={"developer-api-wrapper"}>
         <div className={"developer-api-container"}>

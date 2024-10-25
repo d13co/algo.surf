@@ -59,8 +59,16 @@ export class CoreAsset {
         return this.asset.params.name;
     }
 
+    getNameB64(): string {
+        return this.asset.params['name-b64'];
+    }
+
     getUnitName(): string {
         return this.asset.params["unit-name"];
+    }
+
+    getUnitNameB64(): string {
+        return this.asset.params["unit-name-b64"];
     }
 
     getDecimals(): number {

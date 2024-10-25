@@ -8,15 +8,19 @@ import NetworkDetails from "./tiles/NetworkDetails/NetworkDetails";
 import {loadNodeDetails} from "../../../redux/network/actions/node";
 import {useDispatch} from "react-redux";
 import ProtocolUpgrade from "./tiles/ProtocolUpgrade/ProtocolUpgrade";
-
+import { useLocation } from 'react-router-dom';
 
 function NodeStatus(): JSX.Element {
-
+    const location = useLocation();
     const dispatch = useDispatch();
 
     useEffect(() => {
         dispatch(loadNodeDetails());
     }, []);
+
+    useEffect(() => {
+        document.title = 'V.O: Node Status';
+    }, [location]);
 
     return (<div className={"node-status-wrapper"}>
         <div className={"node-status-container"}>

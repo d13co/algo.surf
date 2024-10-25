@@ -7,6 +7,7 @@ import {
 
 export interface A_AccountInformation {
     address: string
+    "auth-addr": string
     amount: number
     "min-balance": number
     "amount-without-pending-rewards": number
@@ -308,7 +309,8 @@ export type A_Block = {
     round: number
     timestamp: number
     "txn-counter": number,
-    transactions: A_SearchTransaction[]
+    transactions: A_SearchTransaction[],
+    proposer?: string
 };
 
 export type AlgodConnectionParams = {

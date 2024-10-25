@@ -4,6 +4,13 @@
   .header-container {
     background: rgba(255, 255, 255, 0.5);
     display: flex;
+    @media only screen and (max-width: 999px) {
+      margin-left: 20px;
+      flex-direction: column;
+      button {
+        min-width: 50px;
+      }
+    }
     justify-content: space-between;
     .settings-icon {
       margin-top: 12px;

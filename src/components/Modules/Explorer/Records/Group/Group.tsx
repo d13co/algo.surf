@@ -29,6 +29,7 @@ function Group(): JSX.Element {
 
     useEffect(() => {
         dispatch(loadGroup({id, blockId: Number(blockId)}));
+        document.title = `V.O: Group Txn ${id}`
     }, [dispatch, id, blockId]);
 
     return (<div className={"group-wrapper"}>

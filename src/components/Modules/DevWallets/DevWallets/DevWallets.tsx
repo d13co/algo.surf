@@ -28,10 +28,10 @@ import {handleException} from "../../../../redux/common/actions/exception";
 import ShowerIcon from "@mui/icons-material/Shower";
 import AccountBalance from "../../Explorer/Common/AccountBalance/AccountBalance";
 import { useConfirm } from "material-ui-confirm";
+import { useLocation } from 'react-router-dom';
 
 function DevWallets(): JSX.Element {
-
-
+    const location = useLocation();
     const dispatch = useDispatch();
     const devWallets = useSelector((state: RootState) => state.devWallets);
     const wallet = useSelector((state: RootState) => state.wallet);
@@ -45,10 +45,13 @@ function DevWallets(): JSX.Element {
 
     const confirm = useConfirm();
 
-
     useEffect(() => {
         dispatch(loadDevWallets());
     }, []);
+
+    useEffect(() => {
+        document.title = 'V.O: Dev Wallets';
+    }, [location]);
 
     return (<div className={"dev-wallets-wrapper"}>
         <div className={"dev-wallets-container"}>
