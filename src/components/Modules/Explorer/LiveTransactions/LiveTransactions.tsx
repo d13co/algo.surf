@@ -9,7 +9,7 @@ import LinkToTransaction from "../Common/Links/LinkToTransaction";
 import LinkToAccount from "../Common/Links/LinkToAccount";
 import {TXN_TYPES} from "../../../../packages/core-sdk/constants";
 import LinkToApplication from "../Common/Links/LinkToApplication";
-import {Box} from "@mui/material";
+import {Typography, Box} from "@mui/material";
 
 
 function LiveTransactions(): JSX.Element {
@@ -36,24 +36,22 @@ function LiveTransactions(): JSX.Element {
                         return <CSSTransition key={txnInstance.getId()} timeout={700} classNames="item">
                             <div className="transaction" key={txnInstance.getId()} style={{borderColor: shadedClr2}}>
                                 <div className="basic">
-                                    <div>
-                                        <LinkToTransaction strip={35} id={txnInstance.getId()}></LinkToTransaction>
+                                    <div className="box">
+                                        <Typography sx={{ display: 'inline', color: 'primary.main' }}>{txnInstance.getTypeDisplayValue()}</Typography>
+                                        <LinkToTransaction strip={8} id={txnInstance.getId()}></LinkToTransaction>
                                     </div>
-                                    <div className="sub-text">
-                                        From : <LinkToAccount strip={25} address={txnInstance.getFrom()}></LinkToAccount>
+                                    <div className="sub-text box">
+                                        <span>From:</span>
+                                        <LinkToAccount copy={''} strip={25} address={txnInstance.getFrom()}></LinkToAccount>
                                     </div>
-                                    {type === TXN_TYPES.PAYMENT || type === TXN_TYPES.ASSET_TRANSFER ? <div className="sub-text">
-                                        To : <LinkToAccount strip={25} address={to}></LinkToAccount>
+                                    {type === TXN_TYPES.PAYMENT || type === TXN_TYPES.ASSET_TRANSFER ? <div className="sub-text box">
+                                        <span>To:</span>
+                                        <LinkToAccount  copy={''} strip={25} address={to}></LinkToAccount>
                                     </div> : ''}
-                                    {type === TXN_TYPES.APP_CALL ? <div className="sub-text">
-                                        To : <LinkToApplication id={appId} name={'Application: ' + appId}></LinkToApplication>
+                                    {type === TXN_TYPES.APP_CALL ? <div className="sub-text box">
+                                        <span>Application:</span> <LinkToApplication id={appId}></LinkToApplication>
                                     </div> : ''}
 
-                                </div>
-                                <div className="txn-type">
-                                    <Box sx={{ color: 'primary.main'}}>
-                                        {txnInstance.getTypeDisplayValue()}
-                                    </Box>
                                 </div>
                             </div>
                         </CSSTransition>;

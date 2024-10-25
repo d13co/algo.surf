@@ -32,6 +32,12 @@
           transition: opacity 1000ms, transform 1000ms;
         }
         .basic {
+          width: 100%;
+          .box {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          }
           .sub-text {
             margin-top: 15px;
             font-size: 13px;
