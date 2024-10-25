@@ -27,8 +27,16 @@
             font-family: PoppinsBold !important;
           }
           .value {
+            display: flex;
+            align-items: center;
             margin-top: 10px;
             color: $color-grey-dark;
+            .long-id {
+              display: inline-block;
+              text-overflow: ellipsis;
+              overflow: hidden;
+              max-width: calc(100vw - 100px);
+            }
             &.small {
               font-size: 13px;
             }

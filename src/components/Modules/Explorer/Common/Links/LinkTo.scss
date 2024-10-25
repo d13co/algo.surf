@@ -1,0 +1,5 @@
+.long-id {
+  max-width: calc(100% - 100px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

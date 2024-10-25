@@ -124,7 +124,7 @@ function Block(): JSX.Element {
                                         Hash
                                     </div>
                                     <div className="value">
-                                        {block.hash} <Copyable value={block.hash} />
+                                        <span className="long-id">{block.hash}</span> <Copyable value={block.hash} />
                                     </div>
                                 </div>
                             </Grid>
