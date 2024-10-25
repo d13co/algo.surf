@@ -27,7 +27,8 @@ export enum NETWORKS {
     BETANET = 'betanet',
     TESTNET = 'testnet',
     MAINNET = 'mainnet',
-    SANDBOX = 'sandbox'
+    SANDBOX = 'sandbox',
+    FNET    = 'fnet',
 }
 
 export const BLOCK_TIME = 3.3;
