@@ -60,7 +60,9 @@ function Account(): JSX.Element {
 
                 {account.loading ? <LoadingTile></LoadingTile> : <div className="account-body">
                     <div className="address">
-                        {account.information.address} <Copyable value={account.information.address} />
+                        <div className="id">
+                            <div className="long-id">{account.information.address}</div> <Copyable value={account.information.address} />
+                        </div>
                         <div style={{marginTop: 10}}>
                             { account.escrowOf ? <LinkToApplication id={account.escrowOf}><Chip className="hover-cursor-pointer" color={"success"} variant="outlined" label={`App Escrow`} size="small" style={{marginRight: '4px'}} /></LinkToApplication> : null }
                             <Chip color={"warning"} variant={"outlined"} label={account.information.status} size={"small"}></Chip>
