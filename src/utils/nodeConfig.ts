@@ -2,22 +2,20 @@ import {KMDConnectionParams, NodeConnectionParams} from "../packages/core-sdk/ty
 import {REACT_APP_NETWORK} from "../env";
 import {NETWORKS} from "../packages/core-sdk/constants";
 
-export const supportSettings = REACT_APP_NETWORK === '';
+export const supportSettings = true;
 
 export function getNodeConfig(): NodeConnectionParams {
     const availableNodes = getNodes();
 
+    let defaultNode = availableNodes[1];
+
     const network = REACT_APP_NETWORK;
     if (network) {
-        if (network === NETWORKS.SANDBOX) {
-            return availableNodes[0];
-        }
-        if (network === NETWORKS.TESTNET) {
-            return availableNodes[1];
+        const networkNode = availableNodes.find(({id}) => id.toLocaleLowerCase().endsWith(network.toLowerCase()));
+        if (networkNode) {
+            return networkNode;
         }
     }
-
-    const defaultNode = availableNodes[1];
 
     return {
         ...defaultNode,
@@ -49,23 +47,24 @@ export function getKMDConfig(): KMDConnectionParams {
 }
 
 export function getNodes(): NodeConnectionParams[] {
-    return [{
-        id: 'sandbox',
-        label: 'Sandbox',
-        algod: {
-            url: 'http://localhost',
-            port: '4001',
-            token: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+    return [
+        {
+            id: 'sandbox',
+            label: 'Sandbox',
+            algod: {
+                url: 'http://localhost',
+                port: '4001',
+                token: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+            },
+            indexer: {
+                url: 'http://localhost',
+                port: '8980',
+                token: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+            }
         },
-        indexer: {
-            url: 'http://localhost',
-            port: '8980',
-            token: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
-        }
-    },
         {
             id: 'nodely_mainnet',
-            label: 'Nodely Mainnet (Nodely)',
+            label: 'Algorand Mainnet (Nodely)',
             algod: {
                 url: 'https://mainnet-api.4160.nodely.dev',
                 port: '443',
@@ -73,6 +72,48 @@ export function getNodes(): NodeConnectionParams[] {
             },
             indexer: {
                 url: 'https://mainnet-idx.4160.nodely.dev',
+                port: '443',
+                token: '',
+            }
+        },
+        {
+            id: 'nodely_testnet',
+            label: 'Algorand Testnet (Nodely)',
+            algod: {
+                url: 'https://testnet-api.4160.nodely.dev',
+                port: '443',
+                token: '',
+            },
+            indexer: {
+                url: 'https://testnet-idx.4160.nodely.dev',
+                port: '443',
+                token: '',
+            }
+        },
+        {
+            id: 'nodely_betanet',
+            label: 'Algorand betanet (Nodely)',
+            algod: {
+                url: 'https://betanet-api.4160.nodely.dev',
+                port: '443',
+                token: '',
+            },
+            indexer: {
+                url: 'https://betanet-idx.4160.nodely.dev',
+                port: '443',
+                token: '',
+            }
+        },
+        {
+            id: 'nodely_fnet',
+            label: 'Algorand FNet (Nodely)',
+            algod: {
+                url: 'https://fnet-api.4160.nodely.dev',
+                port: '443',
+                token: '',
+            },
+            indexer: {
+                url: 'https://fnet-idx.4160.nodely.dev',
                 port: '443',
                 token: '',
             }
