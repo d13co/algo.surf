@@ -13,7 +13,7 @@ function Explorer(): JSX.Element {
 
   useEffect(() => {
     if (location.pathname.endsWith('/explorer/home')) {
-      document.title = 'V.O: Explorer';
+      document.title = 'A.O: Explorer';
     }
   }, [location]);
 

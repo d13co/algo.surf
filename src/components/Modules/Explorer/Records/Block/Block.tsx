@@ -31,7 +31,7 @@ function Block(): JSX.Element {
 
     useEffect(() => {
         dispatch(loadBlock(Number(id)));
-        document.title = `V.O: Block ${id}`
+        document.title = `A.O: Block ${id}`
     }, [dispatch, id]);
 
     return (<div className={"block-wrapper"}>

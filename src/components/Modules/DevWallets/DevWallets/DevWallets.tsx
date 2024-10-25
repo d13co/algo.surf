@@ -50,7 +50,7 @@ function DevWallets(): JSX.Element {
     }, []);
 
     useEffect(() => {
-        document.title = 'V.O: Dev Wallets';
+        document.title = 'A.O: Dev Wallets';
     }, [location]);
 
     return (<div className={"dev-wallets-wrapper"}>

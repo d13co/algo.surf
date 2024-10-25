@@ -27,7 +27,7 @@ function Asset(): JSX.Element {
 
     useEffect(() => {
         dispatch(loadAsset(Number(id)));
-        document.title = `V.O: Asset ${id}`
+        document.title = `A.O: Asset ${id}`
     }, [dispatch, id]);
 
     const b64Name = !assetInstance.getName()

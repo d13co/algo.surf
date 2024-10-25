@@ -19,7 +19,7 @@ function NodeStatus(): JSX.Element {
     }, []);
 
     useEffect(() => {
-        document.title = 'V.O: Node Status';
+        document.title = 'A.O: Node Status';
     }, [location]);
 
     return (<div className={"node-status-wrapper"}>

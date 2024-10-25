@@ -21,7 +21,7 @@ function DeveloperApi(): JSX.Element {
     }, [dispatch]);
 
     useEffect(() => {
-        document.title = 'V.O: Developer API';
+        document.title = 'A.O: Developer API';
     }, [location]);
 
     return (<div className={"developer-api-wrapper"}>

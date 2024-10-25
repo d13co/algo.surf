@@ -23,7 +23,7 @@ function ABIStudio(): JSX.Element {
     }, []);
 
     useEffect(() => {
-        document.title = 'V.O: ABI Studio';
+        document.title = 'A.O: ABI Studio';
     }, [location]);
 
     return (<div className={"abi-studio-wrapper"}>

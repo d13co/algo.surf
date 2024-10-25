@@ -38,7 +38,7 @@ function Application(): JSX.Element {
 
     useEffect(() => {
         dispatch(loadApplication(Number(id)));
-        document.title = `V.O: Application ${id}`
+        document.title = `A.O: Application ${id}`
     }, [dispatch, id]);
 
     return (<div className={"application-wrapper"}>
