@@ -4,6 +4,7 @@ import {useNavigate, useLocation} from "react-router-dom";
 import {Grid, Tab, Tabs} from "@mui/material";
 import Search from "../Search/Search";
 
+const networkLabel = process.env.REACT_APP_NETWORK;
 
 function Header(): JSX.Element {
     const navigate = useNavigate();
@@ -23,7 +24,7 @@ function Header(): JSX.Element {
             <div>
                 <Grid container>
                     <Tabs variant="scrollable" scrollButtons="auto" sx={{marginLeft: '-20px', borderBottom: '1px solid #f2f2f2'}} value={route} TabIndicatorProps={{ children: <span className="MuiTabs-indicatorSpan" />}}>
-                        <Tab label="Home" value="home" onClick={() => {
+                        <Tab label={`Ⱥ ${networkLabel} Observer` }value="home" onClick={() => {
                             navigate('/explorer/home');
                         }}/>
                         <Tab label="Accounts" value="accounts" onClick={() => {

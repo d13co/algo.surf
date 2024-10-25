@@ -27,32 +27,17 @@ import ApplicationTransactions
 import Transaction from "../Modules/Explorer/Records/Transaction/Transaction";
 import Group from "../Modules/Explorer/Records/Group/Group";
 import GroupTransactions from "../Modules/Explorer/Records/Group/RelatedList/GroupTransactions/GroupTransactions";
-import LeftBar from "../LeftBar/LeftBar";
-import Settings from "../LeftBar/Settings/Settings";
 import Loader from "../Common/Loader/Loader";
 import AppSnackbar from "./AppSnackbar";
-import Arc from "../Modules/ArcPortal/Arc/Arc";
-import ArcOverview from "../Modules/ArcPortal/Arc/RelatedList/ArcOverview/ArcOverview";
 import IndexerApi from "../Modules/DeveloperApi/IndexerApi/IndexerApi";
 import AlgodApi from "../Modules/DeveloperApi/AlgodApi/AlgodApi";
-import ArcPortal from "../Modules/ArcPortal/ArcPortal/ArcPortal";
-import ArcWorkspace from "../Modules/ArcPortal/Arc/RelatedList/ArcWorkspace/ArcWorkspace";
-import ABIStudio from "../Modules/ABI/ABIStudio/ABIStudio";
-import Dispenser from "../Modules/Dispenser/Dispenser";
-import NodeStatus from "../Modules/NodeStatus/NodeStatus";
-import ArcHome from "../Modules/ArcPortal/Home/ArcHome";
-import DevWallets from "../Modules/DevWallets/DevWallets/DevWallets";
 import SetupConfig from "../Modules/SetupConfig/setupConfig";
+import Footer from "./Footer";
 
 function AppRouter(): JSX.Element {
-
-
     return (<div>
         <BrowserRouter>
             <div className="app-container">
-                <div className="app-left">
-                    <LeftBar></LeftBar>
-                </div>
                 <div className="app-right">
                     <div className="content-wrapper">
                         <div className="content-container">
@@ -90,35 +75,14 @@ function AppRouter(): JSX.Element {
                                     </Route>
                                     <Route index element={<Navigate to="home" replace />} />
                                 </Route>
-                                <Route path="/developer-api" element={<DeveloperApi></DeveloperApi>}>
-                                    <Route path="indexer" element={<IndexerApi></IndexerApi>} />
-                                    <Route path="algod" element={<AlgodApi></AlgodApi>} />
-                                    <Route path="" element={<Navigate to="indexer" replace />}/>
-                                </Route>
-                                <Route path="/arc-portal" element={<ArcPortal></ArcPortal>}>
-                                    <Route path="/arc-portal/home" element={<ArcHome></ArcHome>} />
-                                    <Route path="/arc-portal/arc/:id" element={<Arc></Arc>}>
-                                        <Route path="overview" element={<ArcOverview></ArcOverview>} />
-                                        <Route path="workspace" element={<ArcWorkspace></ArcWorkspace>} />
-                                        <Route path="" element={<Navigate to="overview" replace />}/>
-                                    </Route>
-                                    <Route index element={<Navigate to="home" replace />} />
-                                </Route>
-                                <Route path="/abi-studio" element={<ABIStudio></ABIStudio>}></Route>
-                                <Route path="/dispenser" element={<Dispenser></Dispenser>}></Route>
-                                <Route path="/node-status" element={<NodeStatus></NodeStatus>}></Route>
-                                <Route path="/dev-wallets" element={<DevWallets></DevWallets>}></Route>
-                                <Route path="/setup-config" element={<SetupConfig></SetupConfig>}></Route>
                                 <Route path="*" element={<Navigate to="/explorer" replace />}/>
                             </Routes>
+                            <Footer />
                         </div>
 
                     </div>
                 </div>
             </div>
-
-
-            <Settings></Settings>
             <Loader></Loader>
             <AppSnackbar></AppSnackbar>
         </BrowserRouter>

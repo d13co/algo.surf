@@ -1,6 +1,8 @@
 .app-root {
   .app-container {
     display: flex;
+    flex-direction: column;
+    min-height: 100svh;
     justify-content: start;
     @media only screen and (max-width: 900px) {
       .app-left {
@@ -19,7 +21,7 @@
         overflow: auto;
         @media only screen and (max-width: 900px) {
           .content-container {
-            margin: 0px 0px 0px 10px;
+            margin: 10px 10px 10px 10px;
           }
         }
         @media only screen and (min-width: 901px) {
