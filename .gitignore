@@ -24,7 +24,8 @@ chrome-user-data
 packages/*/dist
 packages/*/build
 .vercel
-.yarn
+.yarn/cache
 .yarnrc
 .env
 build/
+.yarnrc.yml
