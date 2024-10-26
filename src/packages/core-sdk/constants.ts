@@ -27,7 +27,7 @@ export enum NETWORKS {
     BETANET = 'betanet',
     TESTNET = 'testnet',
     MAINNET = 'mainnet',
-    SANDBOX = 'sandbox',
+    LOCALNET= 'localnet',
     FNET    = 'fnet',
 }
 

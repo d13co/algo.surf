@@ -49,8 +49,8 @@ export function getKMDConfig(): KMDConnectionParams {
 export function getNodes(): NodeConnectionParams[] {
     return [
         {
-            id: 'sandbox',
-            label: 'Sandbox',
+            id: 'localnet',
+            label: 'Localnet',
             algod: {
                 url: 'http://localhost',
                 port: '4001',

@@ -79,15 +79,6 @@ export class CoreNode {
         }
 
         return this.status["next-version"];
-        // if (this.isBetanet()) {
-        //     return REACT_APP_STABLE_CONSENSUS_VERSION;
-        // }
-        // if (this.isTestnet()) {
-        //     return REACT_APP_STABLE_CONSENSUS_VERSION;
-        // }
-        // if (this.isMainnet()) {
-        //     return REACT_APP_STABLE_CONSENSUS_VERSION;
-        // }
     }
 
     hasLatestConsensusVersion(): boolean {
