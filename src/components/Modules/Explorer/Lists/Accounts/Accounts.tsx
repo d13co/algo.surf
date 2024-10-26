@@ -105,7 +105,7 @@ function Accounts(): JSX.Element {
     return (<div className={"accounts-wrapper"}>
         <div className={"accounts-container"}>
             <div className="accounts-body">
-                <div style={{ height: 700, width: '100%' }}>
+                <div style={{ width: '100%' }}>
                     <DataGrid
                         loading={loading}
                         rows={list}
