@@ -10,6 +10,7 @@ import {CoreGroup} from "../../../../../packages/core-sdk/classes/core/CoreGroup
 import LinkToBlock from "../../Common/Links/LinkToBlock";
 import {Alert} from "@mui/lab";
 
+const network = process.env.REACT_APP_NETWORK;
 
 function Group(): JSX.Element {
     const dispatch = useDispatch();
@@ -29,7 +30,7 @@ function Group(): JSX.Element {
 
     useEffect(() => {
         dispatch(loadGroup({id, blockId: Number(blockId)}));
-        document.title = `A.O: Group Txn ${id}`
+        document.title = `A.O ${network}: Group Txn ${id}`
     }, [dispatch, id, blockId]);
 
     return (<div className={"group-wrapper"}>

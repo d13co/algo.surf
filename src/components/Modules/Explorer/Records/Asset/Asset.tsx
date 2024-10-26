@@ -16,6 +16,8 @@ import AssetARCValidator from "./Actions/AssetARCValidator/AssetARCValidator";
 import MultiFormatViewer from "../../../../../components/Common/MultiFormatViewer/MultiFormatViewer";
 import Copyable from "../../../../../components/Common/Copyable/Copyable";
 
+const network = process.env.REACT_APP_NETWORK;
+
 function Asset(): JSX.Element {
     const dispatch = useDispatch();
     const navigate = useNavigate();
@@ -27,7 +29,7 @@ function Asset(): JSX.Element {
 
     useEffect(() => {
         dispatch(loadAsset(Number(id)));
-        document.title = `A.O: Asset ${id}`
+        document.title = `A.O ${network}: Asset ${id}`
     }, [dispatch, id]);
 
     const b64Name = !assetInstance.getName()

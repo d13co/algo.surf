@@ -30,6 +30,8 @@ import AssetFreezeTransaction from "./Types/AssetFreezeTransaction/AssetFreezeTr
 import StateProofTransaction from "./Types/StateProofTransaction/StateProofTransaction";
 import Copyable from '../../../../Common/Copyable/Copyable';
 
+const network = process.env.REACT_APP_NETWORK;
+
 function Transaction(): JSX.Element {
     const dispatch = useDispatch();
     const params = useParams();
@@ -44,7 +46,7 @@ function Transaction(): JSX.Element {
 
     useEffect(() => {
         dispatch(loadTransaction(id));
-        document.title = `A.O: Txn ${id}`
+        document.title = `A.O ${network}: Txn ${id}`
     }, [dispatch, id]);
 
     return (<div className={"transaction-wrapper"}>

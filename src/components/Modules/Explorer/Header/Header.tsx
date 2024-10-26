@@ -24,7 +24,7 @@ function Header(): JSX.Element {
             <div>
                 <Grid container>
                     <Tabs variant="scrollable" scrollButtons="auto" sx={{marginLeft: '-20px', borderBottom: '1px solid #f2f2f2'}} value={route} TabIndicatorProps={{ children: <span className="MuiTabs-indicatorSpan" />}}>
-                        <Tab label={`Ⱥ ${networkLabel} Observer` }value="home" onClick={() => {
+                        <Tab label={`Ⱥ Observer ${networkLabel}` }value="home" onClick={() => {
                             navigate('/explorer/home');
                         }}/>
                         <Tab label="Accounts" value="accounts" onClick={() => {

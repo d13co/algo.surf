@@ -13,6 +13,8 @@ import LinkToAccount from "../../Common/Links/LinkToAccount";
 import {Alert} from "@mui/lab";
 import Copyable from '../../../../Common/Copyable/Copyable';
 
+const network = process.env.REACT_APP_NETWORK;
+
 function Block(): JSX.Element {
     const dispatch = useDispatch();
     const navigate = useNavigate();
@@ -31,7 +33,7 @@ function Block(): JSX.Element {
 
     useEffect(() => {
         dispatch(loadBlock(Number(id)));
-        document.title = `A.O: Block ${id}`
+        document.title = `A.O ${network}: Block ${id}`
     }, [dispatch, id]);
 
     return (<div className={"block-wrapper"}>

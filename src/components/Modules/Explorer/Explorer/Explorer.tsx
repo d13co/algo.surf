@@ -5,6 +5,8 @@ import {initLivedata} from "../../../../redux/explorer/actions/liveData";
 import {Outlet, useLocation} from "react-router-dom";
 import Header from "../Header/Header";
 
+const network = process.env.REACT_APP_NETWORK;
+
 function Explorer(): JSX.Element {
   const location = useLocation();
 
@@ -13,7 +15,7 @@ function Explorer(): JSX.Element {
 
   useEffect(() => {
     if (location.pathname.endsWith('/explorer/home')) {
-      document.title = 'A.O: Explorer';
+      document.title = `A.O ${network}: Algorand Observer`;
     }
   }, [location]);
 
