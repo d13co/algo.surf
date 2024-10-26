@@ -7,7 +7,7 @@ export class BrowserAlgoSigner implements Signer{
     private supportedNetworks: string[];
 
     constructor() {
-        this.supportedNetworks = [NETWORKS.TESTNET, NETWORKS.MAINNET, NETWORKS.BETANET, NETWORKS.SANDBOX];
+        this.supportedNetworks = [NETWORKS.TESTNET, NETWORKS.MAINNET, NETWORKS.BETANET, NETWORKS.LOCALNET];
     }
 
     async signTxn(unsignedTxn: Transaction): Promise<Uint8Array> {
@@ -69,7 +69,7 @@ export class BrowserAlgoSigner implements Signer{
         if (name === NETWORKS.TESTNET) {
             return ALGO_SIGNER_NET.TESTNET
         }
-        if (name === NETWORKS.SANDBOX) {
+        if (name === NETWORKS.LOCALNET) {
             return ALGO_SIGNER_NET.SANDBOX
         }
     }

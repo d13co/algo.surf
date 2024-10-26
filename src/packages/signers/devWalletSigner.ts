@@ -9,7 +9,7 @@ export class DevWalletSigner implements Signer{
     private supportedNetworks: string[];
 
     constructor() {
-        this.supportedNetworks = [NETWORKS.SANDBOX, NETWORKS.BETANET, NETWORKS.TESTNET];
+        this.supportedNetworks = [NETWORKS.LOCALNET, NETWORKS.BETANET, NETWORKS.TESTNET];
     }
 
     async signTxn(unsignedTxn: Transaction): Promise<any> {
