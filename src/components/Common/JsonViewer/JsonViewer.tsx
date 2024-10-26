@@ -5,6 +5,7 @@ import ReactJson from 'react-json-view'
 import {copyContent, exportData} from "../../../utils/common";
 import {useDispatch} from "react-redux";
 import CloseIcon from "@mui/icons-material/Close";
+import {theme} from '../../../theme';
 
 interface JsonViewerState{
     show: boolean,
@@ -51,7 +52,7 @@ function JsonViewer(props): JSX.Element {
             <Button
                 variant={variant}
                 size={size}
-                color={"primary"}
+                sx={{backgroundColor: theme.palette.primary.light}}
                 fullWidth={fullWidth}
                 onClick={() => {
                     setState(prevState => ({...prevState, show: true}));
