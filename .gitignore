@@ -28,4 +28,3 @@ packages/*/build
 .yarnrc
 .env
 build/
-.yarnrc.yml

@@ -5,12 +5,14 @@ import {Grid} from "@mui/material";
 import LiveBlocks from "../LiveBlocks/LiveBlocks";
 import LiveTransactions from "../LiveTransactions/LiveTransactions";
 
+const network = process.env.REACT_APP_NETWORK;
+
 function Home(): JSX.Element {
     return (<div className={"home-wrapper"}>
         <div className={"home-container"}>
             <div className="home-body">
                 <div className="tag-line">
-                    Algorand Blockchain Explorer
+                    Algorand {network} Blockchain Observer
                 </div>
                 <div className="search-section">
                     <Search></Search>

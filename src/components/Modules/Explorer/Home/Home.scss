@@ -17,8 +17,7 @@
       .search-section {
         margin-top: 15px;
         @media only screen and (max-width: 900px) {
-          margin-left: 30px;
-          margin-right: 10px;
+          display: none;
         }
       }
       .live-section {
