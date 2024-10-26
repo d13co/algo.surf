@@ -77,8 +77,8 @@ function AppRouter(): JSX.Element {
                                 </Route>
                                 <Route path="*" element={<Navigate to="/explorer" replace />}/>
                             </Routes>
-                            <Footer />
                         </div>
+                        <Footer />
 
                     </div>
                 </div>
