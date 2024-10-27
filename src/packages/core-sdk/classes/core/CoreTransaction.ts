@@ -70,11 +70,27 @@ export class CoreTransaction {
             return 'Transfer';
         }
         else if(type === TXN_TYPES.APP_CALL) {
-            return 'App call';
+            const appPayload = this.getAppCallPayload();
+            const onCompletion = appPayload['on-completion'];
+            switch(onCompletion) {
+                case "optin":	      return "App optin";
+                case "closeout":	  return "App close out";
+                case "clear":	      return "App clear";
+                case "update":	    return "App update";
+                case "delete":	    return "App delete";
+                case "noop":
+                default:
+                    const appId = appPayload['application-id'];
+                    return appId ? 'App call' : 'App create';
+            }
         }
         else if(type === TXN_TYPES.STATE_PROOF) {
             return 'State proof';
         }
+    }
+
+    getRekeyTo(): string {
+        return this.txn['rekey-to'];
     }
 
     getTo(): string {
