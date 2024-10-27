@@ -9,6 +9,7 @@ import LoadingTile from "../../../../Common/LoadingTile/LoadingTile";
 import {CoreBlock} from "../../../../../packages/core-sdk/classes/core/CoreBlock";
 import CustomError from "../../Common/CustomError/CustomError";
 import LinkToBlock from "../../Common/Links/LinkToBlock";
+import JsonViewer from "../../../../Common/JsonViewer/JsonViewer";
 import LinkToAccount from "../../Common/Links/LinkToAccount";
 import {Alert} from "@mui/lab";
 import Copyable from '../../../../Common/Copyable/Copyable';
@@ -43,6 +44,9 @@ function Block(): JSX.Element {
                 <div className="block-header">
                     <div>
                         Block overview
+                    </div>
+                    <div>
+                        <JsonViewer obj={block.information} title="Block"></JsonViewer>
                     </div>
                 </div>
 

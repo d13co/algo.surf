@@ -8,6 +8,7 @@
       font-weight: bold;
       font-family: PoppinsBold !important;
       display: flex;
+      align-items: center;
       justify-content: space-between;
     }
     .block-body {
@@ -35,7 +36,7 @@
               display: inline-block;
               text-overflow: ellipsis;
               overflow: hidden;
-              max-width: calc(100vw - 100px);
+              max-width: calc(100vw - 20px);
             }
             &.small {
               font-size: 13px;

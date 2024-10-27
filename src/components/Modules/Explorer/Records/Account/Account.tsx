@@ -1,5 +1,5 @@
 import './Account.scss';
-import React, {useEffect} from "react";
+import React, {useMemo, useEffect} from "react";
 import {matchPath, Outlet, useLocation, useNavigate, useParams} from "react-router-dom";
 import {useDispatch, useSelector} from "react-redux";
 import {loadAccount} from "../../../../../redux/explorer/actions/account";
@@ -47,6 +47,8 @@ function Account(): JSX.Element {
         document.title = `A.O ${network}: Account ${address}`
     }, [dispatch, address]);
 
+    const hasAssetOrAppInfo = account.optedApplications.length || account.createdApplications.length || account.createdAssets.length || account.optedAssets.length;
+
     return (<div className={"account-wrapper"}>
         <div className={"account-container"}>
 
@@ -74,7 +76,7 @@ function Account(): JSX.Element {
 
                     <div className="props">
                         <Grid container spacing={2}>
-                            <Grid item xs={12} sm={6} md={6} lg={3} xl={3}>
+                            <Grid item xs={12} sm={6} md={6} lg={4} xl={4}>
                                 <div className="property">
                                     <div className="key">
                                         Balance
@@ -91,8 +93,7 @@ function Account(): JSX.Element {
                                 </div>
                             </Grid>
                             { account.escrowOf ? <>
-                                <Grid item xs={12} sm={3} md={1} lg={1} xl={1}></Grid>
-                                <Grid item xs={12} sm={6} md={6} lg={3} xl={3}>
+                                <Grid item xs={12} sm={6} md={6} lg={4} xl={4}>
                                     <div className="property">
                                         <div className="key">
                                             Application Escrow
@@ -105,8 +106,7 @@ function Account(): JSX.Element {
                                 </Grid>
                             </> : null }
                             { account.information['auth-addr'] ? <>
-                                <Grid item xs={12} sm={3} md={1} lg={1} xl={1}></Grid>
-                                <Grid item xs={12} sm={6} md={6} lg={3} xl={3}>
+                                <Grid item xs={12} sm={6} md={6} lg={4} xl={4}>
                                     <div className="property">
                                         <div className="key">
                                             Rekeyed to
@@ -118,8 +118,9 @@ function Account(): JSX.Element {
                                 </Grid>
                             </> : null }
                         </Grid>
+                        { account.information.amount ?
                         <Grid container spacing={2}>
-                            <Grid item xs={12} sm={6} md={6} lg={3} xl={3}>
+                            <Grid item xs={12} sm={6} md={6} lg={4} xl={4}>
                                 <div className="property">
                                     <div className="key">
                                         Minimum balance
@@ -135,54 +136,52 @@ function Account(): JSX.Element {
                                     </div>
                                 </div>
                             </Grid>
-                        </Grid>
-                        <Grid container spacing={2} style={{marginTop: 5}}>
+                        </Grid> : null }
 
+                        { hasAssetOrAppInfo ? 
+                            <Grid container spacing={2}>
+                                <Grid item xs={12} sm={6} md={6} lg={4} xl={4}>
+                                    { account.optedAssets.length ? 
+                                    <div className="property">
+                                        <div className="key">
+                                            Holding assets
+                                        </div>
+                                        <div className="value padded">
+                                            {account.optedAssets.length}
+                                        </div>
+                                    </div> : null }
 
+                                    { account.createdAssets.length ? 
+                                    <div className="property">
+                                        <div className="key">
+                                            Created assets
+                                        </div>
+                                        <div className="value padded">
+                                            {account.createdAssets.length}
+                                        </div>
+                                    </div> : null }
 
+                                    { account.createdApplications.length ? 
+                                    <div className="property">
+                                        <div className="key">
+                                            Created applications
+                                        </div>
+                                        <div className="value padded">
+                                            {account.createdApplications.length}
+                                        </div>
+                                    </div> : null }
 
-                            <Grid item xs={12} sm={6} md={6} lg={3} xl={3}>
-                                <div className="property">
-                                    <div className="key">
-                                        Holding assets
-                                    </div>
-                                    <div className="value">
-                                        {account.optedAssets.length}
-                                    </div>
-                                </div>
-
-                                <div className="property">
-                                    <div className="key">
-                                        Created assets
-                                    </div>
-                                    <div className="value">
-                                        {account.createdAssets.length}
-                                    </div>
-                                </div>
-                            </Grid>
-                            <Grid item xs={12} sm={3} md={1} lg={1} xl={1}></Grid>
-                            <Grid item xs={12} sm={6} md={5} lg={3} xl={3}>
-                                <div className="property">
-                                    <div className="key">
-                                        Created applications
-                                    </div>
-                                    <div className="value">
-                                        {account.createdApplications.length}
-                                    </div>
-                                </div>
-
-                                <div className="property">
-                                    <div className="key">
-                                        Opted applications
-                                    </div>
-                                    <div className="value">
-                                        {account.optedApplications.length}
-                                    </div>
-                                </div>
-                            </Grid>
-
-
-                        </Grid>
+                                    { account.optedApplications.length ? 
+                                    <div className="property">
+                                        <div className="key">
+                                            Opted applications
+                                        </div>
+                                        <div className="value padded">
+                                            {account.optedApplications.length}
+                                        </div>
+                                    </div> : null }
+                                </Grid>
+                            </Grid> : null }
                     </div>
 
 
@@ -193,18 +192,22 @@ function Account(): JSX.Element {
                             <Tab label="Transactions" value="transactions" onClick={() => {
                                 navigate('/explorer/account/' + address + '/transactions');
                             }}/>
+                            { account.optedAssets.length ?
                             <Tab label="Assets" value="assets" onClick={() => {
                                 navigate('/explorer/account/' + address + '/assets');
-                            }}/>
+                            }}/> : null }
+                            { account.createdAssets.length ?
                             <Tab label="Created assets" value="created-assets" onClick={() => {
                                 navigate('/explorer/account/' + address + '/created-assets');
-                            }}/>
+                            }}/> : null }
+                            { account.createdApplications.length ?
                             <Tab label="Created applications" value="created-applications" onClick={() => {
                                 navigate('/explorer/account/' + address + '/created-applications');
-                            }}/>
+                            }}/> : null }
+                            { account.optedApplications.length ?
                             <Tab label="Opted applications" value="opted-applications" onClick={() => {
                                 navigate('/explorer/account/' + address + '/opted-applications');
-                            }}/>
+                            }}/> : null }
                         </Tabs>
 
                         <Outlet />

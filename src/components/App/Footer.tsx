@@ -1,5 +1,6 @@
 import "./Footer.scss";
-import {Link} from "@mui/material";
+import {Link, Tooltip} from "@mui/material";
+import { Github, Twitter } from 'lucide-react';
 
 const map = {
     "Mainnet": "https://algorand.observer",
@@ -11,10 +12,22 @@ const map = {
 
 function Footer(): JSX.Element {
     return <div className="footer">
-        <div>
-            Algorand Observer &middot; <Link href="https://github.com/d13co/algorand.observer">Github</Link> &middot; <Link href="https://x.com/d13_co">&nbsp;X&nbsp;</Link> 
+        <div className="left">
+            Algorand Observer
+            <Tooltip title="Source on Github">
+                <Link href="https://github.com/d13co/algorand.observer"><Github size={16} color="black" strokeWidth={1.75} /></Link>
+            </Tooltip>
+            <Tooltip title="Maintainer on X">
+                <Link href="https://x.com/d13_co"><Twitter size={16} color="black" strokeWidth={1.75} /></Link>
+            </Tooltip>
         </div>
-        <div><Networks /></div>
+        <div>
+            <Tooltip title="Switch network">
+                <span>
+                    <Networks />
+                </span>
+            </Tooltip>
+        </div>
     </div>
 }
 

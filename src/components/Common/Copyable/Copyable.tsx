@@ -27,8 +27,8 @@ export default function Copyable({ value, style }: { value: string | number, sty
   }, [value]);
 
   return <Tooltip title={title}>
-    <IconButton aria-label="copy" size="small" className="success" style={style} onClick={copy}>
-    {icon}
+    <IconButton aria-label="copy" size="small" className="success" style={style} onClick={copy} sx={{paddingTop: 0, paddingBottom: 0}}>
+      {icon}
     </IconButton>
   </Tooltip>;
 }

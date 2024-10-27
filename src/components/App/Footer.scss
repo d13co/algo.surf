@@ -1,8 +1,25 @@
+.footer:hover {
+  opacity: 1;
+}
+
 .footer {
   display: flex;
+  transition: opacity 250ms;
   justify-content: space-between;
-
-  margin-top: 5px;
+  align-items: center;
+  font-size: 85%;
+  margin-top: 25px;
+  opacity: 0.6;
+  .left {
+    display: flex;
+    align-items: center;
+    a:first-child {
+      margin-left: 10px;
+    }
+    a {
+      margin-left: 6px;
+    }
+  }
 
   .current {
     text-decoration: none !important;
