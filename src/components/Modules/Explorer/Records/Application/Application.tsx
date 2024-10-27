@@ -68,7 +68,7 @@ function Application(): JSX.Element {
                                         Creator
                                     </div>
                                     <div className="value small">
-                                        <LinkToAccount address={applicationInstance.getCreator()}></LinkToAccount>
+                                        <LinkToAccount copySize="m" address={applicationInstance.getCreator()}></LinkToAccount>
                                     </div>
                                 </div>
                             </Grid>
@@ -78,7 +78,7 @@ function Application(): JSX.Element {
                                         Application account
                                     </div>
                                     <div className="value small">
-                                        <LinkToAccount address={applicationInstance.getApplicationAddress()}></LinkToAccount>
+                                        <LinkToAccount copySize="m" address={applicationInstance.getApplicationAddress()}></LinkToAccount>
                                     </div>
                                 </div>
                             </Grid>

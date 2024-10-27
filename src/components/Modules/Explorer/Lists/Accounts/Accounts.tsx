@@ -62,7 +62,7 @@ function Accounts(): JSX.Element {
             headerName: 'Address',
             flex: 2,
             renderCell: (params: GridValueGetterParams) => {
-                return <LinkToAccount copy="left" address={params.row.address} strip={30}></LinkToAccount>
+                return <LinkToAccount copy="left" copySize="s" address={params.row.address} strip={30}></LinkToAccount>
             }
         },
         {

@@ -46,13 +46,13 @@ function NetworkDetails(): JSX.Element {
                                     <div className="tile-detail">
                                         <div className="key">Fee sink address</div>
                                         <div className="value">
-                                            <LinkToAccount address={coreNodeInstance.getFeeSinkAddress()} strip={30}></LinkToAccount>
+                                            <LinkToAccount copySize="m" address={coreNodeInstance.getFeeSinkAddress()} strip={30}></LinkToAccount>
                                         </div>
                                     </div>
                                     <div className="tile-detail">
                                         <div className="key">Rewards pool address</div>
                                         <div className="value">
-                                            <LinkToAccount address={coreNodeInstance.getRewardsPoolAddress()} strip={30}></LinkToAccount>
+                                            <LinkToAccount copySize="m" address={coreNodeInstance.getRewardsPoolAddress()} strip={30}></LinkToAccount>
                                         </div>
                                     </div>
                                     <div className="tile-detail">

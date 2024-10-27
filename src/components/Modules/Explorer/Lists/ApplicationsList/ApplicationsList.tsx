@@ -85,7 +85,7 @@ function ApplicationsList({applications = [], loading = false, fields = ['id', '
             renderCell: (params: GridValueGetterParams) => {
                 const appInstance = new CoreApplication(params.row);
                 return <div>
-                    <LinkToAccount copy="left" address={appInstance.getCreator()}></LinkToAccount>
+                    <LinkToAccount copySize="s" copy="left" address={appInstance.getCreator()}></LinkToAccount>
                 </div>;
             }
         });

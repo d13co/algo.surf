@@ -113,7 +113,7 @@ function Account(): JSX.Element {
                                             Rekeyed to
                                         </div>
                                         <div className="value">
-                                            <LinkToAccount strip={9} address={account.information['auth-addr']} />
+                                            <LinkToAccount copySize="m" strip={9} address={account.information['auth-addr']} />
                                         </div>
                                     </div>
                                 </Grid>

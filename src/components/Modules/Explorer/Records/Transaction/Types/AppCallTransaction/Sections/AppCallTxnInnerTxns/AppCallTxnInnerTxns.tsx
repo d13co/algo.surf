@@ -111,11 +111,11 @@ function AppCallTxnInnerTxns(props): JSX.Element {
                 }
                 }></Chip>
         </span>
-                    <span className="item small"><LinkToAccount address={txnInstance.getFrom()} strip={30}></LinkToAccount></span>
+                    <span className="item small"><LinkToAccount copySize="s" address={txnInstance.getFrom()} strip={30}></LinkToAccount></span>
                     <span className="item small">
             <ArrowForward fontSize={"small"} style={{verticalAlign: "text-bottom", marginRight: 5}}></ArrowForward>
                         {type === TXN_TYPES.PAYMENT || type === TXN_TYPES.ASSET_TRANSFER ? <span>
-                <LinkToAccount address={to} strip={30}></LinkToAccount>
+                <LinkToAccount copySize="s" address={to} strip={30}></LinkToAccount>
             </span> : ''}
 
                         {type === TXN_TYPES.APP_CALL ? <span>

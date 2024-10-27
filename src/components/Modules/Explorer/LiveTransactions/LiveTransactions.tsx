@@ -42,11 +42,11 @@ function LiveTransactions(): JSX.Element {
                                     </div>
                                     <div className="sub-text box">
                                         <span>From:</span>
-                                        <LinkToAccount copy={''} strip={25} address={txnInstance.getFrom()}></LinkToAccount>
+                                        <LinkToAccount copySize="m" copy={''} strip={25} address={txnInstance.getFrom()}></LinkToAccount>
                                     </div>
                                     {type === TXN_TYPES.PAYMENT || type === TXN_TYPES.ASSET_TRANSFER ? <div className="sub-text box">
                                         <span>To:</span>
-                                        <LinkToAccount  copy={''} strip={25} address={to}></LinkToAccount>
+                                        <LinkToAccount copySize="m" copy={''} strip={25} address={to}></LinkToAccount>
                                     </div> : ''}
                                     {type === TXN_TYPES.APP_CALL ? <div className="sub-text box">
                                         <span>Application:</span> <LinkToApplication id={appId}></LinkToApplication>

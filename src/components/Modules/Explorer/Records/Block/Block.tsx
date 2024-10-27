@@ -141,7 +141,7 @@ function Block(): JSX.Element {
                                         Proposer
                                     </div>
                                     <div className="value">
-                                        <LinkToAccount address={block.proposer} />
+                                        <LinkToAccount copySize="m" address={block.proposer} />
                                     </div>
                                 </div>
                             </Grid>

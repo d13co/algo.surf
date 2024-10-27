@@ -4,11 +4,11 @@ import {ellipseString} from "../../../../../packages/core-sdk/utils";
 import Copyable from "../../../../Common/Copyable/Copyable";
 import './LinkTo.scss';
 
-function LinkToAccount({address, copy='right', strip = 0}): JSX.Element {
+function LinkToAccount({address, copy='right', copySize, strip = 0}): JSX.Element {
     return <>
-        { copy === 'left' ? <Copyable size="s" value={address} /> : null }
+        { copy === 'left' ? <Copyable size={copySize} value={address} /> : null }
         <Link className="long-id" href={"/explorer/account/" + address}>{strip ? ellipseString(address, strip) : address}</Link>
-        { copy === 'right' ? <Copyable size="s" value={address} /> : null }
+        { copy === 'right' ? <Copyable size={copySize} value={address} /> : null }
     </>
 }
 

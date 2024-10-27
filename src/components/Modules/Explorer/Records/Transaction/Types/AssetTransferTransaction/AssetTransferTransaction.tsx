@@ -31,7 +31,7 @@ function AssetTransferTransaction(props): JSX.Element {
                                     Sender
                                 </div>
                                 <div className="value small">
-                                    <LinkToAccount address={txnInstance.getFrom()}></LinkToAccount>
+                                    <LinkToAccount copySize="m" address={txnInstance.getFrom()}></LinkToAccount>
                                 </div>
                             </div>
                         </Grid>
@@ -43,7 +43,7 @@ function AssetTransferTransaction(props): JSX.Element {
                                     Receiver
                                 </div>
                                 <div className="value small">
-                                    <LinkToAccount address={txnInstance.getTo()}></LinkToAccount>
+                                    <LinkToAccount copySize="m" address={txnInstance.getTo()}></LinkToAccount>
                                 </div>
                             </div>
                         </Grid>
@@ -84,7 +84,7 @@ function AssetTransferTransaction(props): JSX.Element {
                                     Close account
                                 </div>
                                 <div className="value small">
-                                    <LinkToAccount address={txnInstance.getCloseTo()}></LinkToAccount>
+                                    <LinkToAccount copySize="m" address={txnInstance.getCloseTo()}></LinkToAccount>
                                 </div>
                             </div>
                         </Grid> : ''}

@@ -29,7 +29,7 @@ function KeyRegTransaction(props): JSX.Element {
                                     Sender
                                 </div>
                                 <div className="value small">
-                                    <LinkToAccount address={txnInstance.getFrom()}></LinkToAccount>
+                                    <LinkToAccount copySize="m" address={txnInstance.getFrom()}></LinkToAccount>
                                 </div>
                             </div>
                         </Grid>

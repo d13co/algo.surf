@@ -90,7 +90,7 @@ function AppCallTxnLocalStateDelta(props): JSX.Element {
                                         return <div className="local-state-account-wrapper" key={accountLocalState.address}>
                                             <div className="local-state-account-container">
                                                 <div className="address">
-                                                    <LinkToAccount address={accountLocalState.address}></LinkToAccount>
+                                                    <LinkToAccount copySize="m" address={accountLocalState.address}></LinkToAccount>
                                                 </div>
                                                 <div className="state-delta">
                                                     <div style={{ width: '100%' }}>

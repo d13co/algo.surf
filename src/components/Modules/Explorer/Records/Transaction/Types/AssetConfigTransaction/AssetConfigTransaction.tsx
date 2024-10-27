@@ -35,7 +35,7 @@ function AssetConfigTransaction(props): JSX.Element {
                                     Sender
                                 </div>
                                 <div className="value small">
-                                    <LinkToAccount address={txnInstance.getFrom()}></LinkToAccount>
+                                    <LinkToAccount copySize="m" address={txnInstance.getFrom()}></LinkToAccount>
                                 </div>
                             </div>
                         </Grid>
@@ -146,7 +146,7 @@ function AssetConfigTransaction(props): JSX.Element {
                                     Manager account
                                 </div>
                                 <div className="value small">
-                                    {assetInstance.hasManager() ? <LinkToAccount address={assetInstance.getManager()}></LinkToAccount> : '--None--'}
+                                    {assetInstance.hasManager() ? <LinkToAccount copySize="m" address={assetInstance.getManager()}></LinkToAccount> : '--None--'}
                                 </div>
                             </div>
                         </Grid>
@@ -157,7 +157,7 @@ function AssetConfigTransaction(props): JSX.Element {
                                     Reserve account
                                 </div>
                                 <div className="value small">
-                                    {assetInstance.hasReserve() ? <LinkToAccount address={assetInstance.getReserve()}></LinkToAccount> : '--None--'}
+                                    {assetInstance.hasReserve() ? <LinkToAccount copySize="m" address={assetInstance.getReserve()}></LinkToAccount> : '--None--'}
                                 </div>
                             </div>
                         </Grid>
@@ -168,7 +168,7 @@ function AssetConfigTransaction(props): JSX.Element {
                                     Freeze account
                                 </div>
                                 <div className="value small">
-                                    {assetInstance.hasFreeze() ? <LinkToAccount address={assetInstance.getFreeze()}></LinkToAccount> : '--None--'}
+                                    {assetInstance.hasFreeze() ? <LinkToAccount copySize="m" address={assetInstance.getFreeze()}></LinkToAccount> : '--None--'}
                                 </div>
                             </div>
                         </Grid>
@@ -179,7 +179,7 @@ function AssetConfigTransaction(props): JSX.Element {
                                     Clawback account
                                 </div>
                                 <div className="value small">
-                                    {assetInstance.hasClawback() ? <LinkToAccount address={assetInstance.getClawback()}></LinkToAccount> : '--None--'}
+                                    {assetInstance.hasClawback() ? <LinkToAccount copySize="m" address={assetInstance.getClawback()}></LinkToAccount> : '--None--'}
                                 </div>
                             </div>
                         </Grid>

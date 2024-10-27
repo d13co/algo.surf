@@ -117,7 +117,7 @@ function Asset(): JSX.Element {
                                         Creator
                                     </div>
                                     <div className="value addr">
-                                        <LinkToAccount address={assetInstance.getCreator()}></LinkToAccount>
+                                        <LinkToAccount copySize="m" address={assetInstance.getCreator()}></LinkToAccount>
                                     </div>
                                 </div>
                             </Grid>
@@ -157,7 +157,7 @@ function Asset(): JSX.Element {
                                         Manager
                                     </div>
                                     <div className="value addr">
-                                        {assetInstance.hasManager() ? <LinkToAccount address={assetInstance.getManager()}></LinkToAccount> : '--None--'}
+                                        {assetInstance.hasManager() ? <LinkToAccount copySize="m" address={assetInstance.getManager()}></LinkToAccount> : '--None--'}
                                     </div>
                                 </div>
                             </Grid>
@@ -168,7 +168,7 @@ function Asset(): JSX.Element {
                                         Reserve
                                     </div>
                                     <div className="value addr">
-                                        {assetInstance.hasReserve() ? <LinkToAccount address={assetInstance.getReserve()}></LinkToAccount> : '--None--'}
+                                        {assetInstance.hasReserve() ? <LinkToAccount copySize="m" address={assetInstance.getReserve()}></LinkToAccount> : '--None--'}
                                     </div>
                                 </div>
                             </Grid>
@@ -179,7 +179,7 @@ function Asset(): JSX.Element {
                                         Freeze
                                     </div>
                                     <div className="value addr">
-                                        {assetInstance.hasFreeze() ? <LinkToAccount address={assetInstance.getFreeze()}></LinkToAccount> : '--None--'}
+                                        {assetInstance.hasFreeze() ? <LinkToAccount copySize="m" address={assetInstance.getFreeze()}></LinkToAccount> : '--None--'}
                                     </div>
                                 </div>
                             </Grid>
@@ -190,7 +190,7 @@ function Asset(): JSX.Element {
                                         Clawback
                                     </div>
                                     <div className="value addr">
-                                        {assetInstance.hasClawback() ? <LinkToAccount address={assetInstance.getClawback()}></LinkToAccount> : '--None--'}
+                                        {assetInstance.hasClawback() ? <LinkToAccount copySize="m" address={assetInstance.getClawback()}></LinkToAccount> : '--None--'}
                                     </div>
                                 </div>
                             </Grid>

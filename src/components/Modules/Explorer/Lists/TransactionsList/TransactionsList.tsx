@@ -139,7 +139,7 @@ function TransactionsList({transactions = [], loading = false, reachedLastPage =
                 }
 
                 return <div className="cell-content">
-                    {showLink ? <LinkToAccount copy="left" address={from}></LinkToAccount> : from}
+                    {showLink ? <LinkToAccount copySize="s" copy="left" address={from}></LinkToAccount> : from}
                 </div>;
             }
         });
@@ -176,7 +176,7 @@ function TransactionsList({transactions = [], loading = false, reachedLastPage =
                         </Alert>
                     </span>}
                     {type === TXN_TYPES.PAYMENT || type === TXN_TYPES.ASSET_TRANSFER ? <span>
-                        {showLink ? <LinkToAccount address={to}></LinkToAccount> : to}
+                        {showLink ? <LinkToAccount copySize="s" address={to}></LinkToAccount> : to}
                     </span> : ''}
 
                     {type === TXN_TYPES.APP_CALL ? <span>

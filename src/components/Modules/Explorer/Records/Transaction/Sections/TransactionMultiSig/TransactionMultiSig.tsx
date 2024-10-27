@@ -49,7 +49,7 @@ function TransactionMultiSig(props): JSX.Element {
                                     </div>
                                     <div className="value">
                                         {txnInstance.getMultiSigSubSignatures().map((addr) => {
-                                            return <div className="sub-sig" key={addr}><LinkToAccount address={addr}></LinkToAccount></div>;
+                                            return <div className="sub-sig" key={addr}><LinkToAccount copySize="m" address={addr}></LinkToAccount></div>;
                                         })}
                                     </div>
                                 </div>

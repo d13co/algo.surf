@@ -119,7 +119,7 @@ function AssetsList({assets = [], loading = false, accountInfo, fields = ['name'
             renderCell: (params: GridValueGetterParams) => {
                 const assetInstance = new CoreAsset(params.row);
                 return <div>
-                    <LinkToAccount copy="left" address={assetInstance.getCreator()} strip={30}></LinkToAccount>
+                    <LinkToAccount copy="left" copySize="s" address={assetInstance.getCreator()} strip={30}></LinkToAccount>
                 </div>;
             }
         },
