@@ -6,9 +6,9 @@ import './LinkTo.scss';
 
 function LinkToAccount({address, copy='right', strip = 0}): JSX.Element {
     return <>
-        { copy === 'left' ? <Copyable value={address} /> : null }
+        { copy === 'left' ? <Copyable size="s" value={address} /> : null }
         <Link className="long-id" href={"/explorer/account/" + address}>{strip ? ellipseString(address, strip) : address}</Link>
-        { copy === 'right' ? <Copyable value={address} /> : null }
+        { copy === 'right' ? <Copyable size="s" value={address} /> : null }
     </>
 }
 

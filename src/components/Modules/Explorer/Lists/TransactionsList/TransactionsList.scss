@@ -15,9 +15,11 @@
         vertical-align: text-bottom;
       }
       .group-txn-icon {
-        margin-left: -10px;
+        margin-left: -5px;
       }
       .cell-content {
+        display: flex;
+        align-items: center;
         .mini-alert {
           width: 32px;
           height: 24px;

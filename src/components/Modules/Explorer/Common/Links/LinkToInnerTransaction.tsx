@@ -1,8 +1,9 @@
 import {Link} from "@mui/material";
 import React from "react";
+import './LinkTo.scss';
 
 function LinkToInnerTransaction({id, index, name}): JSX.Element {
-    return <Link href={"/explorer/transaction/" + id + "/inner-txn/" + index}>{name}</Link>;
+    return <Link className="long-id" href={"/explorer/transaction/" + id + "/inner-txn/" + index}>{name}</Link>;
 }
 
 export default LinkToInnerTransaction;

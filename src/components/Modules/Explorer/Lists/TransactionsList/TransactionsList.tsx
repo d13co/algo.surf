@@ -32,6 +32,7 @@ import LinkToGroup from "../../Common/Links/LinkToGroup";
 import {Alert} from "@mui/lab";
 import AssetBalance from "../../Common/AssetBalance/AssetBalance";
 import Copyable from "../../../../Common/Copyable/Copyable";
+import RekeyIcon from "./RekeyIcon";
 
 interface TransactionsListProps {
     transactions: A_SearchTransaction[];
@@ -42,7 +43,6 @@ interface TransactionsListProps {
     recordId?: string,
     recordDef?: any
 }
-
 
 function TransactionsList({transactions = [], loading = false, reachedLastPage = () => {}, fields = ['id', 'block', 'age', 'from', 'to', 'amount', 'fee', 'type'], record = '', recordId = '', recordDef = {}}: TransactionsListProps): JSX.Element {
     const dispatch = useDispatch();
@@ -84,11 +84,12 @@ function TransactionsList({transactions = [], loading = false, reachedLastPage =
                 const txnInstance = new CoreTransaction(params.row);
                 const txnId = txnInstance.getId();
                 const groupId = txnInstance.getGroup();
+                const rekey = !!txnInstance.getRekeyTo();
                 const showGroupIcon = groupId && record !== 'group';
-
                 return <div className="cell-content">
-                    <Copyable value={txnId} />
-                    {showGroupIcon ? <span className="group-txn-icon"><LinkToGroup id={groupId} blockId={txnInstance.getBlock()} icon={true}></LinkToGroup></span> : ''}
+                    <Copyable size="s" value={txnId} />
+                    { rekey ? <RekeyIcon /> : null }
+                    { showGroupIcon ? <span className="group-txn-icon"><LinkToGroup id={groupId} blockId={txnInstance.getBlock()} icon={true}></LinkToGroup></span> : ''}
                     <LinkToTransaction id={txnId}></LinkToTransaction>
 
                 </div>;
@@ -138,7 +139,7 @@ function TransactionsList({transactions = [], loading = false, reachedLastPage =
                 }
 
                 return <div className="cell-content">
-                    {showLink ? <LinkToAccount address={from}></LinkToAccount> : from}
+                    {showLink ? <LinkToAccount copy="left" address={from}></LinkToAccount> : from}
                 </div>;
             }
         });
