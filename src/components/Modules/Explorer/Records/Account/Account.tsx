@@ -29,16 +29,19 @@ function Account(): JSX.Element {
     let tabValue = 'transactions';
     const { pathname } = useLocation();
 
-    if (matchPath("/explorer/account/:address/assets", pathname)) {
+    const hasOptedAssets = account.optedAssets.length
+    const hasCreatedAssets = account.createdAssets.length;
+    const hasOptedApps = account.optedApplications.length;
+    const hasCreatedApps = account.createdApplications.length;
+    const hasAssetOrAppInfo = hasOptedAssets || hasCreatedAssets || hasOptedApps || hasCreatedApps;
+
+    if (hasOptedAssets && matchPath("/explorer/account/:address/assets", pathname)) {
         tabValue = 'assets';
-    }
-    else if (matchPath("/explorer/account/:address/created-assets", pathname)) {
+    } else if (hasCreatedAssets && matchPath("/explorer/account/:address/created-assets", pathname)) {
         tabValue = 'created-assets';
-    }
-    else if (matchPath("/explorer/account/:address/created-applications", pathname)) {
+    } else if (hasCreatedApps && matchPath("/explorer/account/:address/created-applications", pathname)) {
         tabValue = 'created-applications';
-    }
-    else if (matchPath("/explorer/account/:address/opted-applications", pathname)) {
+    } else if (hasOptedApps && matchPath("/explorer/account/:address/opted-applications", pathname)) {
         tabValue = 'opted-applications';
     }
 
@@ -46,8 +49,6 @@ function Account(): JSX.Element {
         dispatch(loadAccount(address));
         document.title = `A.O ${network}: Account ${address}`
     }, [dispatch, address]);
-
-    const hasAssetOrAppInfo = account.optedApplications.length || account.createdApplications.length || account.createdAssets.length || account.optedAssets.length;
 
     return (<div className={"account-wrapper"}>
         <div className={"account-container"}>
@@ -141,7 +142,7 @@ function Account(): JSX.Element {
                         { hasAssetOrAppInfo ? 
                             <Grid container spacing={2}>
                                 <Grid item xs={12} sm={6} md={6} lg={4} xl={4}>
-                                    { account.optedAssets.length ? 
+                                    { hasOptedApps ? 
                                     <div className="property">
                                         <div className="key">
                                             Holding assets
@@ -151,7 +152,7 @@ function Account(): JSX.Element {
                                         </div>
                                     </div> : null }
 
-                                    { account.createdAssets.length ? 
+                                    { hasCreatedAssets ? 
                                     <div className="property">
                                         <div className="key">
                                             Created assets
@@ -161,7 +162,7 @@ function Account(): JSX.Element {
                                         </div>
                                     </div> : null }
 
-                                    { account.createdApplications.length ? 
+                                    { hasCreatedApps ? 
                                     <div className="property">
                                         <div className="key">
                                             Created applications
@@ -171,7 +172,7 @@ function Account(): JSX.Element {
                                         </div>
                                     </div> : null }
 
-                                    { account.optedApplications.length ? 
+                                    { hasOptedApps ? 
                                     <div className="property">
                                         <div className="key">
                                             Opted applications
