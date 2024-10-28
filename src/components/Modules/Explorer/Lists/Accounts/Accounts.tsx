@@ -110,7 +110,7 @@ function Accounts(): JSX.Element {
                         loading={loading}
                         rows={list}
                         columns={columns}
-                        pageSize={10}
+                        pageSize={16}
                         autoHeight
                         getRowId={(row) => {
                             return row.address;
