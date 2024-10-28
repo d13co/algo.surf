@@ -13,13 +13,13 @@ export const dataGridStyles = {
         display: 'none',
     },
     '.MuiDataGrid-row:nth-of-type(odd)': {
-        backgroundColor: theme.palette.common.white
+        filter: 'brightness(110%)',
     },
     // '.MuiDataGrid-row:nth-of-type(even)': {
     //     backgroundColor: shadedClr
     // },
     '.MuiDataGrid-row:hover': {
-        backgroundColor: shadedClr + ' !important'
+        filter: 'brightness(110%)',
     },
     '.MuiDataGrid-cell:focus': {
         outline: "none"
@@ -28,7 +28,7 @@ export const dataGridStyles = {
         outline: "none"
     },
     '.MuiDataGrid-columnHeader': {
-        background: theme.palette.primary.light,
+        background: theme.palette.primary.dark,
         color: theme.palette.primary.contrastText
     }
 };

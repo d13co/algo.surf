@@ -16,6 +16,7 @@ export const theme = createTheme({
         borderRadius: 10,
     },
     palette: {
+        mode: 'dark',
         primary: {
             main: primaryColor
         },
