@@ -47,11 +47,14 @@ const initialState: SettingsState = {
 
 interface SearchProps {
     placeholder?: string
+    autoFocus?: boolean
 }
 
-const defaultPlaceholder = "Address / Transaction / Asset / Application";
+const defaultPlaceholder = "  Address / Transaction / Asset / Application";
 
-function Search({ placeholder = defaultPlaceholder }: SearchProps): JSX.Element {
+function Search(props: SearchProps): JSX.Element {
+    const { autoFocus, placeholder = defaultPlaceholder } = props;
+
     const navigate = useNavigate();
     const dispatch = useDispatch();
 
@@ -121,7 +124,6 @@ function Search({ placeholder = defaultPlaceholder }: SearchProps): JSX.Element 
                 dispatch(hideLoader());
             }
         }
-
     }
 
     function handleClose() {
@@ -131,19 +133,20 @@ function Search({ placeholder = defaultPlaceholder }: SearchProps): JSX.Element 
     return (<div className={"search-wrapper"}>
         <div className={"search-container"}>
              <InputBase
+                 autoFocus={autoFocus}
                  placeholder={placeholder}
                  style={{
                     padding: 3,
                     paddingLeft: 10,
                     fontSize: 14,
-                    border: '1px solid ' + theme.palette.grey[200],
+                    border: '1px solid ' + theme.palette.grey[500],
                     borderRadius: '64px',
                 }}
                 value={searchStr}
-                startAdornment={<IconButton color="primary" onClick={() => {
+                startAdornment={<IconButton onClick={() => {
                     doSearch();
                 }}>
-                    <SearchIcon />
+                    <SearchIcon style={{color: theme.palette.grey[500] }} />
                 </IconButton>}
                 onChange={(ev) => {
                     setState(prevState => ({...prevState, searchStr: ev.target.value}));

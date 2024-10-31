@@ -18,14 +18,14 @@ function Home(): JSX.Element {
                     Algorand <span style={{color: primary}}>{network}</span> Blockchain Observer
                 </div>
                 <div className="search-section">
-                    <Search></Search>
+                    <Search autoFocus={true}></Search>
                 </div>
                 <div className="live-section">
-                    <Grid container spacing={2}>
-                        <Grid item xs={12} sm={12} md={6} lg={4} xl={4}>
+                    <Grid container spacing={2} style={{maxWidth:"840px"}}>
+                        <Grid item xs={12} sm={12} md={6} lg={6} xl={6}>
                             <LiveBlocks></LiveBlocks>
                         </Grid>
-                        <Grid item xs={12} sm={12} md={6} lg={5} xl={5}>
+                        <Grid item xs={12} sm={12} md={6} lg={6} xl={6}>
                             <LiveTransactions></LiveTransactions>
                         </Grid>
                     </Grid>
