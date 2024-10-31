@@ -40,7 +40,7 @@ function Networks() {
         const current = name === process.env.REACT_APP_NETWORK;
         const last = i === a.length - 1;
         console.log({current, name});
-        return <><Link href={url} className={current ? "current": ""} key={`net-${name}`}>{name}</Link>{!last ? <>{' '}&middot;{' '}</> : null}</>
+        return <span key={`net-${name}`}><Link href={url} className={current ? "current": ""}>{name}</Link>{!last ? <>{' '}&middot;{' '}</> : null}</span>
     })}</>
 }
 

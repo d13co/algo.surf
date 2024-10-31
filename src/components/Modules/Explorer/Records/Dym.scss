@@ -1,0 +1,11 @@
+@import "src/assets/colors";
+
+.dym {
+  padding: 14px;
+  padding-left: 20px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  font-weight: bold;
+  font-style: italic;
+  border-left: 2px $color-primary solid;
+}

@@ -1,8 +1,6 @@
 import { Algodv2} from 'algosdk';
 import IndexerClient from "algosdk/dist/types/src/client/v2/indexer/indexer";
-import {
-    A_Application
-} from "../types";
+import { A_Application, A_ApplicationResult, } from "../types";
 import {Network} from "../network";
 import axios from 'axios';
 import {A_TransactionsResponse} from "./transactionClient";
@@ -28,6 +26,18 @@ export class ApplicationClient{
     async get(id: number): Promise<A_Application>{
         const app = await this.client.getApplicationByID(id).do();
         return app as A_Application;
+    }
+
+    async search(id: number): Promise<A_ApplicationResult | null>{
+        try {
+            const app = await this.client.getApplicationByID(id).do();
+            return { ...app, type: "application" } as A_ApplicationResult
+        } catch(e) {
+            if ((e as any).response.status === 404)
+                return null
+            else
+                throw e;
+        }
     }
 
     async getApplications(token?: string): Promise<A_ApplicationsResponse> {

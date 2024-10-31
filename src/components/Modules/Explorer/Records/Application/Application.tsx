@@ -1,6 +1,6 @@
 import './Application.scss';
-import React, {useEffect} from "react";
-import {matchPath, Outlet, useLocation, useNavigate, useParams} from "react-router-dom";
+import React, {useEffect,useMemo} from "react";
+import {matchPath, Outlet, useLocation, useNavigate, useSearchParams, useParams} from "react-router-dom";
 import {useDispatch, useSelector} from "react-redux";
 import {RootState} from "../../../../../redux/store";
 import {Grid, Tab, Tabs} from "@mui/material";
@@ -14,6 +14,7 @@ import ApplicationProgram from "./Sections/ApplicationProgram/ApplicationProgram
 import CustomError from "../../Common/CustomError/CustomError";
 import ApplicationActions from "./Sections/ApplicationActions/ApplicationActions";
 import ApplicationAbi from "./Sections/ApplicationABI/ApplicationAbi";
+import Dym from "../Dym";
 
 const network = process.env.REACT_APP_NETWORK;
 
@@ -21,6 +22,7 @@ function Application(): JSX.Element {
     const dispatch = useDispatch();
     const navigate = useNavigate();
     const params = useParams();
+    const [searchParams] = useSearchParams();
     const {id} = params;
 
     let tabValue = 'transactions';
@@ -36,6 +38,15 @@ function Application(): JSX.Element {
     const application = useSelector((state: RootState) => state.application);
     const applicationInstance = new CoreApplication(application.information);
 
+    const dym = searchParams.get("dym");
+    const [dymString, dymLink] = useMemo(() => {
+        if (dym) {
+            const blockNum = dym.split(":")[1];
+            return [`Block ${blockNum}`, `/explorer/block/${blockNum}`];
+        } else {
+            return [];
+        }
+    }, [dym]);
 
     useEffect(() => {
         dispatch(loadApplication(Number(id)));
@@ -44,6 +55,8 @@ function Application(): JSX.Element {
 
     return (<div className={"application-wrapper"}>
         <div className={"application-container"}>
+
+            { dym ? <Dym text={dymString} link={dymLink} /> : null }
 
             {application.error ? <CustomError></CustomError> : <div>
                 <div className="application-header">

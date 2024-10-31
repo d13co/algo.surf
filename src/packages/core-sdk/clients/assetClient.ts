@@ -1,7 +1,8 @@
 import { Algodv2} from 'algosdk';
 import IndexerClient from "algosdk/dist/types/src/client/v2/indexer/indexer";
 import {
-    A_Asset
+    A_Asset,
+    A_AssetResult,
 } from "../types";
 import {Network} from "../network";
 import {A_TransactionsResponse} from "./transactionClient";
@@ -28,6 +29,18 @@ export class AssetClient{
     async get(id: number): Promise<A_Asset>{
         const asset = await this.client.getAssetByID(id).do();
         return asset as A_Asset;
+    }
+
+    async search(id: number): Promise<A_AssetResult | null>{
+        try {
+            const asset = await this.client.getAssetByID(id).do();
+            return { ...asset, type: "asset" } as A_AssetResult;
+        } catch(e) {
+            if ((e as any).response.status === 404)
+                return null
+            else
+                throw e;
+        }
     }
 
     async getAssets(token?: string): Promise<A_AssetsResponse> {

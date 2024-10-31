@@ -1,7 +1,7 @@
 import {Algodv2, encodeAddress} from "algosdk";
 import IndexerClient from "algosdk/dist/types/src/client/v2/indexer/indexer";
 import {Network} from "../network";
-import {A_Block} from "../types";
+import {A_Block,A_BlockResult} from "../types";
 
 export class BlockClient {
     client: Algodv2;
@@ -17,6 +17,18 @@ export class BlockClient {
     async get(id: number): Promise<A_Block> {
         const response = await this.indexer.lookupBlock(id).do();
         return response as A_Block;
+    }
+
+    async search(id: number): Promise<A_BlockResult> {
+        try {
+            const response = await this.indexer.lookupBlock(id).do();
+            return { ...response, type: "block" } as A_BlockResult;
+        } catch(e) {
+            if ((e as any).response.status === 404)
+                return null
+            else
+                throw e;
+        }
     }
 
     async statusAfterBlock(round: number): Promise<A_Block> {

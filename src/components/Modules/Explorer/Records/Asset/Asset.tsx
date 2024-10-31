@@ -1,6 +1,6 @@
 import './Asset.scss';
-import React, {useEffect} from "react";
-import {Outlet, useNavigate, useParams} from "react-router-dom";
+import React, {useEffect, useMemo} from "react";
+import {Outlet, useNavigate, useSearchParams, useParams} from "react-router-dom";
 import {useDispatch, useSelector} from "react-redux";
 import {RootState} from "../../../../../redux/store";
 import {Grid, Link, Tab, Tabs} from "@mui/material";
@@ -15,6 +15,7 @@ import CustomError from "../../Common/CustomError/CustomError";
 import AssetARCValidator from "./Actions/AssetARCValidator/AssetARCValidator";
 import MultiFormatViewer from "../../../../../components/Common/MultiFormatViewer/MultiFormatViewer";
 import Copyable from "../../../../../components/Common/Copyable/Copyable";
+import Dym from "../Dym";
 
 const network = process.env.REACT_APP_NETWORK;
 
@@ -22,6 +23,8 @@ function Asset(): JSX.Element {
     const dispatch = useDispatch();
     const navigate = useNavigate();
     const params = useParams();
+    const [searchParams] = useSearchParams();
+
     const {id} = params;
 
     const asset = useSelector((state: RootState) => state.asset);
@@ -34,8 +37,20 @@ function Asset(): JSX.Element {
 
     const b64Name = !assetInstance.getName()
 
+    const dym = searchParams.get("dym");
+    const [dymString, dymLink] = useMemo(() => {
+        if (dym) {
+            const blockNum = dym.split(":")[1];
+            return [`Block ${blockNum}`, `/explorer/block/${blockNum}`];
+        } else {
+            return [];
+        }
+    }, [dym]);
+
     return (<div className={"asset-wrapper"}>
         <div className={"asset-container"}>
+
+            { dym ? <Dym text={dymString} link={dymLink} /> : null }
 
             {asset.error ? <CustomError></CustomError> : <div>
                 <div className="asset-header">
