@@ -1,6 +1,7 @@
 import './ApplicationProgram.scss';
 import React, {useState} from "react";
 import {shadedClr} from "../../../../../../../utils/common";
+import { theme } from "../../../../../../../theme/index";
 import {Button, ButtonGroup, Grid} from "@mui/material";
 import {PROGRAM_ENCODING} from "../../../../../../../packages/core-sdk/constants";
 import {ApplicationClient} from "../../../../../../../packages/core-sdk/clients/applicationClient";
@@ -8,7 +9,18 @@ import explorer from "../../../../../../../utils/dappflow";
 import {useDispatch} from "react-redux";
 import {hideLoader, showLoader} from "../../../../../../../redux/common/actions/loader";
 import {handleException} from "../../../../../../../redux/common/actions/exception";
-import {CodeBlock, googlecode} from "react-code-blocks";
+import {CodeBlock, tomorrowNightBright} from "react-code-blocks";
+
+const myTheme = {
+    ...tomorrowNightBright,
+    backgroundColor: shadedClr,
+    literalColor: theme.palette.primary.main,
+    builtInColor: theme.palette.primary.main,
+    typeColor: theme.palette.primary.main,
+    metaColor: theme.palette.primary.light,
+    numberColor: theme.palette.primary.light,
+    commentColor: theme.palette.primary.dark,
+}
 
 interface ApplicationApprovalProgramState{
     encoding: string,
@@ -71,7 +83,7 @@ function ApplicationProgram(props): JSX.Element {
                                 {encoding === PROGRAM_ENCODING.BASE64 ? prg : <div className="source">
                                     <CodeBlock
                                         text={prg}
-                                        theme={googlecode}
+                                        theme={myTheme}
                                         language="swift"
                                         showLineNumbers={false}
                                     />
