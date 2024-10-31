@@ -56,7 +56,6 @@ function TransactionsList({transactions = [], loading = false, reachedLastPage =
             <div style={{display: "flex", justifyContent: "space-between"}}>
                 {loading ? <div style={{marginTop: 5, marginRight: 20}}><CircularProgress size={25}></CircularProgress></div> : ''}
                 <Pagination
-                    color="standard"
                     shape="rounded"
                     showFirstButton
                     showLastButton
