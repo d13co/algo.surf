@@ -4,9 +4,13 @@
   .application-global-state-container {
     margin-top: 40px;
     border-radius: 10px;
-    border: 1px solid $color-grey-light;
     .props {
       margin-top: 0px !important;
+      padding: 0px !important;
+      .title {
+        padding-left: 20px;
+      }
+      .dim { opacity: 0.6; }
     }
     .application-global-state-body {
       margin-top: 25px;

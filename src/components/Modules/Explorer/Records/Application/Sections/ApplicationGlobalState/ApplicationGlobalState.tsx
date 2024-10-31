@@ -6,47 +6,53 @@ import {CoreApplication} from "../../../../../../../packages/core-sdk/classes/co
 import {DataGrid, GridColDef, GridValueGetterParams} from "@mui/x-data-grid";
 import {
     dataGridCellConfig,
-    dataGridStylesBlackHeader
+    dataGridStyles,
 } from "../../../../../../../theme/styles/datagrid";
+import {shadedClr} from "../../../../../../../theme/index";
 import NumberFormat from "react-number-format";
 import {Grid} from "@mui/material";
-
-
+import MultiFormatViewer from "../../../../../../../components/Common/MultiFormatViewer/MultiFormatViewer";
+// ../../../../../components/Common/MultiFormatViewer/MultiFormatViewer";
 
 function ApplicationGlobalState(): JSX.Element {
 
     const application = useSelector((state: RootState) => state.application);
     const applicationInstance = new CoreApplication(application.information);
-    const globalStorage = applicationInstance.getGlobalStorageDecrypted()
+    const globalStorage = applicationInstance.getGlobalStorageDecrypted(true);
 
     globalStorage.sort((a, b) => a.key.localeCompare(b.key));
 
     const columns: GridColDef[] = [
         {
             ...dataGridCellConfig,
-            field: 'key',
-            headerName: 'Key',
+            field: 'type',
+            flex: 0,
+            width: 60,
+            headerName: 'Type',
             renderCell: (params: GridValueGetterParams) => {
-                return <div>
-                    {params.row.key}
+                return <div className="dim">
+                    {params.row.type === "bytes" ? "byte" : "uint"}
                 </div>;
             }
         },
         {
             ...dataGridCellConfig,
-            field: 'type',
-            headerName: 'Type',
+            field: 'key',
+            flex: 3,
+            headerName: 'Key',
             renderCell: (params: GridValueGetterParams) => {
-                return <div>
-                    {params.row.type}
-                </div>;
+                return <MultiFormatViewer
+                    view="auto"
+                    value={params.row.key}
+                    style={{marginLeft: '15px'}}
+                />
             }
         },
         {
             ...dataGridCellConfig,
             field: 'value',
             headerName: 'Value',
-            flex: 2,
+            flex: 5,
             renderCell: (params: GridValueGetterParams) => {
                 return <div>
                     {params.row.type === 'uint' ? <NumberFormat
@@ -68,7 +74,7 @@ function ApplicationGlobalState(): JSX.Element {
                     <Grid container spacing={2}>
                         <Grid item xs={12} sm={12} md={12} lg={12} xl={12}>
                             <div className="property">
-                                <div className="key">
+                                <div className="key title">
                                     Global state
                                 </div>
                                 <div className="value" style={{marginTop: 20}}>
@@ -80,7 +86,7 @@ function ApplicationGlobalState(): JSX.Element {
                                             disableSelectionOnClick
                                             autoHeight
                                             sx={{
-                                                ...dataGridStylesBlackHeader
+                                                ...dataGridStyles
                                             }}
                                             getRowId={(row) => {
                                                 return row.key;

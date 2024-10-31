@@ -11,7 +11,7 @@ const copyState = <ClipboardCopy size="1em" />;
 const checkmarkTitle = "Copied";
 const checkmarkState = <ClipboardCheck size="1em" />;
 
-export default function Copyable({ size, value, style }: { size?: 's' | 'm', value: string | number, style?: any }): JSX.Element {
+export default function Copyable({ size, value, style, buttonSize="small" }: { size?: 's' | 'm', buttonSize?: "small" | "medium", value: string | number, style?: any }): JSX.Element {
   const [icon, setIcon] = useState(copyState);
   const [title, setTitle] = useState(copyTitle);
 
@@ -33,7 +33,7 @@ export default function Copyable({ size, value, style }: { size?: 's' | 'm', val
   }), [style, size]);
 
   return <Tooltip title={title}>
-    <IconButton aria-label="copy" size="small" className="success" style={_style} onClick={copy} sx={{paddingTop: 0, paddingBottom: 0}}>
+    <IconButton aria-label="copy" className="success" size={buttonSize} style={_style} onClick={copy} sx={{marginTop: "-2px", marginBottom: "-2px"}}>
       {icon}
     </IconButton>
   </Tooltip>;

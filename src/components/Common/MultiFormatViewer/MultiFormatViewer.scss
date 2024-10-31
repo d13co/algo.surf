@@ -1,5 +1,11 @@
-.threequarterscale {
-  transform: scale(0.66);
-  margin-left:  -2.5%;
-  margin-right: -2.5%;
+.nowrap {
+  white-space: nowrap;
+}
+
+.dimparent {
+  .dim { opacity: 0.6; }
+}
+
+.dimparent:hover {
+  .dim { opacity: 1 }
 }

@@ -1,32 +1,50 @@
 import React, {useState, useEffect, useCallback} from "react";
-import ButtonGroup from '@mui/material/ButtonGroup';
-import Button from '@mui/material/Button';
-import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
-import ToggleButton from '@mui/material/ToggleButton';
-import TitleOutlinedIcon from '@mui/icons-material/TitleOutlined';
+import IconButton from '@mui/material/IconButton';
+import { Binary, Type } from 'lucide-react';
 import FormatBoldOutlinedIcon from '@mui/icons-material/FormatBoldOutlined';
 import './MultiFormatViewer.scss';
 import Copyable from '../../../components/Common/Copyable/Copyable';
 import { Tooltip } from "@mui/material";
+import isUtf8 from 'is-utf8';
+
+type View = 'utf8' | 'base64' | 'auto';
 
 interface MultiFormatViewerProps {
-    view?: 'utf8' | 'base64';
+    view?: View;
     value: string;
     style?: Record<string, any>;
 }
 
-const defaultStyle = { marginLeft: '0px' };
+const defaultStyle = { marginLeft: '6px' };
+
+const niceNames = {
+    utf8: "Text (UTF-8)",
+    base64: "Base 64",
+}
+
+function getDefaultView(view: View, value: string): View {
+    if (view === "auto") {
+        if (isUtf8(Buffer.from(value, 'base64'))) {
+            return "utf8";
+        } else {
+            return "base64";
+        }
+    }
+    return view;
+}
 
 export default function MultiFormatViewer(props: MultiFormatViewerProps): JSX.Element {
-    const { value, view: defaultView = 'utf8', style = defaultStyle, } = props;
+    const { value, view: defaultView = 'auto', style = defaultStyle, } = props;
 
-    const [view, setView] = useState(defaultView);
+    const [view, setView] = useState(getDefaultView(defaultView, value));
     const [displayValue, setDisplayValue] = useState<string>();
 
     const changeView = useCallback((_, nextView) => {
         if (nextView) 
             setView(nextView)
     }, []);
+
+    const otherView = view === "utf8" ? "base64" : "utf8";
 
     useEffect(() => {
         if (view === 'utf8') {
@@ -36,20 +54,15 @@ export default function MultiFormatViewer(props: MultiFormatViewerProps): JSX.El
         }
     }, [value, view]);
 
-    return <div className="HFlex">
+    return <div className="HFlex dimparent">
         {displayValue}
-        <ButtonGroup style={style} variant="outlined" size={"small"} className="threequarterscale">
-            <Tooltip title="Text (UTF-8)">
-                <Button variant={view === 'utf8' ? 'contained' : 'outlined'} onClick={() => {changeView(null, 'utf8')}}>
-                    <TitleOutlinedIcon />
-                </Button>
+        <span className="nowrap dim">
+            <Copyable style={style} value={displayValue} />
+            <Tooltip title={`Showing ${niceNames[view]}. Click to show ${niceNames[otherView]}`}>
+                <IconButton size="small" onClick={() => changeView(null, otherView)} style={{fontSize: "10px"}}>
+                    { view === "utf8" ? <Type size={16} /> : <Binary size={16} /> }
+                </IconButton>
             </Tooltip>
-            <Tooltip title="Base 64 encoded">
-                <Button variant={view === 'base64' ? 'contained' : 'outlined'} onClick={() => {changeView(null, 'base64')}}>
-                    <FormatBoldOutlinedIcon />
-                </Button>
-            </Tooltip>
-        </ButtonGroup>
-        <Copyable value={displayValue} />
+        </span>
     </div>;
 }
