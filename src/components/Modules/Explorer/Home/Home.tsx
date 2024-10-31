@@ -4,15 +4,18 @@ import Search from '../Search/Search';
 import {Grid} from "@mui/material";
 import LiveBlocks from "../LiveBlocks/LiveBlocks";
 import LiveTransactions from "../LiveTransactions/LiveTransactions";
+import {theme} from '../../../../theme/index';
 
 const network = process.env.REACT_APP_NETWORK;
+
+const primary = theme.palette.primary.light;
 
 function Home(): JSX.Element {
     return (<div className={"home-wrapper"}>
         <div className={"home-container"}>
             <div className="home-body">
                 <div className="tag-line">
-                    Algorand {network} Blockchain Observer
+                    Algorand <span style={{color: primary}}>{network}</span> Blockchain Observer
                 </div>
                 <div className="search-section">
                     <Search></Search>

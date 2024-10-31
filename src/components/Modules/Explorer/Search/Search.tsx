@@ -45,7 +45,13 @@ const initialState: SettingsState = {
     showSearchResults: false
 };
 
-function Search(): JSX.Element {
+interface SearchProps {
+    placeholder?: string
+}
+
+const defaultPlaceholder = "Address / Transaction / Asset / Application";
+
+function Search({ placeholder = defaultPlaceholder }: SearchProps): JSX.Element {
     const navigate = useNavigate();
     const dispatch = useDispatch();
 
@@ -125,7 +131,7 @@ function Search(): JSX.Element {
     return (<div className={"search-wrapper"}>
         <div className={"search-container"}>
              <InputBase
-                 placeholder="Address / Transaction / Asset / Application"
+                 placeholder={placeholder}
                  style={{
                     padding: 3,
                     paddingLeft: 10,

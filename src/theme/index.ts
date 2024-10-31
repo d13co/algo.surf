@@ -10,7 +10,7 @@ declare module '@mui/material/styles' {
     }
 }
 
-const primaryColor = '#12afac';//6633CC//6b46fe
+const primaryColor = '#12afac';
 
 export const shadedClr = pSBC(-0.82, primaryColor);
 export const shadedClr1 = pSBC(-0.9, primaryColor);

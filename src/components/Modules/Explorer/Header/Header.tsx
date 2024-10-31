@@ -1,10 +1,12 @@
 import './Header.scss';
 import React from "react";
+import { theme } from '../../../../theme/index';
 import {useNavigate, useLocation} from "react-router-dom";
-import {Grid, Tab, Tabs} from "@mui/material";
+import {Grid, Typography, Tab, Tabs} from "@mui/material";
 import Search from "../Search/Search";
 
 const networkLabel = process.env.REACT_APP_NETWORK;
+const primary = theme.palette.primary.main;
 
 function Header(): JSX.Element {
     const navigate = useNavigate();
@@ -23,8 +25,8 @@ function Header(): JSX.Element {
         <div className={"header-container"}>
             <div>
                 <Grid container>
-                    <Tabs variant="scrollable" scrollButtons="auto" sx={{marginLeft: '-20px', borderBottom: '1px solid #f2f2f2'}} value={route} TabIndicatorProps={{ children: <span className="MuiTabs-indicatorSpan" />}}>
-                        <Tab label={`Ⱥ Observer ${networkLabel}` }value="home" onClick={() => {
+                    <Tabs variant="scrollable" scrollButtons="auto" sx={{marginLeft: '-20px'}} value={route} TabIndicatorProps={{ children: <span className="MuiTabs-indicatorSpan" />}}>
+                        <Tab label={<span style={{whiteSpace: 'nowrap'}}>Ⱥ Observer <span style={{color: primary}}>{networkLabel}</span></span> } value="home" onClick={() => {
                             navigate('/explorer/home');
                         }}/>
                         <Tab label="Accounts" value="accounts" onClick={() => {
@@ -44,7 +46,7 @@ function Header(): JSX.Element {
             </div>
 
             <div>
-                <Search></Search>
+                <Search placeholder={`Search Algorand ${networkLabel}`}/>
             </div>
         </div>
     </div>);
