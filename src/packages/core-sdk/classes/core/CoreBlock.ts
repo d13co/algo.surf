@@ -65,10 +65,10 @@ export class CoreBlock {
         for (let key in typesCount) {
             if (typesCount.hasOwnProperty(key)) {
                 const val = typesCount[key];
-                str.push(key + '=' + val);
+                str.push(val+" "+key);
             }
         }
 
-        return str.join(', ');
+        return str.join(' · ');
     }
 }

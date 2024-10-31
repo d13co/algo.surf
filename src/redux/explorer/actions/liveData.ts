@@ -35,8 +35,8 @@ export const initLivedata = createAsyncThunk(
 
             const round = health.round;
 
-            dispatch(setCurrentBlock(round));
-            dispatch(loadBlockInfo(round));
+            dispatch(setCurrentBlock(round - 3));
+            dispatch(loadBlockInfo(round - 3));
             dispatch(setConnectionSuccess(true));
         }
         catch (e: any) {
@@ -82,7 +82,7 @@ export const liveDataSlice = createSlice({
             blocks = blocks.sort((a, b) => b.round - a.round);
 
             state.blocks = blocks.slice(0, 10);
-            state.transactions = [...action.payload.transactions, ...transactions].slice(0, 50);
+            state.transactions = [...action.payload.transactions, ...transactions].slice(0, 25);
 
         });
     },

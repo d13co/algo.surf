@@ -2,7 +2,7 @@ import './LiveTransactions.scss';
 import React from "react";
 import {useSelector} from "react-redux";
 import {RootState} from "../../../../redux/store";
-import {shadedClr2} from "../../../../utils/common";
+import {shadedClr} from "../../../../utils/common";
 import { CSSTransition, TransitionGroup } from 'react-transition-group';
 import {CoreTransaction} from "../../../../packages/core-sdk/classes/core/CoreTransaction";
 import LinkToTransaction from "../Common/Links/LinkToTransaction";
@@ -34,7 +34,7 @@ function LiveTransactions(): JSX.Element {
                         const appId = txnInstance.getAppId();
 
                         return <CSSTransition key={txnInstance.getId()} timeout={700} classNames="item">
-                            <div className="transaction" key={txnInstance.getId()} style={{borderColor: shadedClr2}}>
+                            <div className="transaction" key={txnInstance.getId()} style={{backgroundColor: shadedClr}}>
                                 <div className="basic">
                                     <div className="box">
                                         <Typography sx={{ display: 'inline', color: 'primary.main' }}>{txnInstance.getTypeDisplayValue()}</Typography>
