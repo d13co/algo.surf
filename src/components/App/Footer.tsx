@@ -15,10 +15,10 @@ function Footer(): JSX.Element {
         <div className="left">
             Algorand Observer
             <Tooltip title="Source on Github">
-                <Link href="https://github.com/d13co/algorand.observer"><Github size={16} color="black" strokeWidth={1.75} /></Link>
+                <Link href="https://github.com/d13co/algorand.observer"><Github size={16} color="white" strokeWidth={1.75} /></Link>
             </Tooltip>
             <Tooltip title="Maintainer on X">
-                <Link href="https://x.com/d13_co"><Twitter size={16} color="black" strokeWidth={1.75} /></Link>
+                <Link href="https://x.com/d13_co"><Twitter size={16} color="white" strokeWidth={1.75} /></Link>
             </Tooltip>
         </div>
         <div>

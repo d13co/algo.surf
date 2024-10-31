@@ -18,12 +18,14 @@
     }
     a {
       margin-left: 6px;
+      display: inline-flex;
+      align-items: center;
     }
   }
 
   .current {
     text-decoration: none !important;
-    color: black;
+    color: white;
   }
 }
 @media only screen and (max-width: 900px) {
