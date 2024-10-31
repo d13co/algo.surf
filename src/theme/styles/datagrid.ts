@@ -12,11 +12,11 @@ export const dataGridStyles = {
     '.MuiDataGrid-columnSeparator': {
         display: 'none',
     },
-    '.MuiDataGrid-row:nth-of-type(odd)': {
-        filter: 'brightness(110%)',
-    },
     // '.MuiDataGrid-row:nth-of-type(even)': {
     //     backgroundColor: shadedClr
+    // },
+    // '.MuiDataGrid-row': {
+    //     background: theme.palette.background.default,
     // },
     '.MuiDataGrid-row:hover': {
         filter: 'brightness(110%)',

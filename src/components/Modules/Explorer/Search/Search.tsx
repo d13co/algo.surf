@@ -66,6 +66,12 @@ function Search(): JSX.Element {
             setState(prevState => ({...prevState, searchStr: ""}));
             navigate('/explorer/account/' + searchStr);
             return;
+        } else if (searchStr.length === 58) {
+            dispatch(showSnack({
+                severity: 'error',
+                message: `Address is not valid`
+            }));
+            return;
         }
         if (searchStr.length === 52) {
             setState(prevState => ({...prevState, searchStr: ""}));
@@ -118,11 +124,9 @@ function Search(): JSX.Element {
 
     return (<div className={"search-wrapper"}>
         <div className={"search-container"}>
-
-
              <InputBase
                  placeholder="Address / Transaction / Asset / Application"
-                style={{
+                 style={{
                     padding: 3,
                     paddingLeft: 10,
                     fontSize: 14,
@@ -137,6 +141,10 @@ function Search(): JSX.Element {
                 </IconButton>}
                 onChange={(ev) => {
                     setState(prevState => ({...prevState, searchStr: ev.target.value}));
+                    const { length } = ev.target.value;
+                    if (length === 52 || length === 58) {
+                        doSearch();
+                    }
                 }}
                 onKeyUp={(event) => {
                     if (event.key === 'Enter') {

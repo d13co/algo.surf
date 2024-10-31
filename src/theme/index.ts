@@ -126,8 +126,13 @@ export const theme = createTheme({
                 },
                 standardWarning: {
                     color: '#000'
-                }
-            }
+                },
+                message: {
+                    flexGrow: 1,
+                    display: 'flex',
+                    alignItems: 'baseline',
+                },
+            },
         },
         MuiTabs: {
             styleOverrides: {
