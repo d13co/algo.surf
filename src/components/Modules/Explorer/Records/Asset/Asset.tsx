@@ -213,7 +213,7 @@ function Asset(): JSX.Element {
                         </Grid>
                     </div>
 
-
+                    {assetInstance.getResolvedUrl() ?
                     <div className="props" style={{background: shadedClr}}>
                         <Grid container spacing={2}>
                             <Grid item xs={12} sm={6} md={3} lg={3} xl={3}>
@@ -230,7 +230,7 @@ function Asset(): JSX.Element {
 
                             </Grid>
                         </Grid>
-                    </div>
+                    </div> : null }
 
                     <div className="asset-tabs">
 
