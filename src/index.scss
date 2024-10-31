@@ -53,3 +53,8 @@ body {
     cursor: pointer;
   }
 }
+
+::selection {
+  color: $color-background;
+  background: #967bb6;
+}

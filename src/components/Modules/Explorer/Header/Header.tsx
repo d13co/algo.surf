@@ -2,24 +2,25 @@ import './Header.scss';
 import React from "react";
 import { theme } from '../../../../theme/index';
 import {useNavigate, useLocation} from "react-router-dom";
-import {Grid, Typography, Tab, Tabs} from "@mui/material";
+import {Grid, Slide, Typography, Tab, Tabs} from "@mui/material";
 import Search from "../Search/Search";
 
 const networkLabel = process.env.REACT_APP_NETWORK;
 const primary = theme.palette.primary.main;
 
+const routes = ["home", "accounts", "transactions", "assets", "applications"];
+
 function Header(): JSX.Element {
     const navigate = useNavigate();
     const location = useLocation();
 
-    let route: string | boolean = location.pathname;
-    route = route.substring(1);
-    route = route.split('/')[1];
-
-    const routes = ["home", "accounts", "transactions", "assets", "applications"];
-    if (routes.indexOf(route) === -1) {
-        route = false;
-    }
+    const route: string | boolean = React.useMemo(() => {
+        const route = location.pathname.substring(1).split('/')[1];
+        if (routes.indexOf(route) === -1) {
+            return false;
+        }
+        return route
+    }, [location.pathname]);
 
     return (<div className={"header-wrapper"}>
         <div className={"header-container"}>
@@ -44,10 +45,12 @@ function Header(): JSX.Element {
                     </Tabs>
                 </Grid>
             </div>
-
-            <div>
-                <Search placeholder={`Search Algorand ${networkLabel}`}/>
-            </div>
+            { route !== "home" ? 
+            <Slide direction="down" in={route !== "home"} mountOnEnter unmountOnExit>
+                <div>
+                    <Search placeholder={`Search Algorand ${networkLabel}`}/>
+                </div>
+            </Slide> : null }
         </div>
     </div>);
 }
