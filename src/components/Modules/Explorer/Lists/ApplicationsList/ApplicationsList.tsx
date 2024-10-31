@@ -104,7 +104,7 @@ function ApplicationsList({applications = [], loading = false, fields = ['id', '
                         disableSelectionOnClick
                         sx={dataGridStyles}
                         components={{
-                            NoRowsOverlay: CustomNoRowsOverlay,
+                            NoRowsOverlay: CustomNoRowsOverlay("applications"),
                             Pagination: CustomPagination
                         }}
                         componentsProps={{

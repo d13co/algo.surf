@@ -117,7 +117,7 @@ function Accounts(): JSX.Element {
                         disableSelectionOnClick
                         sx={dataGridStyles}
                         components={{
-                            NoRowsOverlay: CustomNoRowsOverlay,
+                            NoRowsOverlay: CustomNoRowsOverlay("accounts"),
                             Pagination: CustomPagination
                         }}
                         componentsProps={{

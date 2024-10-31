@@ -274,7 +274,7 @@ function TransactionsList({transactions = [], loading = false, reachedLastPage =
                             }
                         }}
                         components={{
-                            NoRowsOverlay: CustomNoRowsOverlay,
+                            NoRowsOverlay: CustomNoRowsOverlay("transactions"),
                             Pagination: CustomPagination
                         }}
                         componentsProps={{

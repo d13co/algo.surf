@@ -167,7 +167,7 @@ function AssetsList({assets = [], loading = false, accountInfo, fields = ['name'
                             return row.index;
                         }}
                         components={{
-                            NoRowsOverlay: CustomNoRowsOverlay,
+                            NoRowsOverlay: CustomNoRowsOverlay("assets"),
                             Pagination: CustomPagination
                         }}
                         componentsProps={{

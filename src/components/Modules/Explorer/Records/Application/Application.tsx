@@ -98,12 +98,10 @@ function Application(): JSX.Element {
                         </Grid>
                     </div>
 
-                    <ApplicationAbi application={application}></ApplicationAbi>
+                    { /* <ApplicationAbi application={application}></ApplicationAbi> TODO put back */ }
 
                     <ApplicationProgram name="Approval program" program={applicationInstance.getApprovalProgram()}></ApplicationProgram>
                     <ApplicationProgram name="Clear state program" program={applicationInstance.getClearProgram()}></ApplicationProgram>
-
-
 
                     <div className="props" style={{background: shadedClr}}>
                         <Grid container spacing={2}>
