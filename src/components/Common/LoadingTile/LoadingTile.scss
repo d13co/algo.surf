@@ -7,40 +7,55 @@
     .wrapper {
       .wrapper-cell {
         .text {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
           .text-line {
             height: 20px;
             margin: 10px 0;
             @extend .animated-background;
-            border-radius: 5px;
+            border-radius: 20px;
+            &:nth-child(1) {
+              opacity: 0.05;
+              animation-delay: 200ms;
+              width: 100%;
+            }
+            &:nth-child(2) {
+              opacity: 0.175;
+              animation-delay: 100ms;
+              width: 70%;
+            }
+            &:nth-child(3) {
+              opacity: 0.5;
+              width: 33%;
+              animation-delay: 0ms;
+            }
+            &:nth-child(4) {
+              opacity: 0.175;
+              animation-delay: 100ms;
+              width: 90%;
+            }
+            &:nth-child(5) {
+              opacity: 0.05;
+              animation-delay: 200ms;
+              width: 60%;
+            }
           }
         }
       }
     }
     @keyframes placeHolderShimmer{
-      0%{
-        background-position: -468px 0
-      }
-      100%{
-        background-position: 468px 0
+      50%{
+        width: 20px;
       }
     }
     .animated-background {
-      animation-duration: 1.25s;
+      animation-duration: 2s;
       animation-fill-mode: forwards;
       animation-iteration-count: infinite;
       animation-name: placeHolderShimmer;
-      animation-timing-function: linear;
-      background: linear-gradient(to right, #F6F6F6 8%, #F0F0F0 18%, #F6F6F6 33%);
+      animation-timing-function: ease-in-out;
+      background: $color-primary;
     }
-
-
-
-
-
-
-
-
-
-
   }
 }
