@@ -39,8 +39,9 @@
           }
           .value {
             margin-top: 10px;
-            color: $color-grey-dark;
             word-break: break-all;
+            display: flex;
+            align-items: center;
             &.small {
               font-size: 13px;
             }

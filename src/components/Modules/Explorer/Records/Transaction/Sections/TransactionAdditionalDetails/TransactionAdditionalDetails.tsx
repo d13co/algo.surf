@@ -17,7 +17,7 @@ function TransactionAdditionalDetails(props): JSX.Element {
         <div className={"transaction-additional-details-container"}>
 
             <div className="props" style={{background: shadedClr}}>
-                <Accordion className="rounded">
+                <Accordion className="transparent rounded">
                     <AccordionSummary
                         expandIcon={<ExpandMore />}
                         id="additional-information"
@@ -47,6 +47,7 @@ function TransactionAdditionalDetails(props): JSX.Element {
                                     </div>
                                 </div>
                             </Grid>
+
                             <Grid item xs={12} sm={6} md={6} lg={3} xl={3}>
                                 <div className="property">
                                     <div className="key">

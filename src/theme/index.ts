@@ -1,4 +1,5 @@
 import {createTheme} from "@mui/material";
+import pSBC from 'shade-blend-color';
 
 declare module '@mui/material/styles' {
     interface Theme {
@@ -10,6 +11,11 @@ declare module '@mui/material/styles' {
 }
 
 const primaryColor = '#12afac';//6633CC//6b46fe
+
+export const shadedClr = pSBC(-0.82, primaryColor);
+export const shadedClr1 = pSBC(-0.9, primaryColor);
+export const shadedClr2 = pSBC(-0.95, primaryColor);
+
 
 export const theme = createTheme({
     shape: {
@@ -93,12 +99,23 @@ export const theme = createTheme({
                 }
             }
         },
+        MuiAccordionSummary: {
+            styleOverrides: {
+                root: {
+                    backgroundColor: shadedClr,
+                },
+            },
+        },
         MuiAccordion: {
             styleOverrides: {
                 root: {
                     '&.rounded': {
                         borderRadius: 10
-                    }
+                    },
+                    backgroundColor: shadedClr,
+                },
+                region: {
+                    backgroundColor: shadedClr,
                 }
             }
         },
