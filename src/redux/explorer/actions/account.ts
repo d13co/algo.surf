@@ -69,7 +69,9 @@ export const loadAccount = createAsyncThunk(
             dispatch(loadOptedApplications(accountInfo));
             dispatch(loadAccountTransactions(accountInfo));
             dispatch(loadOptedAssets(accountInfo));
-            dispatch(loadEscrowOf(accountInfo));
+            if (process.env.REACT_APP_NETWORK  == "Mainnet") {
+                dispatch(loadEscrowOf(accountInfo));
+            }
             dispatch(setLoading(false));
             return accountInfo;
         }
