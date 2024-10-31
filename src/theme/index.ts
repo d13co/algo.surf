@@ -155,3 +155,6 @@ export const theme = createTheme({
         }
     }
 });
+
+
+export const shadedWarningClr = pSBC(-0.85, theme.palette.warning.main);
