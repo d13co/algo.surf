@@ -126,8 +126,14 @@ function Search(props: SearchProps): JSX.Element {
                         message: `Error while searching: ${(e as Error).message}`
                     }));
                     dispatch(hideLoader());
+                    return;
                 }
             }
+
+            dispatch(showSnack({
+                severity: 'error',
+                message: `Not something I can search for: ${target}`,
+            }));
         })()
     }, [searchStr, dispatch, navigate]);
 
