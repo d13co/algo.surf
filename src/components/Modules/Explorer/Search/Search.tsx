@@ -1,5 +1,5 @@
 import './Search.scss';
-import React, {useState} from "react";
+import React, {useCallback,useState} from "react";
 import {
     Chip,
     Dialog,
@@ -7,7 +7,8 @@ import {
     DialogContent,
     DialogTitle,
     IconButton,
-    InputBase
+    InputBase,
+    Tooltip,
 } from "@mui/material";
 import {Search as SearchIcon} from "@mui/icons-material";
 import {isValidAddress} from "algosdk";
@@ -22,6 +23,7 @@ import {hideLoader, showLoader} from "../../../../redux/common/actions/loader";
 import {useDispatch} from "react-redux";
 import {showSnack} from "../../../../redux/common/actions/snackbar";
 import {theme} from "../../../../theme";
+import {ClipboardPaste} from 'lucide-react';
 import CloseIcon from "@mui/icons-material/Close";
 
 function getLink(result: A_AssetResult | A_ApplicationResult | A_BlockResult) {
@@ -63,68 +65,94 @@ function Search(props: SearchProps): JSX.Element {
         setState
     ] = useState(initialState);
 
-    const clearState = () => {
+    const clearState = useCallback(() => {
         setState({ ...initialState });
-    };
+    }, []);
 
-    async function doSearch() {
-        if (!searchStr) {
-            return;
-        }
-        if (isValidAddress(searchStr)) {
-            setState(prevState => ({...prevState, searchStr: ""}));
-            navigate('/explorer/account/' + searchStr);
-            return;
-        } else if (searchStr.length === 58) {
-            dispatch(showSnack({
-                severity: 'error',
-                message: `Address is not valid`
-            }));
-            return;
-        }
-        if (searchStr.length === 52) {
-            setState(prevState => ({...prevState, searchStr: ""}));
-            navigate('/explorer/transaction/' + searchStr);
-            return;
-        }
-
-        if (isNumber(searchStr)) {
-            try {
-                dispatch(showLoader("Searching"));
-                const searchNum = Number(searchStr);
-                const [asset, app, block] = await Promise.all([
-                    new AssetClient(explorer.network).search(searchNum),
-                    new ApplicationClient(explorer.network).search(searchNum),
-                    new BlockClient(explorer.network).search(searchNum),
-                ]);
-                const first = [asset, app, block].find(e => e);
-
-                if (!first) {
-                    dispatch(showSnack({
-                        severity: 'error',
-                        message: 'No results found'
-                    }));
-                    dispatch(hideLoader());
-                    return;
-                }
-
-                let destination = getLink(first);
-
-                if (block && first !== block) {
-                    destination += `?dym=block:${block.round}`;
-                }
-                dispatch(hideLoader());
-                console.log("Navigating", destination);
-                navigate(destination);
-            } catch (e) {
+    const doSearch = useCallback((override?: string) => {
+        (async function () {
+            const target = override ?? searchStr;
+            if (!target) {
+                return;
+            }
+            if (isValidAddress(target)) {
+                setState(prevState => ({...prevState, target: ""}));
+                navigate('/explorer/account/' + target);
+                return;
+            } else if (target.length === 58) {
                 dispatch(showSnack({
                     severity: 'error',
-                    message: `Error while searching: ${(e as Error).message}`
+                    message: `Address is not valid`
                 }));
-                dispatch(hideLoader());
+                return;
             }
-        }
-    }
+            if (target.length === 52) {
+                setState(prevState => ({...prevState, target: ""}));
+                navigate('/explorer/transaction/' + target);
+                return;
+            }
+
+            if (isNumber(target)) {
+                try {
+                    dispatch(showLoader("Searching"));
+                    const searchNum = Number(target);
+                    const [asset, app, block] = await Promise.all([
+                        new AssetClient(explorer.network).search(searchNum),
+                        new ApplicationClient(explorer.network).search(searchNum),
+                        new BlockClient(explorer.network).search(searchNum),
+                    ]);
+                    const first = [asset, app, block].find(e => e);
+
+                    if (!first) {
+                        dispatch(showSnack({
+                            severity: 'error',
+                            message: 'No results found'
+                        }));
+                        dispatch(hideLoader());
+                        return;
+                    }
+
+                    let destination = getLink(first);
+
+                    if (block && first !== block) {
+                        destination += `?dym=block:${block.round}`;
+                    }
+                    dispatch(hideLoader());
+                    console.log("Navigating", destination);
+                    navigate(destination);
+                } catch (e) {
+                    dispatch(showSnack({
+                        severity: 'error',
+                        message: `Error while searching: ${(e as Error).message}`
+                    }));
+                    dispatch(hideLoader());
+                }
+            }
+        })()
+    }, [searchStr, dispatch, navigate]);
+
+    const doPasteSearch = useCallback(() => {
+        (async function () {
+            try {
+                const value = await navigator.clipboard.readText();
+                setState(s => ({...s, searchStr: value}));
+                doSearch(value);
+            } catch(_e) {
+                const e = _e as Error;
+                if (e.message.includes('is not a function')) {
+                    dispatch(showSnack({
+                        severity: 'error',
+                        message: 'Could not paste and search: Your browser does not support this Paste button.'
+                    }));
+                } else {
+                    dispatch(showSnack({
+                        severity: 'error',
+                        message: `Could not paste and search: ${e.message}`
+                    }));
+                }
+            }
+        })()
+    }, [doSearch]);
 
     function handleClose() {
         setState(prevState => ({...prevState, showSearchResults: false}));
@@ -136,31 +164,38 @@ function Search(props: SearchProps): JSX.Element {
                  autoFocus={autoFocus}
                  placeholder={placeholder}
                  style={{
-                    padding: 3,
-                    paddingLeft: 10,
-                    fontSize: 14,
-                    border: '1px solid ' + theme.palette.grey[500],
-                    borderRadius: '64px',
-                }}
-                value={searchStr}
-                startAdornment={<IconButton onClick={() => {
-                    doSearch();
-                }}>
-                    <SearchIcon style={{color: theme.palette.grey[500] }} />
-                </IconButton>}
-                onChange={(ev) => {
-                    setState(prevState => ({...prevState, searchStr: ev.target.value}));
-                    const { length } = ev.target.value;
-                    if (length === 52 || length === 58) {
-                        doSearch();
-                    }
-                }}
-                onKeyUp={(event) => {
-                    if (event.key === 'Enter') {
-                        event.preventDefault();
-                        doSearch();
-                    }
-                }}
+                     padding: 3,
+                         paddingLeft: 10,
+                         fontSize: 14,
+                         border: '1px solid ' + theme.palette.grey[500],
+                         borderRadius: '64px',
+                 }}
+                 value={searchStr}
+                 startAdornment={
+                     <IconButton onClick={() => doSearch() }>
+                         <SearchIcon style={{ color: theme.palette.grey[500] }} />
+                     </IconButton>
+                 }
+                 endAdornment={
+                     <Tooltip title="Paste and search">
+                         <IconButton onClick={() => doPasteSearch() }>
+                             <ClipboardPaste size={20} color={theme.palette.grey[500]} />
+                         </IconButton>
+                     </Tooltip>
+                 }
+                 onChange={(ev) => {
+                     setState(prevState => ({...prevState, searchStr: ev.target.value}));
+                     const { length } = ev.target.value;
+                     if (length === 52 || length === 58) {
+                         doSearch();
+                     }
+                 }}
+                 onKeyUp={(event) => {
+                     if (event.key === 'Enter') {
+                         event.preventDefault();
+                         doSearch();
+                     }
+                 }}
             fullWidth/>
 
             {showSearchResults ? <Dialog
