@@ -120,6 +120,7 @@ function Search(props: SearchProps): JSX.Element {
                     dispatch(hideLoader());
                     console.log("Navigating", destination);
                     navigate(destination);
+                    return;
                 } catch (e) {
                     dispatch(showSnack({
                         severity: 'error',
