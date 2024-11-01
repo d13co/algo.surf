@@ -132,7 +132,7 @@ function Search(props: SearchProps): JSX.Element {
 
             dispatch(showSnack({
                 severity: 'error',
-                message: `Not something I can search for: ${target}`,
+                message: `Error: Not something I can search for: ${target}`,
             }));
         })()
     }, [searchStr, dispatch, navigate]);
