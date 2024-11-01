@@ -187,7 +187,7 @@ function Search(props: SearchProps): JSX.Element {
                      setState(prevState => ({...prevState, searchStr: ev.target.value}));
                      const { length } = ev.target.value;
                      if (length === 52 || length === 58) {
-                         doSearch();
+                         doSearch(ev.target.value);
                      }
                  }}
                  onKeyUp={(event) => {
