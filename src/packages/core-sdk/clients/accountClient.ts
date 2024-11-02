@@ -48,6 +48,15 @@ export class AccountClient{
 
         const response = await req.do();
         return response as A_AccountTransactionsResponse;
+    }
 
+    async getAuthAddr(address: string, token?: string): Promise<A_AccountsResponse> {
+        const req = this.indexer.searchAccounts().authAddr(address).limit(100);
+        if (token) {
+            req.nextToken(token);
+        }
+
+        const response = await req.do();
+        return response as A_AccountsResponse;
     }
 }

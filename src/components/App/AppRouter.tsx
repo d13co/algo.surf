@@ -17,6 +17,8 @@ import AccountCreatedApplications
     from "../Modules/Explorer/Records/Account/RelatedList/AccountCreatedApplications.tsx/AccountCreatedApplications";
 import AccountOptedApplications
     from "../Modules/Explorer/Records/Account/RelatedList/AccountOptedApplications.tsx/AccountOptedApplications";
+import AccountControllerTo
+    from "../Modules/Explorer/Records/Account/RelatedList/AccountControllerTo.tsx/AccountControllerTo";
 import Block from "../Modules/Explorer/Records/Block/Block";
 import BlockTransactions from "../Modules/Explorer/Records/Block/RelatedList/BlockTransactions/BlockTransactions";
 import Asset from "../Modules/Explorer/Records/Asset/Asset";
@@ -54,6 +56,7 @@ function AppRouter(): JSX.Element {
                                         <Route path="created-assets" element={<AccountCreatedAssets></AccountCreatedAssets>} />
                                         <Route path="created-applications" element={<AccountCreatedApplications></AccountCreatedApplications>} />
                                         <Route path="opted-applications" element={<AccountOptedApplications></AccountOptedApplications>} />
+                                        <Route path="controller" element={<AccountControllerTo />} />
                                         <Route path="" element={<Navigate to="transactions" replace />}/>
                                     </Route>
                                     <Route path="/explorer/block/:id" element={<Block></Block>}>

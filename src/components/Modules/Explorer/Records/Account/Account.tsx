@@ -1,10 +1,10 @@
 import './Account.scss';
-import React, {useMemo, useEffect} from "react";
+import React, {useMemo, useRef, useCallback, useEffect} from "react";
 import {matchPath, Outlet, useLocation, useNavigate, useParams} from "react-router-dom";
 import {useDispatch, useSelector} from "react-redux";
 import {loadAccount} from "../../../../../redux/explorer/actions/account";
 import {RootState} from "../../../../../redux/store";
-import {Chip, Grid, Tab, Tabs} from "@mui/material";
+import {Chip, Link, Grid, Tab, Tabs} from "@mui/material";
 import NumberFormat from "react-number-format";
 import {microalgosToAlgos} from "../../../../../utils/common";
 import AlgoIcon from "../../AlgoIcon/AlgoIcon";
@@ -17,6 +17,10 @@ import LinkToApplication from '../../Common/Links/LinkToApplication';
 import LinkToAccount from '../../Common/Links/LinkToAccount';
 
 const network = process.env.REACT_APP_NETWORK;
+
+function plural(num: number): string {
+    return num !== 1 ? "s" : "";
+}
 
 function Account(): JSX.Element {
     const dispatch = useDispatch();
@@ -33,7 +37,18 @@ function Account(): JSX.Element {
     const hasCreatedAssets = account.createdAssets.length;
     const hasOptedApps = account.optedApplications.length;
     const hasCreatedApps = account.createdApplications.length;
+    const numControlledAccounts = account.controllingAccounts.accounts.length;
     const hasAssetOrAppInfo = hasOptedAssets || hasCreatedAssets || hasOptedApps || hasCreatedApps;
+
+    const tabsRef = useRef<HTMLDivElement>();
+
+    const scrollToControllerTo = useCallback((e) => {
+        navigate(`/explorer/account/${address}/controller`);
+        if (tabsRef?.current)
+            tabsRef.current.scrollIntoView();
+        e.preventDefault();
+        return false;
+    }, [tabsRef]);
 
     if (hasOptedAssets && matchPath("/explorer/account/:address/assets", pathname)) {
         tabValue = 'assets';
@@ -43,6 +58,8 @@ function Account(): JSX.Element {
         tabValue = 'created-applications';
     } else if (hasOptedApps && matchPath("/explorer/account/:address/opted-applications", pathname)) {
         tabValue = 'opted-applications';
+    } else if (numControlledAccounts && matchPath("/explorer/account/:address/controller", pathname)) {
+        tabValue = 'controlling-accounts';
     }
 
     useEffect(() => {
@@ -106,19 +123,35 @@ function Account(): JSX.Element {
                                     </div>
                                 </Grid>
                             </> : null }
-                            { account.information['auth-addr'] ? <>
+                            { numControlledAccounts|| account.information['auth-addr'] ? <>
                                 <Grid item xs={12} sm={6} md={6} lg={4} xl={4}>
+                                { numControlledAccounts?
                                     <div className="property">
                                         <div className="key">
-                                            Rekeyed to
+                                            Controller of
                                         </div>
                                         <div className="value">
-                                            <LinkToAccount copySize="m" strip={9} address={account.information['auth-addr']} />
+                                            <Link href="#" onClick={scrollToControllerTo}>
+                                                {numControlledAccounts}
+                                                {' '}
+                                                account{plural(numControlledAccounts)}
+                                            </Link>
                                         </div>
-                                    </div>
+                                    </div> : null }
+                                    { account.information['auth-addr'] ? <>
+                                        <div className="property">
+                                            <div className="key">
+                                                Rekeyed to
+                                            </div>
+                                            <div className="value">
+                                                <LinkToAccount copySize="m" strip={9} address={account.information['auth-addr']} />
+                                            </div>
+                                        </div>
+                                    </> : null }
                                 </Grid>
                             </> : null }
                         </Grid>
+
                         { account.information.amount ?
                         <Grid container spacing={2}>
                             <Grid item xs={12} sm={6} md={6} lg={4} xl={4}>
@@ -185,10 +218,7 @@ function Account(): JSX.Element {
                             </Grid> : null }
                     </div>
 
-
-
-                    <div className="account-tabs">
-
+                    <div className="account-tabs" ref={tabsRef}>
                         <Tabs TabIndicatorProps={{ children: <span className="MuiTabs-indicatorSpan" />}} value={tabValue} className="related-list">
                             <Tab label="Transactions" value="transactions" onClick={() => {
                                 navigate('/explorer/account/' + address + '/transactions');
@@ -209,10 +239,13 @@ function Account(): JSX.Element {
                             <Tab label="Opted applications" value="opted-applications" onClick={() => {
                                 navigate('/explorer/account/' + address + '/opted-applications');
                             }}/> : null }
+                            { account.controllingAccounts.accounts.length ?
+                            <Tab label="Controlling accounts" value="controlling-accounts" onClick={() => {
+                                navigate('/explorer/account/' + address + '/controller');
+                            }}/> : null }
                         </Tabs>
 
                         <Outlet />
-
 
                     </div>
                 </div>}
