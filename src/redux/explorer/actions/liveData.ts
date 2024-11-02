@@ -82,8 +82,9 @@ export const liveDataSlice = createSlice({
             blocks = blocks.sort((a, b) => b.round - a.round);
 
             state.blocks = blocks.slice(0, 10);
-            state.transactions = [...action.payload.transactions, ...transactions].slice(0, 25);
-
+            if (action.payload?.transactions) {
+                state.transactions = [...action.payload.transactions, ...transactions].slice(0, 25);
+            }
         });
     },
 });
