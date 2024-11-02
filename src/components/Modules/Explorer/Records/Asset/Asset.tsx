@@ -16,6 +16,7 @@ import AssetARCValidator from "./Actions/AssetARCValidator/AssetARCValidator";
 import MultiFormatViewer from "../../../../../components/Common/MultiFormatViewer/MultiFormatViewer";
 import Copyable from "../../../../../components/Common/Copyable/Copyable";
 import Dym from "../Dym";
+import useTitle from "../../../../Common/UseTitle/UseTitle";
 
 const network = process.env.REACT_APP_NETWORK;
 
@@ -30,10 +31,7 @@ function Asset(): JSX.Element {
     const asset = useSelector((state: RootState) => state.asset);
     const assetInstance = new CoreAsset(asset.information);
 
-    useEffect(() => {
-        dispatch(loadAsset(Number(id)));
-        document.title = `A.O ${network}: Asset ${id}`
-    }, [dispatch, id]);
+    useTitle(`Asset ${id}`);
 
     const b64Name = !assetInstance.getName()
 

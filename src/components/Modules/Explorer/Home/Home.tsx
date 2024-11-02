@@ -5,12 +5,15 @@ import {Grid} from "@mui/material";
 import LiveBlocks from "../LiveBlocks/LiveBlocks";
 import LiveTransactions from "../LiveTransactions/LiveTransactions";
 import {theme} from '../../../../theme/index';
+import useTitle from "../../../Common/UseTitle/UseTitle";
 
 const network = process.env.REACT_APP_NETWORK;
 
 const primary = theme.palette.primary.light;
 
 function Home(): JSX.Element {
+    useTitle("Home");
+
     return (<div className={"home-wrapper"}>
         <div className={"home-container"}>
             <div className="home-body">

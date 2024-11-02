@@ -29,6 +29,7 @@ import ShowerIcon from "@mui/icons-material/Shower";
 import AccountBalance from "../../Explorer/Common/AccountBalance/AccountBalance";
 import { useConfirm } from "material-ui-confirm";
 import { useLocation } from 'react-router-dom';
+import useTitle from "../../../Common/UseTitle/UseTitle";
 
 function DevWallets(): JSX.Element {
     const location = useLocation();
@@ -49,9 +50,7 @@ function DevWallets(): JSX.Element {
         dispatch(loadDevWallets());
     }, []);
 
-    useEffect(() => {
-        document.title = 'A.O: Dev Wallets';
-    }, [location]);
+    useTitle('A.O: Dev Wallets', true);
 
     return (<div className={"dev-wallets-wrapper"}>
         <div className={"dev-wallets-container"}>

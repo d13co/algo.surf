@@ -9,6 +9,7 @@ import {loadNodeDetails} from "../../../redux/network/actions/node";
 import {useDispatch} from "react-redux";
 import ProtocolUpgrade from "./tiles/ProtocolUpgrade/ProtocolUpgrade";
 import { useLocation } from 'react-router-dom';
+import useTitle from "../../Common/UseTitle/UseTitle";
 
 function NodeStatus(): JSX.Element {
     const location = useLocation();
@@ -18,9 +19,7 @@ function NodeStatus(): JSX.Element {
         dispatch(loadNodeDetails());
     }, []);
 
-    useEffect(() => {
-        document.title = 'A.O: Node Status';
-    }, [location]);
+    useTitle('A.O: Node Status', true);
 
     return (<div className={"node-status-wrapper"}>
         <div className={"node-status-container"}>

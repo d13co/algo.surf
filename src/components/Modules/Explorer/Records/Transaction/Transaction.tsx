@@ -29,6 +29,7 @@ import CustomError from '../../Common/CustomError/CustomError';
 import AssetFreezeTransaction from "./Types/AssetFreezeTransaction/AssetFreezeTransaction";
 import StateProofTransaction from "./Types/StateProofTransaction/StateProofTransaction";
 import Copyable from '../../../../Common/Copyable/Copyable';
+import useTitle from "../../../../Common/UseTitle/UseTitle";
 
 const network = process.env.REACT_APP_NETWORK;
 
@@ -43,11 +44,7 @@ function Transaction(): JSX.Element {
     let txnObj = transaction.information;
     let txnInstance = new CoreTransaction(txnObj);
 
-
-    useEffect(() => {
-        dispatch(loadTransaction(id));
-        document.title = `A.O ${network}: Txn ${id}`
-    }, [dispatch, id]);
+    useTitle(`Txn ${id}`);
 
     return (<div className={"transaction-wrapper"}>
         <div className={"transaction-container"}>

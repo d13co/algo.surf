@@ -15,6 +15,7 @@ import CustomError from "../../Common/CustomError/CustomError";
 import Copyable from '../../../../Common/Copyable/Copyable';
 import LinkToApplication from '../../Common/Links/LinkToApplication';
 import LinkToAccount from '../../Common/Links/LinkToAccount';
+import useTitle from "../../../../Common/UseTitle/UseTitle";
 
 const network = process.env.REACT_APP_NETWORK;
 
@@ -64,8 +65,9 @@ function Account(): JSX.Element {
 
     useEffect(() => {
         dispatch(loadAccount(address));
-        document.title = `A.O ${network}: Account ${address}`
     }, [dispatch, address]);
+
+    useTitle(`Account ${address}`);
 
     return (<div className={"account-wrapper"}>
         <div className={"account-container"}>

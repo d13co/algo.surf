@@ -9,6 +9,7 @@ import {loadGroup} from "../../../../../redux/explorer/actions/group";
 import {CoreGroup} from "../../../../../packages/core-sdk/classes/core/CoreGroup";
 import LinkToBlock from "../../Common/Links/LinkToBlock";
 import {Alert} from "@mui/lab";
+import useTitle from "../../../../Common/UseTitle/UseTitle";
 
 const network = process.env.REACT_APP_NETWORK;
 
@@ -28,10 +29,7 @@ function Group(): JSX.Element {
         txnTypesList = txnTypes.split(",");
     }
 
-    useEffect(() => {
-        dispatch(loadGroup({id, blockId: Number(blockId)}));
-        document.title = `A.O ${network}: Group Txn ${id}`
-    }, [dispatch, id, blockId]);
+    useTitle(`Group Txn ${id}`);
 
     return (<div className={"group-wrapper"}>
         <div className={"group-container"}>

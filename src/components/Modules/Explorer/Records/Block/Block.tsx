@@ -13,6 +13,7 @@ import JsonViewer from "../../../../Common/JsonViewer/JsonViewer";
 import LinkToAccount from "../../Common/Links/LinkToAccount";
 import {Alert} from "@mui/lab";
 import Copyable from '../../../../Common/Copyable/Copyable';
+import useTitle from "../../../../Common/UseTitle/UseTitle";
 
 const network = process.env.REACT_APP_NETWORK;
 
@@ -32,10 +33,7 @@ function Block(): JSX.Element {
         txnTypesList = txnTypes.split(",");
     }
 
-    useEffect(() => {
-        dispatch(loadBlock(Number(id)));
-        document.title = `A.O ${network}: Block ${id}`
-    }, [dispatch, id]);
+    useTitle(`Block ${id}`);
 
     return (<div className={"block-wrapper"}>
         <div className={"block-container"}>

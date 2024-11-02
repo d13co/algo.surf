@@ -15,8 +15,7 @@ import CustomError from "../../Common/CustomError/CustomError";
 import ApplicationActions from "./Sections/ApplicationActions/ApplicationActions";
 import ApplicationAbi from "./Sections/ApplicationABI/ApplicationAbi";
 import Dym from "../Dym";
-
-const network = process.env.REACT_APP_NETWORK;
+import useTitle from "../../../../Common/UseTitle/UseTitle";
 
 function Application(): JSX.Element {
     const dispatch = useDispatch();
@@ -48,9 +47,10 @@ function Application(): JSX.Element {
         }
     }, [dym]);
 
+    useTitle(`App ${id}`);
+
     useEffect(() => {
         dispatch(loadApplication(Number(id)));
-        document.title = `A.O ${network}: Application ${id}`
     }, [dispatch, id]);
 
     return (<div className={"application-wrapper"}>

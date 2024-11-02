@@ -8,6 +8,7 @@ import {deleteAbi, loadAbi, updateAbi, updateAppId} from "../../../../redux/abi/
 import {ABIContractParams} from "algosdk";
 import {CoreNode} from "../../../../packages/core-sdk/classes/core/CoreNode";
 import { useLocation } from 'react-router-dom';
+import useTitle from "../../../Common/UseTitle/UseTitle";
 
 function ABIStudio(): JSX.Element {
     const location = useLocation();
@@ -22,9 +23,7 @@ function ABIStudio(): JSX.Element {
         dispatch(loadAbi());
     }, []);
 
-    useEffect(() => {
-        document.title = 'A.O: ABI Studio';
-    }, [location]);
+    useTitle('ABI Studio');
 
     return (<div className={"abi-studio-wrapper"}>
         <div className={"abi-studio-container"}>
