@@ -107,7 +107,6 @@ function AccountsList({accounts = [], loading = false, reachedLastPage = () => {
     return (<div className={"accounts-list-wrapper"}>
         <div className={"accounts-list-container"}>
             <div className="accounts-list-body">
-
                 <div style={{ width: '100%' }}>
                     <DataGrid
                         loading={loading}
