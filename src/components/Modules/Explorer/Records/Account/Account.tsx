@@ -48,7 +48,7 @@ function Account(): JSX.Element {
             tabsRef.current.scrollIntoView();
         e.preventDefault();
         return false;
-    }, [tabsRef]);
+    }, [tabsRef, address]);
 
     if (hasOptedAssets && matchPath("/explorer/account/:address/assets", pathname)) {
         tabValue = 'assets';
