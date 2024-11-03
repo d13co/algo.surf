@@ -49,7 +49,7 @@ function Header(): JSX.Element {
             { route !== "home" ? 
             <Slide direction="down" in={route !== "home"} mountOnEnter unmountOnExit>
                 <div>
-                    <Search placeholder={`Search Algorand ${networkLabel}`}/>
+                    <Search placeholder={`Search ${networkLabel} [Ctrl+K]`}/>
                 </div>
             </Slide> : null }
         </div>

@@ -6802,6 +6802,7 @@ __metadata:
     react: "npm:^18.0.0"
     react-code-blocks: "npm:^0.0.9-0"
     react-dom: "npm:^18.0.0"
+    react-hotkeys-hook: "npm:^4.6.1"
     react-json-view: "npm:^1.21.3"
     react-number-format: "npm:^4.9.1"
     react-redux: "npm:^7.2.8"
@@ -13321,6 +13322,16 @@ __metadata:
   version: 6.0.10
   resolution: "react-error-overlay@npm:6.0.10"
   checksum: 10c0/123dc3a6d079a190f94bb4138b5b970e9f592a614f411afd8045a9eab6107d1c750da3a756b19f012b53cd318bc2287cbe6a7ba683ba1d904821d9f7e5135472
+  languageName: node
+  linkType: hard
+
+"react-hotkeys-hook@npm:^4.6.1":
+  version: 4.6.1
+  resolution: "react-hotkeys-hook@npm:4.6.1"
+  peerDependencies:
+    react: ">=16.8.1"
+    react-dom: ">=16.8.1"
+  checksum: 10c0/e23916567b0b863831cf7e2ddba591e82988a3212a9e4b818ac7da6d751b7e8b102f2245d8bf7e9526a97766ffd092efdbfbcc457b74564415f5d5f8ab51919e
   languageName: node
   linkType: hard
 

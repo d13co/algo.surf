@@ -1,5 +1,5 @@
 import './Search.scss';
-import React, {useCallback,useState} from "react";
+import React, {useCallback,useState,useRef} from "react";
 import {
     Chip,
     Dialog,
@@ -25,6 +25,7 @@ import {showSnack} from "../../../../redux/common/actions/snackbar";
 import {theme} from "../../../../theme";
 import {ClipboardPaste} from 'lucide-react';
 import CloseIcon from "@mui/icons-material/Close";
+import { useHotkeys } from 'react-hotkeys-hook';
 
 function getLink(result: A_AssetResult | A_ApplicationResult | A_BlockResult) {
     const { type } = result;
@@ -56,6 +57,14 @@ const defaultPlaceholder = "  Address / Transaction / Asset / Application";
 
 function Search(props: SearchProps): JSX.Element {
     const { autoFocus, placeholder = defaultPlaceholder } = props;
+    const inputRef = useRef<HTMLInputElement>();
+
+    const onHotkey = useCallback(e => {
+        e.preventDefault(); inputRef.current?.focus();
+    }, [inputRef]);
+
+    useHotkeys('/', onHotkey);
+    useHotkeys('ctrl+k', onHotkey);
 
     const navigate = useNavigate();
     const dispatch = useDispatch();
@@ -168,6 +177,7 @@ function Search(props: SearchProps): JSX.Element {
     return (<div className={"search-wrapper"}>
         <div className={"search-container"}>
              <InputBase
+                 inputRef={inputRef}
                  autoFocus={autoFocus}
                  placeholder={placeholder}
                  style={{
@@ -184,7 +194,12 @@ function Search(props: SearchProps): JSX.Element {
                      </IconButton>
                  }
                  endAdornment={
-                     <Tooltip title="Paste and search">
+                     searchStr ? <Tooltip title="Clear">
+                         <IconButton onClick={() => clearState() } style={{color: theme.palette.grey[500]}}>
+                             <CloseIcon color="inherit" />
+                         </IconButton>
+                     </Tooltip>
+                     : <Tooltip title="Paste and search">
                          <IconButton onClick={() => doPasteSearch() }>
                              <ClipboardPaste size={20} color={theme.palette.grey[500]} />
                          </IconButton>
