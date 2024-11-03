@@ -28,10 +28,11 @@ function Block(): JSX.Element {
     const blockInstance = new CoreBlock(block.information);
     const txnTypes = blockInstance.getTransactionsTypesCount();
 
-    let txnTypesList: string[] = [];
-    if (txnTypes) {
-        txnTypesList = txnTypes.split(",");
-    }
+    const txnTypesList = txnTypes ? txnTypes.split(",") : [];
+
+    useEffect(() => {
+        dispatch(loadBlock(Number(id)));
+    }, [dispatch, id]);
 
     useTitle(`Block ${id}`);
 

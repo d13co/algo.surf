@@ -31,6 +31,10 @@ function Asset(): JSX.Element {
     const asset = useSelector((state: RootState) => state.asset);
     const assetInstance = new CoreAsset(asset.information);
 
+    useEffect(() => {
+        dispatch(loadAsset(Number(id)));
+    }, [dispatch, id]);
+
     useTitle(`Asset ${id}`);
 
     const b64Name = !assetInstance.getName()

@@ -44,6 +44,10 @@ function Transaction(): JSX.Element {
     let txnObj = transaction.information;
     let txnInstance = new CoreTransaction(txnObj);
 
+    useEffect(() => {
+        dispatch(loadTransaction(id));
+    }, [dispatch, id]);
+
     useTitle(`Txn ${id}`);
 
     return (<div className={"transaction-wrapper"}>

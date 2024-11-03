@@ -29,6 +29,10 @@ function Group(): JSX.Element {
         txnTypesList = txnTypes.split(",");
     }
 
+    useEffect(() => {
+        dispatch(loadGroup({id, blockId: Number(blockId)}));
+    }, [dispatch, id, blockId]);
+
     useTitle(`Group Txn ${id}`);
 
     return (<div className={"group-wrapper"}>
