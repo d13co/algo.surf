@@ -22,11 +22,13 @@ import {microalgosToAlgos, copyContent} from "../../../../../utils/common";
 import AlgoIcon from "../../AlgoIcon/AlgoIcon";
 import LinkToAccount from "../../Common/Links/LinkToAccount";
 import CustomNoRowsOverlay from "../../Common/CustomNoRowsOverlay/CustomNoRowsOverlay";
+import useTitle from "../../../../Common/UseTitle/UseTitle";
 
 function Accounts(): JSX.Element {
     const dispatch = useDispatch();
     const accounts = useSelector((state: RootState) => state.accounts);
     const {list, loading} = accounts;
+    useTitle("Accounts");
 
     function CustomPagination({loading}) {
         const apiRef = useGridApiContext();

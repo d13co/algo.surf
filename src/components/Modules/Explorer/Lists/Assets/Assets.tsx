@@ -4,13 +4,13 @@ import {useDispatch, useSelector} from "react-redux";
 import {RootState} from "../../../../../redux/store";
 import AssetsList from "../AssetsList/AssetsList";
 import {loadAssets} from "../../../../../redux/explorer/actions/assets";
-
+import useTitle from "../../../../Common/UseTitle/UseTitle";
 
 function Assets(): JSX.Element {
     const dispatch = useDispatch();
     const assets = useSelector((state: RootState) => state.assets);
     const {list} = assets;
-
+    useTitle("Assets");
 
     useEffect(() => {
         dispatch(loadAssets());

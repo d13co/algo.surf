@@ -4,13 +4,14 @@ import {useDispatch, useSelector} from "react-redux";
 import {RootState} from "../../../../../redux/store";
 import {loadApplications} from "../../../../../redux/explorer/actions/applications";
 import ApplicationsList from "../ApplicationsList/ApplicationsList";
-
+import useTitle from "../../../../Common/UseTitle/UseTitle";
 
 function Applications(): JSX.Element {
     const dispatch = useDispatch();
     const applications = useSelector((state: RootState) => state.applications);
     const {list} = applications;
 
+    useTitle("Applications");
 
     useEffect(() => {
         dispatch(loadApplications());
