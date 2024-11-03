@@ -1,0 +1,25 @@
+@import "src/assets/colors";
+
+@keyframes bscale {
+  25% {
+    transform: scaleY(1.1) scaleX(0.2);
+  }
+  67% {
+    filter: brightness(1.5);
+    transform: scaleY(1.2) scaleX(1.35);
+  }
+}
+
+@keyframes fscale {
+  25% {
+    transform: scaleY(1.1) scaleX(0.2);
+  }
+  67% {
+    filter: brightness(1.5);
+    transform: scaleY(1.2) scaleX(1.35);
+  }
+}
+
+.pulse, .pulse2 { display: inline-block; transform-origin: center; filter: brightness(1); }
+.pulse  { animation: bscale 333ms forwards cubic-bezier(.55,.06,.68,.19);  }
+.pulse2 { animation: fscale 333ms forwards cubic-bezier(.55,.06,.68,.19);  }

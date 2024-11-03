@@ -4,6 +4,7 @@ import {BlockClient} from "../../../packages/core-sdk/clients/blockClient";
 import {A_Block, A_SearchTransaction} from "../../../packages/core-sdk/types";
 import {NodeClient} from "../../../packages/core-sdk/clients/nodeClient";
 
+export const blockPreload = 3;
 
 export interface LiveData {
     loading: number,
@@ -35,8 +36,11 @@ export const initLivedata = createAsyncThunk(
 
             const round = health.round;
 
-            dispatch(setCurrentBlock(round - 3));
-            dispatch(loadBlockInfo(round - 3));
+            dispatch(setCurrentBlock(round));
+            dispatch(loadBlockInfo(round));
+            for(let i=1; i<=blockPreload; i++) {
+                dispatch(loadBlockInfo(round - i));
+            }
             dispatch(setConnectionSuccess(true));
         }
         catch (e: any) {
@@ -62,6 +66,8 @@ export const loadBlockInfo = createAsyncThunk(
     }
 );
 
+const transactionsToKeep = 25;
+
 export const liveDataSlice = createSlice({
     name: 'liveData',
     initialState,
@@ -76,14 +82,20 @@ export const liveDataSlice = createSlice({
     },
     extraReducers: (builder) => {
         builder.addCase(loadBlockInfo.fulfilled, (state, action: PayloadAction<A_Block>) => {
-            state.blocks.push(action.payload);
+            state.blocks.unshift(action.payload);
 
-            let {blocks, transactions} = state;
-            blocks = blocks.sort((a, b) => b.round - a.round);
-
-            state.blocks = blocks.slice(0, 10);
+            let {blocks, currentBlock, transactions} = state;
+            state.currentBlock = Math.max(action.payload.round, state.currentBlock);
+            if (state.blocks.length > 10) {
+                state.blocks = blocks.slice(0, 10);
+            }
             if (action.payload?.transactions) {
-                state.transactions = [...action.payload.transactions, ...transactions].slice(0, 25);
+                const newTransactions = action.payload?.transactions;
+                if (newTransactions.length >= transactionsToKeep) {
+                    state.transactions = newTransactions.slice(0, 25);
+                } else {
+                    state.transactions = [...newTransactions, ...transactions].slice(0, 25);
+                }
             }
         });
     },

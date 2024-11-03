@@ -1,9 +1,10 @@
 import './Header.scss';
 import React from "react";
-import { theme } from '../../../../theme/index';
+import {theme} from '../../../../theme/index';
 import {useNavigate, useLocation} from "react-router-dom";
 import {Grid, Slide, Typography, Tab, Tabs} from "@mui/material";
 import Search from "../Search/Search";
+import Logo from "./Logo";
 
 const networkLabel = process.env.REACT_APP_NETWORK;
 const primary = theme.palette.primary.main;
@@ -27,7 +28,7 @@ function Header(): JSX.Element {
             <div>
                 <Grid container>
                     <Tabs variant="scrollable" scrollButtons="auto" sx={{marginLeft: '-20px'}} value={route} TabIndicatorProps={{ children: <span className="MuiTabs-indicatorSpan" />}}>
-                        <Tab label={<span style={{whiteSpace: 'nowrap'}}>Ⱥ Observer <span style={{color: primary}}>{networkLabel}</span></span> } value="home" onClick={() => {
+                        <Tab label={<Logo />} value="home" onClick={() => {
                             navigate('/explorer/home');
                         }}/>
                         <Tab label="Accounts" value="accounts" onClick={() => {
