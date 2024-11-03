@@ -9,7 +9,10 @@ function Explorer(): JSX.Element {
   const location = useLocation();
 
   const dispatch = useDispatch();
-  dispatch(initLivedata());
+
+  useEffect(() => {
+    dispatch(initLivedata());
+  }, []);
 
   return (
     <div className="explorer-root">

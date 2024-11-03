@@ -38,8 +38,9 @@ export const initLivedata = createAsyncThunk(
 
             dispatch(setCurrentBlock(round));
             dispatch(loadBlockInfo(round));
+            // TODO put back pre-fetch
             for(let i=1; i<=blockPreload; i++) {
-                dispatch(loadBlockInfo(round - i));
+                dispatch(loadBlockHistory(round - i));
             }
             dispatch(setConnectionSuccess(true));
         }
@@ -48,6 +49,22 @@ export const initLivedata = createAsyncThunk(
         }
     }
 );
+
+export const loadBlockHistory = createAsyncThunk(
+    'liveData/loadBlockHistory',
+    async (round: number, thunkAPI) => {
+        const {dispatch} = thunkAPI;
+        try {
+            const blockClient = new BlockClient(explorer.network);
+            const blockInfo = await blockClient.get(round);
+            return blockInfo;
+        }
+        catch (e: any) {
+
+        }
+    }
+);
+
 
 export const loadBlockInfo = createAsyncThunk(
     'liveData/loadBlock',
@@ -81,10 +98,13 @@ export const liveDataSlice = createSlice({
         },
     },
     extraReducers: (builder) => {
-        builder.addCase(loadBlockInfo.fulfilled, (state, action: PayloadAction<A_Block>) => {
+        const handler = (sort: boolean) => (state, action: PayloadAction<A_Block>) => {
             state.blocks.unshift(action.payload);
 
             let {blocks, currentBlock, transactions} = state;
+            if (sort) {
+                blocks = blocks.sort((a, b) => b.round - a.round);
+            }
             state.currentBlock = Math.max(action.payload.round, state.currentBlock);
             if (state.blocks.length > 10) {
                 state.blocks = blocks.slice(0, 10);
@@ -97,7 +117,9 @@ export const liveDataSlice = createSlice({
                     state.transactions = [...newTransactions, ...transactions].slice(0, 25);
                 }
             }
-        });
+        }
+        builder.addCase(loadBlockHistory.fulfilled, handler(true));
+        builder.addCase(loadBlockInfo.fulfilled, handler(false));
     },
 });
 
