@@ -42,9 +42,10 @@ function AppSnackbar(): JSX.Element {
             }}
             icon={false}
             severity={snackbar.severity}
-            onClose={() => {dispatch(hideSnack())}}>
-                <div style={{flexGrow: 1}} dangerouslySetInnerHTML={{__html: snackbar.message}}></div>
-                <Copyable buttonSize="medium" value={snackbar.message} style={{marginRight: "-13px", marginTop: "-4px" }}/>
+            onClose={() => {dispatch(hideSnack())}}
+        >
+            <div style={{flexGrow: 1}} dangerouslySetInnerHTML={{__html: snackbar.message}}></div>
+            <Copyable buttonSize="medium" value={snackbar.message} style={{marginRight: "-13px", marginLeft: "13px", marginTop: "-4px" }}/>
         </Alert>
     </Snackbar>);
 }
