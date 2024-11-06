@@ -3,7 +3,7 @@ import React from "react";
 import {useDispatch} from "react-redux";
 import {
     CircularProgress,
-    Link, Pagination, Tooltip
+    Pagination, Tooltip
 } from "@mui/material";
 import {
     DataGrid,
@@ -17,6 +17,7 @@ import {dataGridCellConfig, dataGridStyles} from "../../../../../theme/styles/da
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import {copyContent} from "../../../../../utils/common";
 import {CoreAsset} from "../../../../../packages/core-sdk/classes/core/CoreAsset";
+import Link from "../../Common/Links/Link";
 import LinkToAccount from "../../Common/Links/LinkToAccount";
 import LinkToAsset from "../../Common/Links/LinkToAsset";
 import CustomNoRowsOverlay from "../../Common/CustomNoRowsOverlay/CustomNoRowsOverlay";

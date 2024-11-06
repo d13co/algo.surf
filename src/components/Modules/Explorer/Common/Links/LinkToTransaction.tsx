@@ -1,4 +1,4 @@
-import {Link} from "@mui/material";
+import Link from './Link';
 import React from "react";
 import {ellipseString} from "../../../../../packages/core-sdk/utils";
 import './LinkTo.scss';

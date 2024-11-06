@@ -1,4 +1,5 @@
-import {IconButton, Link, Tooltip} from "@mui/material";
+import {IconButton, Tooltip} from "@mui/material";
+import Link from './Link';
 import React from "react";
 import { Link as LinkIcon } from 'lucide-react';
 

@@ -1,5 +1,5 @@
-import {Link} from "@mui/material";
-import React from "react";
+import React from 'react';
+import Link from './Link';
 import './LinkTo.scss';
 
 function LinkToAsset({id, name = ''}): JSX.Element {

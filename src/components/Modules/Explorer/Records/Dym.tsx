@@ -1,5 +1,6 @@
 import {useCallback} from 'react';
-import {Link,IconButton} from "@mui/material";
+import {IconButton} from "@mui/material";
+import Link from "../Common/Links/Link";
 import {useSearchParams} from "react-router-dom";
 import {theme,shadedWarningClr} from "../../../../theme/index";
 import CloseIcon from "@mui/icons-material/Close";
