@@ -45,7 +45,7 @@ function Block(): JSX.Element {
                         Block overview
                     </div>
                     <div>
-                        <JsonViewer obj={block.information} title="Block"></JsonViewer>
+                        <JsonViewer filename={`block-${id}.json`} obj={block.information} title={`Block ${id}`}></JsonViewer>
                     </div>
                 </div>
 

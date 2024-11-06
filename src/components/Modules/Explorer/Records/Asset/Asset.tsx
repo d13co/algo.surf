@@ -62,7 +62,7 @@ function Asset(): JSX.Element {
                     <div style={{display: "flex", justifyContent: "space-between"}}>
                         <AssetARCValidator asset={asset.information}></AssetARCValidator>
                         <span style={{marginLeft: 10}}>
-                            <JsonViewer obj={asset.information} title="Asset"></JsonViewer>
+                            <JsonViewer filename={`asset-${id}.json`} obj={asset.information} title={`Asset ${id}`}></JsonViewer>
                         </span>
                     </div>
                 </div>

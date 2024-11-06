@@ -82,7 +82,9 @@ export const theme = createTheme({
         MuiDialog: {
             styleOverrides: {
                 paper: {
-                    borderRadius: 15
+                    borderRadius: 15,
+                    backgroundColor: shadedClr,
+                    backgroundImage: "none",
                 }
             }
         },

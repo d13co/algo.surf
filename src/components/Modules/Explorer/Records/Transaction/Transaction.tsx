@@ -59,7 +59,7 @@ function Transaction(): JSX.Element {
                         Transaction overview
                     </div>
                     <div>
-                        <JsonViewer obj={txnObj} title="Transaction"></JsonViewer>
+                        <JsonViewer filename={`txn-${id}.json`} obj={txnObj} title={`Transaction ${id.slice(0, 24)}..`}></JsonViewer>
                     </div>
                 </div>
 

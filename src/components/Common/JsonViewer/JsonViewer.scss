@@ -5,9 +5,10 @@
   .json-viewer-content-header {
     display: flex;
     justify-content: space-between;
-    border-bottom: 1px solid $color-grey-light;
+    border-bottom: 1px solid $color-primary;
     padding-bottom: 15px;
     margin-bottom: 15px;
+    width: 100%;
   }
 }
 

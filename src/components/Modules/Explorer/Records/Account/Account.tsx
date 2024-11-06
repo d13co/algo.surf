@@ -78,7 +78,7 @@ function Account(): JSX.Element {
                         Account overview
                     </div>
                     <div>
-                        <JsonViewer obj={account.information} title="Account"></JsonViewer>
+                        <JsonViewer obj={account.information} filename={`account-${address}.json`} title={`Account ${address.slice(0, 16)}..`}></JsonViewer>
                     </div>
                 </div>
 
