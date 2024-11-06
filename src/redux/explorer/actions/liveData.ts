@@ -99,6 +99,7 @@ export const liveDataSlice = createSlice({
     },
     extraReducers: (builder) => {
         const handler = (sort: boolean) => (state, action: PayloadAction<A_Block>) => {
+            if (!action.payload) return;
             state.blocks.unshift(action.payload);
 
             let {blocks, currentBlock, transactions} = state;
