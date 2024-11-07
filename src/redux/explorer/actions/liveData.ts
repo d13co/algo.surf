@@ -107,8 +107,8 @@ export const liveDataSlice = createSlice({
                 blocks = blocks.sort((a, b) => b.round - a.round);
             }
             state.currentBlock = Math.max(action.payload.round, state.currentBlock);
-            if (state.blocks.length > 10) {
-                state.blocks = blocks.slice(0, 10);
+            if (state.blocks.length > 11) {
+                state.blocks = blocks.slice(0, 11);
             }
             if (action.payload?.transactions) {
                 const newTransactions = action.payload?.transactions;

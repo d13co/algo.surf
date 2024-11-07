@@ -15,6 +15,9 @@
         align-items: center;
       }
       .row {
+        &.help {
+          cursor: help;
+        }
         display: flex;
         width: 90%;
         margin-bottom: 10px;
@@ -26,6 +29,7 @@
         color: $color-grey;
         & > *:nth-child(2) {
           color: $color-primary;
+          margin-left: 10px;
         }
       }
     }

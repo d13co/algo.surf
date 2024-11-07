@@ -46,7 +46,8 @@ export const theme = createTheme({
         MuiTooltip: {
             styleOverrides: {
                 tooltip: {
-                    background: '#000'
+                    background: '#000',
+                    fontSize: '0.85rem',
                 }
             }
         },
