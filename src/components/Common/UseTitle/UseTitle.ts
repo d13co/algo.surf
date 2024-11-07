@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-const network = process.env.REACT_APP_NETWORK;
+const network = process.env.REACT_APP_NETWORK ?? "";
 
 const defaultTitle = `A.O ${network}`;
 const defaultPrefix = `A.O ${network}: `;

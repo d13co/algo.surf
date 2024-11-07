@@ -72,7 +72,7 @@ function Account(): JSX.Element {
     return (<div className={"account-wrapper"}>
         <div className={"account-container"}>
 
-            {account.error ? <CustomError></CustomError> : <div>
+            {account.error ? <CustomError/> : <div>
                 <div className="account-header">
                     <div>
                         Account overview
