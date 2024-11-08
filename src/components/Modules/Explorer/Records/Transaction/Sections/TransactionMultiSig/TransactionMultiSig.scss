@@ -8,9 +8,24 @@
       font-weight: bold;
     }
     .transaction-multi-sig-body {
+      .value.column {
+        flex-direction: column;
+        align-items: flex-start !important;
+      }
       .sub-sig {
         margin: 12px 0px;
         font-size: 14px;
+        display: flex;
+        align-items: center;
+        .icon {
+          margin-right: 5px;
+          cursor: help;
+          &.off {
+            opacity: 0.5;
+            margin-left: 4px;
+            margin-right: 6px;
+          }
+        }
       }
     }
   }

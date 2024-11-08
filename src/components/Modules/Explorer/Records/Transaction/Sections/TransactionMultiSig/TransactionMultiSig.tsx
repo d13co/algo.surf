@@ -1,13 +1,29 @@
 import './TransactionMultiSig.scss';
 import React from "react";
-import {Grid} from "@mui/material";
+import {Tooltip,Grid} from "@mui/material";
 import {CoreTransaction} from "../../../../../../../packages/core-sdk/classes/core/CoreTransaction";
 import {shadedClr} from "../../../../../../../utils/common";
 import LinkToAccount from "../../../../Common/Links/LinkToAccount";
+import { PencilOff, Pencil } from "lucide-react";
+import {theme} from '../../../../../../../theme/index';
 
+const signerTooltip = [
+    "This account did not sign for this transaction",
+    "This account signed for this transaction"
+];
+
+function SubSigner({ signed, children, }: { signed: boolean, children: React.ReactNode }) {
+    const title = signerTooltip[signed ? 1 : 0];
+    const icon = signed ? <Pencil size={18} className="icon" /> : <PencilOff size={14} className="icon off" />
+    return <Tooltip title={title} placement="top">
+        <span>
+            {icon}
+            {children}
+        </span>
+    </Tooltip>
+}
 
 function TransactionMultiSig(props): JSX.Element {
-
     const {transaction} = props;
     const txnInstance = new CoreTransaction(transaction);
     const sig = txnInstance.getSig();
@@ -47,24 +63,21 @@ function TransactionMultiSig(props): JSX.Element {
                                     <div className="key">
                                         Subsignatures
                                     </div>
-                                    <div className="value">
-                                        {txnInstance.getMultiSigSubSignatures().map((addr) => {
-                                            return <div className="sub-sig" key={addr}><LinkToAccount copySize="m" address={addr}></LinkToAccount></div>;
+                                    <div className="value column">
+                                        {txnInstance.getMultiSigSubSignatures().map(([addr, signed]) => {
+                                            return <div className="sub-sig" key={addr}>
+                                                <SubSigner signed={signed}>
+                                                    <LinkToAccount copySize="m" address={addr}></LinkToAccount>
+                                                </SubSigner>
+                                            </div>;
                                         })}
                                     </div>
                                 </div>
                             </Grid>
-
-
                         </Grid>
                     </div>
                 </div>
-
             </div> : ''}
-
-
-
-
         </div>
     </div>);
 }

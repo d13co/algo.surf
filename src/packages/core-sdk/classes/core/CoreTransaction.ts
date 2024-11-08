@@ -271,15 +271,16 @@ export class CoreTransaction {
         return sig.multisig !== undefined;
     }
 
-    getMultiSigSubSignatures(): string[] {
-        const addresses: string[] = [];
+    getMultiSigSubSignatures(): [string, boolean][] {
+        const addresses: [string, boolean][] = [];
         const sig = this.getSig();
         if (this.isMultiSig()) {
             const subSigs = sig.multisig.subsignature;
             subSigs.forEach((subSig) => {
                 const pk = subSig["public-key"];
+                const signed = !!subSig["signature"];
                 const buf = Buffer.from(pk, "base64");
-                addresses.push(encodeAddress(buf));
+                addresses.push([encodeAddress(buf), signed]);
             });
         }
 
