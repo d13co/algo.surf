@@ -6,7 +6,7 @@ function LinkToApplication({id, children = undefined, name = ''}): JSX.Element {
     if (!name) {
         name = id;
     }
-    return <Link className="long-id" href={"/explorer/application/" + id}>{children ?? name}</Link>;
+    return <Link className="long-id" href={"/application/" + id}>{children ?? name}</Link>;
 }
 
 export default LinkToApplication;

@@ -7,7 +7,7 @@ function LinkToAsset({id, name = ''}): JSX.Element {
         name = id;
     }
 
-    return <Link className="long-id" href={"/explorer/asset/" + id}>{name}</Link>;
+    return <Link className="long-id" href={"/asset/" + id}>{name}</Link>;
 }
 
 export default LinkToAsset;
