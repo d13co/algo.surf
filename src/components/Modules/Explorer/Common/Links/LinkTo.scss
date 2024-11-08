@@ -2,4 +2,7 @@
   max-width: calc(100vw - 100px);
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
 }

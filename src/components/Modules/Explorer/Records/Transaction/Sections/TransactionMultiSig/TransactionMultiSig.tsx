@@ -16,11 +16,11 @@ function SubSigner({ signed, children, }: { signed: boolean, children: React.Rea
     const title = signerTooltip[signed ? 1 : 0];
     const icon = signed ? <Pencil size={18} className="icon" /> : <PencilOff size={14} className="icon off" />
     return <Tooltip title={title} placement="top">
-        <span>
+        <div className="sub-sig">
             {icon}
             {children}
-        </span>
-    </Tooltip>
+        </div>
+    </Tooltip>;
 }
 
 function TransactionMultiSig(props): JSX.Element {
@@ -37,43 +37,27 @@ function TransactionMultiSig(props): JSX.Element {
                 </div>
                 <div className="transaction-multi-sig-body">
                     <div className="props" style={{background: shadedClr}}>
-                        <Grid container spacing={2}>
-                            <Grid item xs={12} sm={12} md={12} lg={12} xl={12}>
-                                <div className="property">
-                                    <div className="key">
-                                        Version
-                                    </div>
-                                    <div className="value">
-                                        {sig.multisig.version}
-                                    </div>
+                        <div className="threshold-version-container">
+                            <div className="HFlex">
+                                <span>Version</span><span className="value">{sig.multisig.version}</span>
+                            </div>
+                            <div className="HFlex">
+                                <span>Threshold</span><span className="value">{sig.multisig.threshold}</span>
+                            </div>
+                        </div>
+                        <Grid item xs={12} sm={12} md={12} lg={12} xl={12}>
+                            <div className="property">
+                                <div className="key">
+                                    Subsignatures
                                 </div>
-                            </Grid>
-                            <Grid item xs={12} sm={12} md={12} lg={12} xl={12}>
-                                <div className="property">
-                                    <div className="key">
-                                        Threshold
-                                    </div>
-                                    <div className="value">
-                                        {sig.multisig.threshold}
-                                    </div>
+                                <div className="value column">
+                                    {txnInstance.getMultiSigSubSignatures().map(([addr, signed]) =>
+                                        <SubSigner signed={signed} key={addr}>
+                                            <LinkToAccount copySize="m" address={addr}></LinkToAccount>
+                                        </SubSigner>
+                                    )}
                                 </div>
-                            </Grid>
-                            <Grid item xs={12} sm={12} md={12} lg={12} xl={12}>
-                                <div className="property">
-                                    <div className="key">
-                                        Subsignatures
-                                    </div>
-                                    <div className="value column">
-                                        {txnInstance.getMultiSigSubSignatures().map(([addr, signed]) => {
-                                            return <div className="sub-sig" key={addr}>
-                                                <SubSigner signed={signed}>
-                                                    <LinkToAccount copySize="m" address={addr}></LinkToAccount>
-                                                </SubSigner>
-                                            </div>;
-                                        })}
-                                    </div>
-                                </div>
-                            </Grid>
+                            </div>
                         </Grid>
                     </div>
                 </div>

@@ -16,7 +16,7 @@ function TransactionAdditionalDetails(props): JSX.Element {
     return (<div className={"transaction-additional-details-wrapper"}>
         <div className={"transaction-additional-details-container"}>
 
-            <div className="props" style={{background: shadedClr}}>
+            <div className="props" style={{background: shadedClr, padding: '10px'}}>
                 <Accordion className="transparent rounded">
                     <AccordionSummary
                         expandIcon={<ExpandMore />}
