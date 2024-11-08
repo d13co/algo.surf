@@ -2,34 +2,33 @@
 @import "./assets/colors";
 
 @font-face {
-  font-family: 'Poppins';
-  src: url('assets/fonts/Poppins/Poppins-Regular.ttf') format('ttf'),
-  url('assets/fonts/Poppins/Poppins-Regular.ttf') format('truetype');
+  font-family: 'DejaVu Sans Mono';
+  src: url('assets/fonts/DejaVu/DejaVuSansMono.ttf') format('ttf'),
+  url('assets/fonts/DejaVu/DejaVuSansMono.ttf') format('truetype');
+}
+@font-face {
+    font-family: 'DejaVu Sans Mono Bold';
+    src: url('assets/fonts/DejaVu/DejaVuSansMono-Bold.ttf') format('ttf'),
+    url('assets/fonts/DejaVu/DejaVuSansMono-Bold.ttf') format('truetype');
+    font-weight: bold;
+}
+@font-face {
+    font-family: 'DejaVu Sans Mono Italic';
+    src: url('assets/fonts/DejaVu/DejaVuSansMono-Oblique.ttf') format('ttf'),
+    url('assets/fonts/DejaVu/DejaVuSansMono-Oblique.ttf') format('truetype');
+    font-style: italic;
 }
 
 @font-face {
-  font-family: 'PoppinsLight';
-  src: url('assets/fonts/Poppins/Poppins-Light.ttf') format('ttf'),
-  url('assets/fonts/Poppins/Poppins-Light.ttf') format('truetype');
+    font-family: 'DejaVu Sans Light';
+    src: url('assets/fonts/DejaVu/DejaVuSans-ExtraLight.ttf') format('ttf'),
+    url('assets/fonts/DejaVu/DejaVuSans-ExtraLight.ttf') format('truetype');
 }
-
-@font-face {
-  font-family: 'PoppinsThin';
-  src: url('assets/fonts/Poppins/Poppins-Thin.ttf') format('ttf'),
-  url('assets/fonts/Poppins/Poppins-Thin.ttf') format('truetype');
-}
-
-@font-face {
-  font-family: 'PoppinsBold';
-  src: url('assets/fonts/Poppins/Poppins-Bold.ttf') format('ttf'),
-  url('assets/fonts/Poppins/Poppins-Bold.ttf') format('truetype');
-}
-
 body {
-  font-family: "Poppins";
+  font-family: "DejaVu Sans Mono";
 }
 * {
-  font-family: "Poppins" !important;
+  font-family: "DejaVu Sans Mono" !important;
 }
 
 .modal-close-button {
