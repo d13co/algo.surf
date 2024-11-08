@@ -2,7 +2,7 @@ import { decodeUint64 } from 'algosdk';
 import { theme } from "../../../theme/index";
 import React, {useState, useMemo, useEffect, useCallback} from "react";
 import IconButton from '@mui/material/IconButton';
-import { Binary, Type, Tally5 } from 'lucide-react';
+import { Binary, Type, Hash } from 'lucide-react';
 import FormatBoldOutlinedIcon from '@mui/icons-material/FormatBoldOutlined';
 import './MultiFormatViewer.scss';
 import Copyable from '../../../components/Common/Copyable/Copyable';
@@ -98,7 +98,7 @@ export default function MultiFormatViewer(props: MultiFormatViewerProps): JSX.El
             <Tooltip title={`Showing ${niceNames[view]}. Click to show ${niceNames[nextView]}`}>
                 <IconButton size="small" onClick={() => changeView(null, nextView)} style={{opacity: view === "num" ? 1 : undefined, marginLeft: "8px", marginRight: "-4px", fontSize: "10px"}}>
                     { view === "utf8" ? <Type size={16} /> : (
-                        view === "num" ? <Tally5 size={16} color={theme.palette.primary.main} /> :
+                        view === "num" ? <Hash size={16} color={theme.palette.primary.main} /> :
                         <Binary size={16} />
                     ) }
                 </IconButton>
