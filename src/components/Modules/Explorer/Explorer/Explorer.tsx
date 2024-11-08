@@ -5,7 +5,7 @@ import {initLivedata} from "../../../../redux/explorer/actions/liveData";
 import {Outlet, useLocation} from "react-router-dom";
 import Header from "../Header/Header";
 
-function Explorer(): JSX.Element {
+function Explorer({ children }: { children: React.ReactNode }): JSX.Element {
   const location = useLocation();
 
   const dispatch = useDispatch();
@@ -17,7 +17,7 @@ function Explorer(): JSX.Element {
   return (
     <div className="explorer-root">
     <Header></Header>
-    <Outlet />
+      {children}
     </div>
   );
 }
