@@ -12,7 +12,6 @@ import LoadingTile from "../../../../Common/LoadingTile/LoadingTile";
 import {shadedClr} from "../../../../../utils/common";
 import JsonViewer from "../../../../Common/JsonViewer/JsonViewer";
 import CustomError from "../../Common/CustomError/CustomError";
-import AssetARCValidator from "./Actions/AssetARCValidator/AssetARCValidator";
 import MultiFormatViewer from "../../../../../components/Common/MultiFormatViewer/MultiFormatViewer";
 import Copyable from "../../../../../components/Common/Copyable/Copyable";
 import Dym from "../Dym";
@@ -60,10 +59,7 @@ function Asset(): JSX.Element {
                         Asset overview
                     </div>
                     <div style={{display: "flex", justifyContent: "space-between"}}>
-                        <AssetARCValidator asset={asset.information}></AssetARCValidator>
-                        <span style={{marginLeft: 10}}>
-                            <JsonViewer filename={`asset-${id}.json`} obj={asset.information} title={`Asset ${id}`}></JsonViewer>
-                        </span>
+                        <JsonViewer filename={`asset-${id}.json`} obj={asset.information} title={`Asset ${id}`}></JsonViewer>
                     </div>
                 </div>
 
