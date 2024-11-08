@@ -30,11 +30,11 @@ import { useHotkeys } from 'react-hotkeys-hook';
 function getLink(result: A_AssetResult | A_ApplicationResult | A_BlockResult) {
     const { type } = result;
     if (type === "block") {
-        return `/explorer/block/${result.round}`;
+        return `//block/${result.round}`;
     } else if (type === "asset" ) {
-        return `/explorer/asset/${result.index}/transactions`;
+        return `//asset/${result.index}/transactions`;
     } else {
-        return `/explorer/application/${result.id}/transactions`;
+        return `//application/${result.id}/transactions`;
     }
 }
 
@@ -86,7 +86,7 @@ function Search(props: SearchProps): JSX.Element {
             }
             if (isValidAddress(target)) {
                 setState(prevState => ({...prevState, target: ""}));
-                navigate('/explorer/account/' + target);
+                navigate('/account/' + target);
                 return;
             } else if (target.length === 58) {
                 dispatch(showSnack({
@@ -97,7 +97,7 @@ function Search(props: SearchProps): JSX.Element {
             }
             if (target.length === 52) {
                 setState(prevState => ({...prevState, target: ""}));
-                navigate('/explorer/transaction/' + target);
+                navigate('/transaction/' + target);
                 return;
             }
 

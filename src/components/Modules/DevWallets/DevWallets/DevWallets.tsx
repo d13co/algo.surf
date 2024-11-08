@@ -119,7 +119,7 @@ function DevWallets(): JSX.Element {
                                                         variant={"text"}
                                                         startIcon={<OpenInNewIcon></OpenInNewIcon>}
                                                         onClick={() => {
-                                                            window.open('/explorer/account/' + devWallet.address, '_blank');
+                                                            window.open('/account/' + devWallet.address, '_blank');
                                                         }}
                                                 >View in explorer</Button>
                                                 <Button color={"primary"}

@@ -789,7 +789,7 @@ function ABIMethodExecutor({show = false, creation = false, method = {
                                                             <Button
                                                                 color={"primary"}
                                                                 onClick={() => {
-                                                                    window.open("/explorer/transaction/" + new CoreTransaction(txn).getId(), "_blank");
+                                                                    window.open("/transaction/" + new CoreTransaction(txn).getId(), "_blank");
                                                                 }}
                                                                 size={"small"}
                                                                 sx={{marginTop: '20px'}}

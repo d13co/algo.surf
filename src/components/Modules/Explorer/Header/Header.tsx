@@ -29,19 +29,19 @@ function Header(): JSX.Element {
                 <Grid container>
                     <Tabs variant="scrollable" scrollButtons="auto" sx={{marginLeft: '-20px'}} value={route} TabIndicatorProps={{ children: <span className="MuiTabs-indicatorSpan" />}}>
                         <Tab label={<Logo />} value="home" onClick={() => {
-                            navigate('/explorer/home');
+                            navigate('/home');
                         }}/>
                         <Tab label="Accounts" value="accounts" onClick={() => {
-                            navigate('/explorer/accounts');
+                            navigate('/accounts');
                         }}/>
                         <Tab label="Txns" value="transactions" onClick={() => {
-                            navigate('/explorer/transactions');
+                            navigate('/transactions');
                         }}/>
                         <Tab label="Assets" value="assets" onClick={() => {
-                            navigate('/explorer/assets');
+                            navigate('/assets');
                         }}/>
                         <Tab label="Apps" value="applications" onClick={() => {
-                            navigate('/explorer/applications');
+                            navigate('/applications');
                         }}/>
                     </Tabs>
                 </Grid>

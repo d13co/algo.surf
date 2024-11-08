@@ -153,7 +153,7 @@ function Block(): JSX.Element {
 
                         <Tabs TabIndicatorProps={{ children: <span className="MuiTabs-indicatorSpan" />}} value="transactions" className="related-list">
                             <Tab label="Transactions" value="transactions" onClick={() => {
-                                navigate('/explorer/block/' + id + '/transactions');
+                                navigate('/block/' + id + '/transactions');
                             }}/>
                         </Tabs>
 

@@ -27,7 +27,7 @@ function CustomError({ error }: { error?: string }): JSX.Element {
 
                     <div className="actions">
                         <Button color={"primary"} size={"medium"} variant={"outlined"} onClick={() => {
-                            navigate('/explorer');
+                            navigate('/');
                         }}>Home</Button>
                     </div>
 

@@ -44,22 +44,22 @@ function Account(): JSX.Element {
     const tabsRef = useRef<HTMLDivElement>();
 
     const scrollToControllerTo = useCallback((e) => {
-        navigate(`/explorer/account/${address}/controller`);
+        navigate(`//account/${address}/controller`);
         if (tabsRef?.current)
             tabsRef.current.scrollIntoView();
         e.preventDefault();
         return false;
     }, [tabsRef, address]);
 
-    if (hasOptedAssets && matchPath("/explorer/account/:address/assets", pathname)) {
+    if (hasOptedAssets && matchPath("/account/:address/assets", pathname)) {
         tabValue = 'assets';
-    } else if (hasCreatedAssets && matchPath("/explorer/account/:address/created-assets", pathname)) {
+    } else if (hasCreatedAssets && matchPath("/account/:address/created-assets", pathname)) {
         tabValue = 'created-assets';
-    } else if (hasCreatedApps && matchPath("/explorer/account/:address/created-applications", pathname)) {
+    } else if (hasCreatedApps && matchPath("/account/:address/created-applications", pathname)) {
         tabValue = 'created-applications';
-    } else if (hasOptedApps && matchPath("/explorer/account/:address/opted-applications", pathname)) {
+    } else if (hasOptedApps && matchPath("/account/:address/opted-applications", pathname)) {
         tabValue = 'opted-applications';
-    } else if (numControlledAccounts && matchPath("/explorer/account/:address/controller", pathname)) {
+    } else if (numControlledAccounts && matchPath("/account/:address/controller", pathname)) {
         tabValue = 'controlling-accounts';
     }
 
@@ -223,27 +223,27 @@ function Account(): JSX.Element {
                     <div className="account-tabs" ref={tabsRef}>
                         <Tabs TabIndicatorProps={{ children: <span className="MuiTabs-indicatorSpan" />}} value={tabValue} className="related-list">
                             <Tab label="Transactions" value="transactions" onClick={() => {
-                                navigate('/explorer/account/' + address + '/transactions');
+                                navigate('/account/' + address + '/transactions');
                             }}/>
                             { account.optedAssets.length ?
                             <Tab label="Assets" value="assets" onClick={() => {
-                                navigate('/explorer/account/' + address + '/assets');
+                                navigate('/account/' + address + '/assets');
                             }}/> : null }
                             { account.createdAssets.length ?
                             <Tab label="Created assets" value="created-assets" onClick={() => {
-                                navigate('/explorer/account/' + address + '/created-assets');
+                                navigate('/account/' + address + '/created-assets');
                             }}/> : null }
                             { account.createdApplications.length ?
                             <Tab label="Created applications" value="created-applications" onClick={() => {
-                                navigate('/explorer/account/' + address + '/created-applications');
+                                navigate('/account/' + address + '/created-applications');
                             }}/> : null }
                             { account.optedApplications.length ?
                             <Tab label="Opted applications" value="opted-applications" onClick={() => {
-                                navigate('/explorer/account/' + address + '/opted-applications');
+                                navigate('/account/' + address + '/opted-applications');
                             }}/> : null }
                             { account.controllingAccounts.accounts.length ?
                             <Tab label="Controlling accounts" value="controlling-accounts" onClick={() => {
-                                navigate('/explorer/account/' + address + '/controller');
+                                navigate('/account/' + address + '/controller');
                             }}/> : null }
                         </Tabs>
 
