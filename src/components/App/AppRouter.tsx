@@ -44,13 +44,13 @@ function AppRouter(): JSX.Element {
                     <div className="content-wrapper">
                         <div className="content-container">
                             <Routes>
-                                <Route path="/explorer" element={<Explorer></Explorer>}>
-                                    <Route path="/explorer/home" element={<Home></Home>} />
-                                    <Route path="/explorer/accounts" element={<Accounts></Accounts>} />
-                                    <Route path="/explorer/transactions" element={<Transactions></Transactions>} />
-                                    <Route path="/explorer/assets" element={<Assets></Assets>} />
-                                    <Route path="/explorer/applications" element={<Applications></Applications>} />
-                                    <Route path="/explorer/account/:address" element={<Account></Account>}>
+                                <Route path="/" element={<Explorer></Explorer>}>
+                                    <Route index element={<Home></Home>} />
+                                    <Route path="/accounts" element={<Accounts></Accounts>} />
+                                    <Route path="/transactions" element={<Transactions></Transactions>} />
+                                    <Route path="/assets" element={<Assets></Assets>} />
+                                    <Route path="/applications" element={<Applications></Applications>} />
+                                    <Route path="/account/:address" element={<Account></Account>}>
                                         <Route path="assets" element={<AccountAssets></AccountAssets>} />
                                         <Route path="transactions" element={<AccountTransactions></AccountTransactions>} />
                                         <Route path="created-assets" element={<AccountCreatedAssets></AccountCreatedAssets>} />
@@ -59,26 +59,25 @@ function AppRouter(): JSX.Element {
                                         <Route path="controller" element={<AccountControllerTo />} />
                                         <Route path="" element={<Navigate to="transactions" replace />}/>
                                     </Route>
-                                    <Route path="/explorer/block/:id" element={<Block></Block>}>
+                                    <Route path="/block/:id" element={<Block></Block>}>
                                         <Route path="transactions" element={<BlockTransactions></BlockTransactions>} />
                                         <Route path="" element={<Navigate to="transactions" replace />}/>
                                     </Route>
-                                    <Route path="/explorer/asset/:id" element={<Asset></Asset>}>
+                                    <Route path="/asset/:id" element={<Asset></Asset>}>
                                         <Route path="transactions" element={<AssetTransactions></AssetTransactions>} />
                                         <Route path="" element={<Navigate to="transactions" replace />}/>
                                     </Route>
-                                    <Route path="/explorer/application/:id" element={<Application></Application>}>
+                                    <Route path="/application/:id" element={<Application></Application>}>
                                         <Route path="transactions" element={<ApplicationTransactions></ApplicationTransactions>} />
                                         <Route path="" element={<Navigate to="transactions" replace />}/>
                                     </Route>
-                                    <Route path="/explorer/transaction/:id" element={<Transaction></Transaction>}></Route>
-                                    <Route path="/explorer/group/:id/:blockId" element={<Group></Group>}>
+                                    <Route path="/transaction/:id" element={<Transaction></Transaction>}></Route>
+                                    <Route path="/group/:id/:blockId" element={<Group></Group>}>
                                         <Route path="transactions" element={<GroupTransactions></GroupTransactions>} />
                                         <Route path="" element={<Navigate to="transactions" replace />}/>
                                     </Route>
-                                    <Route index element={<Navigate to="home" replace />} />
                                 </Route>
-                                <Route path="*" element={<Navigate to="/explorer" replace />}/>
+                                <Route path="*" element={<Navigate to="/" replace />}/>
                             </Routes>
                         </div>
                         <Footer />
