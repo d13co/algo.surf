@@ -81,7 +81,8 @@ export class CoreApplication {
             gState.forEach((gStateProp) => {
                 const row:A_GlobalStateDecrypted = {key: "", type: "", value: undefined};
 
-                let key = preserveBase64 ? gStateProp.key : Buffer.from(gStateProp.key, 'base64');
+                row.sortKey = Buffer.from(gStateProp.key, 'base64');
+                let key = preserveBase64 ? gStateProp.key : row.sortKey;
 
                 if (preserveBase64) {
                     row.key = Buffer.isBuffer(key) ? key.toString("base64") : key;
@@ -122,7 +123,8 @@ export class CoreApplication {
             });
         }
 
-        return gStateDecrypted;
+        const sorted = gStateDecrypted.sort(({sortKey: a}, {sortKey: b}) => Buffer.compare(a, b));
+        return sorted.map(({ sortKey, ...row }) => row);
     }
 
     getApplicationAddress(): string {

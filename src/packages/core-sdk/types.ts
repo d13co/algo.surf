@@ -91,6 +91,7 @@ export interface A_GlobalState {
 
 export interface A_GlobalStateDecrypted {
     key: string
+    sortKey?: Buffer,
     type: string
     value: string | number
 }

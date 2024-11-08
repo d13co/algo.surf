@@ -19,8 +19,6 @@ function ApplicationGlobalState(): JSX.Element {
     const applicationInstance = new CoreApplication(application.information);
     const globalStorage = applicationInstance.getGlobalStorageDecrypted(true);
 
-    globalStorage.sort((a, b) => a.key.localeCompare(b.key));
-
     const columns: GridColDef[] = [
         {
             ...dataGridCellConfig,
