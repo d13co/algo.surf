@@ -12,7 +12,6 @@ import {shadedClr} from "../../../../../../../theme/index";
 import NumberFormat from "react-number-format";
 import {Grid} from "@mui/material";
 import MultiFormatViewer from "../../../../../../../components/Common/MultiFormatViewer/MultiFormatViewer";
-// ../../../../../components/Common/MultiFormatViewer/MultiFormatViewer";
 
 function ApplicationGlobalState(): JSX.Element {
 
@@ -43,6 +42,7 @@ function ApplicationGlobalState(): JSX.Element {
             renderCell: (params: GridValueGetterParams) => {
                 return <MultiFormatViewer
                     view="auto"
+                    includeNum="auto"
                     value={params.row.key}
                     style={{marginLeft: '15px'}}
                 />

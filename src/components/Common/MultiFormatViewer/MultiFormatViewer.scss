@@ -3,9 +3,9 @@
 }
 
 .dimparent {
-  .dim { opacity: 0.6; }
+  .dim > * { opacity: 0.6; }
 }
 
 .dimparent:hover {
-  .dim { opacity: 1 }
+  .dim > * { opacity: 1 }
 }

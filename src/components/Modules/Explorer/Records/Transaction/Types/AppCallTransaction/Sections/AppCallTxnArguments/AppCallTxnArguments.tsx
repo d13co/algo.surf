@@ -11,6 +11,7 @@ import {ABIContractParams} from "algosdk";
 import ABIMethodSignature from "../../../../../../../ABI/ABIMethodSignature/ABIMethodSignature";
 import {CoreTransaction} from "../../../../../../../../../packages/core-sdk/classes/core/CoreTransaction";
 import AppCallTxnReturnValue from "../AppCallTxnReturnValue/AppCallTxnReturnValue";
+import MultiFormatViewer from "../../../../../../../../../components/Common/MultiFormatViewer/MultiFormatViewer";
 
 interface AppCallTxnArgumentsState{
     textEncoding: string,
@@ -74,7 +75,11 @@ function AppCallTxnArguments(props): JSX.Element {
                                 return <div className="arg" key={arg + index}>
                                     <Grid container spacing={0}>
                                         <Grid item xs={12} sm={12} md={12} lg={12} xl={12}>
-                                            <div>{arg}</div>
+                                            <MultiFormatViewer
+                                                view="auto"
+                                                includeNum={index === 0 ? undefined : "auto"}
+                                                value={arg}
+                                            />
                                         </Grid>
                                     </Grid>
                                 </div>;
@@ -97,11 +102,8 @@ function AppCallTxnArguments(props): JSX.Element {
                                             <Grid item xs={12} sm={4} md={5} lg={5} xl={5}>
                                                 Decoded value
                                             </Grid>
-
                                         </Grid>
                                     </div> : ''}
-
-
 
                                     {abiDecodedArgs.map((arg, index) => {
                                         return <div className="arg" key={arg.name + index}>
