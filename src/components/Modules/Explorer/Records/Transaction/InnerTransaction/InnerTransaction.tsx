@@ -24,7 +24,6 @@ function InnerTransaction(props): JSX.Element {
     let txnObj = txn;
     let txnInstance = new CoreTransaction(txnObj);
 
-
     return (<div className={"inner-transaction-wrapper"}>
         <div className={"inner-transaction-container"}>
 

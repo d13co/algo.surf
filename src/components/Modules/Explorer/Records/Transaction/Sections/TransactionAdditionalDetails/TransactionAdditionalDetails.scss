@@ -2,6 +2,9 @@
 
 .transaction-additional-details-wrapper {
   .transaction-additional-details-container {
-    
+    .value {
+      display: flex;
+      align-items: center;
+    }
   }
 }

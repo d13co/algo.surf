@@ -15,10 +15,10 @@ function Footer(): JSX.Element {
         <div className="left">
             Algorand Observer
             <Tooltip title="Source on Github">
-                <Link href="https://github.com/d13co/algorand.observer"><Github size={16} color="black" strokeWidth={1.75} /></Link>
+                <Link href="https://github.com/d13co/algorand.observer"><Github size={16} color="white" strokeWidth={1.75} /></Link>
             </Tooltip>
             <Tooltip title="Maintainer on X">
-                <Link href="https://x.com/d13_co"><Twitter size={16} color="black" strokeWidth={1.75} /></Link>
+                <Link href="https://x.com/d13_co"><Twitter size={16} color="white" strokeWidth={1.75} /></Link>
             </Tooltip>
         </div>
         <div>
@@ -39,8 +39,7 @@ function Networks() {
         .map(([name, url], i, a) => {
         const current = name === process.env.REACT_APP_NETWORK;
         const last = i === a.length - 1;
-        console.log({current, name});
-        return <><Link href={url} className={current ? "current": ""} key={`net-${name}`}>{name}</Link>{!last ? <>{' '}&middot;{' '}</> : null}</>
+        return <span key={`net-${name}`}><Link href={url} className={current ? "current": ""}>{name}</Link>{!last ? <>{' '}&middot;{' '}</> : null}</span>
     })}</>
 }
 

@@ -6,7 +6,6 @@
     .block-header {
       font-size: 20px;
       font-weight: bold;
-      font-family: PoppinsBold !important;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -25,13 +24,12 @@
         .property {
           margin-top: 10px;
           .key {
-            font-family: PoppinsBold !important;
           }
           .value {
             display: flex;
             align-items: center;
             margin-top: 10px;
-            color: $color-grey-dark;
+            color: $color-grey;
             .long-id {
               display: inline-block;
               text-overflow: ellipsis;

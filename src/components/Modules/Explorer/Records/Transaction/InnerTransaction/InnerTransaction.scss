@@ -6,7 +6,6 @@
     .inner-transaction-header {
       font-size: 20px;
       font-weight: bold;
-      font-family: PoppinsBold !important;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -23,14 +22,13 @@
         margin-top: 25px;
         border-radius: 10px;
         padding: 20px;
+        padding-top: 10px;
         .property {
           margin-top: 10px;
           .key {
-            font-family: PoppinsBold !important;
           }
           .value {
             margin-top: 10px;
-            color: $color-grey-dark;
             word-break: break-all;
             &.small {
               font-size: 13px;

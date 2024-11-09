@@ -6,7 +6,6 @@
     .group-header {
       font-size: 20px;
       font-weight: bold;
-      font-family: PoppinsBold !important;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -27,18 +26,9 @@
           justify-content: space-between;
           margin-top: 20px;
           .key {
-            font-family: PoppinsBold !important;
-            .mini-alert {
-              padding: 5px 10px;
-              border-radius: 4px;
-              display: inline-block;
-              margin: 5px 5px 0 0;
-              font-weight: bold;
-              text-align: center;
-              font-size: 13px;
-              .MuiAlert-message {
-                padding: 0;
-              }
+            margin-right: 4px;
+            &.nowrap {
+              white-space: pre;
             }
           }
           .value {
@@ -46,7 +36,11 @@
             .algo-icon {
               margin-left: 5px;
             }
-
+            &.flexwrap {
+              display: flex;
+              gap: 2px;
+              flex-wrap: wrap;
+            }
           }
         }
       }

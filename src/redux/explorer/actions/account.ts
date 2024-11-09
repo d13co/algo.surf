@@ -2,7 +2,7 @@ import {createAsyncThunk, createSlice, PayloadAction} from '@reduxjs/toolkit'
 import {A_AccountInformation, A_Application, A_AppsLocalState, A_Asset} from '../../../packages/core-sdk/types';
 import {handleException} from "../../common/actions/exception";
 import explorer from "../../../utils/dappflow";
-import {A_AccountTransactionsResponse, AccountClient} from "../../../packages/core-sdk/clients/accountClient";
+import {A_AccountsResponse, A_AccountTransactionsResponse, AccountClient} from "../../../packages/core-sdk/clients/accountClient";
 import {CoreAccount} from "../../../packages/core-sdk/classes/core/CoreAccount";
 import {AssetClient} from "../../../packages/core-sdk/clients/assetClient";
 
@@ -10,9 +10,10 @@ export interface Account {
     loading: boolean,
     error: boolean,
     information: A_AccountInformation,
+    controllingAccounts: A_AccountsResponse & { completed: boolean, loading: boolean }
     createdAssets: A_Asset[],
     optedAssets: A_Asset[],
-    transactionsDetails: A_AccountTransactionsResponse & {completed: boolean, loading: boolean}
+    transactionsDetails: A_AccountTransactionsResponse & {completed: boolean, loading: boolean }
     createdApplications: A_Application[],
     optedApplications: A_AppsLocalState[],
     escrowOf?: number,
@@ -43,6 +44,7 @@ const initialState: Account = {
     loading: false,
     error: false,
     information,
+    controllingAccounts: { accounts: [], "next-token": "", completed: false, loading: false },
     createdAssets: [],
     optedAssets: [],
     transactionsDetails: {
@@ -64,12 +66,15 @@ export const loadAccount = createAsyncThunk(
             dispatch(resetAccount());
             dispatch(setLoading(true));
             const accountInfo = await accountClient.getAccountInformation(address);
+            dispatch(loadAuthAddressTo(accountInfo));
             dispatch(loadCreatedAssets(accountInfo));
             dispatch(loadCreatedApplications(accountInfo));
             dispatch(loadOptedApplications(accountInfo));
             dispatch(loadAccountTransactions(accountInfo));
             dispatch(loadOptedAssets(accountInfo));
-            dispatch(loadEscrowOf(accountInfo));
+            if (process.env.REACT_APP_NETWORK  == "Mainnet") {
+                dispatch(loadEscrowOf(accountInfo));
+            }
             dispatch(setLoading(false));
             return accountInfo;
         }
@@ -96,6 +101,27 @@ export const loadEscrowOf = createAsyncThunk(
             const data = await resp.json();
             return data[address];
         } catch (e: any) {
+            dispatch(handleException(e));
+        }
+    }
+);
+
+export const loadAuthAddressTo = createAsyncThunk(
+    'account/loadAuthAddressTo',
+    async (information: A_AccountInformation, thunkAPI) => {
+        const {dispatch, getState} = thunkAPI;
+        try {
+            // @ts-ignore
+            const {account} = getState();
+
+            if (account.controllingAccounts.completed) {
+                return;
+            }
+            const accountClient = new AccountClient(explorer.network);
+            const response = await accountClient.getAuthAddr(information.address, account.controllingAccounts['next-token']);
+            return response;
+        }
+        catch (e: any) {
             dispatch(handleException(e));
         }
     }
@@ -265,6 +291,18 @@ export const accountSlice = createSlice({
         builder.addCase(loadOptedApplications.fulfilled, (state, action: PayloadAction<A_AppsLocalState[]>) => {
             if (action.payload) {
                 state.optedApplications = action.payload;
+            }
+        });
+        builder.addCase(loadAuthAddressTo.fulfilled, (state, action: PayloadAction<A_AccountsResponse>) => {
+            if (action.payload) {
+                const nextToken = action.payload["next-token"];
+
+                state.controllingAccounts["next-token"] = nextToken;
+                state.controllingAccounts.accounts = [...state.controllingAccounts.accounts, ...action.payload.accounts];
+
+                if (!nextToken) {
+                    state.controllingAccounts.completed = true;
+                }
             }
         });
         builder.addCase(loadAccountTransactions.fulfilled, (state, action: PayloadAction<A_AccountTransactionsResponse>) => {

@@ -1,5 +1,5 @@
 import './JsonViewer.scss';
-import React, {useState} from "react";
+import React, {useState,useRef} from "react";
 import {Button, Dialog, DialogActions, DialogContent, DialogTitle} from "@mui/material";
 import ReactJson from 'react-json-view'
 import {copyContent, exportData} from "../../../utils/common";
@@ -10,19 +10,20 @@ import {theme} from '../../../theme';
 interface JsonViewerState{
     show: boolean,
 }
-const initialState: JsonViewerState = {
+const initialState: JsonViewerState & { expand: boolean }= {
+    expand: false,
     show: false
 };
 
 function JsonViewer(props): JSX.Element {
-
     const [
-        {show},
+        {show, expand},
         setState
     ] = useState(initialState);
     const dispatch = useDispatch();
+    const expandButtonRef = useRef<HTMLButtonElement>();
 
-    let {obj, name, title, size, fullWidth, variant} = props;
+    let {obj, filename, name, title, size, fullWidth, variant} = props;
     if (!obj) {
         obj = {};
     }
@@ -46,13 +47,29 @@ function JsonViewer(props): JSX.Element {
         setState(prevState => ({...prevState, show: false}));
     }
 
+    function toggleExpand() {
+        if (expandButtonRef?.current)
+            expandButtonRef.current.innerHTML = expand ? "Collapsing" : "Expanding";
+
+        setTimeout(() => {
+            setState(prevState => {
+                return { ...prevState, expand: !prevState.expand };
+            });
+        }, 5);
+
+        setTimeout(() => {
+            if (expandButtonRef?.current)
+                expandButtonRef.current.innerHTML = expand ? "Expand All" : "Collapse";
+        }, 10);
+    }
+
     return (<div className={"json-viewer-wrapper"}>
         <div className={"json-viewer-container"}>
 
             <Button
                 variant={variant}
                 size={size}
-                sx={{backgroundColor: theme.palette.primary.light}}
+                sx={{backgroundColor: theme.palette.primary.main}}
                 fullWidth={fullWidth}
                 onClick={() => {
                     setState(prevState => ({...prevState, show: true}));
@@ -65,7 +82,7 @@ function JsonViewer(props): JSX.Element {
                 maxWidth={"md"}
                 open={show}
             >
-                <DialogTitle >
+                <DialogTitle sx={{backgroundColor: "rgb(3, 26, 22)"}}>
                     <div style={{display: 'flex', justifyContent: 'space-between'}}>
                         <div>
                             <div style={{fontWeight: "bold", fontSize: 18}}>{title}</div>
@@ -76,9 +93,17 @@ function JsonViewer(props): JSX.Element {
 
                     </div>
                 </DialogTitle>
-                <DialogContent>
+                <DialogContent sx={{backgroundColor: "rgb(3, 26, 22)"}}>
                     <div className="json-viewer-content">
                         <div className="json-viewer-content-header">
+                            <Button
+                                ref={expandButtonRef}
+                                variant={"outlined"}
+                                size={"small"}
+                                color={"primary"}
+                                onClick={toggleExpand}
+                            >{ !expand ? "Expand All" : "Collapse" }</Button>
+
                             <div>
                                 <Button
                                     variant={"outlined"}
@@ -95,14 +120,23 @@ function JsonViewer(props): JSX.Element {
                                     style={{marginLeft: 10}}
                                     color={"primary"}
                                     onClick={() => {
-                                        exportData(obj);
+                                        exportData(obj, filename);
                                     }}
                                 >Download</Button>
-
                             </div>
                         </div>
 
-                        <ReactJson src={obj} name={false} displayObjectSize={false} displayDataTypes={false} enableClipboard={false} iconStyle={"square"}/>
+                        <ReactJson
+                            src={obj}
+                            name={false}
+                            displayObjectSize={false}
+                            displayDataTypes={false}
+                            enableClipboard={false}
+                            iconStyle={"triangle"}
+                            groupArraysAfterLength={expand ? 0 : 100}
+                            collapsed={expand ? 99 : 1}
+                            theme="apathy"
+                        />
                     </div>
                 </DialogContent>
                 <DialogActions>

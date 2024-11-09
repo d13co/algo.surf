@@ -1,4 +1,4 @@
-import {Link} from "@mui/material";
+import Link from './Link';
 import React from "react";
 import './LinkTo.scss';
 
@@ -7,7 +7,7 @@ function LinkToBlock({id, name = ''}): JSX.Element {
         name = id;
     }
 
-    return <Link className="long-id" href={"/explorer/block/" + id}>{name}</Link>;
+    return <Link href={"/block/" + id}>{name}</Link>;
 }
 
 export default LinkToBlock;

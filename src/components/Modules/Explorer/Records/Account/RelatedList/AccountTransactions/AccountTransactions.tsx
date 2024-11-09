@@ -5,7 +5,6 @@ import {RootState} from "../../../../../../../redux/store";
 import TransactionsList from "../../../../Lists/TransactionsList/TransactionsList";
 import {loadAccountTransactions} from "../../../../../../../redux/explorer/actions/account";
 
-
 function AccountTransactions(): JSX.Element {
 
     const account = useSelector((state: RootState) => state.account);

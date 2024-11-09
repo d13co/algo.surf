@@ -2,7 +2,7 @@ import './LiveTransactions.scss';
 import React from "react";
 import {useSelector} from "react-redux";
 import {RootState} from "../../../../redux/store";
-import {shadedClr2} from "../../../../utils/common";
+import {shadedClr} from "../../../../utils/common";
 import { CSSTransition, TransitionGroup } from 'react-transition-group';
 import {CoreTransaction} from "../../../../packages/core-sdk/classes/core/CoreTransaction";
 import LinkToTransaction from "../Common/Links/LinkToTransaction";
@@ -10,7 +10,6 @@ import LinkToAccount from "../Common/Links/LinkToAccount";
 import {TXN_TYPES} from "../../../../packages/core-sdk/constants";
 import LinkToApplication from "../Common/Links/LinkToApplication";
 import {Typography, Box} from "@mui/material";
-
 
 function LiveTransactions(): JSX.Element {
     const liveData = useSelector((state: RootState) => state.liveData);
@@ -34,11 +33,11 @@ function LiveTransactions(): JSX.Element {
                         const appId = txnInstance.getAppId();
 
                         return <CSSTransition key={txnInstance.getId()} timeout={700} classNames="item">
-                            <div className="transaction" key={txnInstance.getId()} style={{borderColor: shadedClr2}}>
+                            <div className="transaction" key={txnInstance.getId()} style={{backgroundColor: shadedClr}}>
                                 <div className="basic">
                                     <div className="box">
-                                        <Typography sx={{ display: 'inline', color: 'primary.main' }}>{txnInstance.getTypeDisplayValue()}</Typography>
-                                        <LinkToTransaction strip={8} id={txnInstance.getId()}></LinkToTransaction>
+                                        <span>{txnInstance.getTypeDisplayValue()}</span>
+                                        <LinkToTransaction strip={22} id={txnInstance.getId()}></LinkToTransaction>
                                     </div>
                                     <div className="sub-text box">
                                         <span>From:</span>

@@ -1,6 +1,6 @@
 import './Asset.scss';
-import React, {useEffect} from "react";
-import {Outlet, useNavigate, useParams} from "react-router-dom";
+import React, {useEffect, useMemo} from "react";
+import {Outlet, useNavigate, useSearchParams, useParams} from "react-router-dom";
 import {useDispatch, useSelector} from "react-redux";
 import {RootState} from "../../../../../redux/store";
 import {Grid, Link, Tab, Tabs} from "@mui/material";
@@ -12,9 +12,10 @@ import LoadingTile from "../../../../Common/LoadingTile/LoadingTile";
 import {shadedClr} from "../../../../../utils/common";
 import JsonViewer from "../../../../Common/JsonViewer/JsonViewer";
 import CustomError from "../../Common/CustomError/CustomError";
-import AssetARCValidator from "./Actions/AssetARCValidator/AssetARCValidator";
 import MultiFormatViewer from "../../../../../components/Common/MultiFormatViewer/MultiFormatViewer";
 import Copyable from "../../../../../components/Common/Copyable/Copyable";
+import Dym from "../Dym";
+import useTitle from "../../../../Common/UseTitle/UseTitle";
 
 const network = process.env.REACT_APP_NETWORK;
 
@@ -22,6 +23,8 @@ function Asset(): JSX.Element {
     const dispatch = useDispatch();
     const navigate = useNavigate();
     const params = useParams();
+    const [searchParams] = useSearchParams();
+
     const {id} = params;
 
     const asset = useSelector((state: RootState) => state.asset);
@@ -29,13 +32,26 @@ function Asset(): JSX.Element {
 
     useEffect(() => {
         dispatch(loadAsset(Number(id)));
-        document.title = `A.O ${network}: Asset ${id}`
     }, [dispatch, id]);
+
+    useTitle(`Asset ${id}`);
 
     const b64Name = !assetInstance.getName()
 
+    const dym = searchParams.get("dym");
+    const [dymString, dymLink] = useMemo(() => {
+        if (dym) {
+            const blockNum = dym.split(":")[1];
+            return [`Block ${blockNum}`, `/block/${blockNum}`];
+        } else {
+            return [];
+        }
+    }, [dym]);
+
     return (<div className={"asset-wrapper"}>
         <div className={"asset-container"}>
+
+            { dym ? <Dym text={dymString} link={dymLink} /> : null }
 
             {asset.error ? <CustomError></CustomError> : <div>
                 <div className="asset-header">
@@ -43,10 +59,7 @@ function Asset(): JSX.Element {
                         Asset overview
                     </div>
                     <div style={{display: "flex", justifyContent: "space-between"}}>
-                        <AssetARCValidator asset={asset.information}></AssetARCValidator>
-                        <span style={{marginLeft: 10}}>
-                            <JsonViewer obj={asset.information} title="Asset"></JsonViewer>
-                        </span>
+                        <JsonViewer filename={`asset-${id}.json`} obj={asset.information} title={`Asset ${id}`}></JsonViewer>
                     </div>
                 </div>
 
@@ -198,7 +211,7 @@ function Asset(): JSX.Element {
                         </Grid>
                     </div>
 
-
+                    {assetInstance.getResolvedUrl() ?
                     <div className="props" style={{background: shadedClr}}>
                         <Grid container spacing={2}>
                             <Grid item xs={12} sm={6} md={3} lg={3} xl={3}>
@@ -215,13 +228,13 @@ function Asset(): JSX.Element {
 
                             </Grid>
                         </Grid>
-                    </div>
+                    </div> : null }
 
                     <div className="asset-tabs">
 
                         <Tabs TabIndicatorProps={{ children: <span className="MuiTabs-indicatorSpan" />}} value="transactions" className="related-list">
                             <Tab label="Transactions" value="transactions" onClick={() => {
-                                navigate('/explorer/asset/' + id + '/transactions');
+                                navigate('/asset/' + id + '/transactions');
                             }}/>
                         </Tabs>
 

@@ -29,6 +29,7 @@ import CustomError from '../../Common/CustomError/CustomError';
 import AssetFreezeTransaction from "./Types/AssetFreezeTransaction/AssetFreezeTransaction";
 import StateProofTransaction from "./Types/StateProofTransaction/StateProofTransaction";
 import Copyable from '../../../../Common/Copyable/Copyable';
+import useTitle from "../../../../Common/UseTitle/UseTitle";
 
 const network = process.env.REACT_APP_NETWORK;
 
@@ -43,11 +44,11 @@ function Transaction(): JSX.Element {
     let txnObj = transaction.information;
     let txnInstance = new CoreTransaction(txnObj);
 
-
     useEffect(() => {
         dispatch(loadTransaction(id));
-        document.title = `A.O ${network}: Txn ${id}`
     }, [dispatch, id]);
+
+    useTitle(`Txn ${id}`);
 
     return (<div className={"transaction-wrapper"}>
         <div className={"transaction-container"}>
@@ -58,7 +59,7 @@ function Transaction(): JSX.Element {
                         Transaction overview
                     </div>
                     <div>
-                        <JsonViewer obj={txnObj} title="Transaction"></JsonViewer>
+                        <JsonViewer filename={`txn-${id}.json`} obj={txnObj} title={`Transaction ${id.slice(0, 24)}..`}></JsonViewer>
                     </div>
                 </div>
 
@@ -67,8 +68,10 @@ function Transaction(): JSX.Element {
                         <div className="id"><div className="long-id">{txnInstance.getId()}</div> <Copyable value={txnInstance.getId()} /></div>
                         <div style={{marginTop: 15}}>
                             <Chip color={"warning"} variant={"outlined"} label={txnInstance.getTypeDisplayValue()} size={"small"}></Chip>
+                            {txnInstance.getType() === "keyreg" && !txnInstance.getKeyRegPayload()["selection-participation-key"] ? <Chip style={{marginLeft: 10}} color={"warning"} label="Register offline" size={"small"} variant={"outlined"}></Chip> : ''}
                             {txnInstance.isMultiSig() ? <Chip style={{marginLeft: 10}} color={"warning"} label="MultiSig" size={"small"} variant={"outlined"}></Chip> : ''}
                             {txnInstance.isLogicSig() ? <Chip style={{marginLeft: 10}} color={"warning"} label="LogicSig" size={"small"} variant={"outlined"}></Chip> : ''}
+                            {txnInstance.getRekeyTo() ? <Chip style={{marginLeft: 10}} color={"warning"} label="Rekey" size={"small"} variant={"outlined"}></Chip> : ''}
                         </div>
 
                     </div>

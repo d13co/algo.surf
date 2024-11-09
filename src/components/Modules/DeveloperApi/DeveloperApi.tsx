@@ -6,6 +6,7 @@ import {Tab, Tabs} from "@mui/material";
 import {Outlet, useLocation, useNavigate} from "react-router-dom";
 import "swagger-ui-react/swagger-ui.css"
 import "../../../assets/swagger-theme.scss";
+import useTitle from "../../Common/UseTitle/UseTitle";
 
 function DeveloperApi(): JSX.Element {
     const dispatch = useDispatch();
@@ -20,9 +21,7 @@ function DeveloperApi(): JSX.Element {
         dispatch(loadIndexerSpec());
     }, [dispatch]);
 
-    useEffect(() => {
-        document.title = 'A.O: Developer API';
-    }, [location]);
+    useTitle('Developer API');
 
     return (<div className={"developer-api-wrapper"}>
         <div className={"developer-api-container"}>

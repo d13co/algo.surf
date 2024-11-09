@@ -3,8 +3,6 @@ import React from "react";
 import {shadedClr} from "../../../../../../../../../utils/common";
 import LinkToApplication from "../../../../../../Common/Links/LinkToApplication";
 
-
-
 function AppCallTxnForeignApps(props): JSX.Element {
 
     let apps: number[] = props.apps;

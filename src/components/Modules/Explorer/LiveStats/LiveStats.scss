@@ -1,0 +1,37 @@
+@import "src/assets/colors";
+
+.live-stats-wrapper {
+  .live-stats-container {
+    text-align: left;
+    margin-bottom: 5px;
+    .live-stats-header {
+      font-size: 20px;
+    }
+    .live-stats-body {
+      margin-top: 18px;
+      @media only screen and (max-width: 900px) {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .row {
+        &.help {
+          cursor: help;
+        }
+        display: flex;
+        width: 90%;
+        margin-bottom: 10px;
+        @media only screen and (max-width: 900px) {
+          min-width: 80%;
+          width: auto;
+        }
+        justify-content: space-between;
+        color: $color-grey;
+        & > *:nth-child(2) {
+          color: $color-primary;
+          margin-left: 10px;
+        }
+      }
+    }
+  }
+}

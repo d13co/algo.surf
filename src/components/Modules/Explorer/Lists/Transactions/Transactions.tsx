@@ -4,13 +4,14 @@ import {useDispatch, useSelector} from "react-redux";
 import {RootState} from "../../../../../redux/store";
 import {loadTransactions} from "../../../../../redux/explorer/actions/transactions";
 import TransactionsList from "../TransactionsList/TransactionsList";
-
+import useTitle from "../../../../Common/UseTitle/UseTitle";
 
 function Transactions(): JSX.Element {
     const dispatch = useDispatch();
     const transactions = useSelector((state: RootState) => state.transactions);
     const {list} = transactions;
 
+    useTitle("Transactions");
 
     useEffect(() => {
         dispatch(loadTransactions());

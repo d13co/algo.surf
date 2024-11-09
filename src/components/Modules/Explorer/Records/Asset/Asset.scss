@@ -6,7 +6,6 @@
     .asset-header {
       font-size: 20px;
       font-weight: bold;
-      font-family: PoppinsBold !important;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -23,17 +22,17 @@
         margin-top: 25px;
         border-radius: 10px;
         padding: 20px;
+        padding-top: 10px;
         .property {
           margin-top: 10px;
           .key {
-            font-family: PoppinsBold !important;
           }
           .value {
             margin-top: 10px;
-            color: $color-grey-dark;
             &.addr {
               font-size: 13px;
               word-break: break-word;
+              overflow: hidden;
             }
           }
         }

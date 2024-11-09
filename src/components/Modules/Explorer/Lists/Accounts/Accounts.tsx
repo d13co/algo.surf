@@ -22,11 +22,13 @@ import {microalgosToAlgos, copyContent} from "../../../../../utils/common";
 import AlgoIcon from "../../AlgoIcon/AlgoIcon";
 import LinkToAccount from "../../Common/Links/LinkToAccount";
 import CustomNoRowsOverlay from "../../Common/CustomNoRowsOverlay/CustomNoRowsOverlay";
+import useTitle from "../../../../Common/UseTitle/UseTitle";
 
 function Accounts(): JSX.Element {
     const dispatch = useDispatch();
     const accounts = useSelector((state: RootState) => state.accounts);
     const {list, loading} = accounts;
+    useTitle("Accounts");
 
     function CustomPagination({loading}) {
         const apiRef = useGridApiContext();
@@ -37,7 +39,6 @@ function Accounts(): JSX.Element {
             <div style={{display: "flex", justifyContent: "space-between"}}>
                 {loading ? <div style={{marginTop: 5, marginRight: 20}}><CircularProgress size={25}></CircularProgress></div> : ''}
                 <Pagination
-                    color="primary"
                     shape="rounded"
                     showFirstButton
                     showLastButton
@@ -118,7 +119,7 @@ function Accounts(): JSX.Element {
                         disableSelectionOnClick
                         sx={dataGridStyles}
                         components={{
-                            NoRowsOverlay: CustomNoRowsOverlay,
+                            NoRowsOverlay: CustomNoRowsOverlay("accounts"),
                             Pagination: CustomPagination
                         }}
                         componentsProps={{

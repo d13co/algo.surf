@@ -1,10 +1,10 @@
 import './Account.scss';
-import React, {useMemo, useEffect} from "react";
+import React, {useMemo, useRef, useCallback, useEffect} from "react";
 import {matchPath, Outlet, useLocation, useNavigate, useParams} from "react-router-dom";
 import {useDispatch, useSelector} from "react-redux";
 import {loadAccount} from "../../../../../redux/explorer/actions/account";
 import {RootState} from "../../../../../redux/store";
-import {Chip, Grid, Tab, Tabs} from "@mui/material";
+import {Chip, Link, Grid, Tab, Tabs} from "@mui/material";
 import NumberFormat from "react-number-format";
 import {microalgosToAlgos} from "../../../../../utils/common";
 import AlgoIcon from "../../AlgoIcon/AlgoIcon";
@@ -15,8 +15,13 @@ import CustomError from "../../Common/CustomError/CustomError";
 import Copyable from '../../../../Common/Copyable/Copyable';
 import LinkToApplication from '../../Common/Links/LinkToApplication';
 import LinkToAccount from '../../Common/Links/LinkToAccount';
+import useTitle from "../../../../Common/UseTitle/UseTitle";
 
 const network = process.env.REACT_APP_NETWORK;
+
+function plural(num: number): string {
+    return num !== 1 ? "s" : "";
+}
 
 function Account(): JSX.Element {
     const dispatch = useDispatch();
@@ -33,33 +38,59 @@ function Account(): JSX.Element {
     const hasCreatedAssets = account.createdAssets.length;
     const hasOptedApps = account.optedApplications.length;
     const hasCreatedApps = account.createdApplications.length;
+    const numControlledAccounts = account.controllingAccounts.accounts.length;
     const hasAssetOrAppInfo = hasOptedAssets || hasCreatedAssets || hasOptedApps || hasCreatedApps;
 
-    if (hasOptedAssets && matchPath("/explorer/account/:address/assets", pathname)) {
+    const tabsRef = useRef<HTMLDivElement>();
+
+    const scrollToControllerTo = useCallback((e) => {
+        navigate(`/account/${address}/controller`);
+        if (tabsRef?.current)
+            tabsRef.current.scrollIntoView();
+        e.preventDefault();
+        return false;
+    }, [tabsRef, address]);
+
+    if (hasOptedAssets && matchPath("/account/:address/assets", pathname)) {
         tabValue = 'assets';
-    } else if (hasCreatedAssets && matchPath("/explorer/account/:address/created-assets", pathname)) {
+    } else if (hasCreatedAssets && matchPath("/account/:address/created-assets", pathname)) {
         tabValue = 'created-assets';
-    } else if (hasCreatedApps && matchPath("/explorer/account/:address/created-applications", pathname)) {
+    } else if (hasCreatedApps && matchPath("/account/:address/created-applications", pathname)) {
         tabValue = 'created-applications';
-    } else if (hasOptedApps && matchPath("/explorer/account/:address/opted-applications", pathname)) {
+    } else if (hasOptedApps && matchPath("/account/:address/opted-applications", pathname)) {
         tabValue = 'opted-applications';
+    } else if (numControlledAccounts && matchPath("/account/:address/controller", pathname)) {
+        tabValue = 'controlling-accounts';
     }
+
+    const [lastSent, isMultiSig, isLogicSig, isClosed] = React.useMemo(() => {
+        const lastSent = account.transactionsDetails.transactions.find(({sender}) => sender === address);
+        const isMultiSig = !!lastSent?.signature?.multisig;
+        const isLogicSig = !!lastSent?.signature?.logicsig;
+        const isClosed = account.information.amount === 0 && !!lastSent;
+        return [lastSent, isMultiSig, isLogicSig, isClosed];
+    }, [
+        address,
+        account.information.amount,
+        account.transactionsDetails?.transactions,
+    ]);
 
     useEffect(() => {
         dispatch(loadAccount(address));
-        document.title = `A.O ${network}: Account ${address}`
     }, [dispatch, address]);
+
+    useTitle(`Account ${address}`);
 
     return (<div className={"account-wrapper"}>
         <div className={"account-container"}>
 
-            {account.error ? <CustomError></CustomError> : <div>
+            {account.error ? <CustomError/> : <div>
                 <div className="account-header">
                     <div>
                         Account overview
                     </div>
                     <div>
-                        <JsonViewer obj={account.information} title="Account"></JsonViewer>
+                        <JsonViewer obj={account.information} filename={`account-${address}.json`} title={`Account ${address.slice(0, 16)}..`}></JsonViewer>
                     </div>
                 </div>
 
@@ -68,9 +99,19 @@ function Account(): JSX.Element {
                         <div className="id">
                             <div className="long-id">{account.information.address}</div> <Copyable value={account.information.address} />
                         </div>
-                        <div style={{marginTop: 10}}>
-                            { account.escrowOf ? <LinkToApplication id={account.escrowOf}><Chip className="hover-cursor-pointer" color={"success"} variant="outlined" label={`App Escrow`} size="small" style={{marginRight: '4px'}} /></LinkToApplication> : null }
-                            <Chip color={"warning"} variant={"outlined"} label={account.information.status} size={"small"}></Chip>
+                        <div style={{marginTop: 10, display: 'flex', gap: '5px'}}>
+                            { account.information.status === "Online" ? 
+                                <Chip color={"success"} variant={"outlined"} label="Validator"  size={"small"}></Chip> : null }
+                            { account.information["incentive-eligible"] === true ? 
+                                <Chip color={"success"} variant={"outlined"} label="Incentives Eligible"  size={"small"}></Chip> : null }
+                            { account.escrowOf ? <LinkToApplication className="no-underline" id={account.escrowOf}><Chip className="hover-cursor-pointer" color={"success"} variant="outlined" label={`App Escrow`} size="small" style={{marginRight: '4px'}} /></LinkToApplication> : null }
+                            { isMultiSig ? 
+                                <Chip color={"warning"} variant={"outlined"} label="MultiSig"  size={"small"}></Chip> : null }
+                            { isLogicSig ? 
+                                <Chip color={"warning"} variant={"outlined"} label="LogicSig"  size={"small"}></Chip> : null }
+                            { isClosed ? 
+                                <Chip color={"warning"} variant={"outlined"} label="Closed"  size={"small"}></Chip> : null }
+
                         </div>
 
                     </div>
@@ -106,19 +147,35 @@ function Account(): JSX.Element {
                                     </div>
                                 </Grid>
                             </> : null }
-                            { account.information['auth-addr'] ? <>
+                            { numControlledAccounts|| account.information['auth-addr'] ? <>
                                 <Grid item xs={12} sm={6} md={6} lg={4} xl={4}>
+                                { numControlledAccounts?
                                     <div className="property">
                                         <div className="key">
-                                            Rekeyed to
+                                            Controller of
                                         </div>
                                         <div className="value">
-                                            <LinkToAccount copySize="m" strip={9} address={account.information['auth-addr']} />
+                                            <Link href="#" onClick={scrollToControllerTo}>
+                                                {numControlledAccounts}
+                                                {' '}
+                                                account{plural(numControlledAccounts)}
+                                            </Link>
                                         </div>
-                                    </div>
+                                    </div> : null }
+                                    { account.information['auth-addr'] ? <>
+                                        <div className="property">
+                                            <div className="key">
+                                                Rekeyed to
+                                            </div>
+                                            <div className="value">
+                                                <LinkToAccount copySize="m" strip={9} address={account.information['auth-addr']} />
+                                            </div>
+                                        </div>
+                                    </> : null }
                                 </Grid>
                             </> : null }
                         </Grid>
+
                         { account.information.amount ?
                         <Grid container spacing={2}>
                             <Grid item xs={12} sm={6} md={6} lg={4} xl={4}>
@@ -185,34 +242,34 @@ function Account(): JSX.Element {
                             </Grid> : null }
                     </div>
 
-
-
-                    <div className="account-tabs">
-
+                    <div className="account-tabs" ref={tabsRef}>
                         <Tabs TabIndicatorProps={{ children: <span className="MuiTabs-indicatorSpan" />}} value={tabValue} className="related-list">
                             <Tab label="Transactions" value="transactions" onClick={() => {
-                                navigate('/explorer/account/' + address + '/transactions');
+                                navigate('/account/' + address + '/transactions');
                             }}/>
                             { account.optedAssets.length ?
                             <Tab label="Assets" value="assets" onClick={() => {
-                                navigate('/explorer/account/' + address + '/assets');
+                                navigate('/account/' + address + '/assets');
                             }}/> : null }
                             { account.createdAssets.length ?
                             <Tab label="Created assets" value="created-assets" onClick={() => {
-                                navigate('/explorer/account/' + address + '/created-assets');
+                                navigate('/account/' + address + '/created-assets');
                             }}/> : null }
                             { account.createdApplications.length ?
                             <Tab label="Created applications" value="created-applications" onClick={() => {
-                                navigate('/explorer/account/' + address + '/created-applications');
+                                navigate('/account/' + address + '/created-applications');
                             }}/> : null }
                             { account.optedApplications.length ?
                             <Tab label="Opted applications" value="opted-applications" onClick={() => {
-                                navigate('/explorer/account/' + address + '/opted-applications');
+                                navigate('/account/' + address + '/opted-applications');
+                            }}/> : null }
+                            { account.controllingAccounts.accounts.length ?
+                            <Tab label="Controlling accounts" value="controlling-accounts" onClick={() => {
+                                navigate('/account/' + address + '/controller');
                             }}/> : null }
                         </Tabs>
 
                         <Outlet />
-
 
                     </div>
                 </div>}

@@ -47,8 +47,8 @@ function StateProofTransaction(props): JSX.Element {
                                 <div className="key">
                                     Message
                                 </div>
-                                <div className="value small">
-                                    <ReactJson src={stateProofPayload.message} name={false} displayObjectSize={false} displayDataTypes={false} enableClipboard={false} iconStyle={"square"}/>
+                                <div className="value dark rounded small">
+                                    <ReactJson theme="apathy" style={{width: '100%', borderRadius: '7px'}} src={stateProofPayload.message} name={false} displayObjectSize={false} displayDataTypes={false} enableClipboard={false} iconStyle={"square"}/>
                                 </div>
                             </div>
                         </Grid>
@@ -64,8 +64,8 @@ function StateProofTransaction(props): JSX.Element {
                                 <div className="key">
                                     Proof
                                 </div>
-                                <div className="value small">
-                                    <ReactJson src={stateProofPayload["state-proof"]} name={false} collapsed={1} displayObjectSize={false} displayDataTypes={false} enableClipboard={false} iconStyle={"square"}/>
+                                <div className="value dark rounded small">
+                                    <ReactJson theme="apathy" style={{width: "100%", borderRadius: '7px'}} src={stateProofPayload["state-proof"]} name={false} collapsed={2} displayObjectSize={false} displayDataTypes={false} enableClipboard={false} iconStyle={"square"}/>
                                 </div>
                             </div>
                         </Grid>

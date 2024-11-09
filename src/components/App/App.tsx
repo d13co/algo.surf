@@ -4,6 +4,7 @@ import AppRouter from "./AppRouter";
 import {useDispatch} from "react-redux";
 import {initApp} from "../../redux/app/actions/app";
 import { useLocation } from 'react-router-dom';
+import { CssBaseline } from '@mui/material';
 
 function App(): JSX.Element {
     const dispatch = useDispatch();
@@ -14,6 +15,7 @@ function App(): JSX.Element {
 
   return (
       <div className="app-root">
+          <CssBaseline />
           <AppRouter></AppRouter>
       </div>
   );

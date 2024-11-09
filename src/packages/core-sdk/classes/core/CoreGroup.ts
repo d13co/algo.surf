@@ -1,16 +1,15 @@
-import {
-    A_Group, A_SearchTransaction
-} from "../../types";
+import { A_Group, A_SearchTransaction } from "../../types";
 import {TIMESTAMP_DISPLAY_FORMAT} from "../../constants";
 import dateFormat  from "dateformat";
 import {CoreTransaction} from "./CoreTransaction";
 import humanizeDuration from 'humanize-duration';
+import BaseTxnHolder from "./BaseTxnHolder";
 
-
-export class CoreGroup {
+export class CoreGroup extends BaseTxnHolder {
     group: A_Group;
 
     constructor(group: A_Group) {
+        super();
         this.group = group;
     }
 
@@ -42,7 +41,8 @@ export class CoreGroup {
     }
 
     getTransactionsCount(): number {
-        return this.getTransactions().length;
+        this.ensureHasStats(this.group.transactions);
+        return this.countStats.total;
     }
 
     getTransactions(): A_SearchTransaction[] {
@@ -50,29 +50,7 @@ export class CoreGroup {
     }
 
     getTransactionsTypesCount() {
-        const transactions = this.getTransactions();
-        const typesCount = {};
-
-        transactions.forEach((txn) => {
-            const txnInstance = new CoreTransaction(txn);
-            const type = txnInstance.getType();
-
-            if (!typesCount[type]) {
-                typesCount[type] = 1;
-            }
-            else {
-                typesCount[type] += 1;
-            }
-        });
-
-        const str = [];
-        for (let key in typesCount) {
-            if (typesCount.hasOwnProperty(key)) {
-                const val = typesCount[key];
-                str.push(key + '=' + val);
-            }
-        }
-
-        return str.join(', ');
+        this.ensureHasStats(this.group.transactions);
+        return this.countStats.txnTypeCounts;
     }
 }

@@ -3,8 +3,6 @@ import React from "react";
 import {shadedClr} from "../../../../../../../../../utils/common";
 import LinkToAsset from "../../../../../../Common/Links/LinkToAsset";
 
-
-
 function AppCallTxnForeignAssets(props): JSX.Element {
 
     let assets: number[] = props.assets;

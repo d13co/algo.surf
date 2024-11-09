@@ -5,12 +5,13 @@ import {TIMESTAMP_DISPLAY_FORMAT} from "../../constants";
 import dateFormat  from "dateformat";
 import {CoreTransaction} from "./CoreTransaction";
 import humanizeDuration from 'humanize-duration';
+import BaseTxnHolder  from "./BaseTxnHolder";
 
-
-export class CoreBlock {
+export class CoreBlock extends BaseTxnHolder {
     block: A_Block;
 
     constructor(block: A_Block) {
+        super();
         this.block = block;
     }
 
@@ -20,10 +21,6 @@ export class CoreBlock {
 
     getRound(): number {
         return this.block.round;
-    }
-
-    getTransactionsCount(): number {
-        return this.getTransactions().length;
     }
 
     getTimestamp(): number {
@@ -45,30 +42,13 @@ export class CoreBlock {
         return this.block.transactions;
     }
 
+    getTransactionsCount(): number {
+        this.ensureHasStats(this.block.transactions);
+        return this.countStats.total;
+    }
+
     getTransactionsTypesCount() {
-        const transactions = this.getTransactions();
-        const typesCount = {};
-
-        transactions.forEach((txn) => {
-            const txnInstance = new CoreTransaction(txn);
-            const type = txnInstance.getType();
-
-            if (!typesCount[type]) {
-                typesCount[type] = 1;
-            }
-            else {
-                typesCount[type] += 1;
-            }
-        });
-
-        const str = [];
-        for (let key in typesCount) {
-            if (typesCount.hasOwnProperty(key)) {
-                const val = typesCount[key];
-                str.push(key + '=' + val);
-            }
-        }
-
-        return str.join(', ');
+        this.ensureHasStats(this.block.transactions);
+        return this.countStats.txnTypeCounts;
     }
 }

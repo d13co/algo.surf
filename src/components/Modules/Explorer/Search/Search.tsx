@@ -1,5 +1,5 @@
 import './Search.scss';
-import React, {useState} from "react";
+import React, {useCallback,useState,useRef} from "react";
 import {
     Chip,
     Dialog,
@@ -7,12 +7,13 @@ import {
     DialogContent,
     DialogTitle,
     IconButton,
-    InputBase
+    InputBase,
+    Tooltip,
 } from "@mui/material";
 import {Search as SearchIcon} from "@mui/icons-material";
 import {isValidAddress} from "algosdk";
 import {useNavigate} from "react-router-dom";
-import {A_Application, A_Asset, A_Block} from "../../../../packages/core-sdk/types";
+import {A_ApplicationResult, A_AssetResult, A_BlockResult} from "../../../../packages/core-sdk/types";
 import {AssetClient} from "../../../../packages/core-sdk/clients/assetClient";
 import {isNumber} from "../../../../utils/common";
 import explorer from "../../../../utils/dappflow";
@@ -22,125 +23,152 @@ import {hideLoader, showLoader} from "../../../../redux/common/actions/loader";
 import {useDispatch} from "react-redux";
 import {showSnack} from "../../../../redux/common/actions/snackbar";
 import {theme} from "../../../../theme";
+import {ClipboardPaste} from 'lucide-react';
 import CloseIcon from "@mui/icons-material/Close";
+import { useHotkeys } from 'react-hotkeys-hook';
 
-
-interface searchResult {
-    type: string,
-    asset?: A_Asset,
-    application?: A_Application
-    block?: A_Block
+function getLink(result: A_AssetResult | A_ApplicationResult | A_BlockResult) {
+    const { type } = result;
+    if (type === "block") {
+        return `/block/${result.round}`;
+    } else if (type === "asset" ) {
+        return `/asset/${result.index}/transactions`;
+    } else {
+        return `/application/${result.id}/transactions`;
+    }
 }
 
 interface SettingsState{
     searchStr: string,
-    searchResults: searchResult[],
     showSearchResults: boolean
 }
 
 const initialState: SettingsState = {
     searchStr: '',
-    searchResults: [],
     showSearchResults: false
 };
 
+interface SearchProps {
+    placeholder?: string
+    autoFocus?: boolean
+}
 
-function Search(): JSX.Element {
+const defaultPlaceholder = "  Address / Transaction / Asset / Application";
+
+function Search(props: SearchProps): JSX.Element {
+    const { autoFocus, placeholder = defaultPlaceholder } = props;
+    const inputRef = useRef<HTMLInputElement>();
+
+    const onHotkey = useCallback(e => {
+        e.preventDefault(); inputRef.current?.focus();
+    }, [inputRef]);
+
+    useHotkeys('/', onHotkey);
+    useHotkeys('ctrl+k', onHotkey);
+
     const navigate = useNavigate();
     const dispatch = useDispatch();
 
     const [
-        {searchStr, searchResults, showSearchResults},
+        {searchStr, showSearchResults},
         setState
     ] = useState(initialState);
 
-    const clearState = () => {
+    const clearState = useCallback(() => {
         setState({ ...initialState });
-    };
+    }, []);
 
-    function redirectToSelectedResult(result: searchResult) {
-        setState(prevState => ({...prevState, searchStr: ""}));
-        if (result.type === 'asset') {
-            navigate('/explorer/asset/' + searchStr);
-            return;
-        }
-        if (result.type === 'application') {
-            navigate('/explorer/application/' + searchStr);
-            return;
-        }
-        if (result.type === 'block') {
-            navigate('/explorer/block/' + searchStr);
-            return;
-        }
-    }
+    const doSearch = useCallback((override?: string) => {
+        (async function () {
+            const target = override ?? searchStr;
+            if (!target) {
+                return;
+            }
+            if (isValidAddress(target)) {
+                setState(prevState => ({...prevState, target: ""}));
+                navigate('/account/' + target);
+                return;
+            } else if (target.length === 58) {
+                dispatch(showSnack({
+                    severity: 'error',
+                    message: `Address is not valid`
+                }));
+                return;
+            }
+            if (target.length === 52) {
+                setState(prevState => ({...prevState, target: ""}));
+                navigate('/transaction/' + target);
+                return;
+            }
 
-    async function doSearch() {
-        if (!searchStr) {
-            return;
-        }
-        if (isValidAddress(searchStr)) {
-            setState(prevState => ({...prevState, searchStr: ""}));
-            navigate('/explorer/account/' + searchStr);
-            return;
-        }
-        if (searchStr.length === 52) {
-            setState(prevState => ({...prevState, searchStr: ""}));
-            navigate('/explorer/transaction/' + searchStr);
-            return;
-        }
+            if (isNumber(target)) {
+                try {
+                    dispatch(showLoader("Searching"));
+                    const searchNum = Number(target);
+                    const [asset, app, block] = await Promise.all([
+                        new AssetClient(explorer.network).search(searchNum),
+                        new ApplicationClient(explorer.network).search(searchNum),
+                        new BlockClient(explorer.network).search(searchNum),
+                    ]);
+                    const first = [asset, app, block].find(e => e);
 
-        const results:searchResult[] = [];
-        if (isNumber(searchStr)) {
-            try {
-                dispatch(showLoader("Searching ..."));
-                const asset = await new AssetClient(explorer.network).get(Number(searchStr));
-                results.push({
-                    type: 'asset',
-                    asset
-                });
-                dispatch(hideLoader());
-            } catch (e) {
-                dispatch(hideLoader());
-            }
-            try {
-                dispatch(showLoader("Searching ..."));
-                const application = await new ApplicationClient(explorer.network).get(Number(searchStr));
-                results.push({
-                    type: 'application',
-                    application
-                });
-                dispatch(hideLoader());
-            } catch (e) {
-                dispatch(hideLoader());
-            }
-            try {
-                dispatch(showLoader("Searching ..."));
-                const block = await new BlockClient(explorer.network).get(Number(searchStr));
-                results.push({
-                    type: 'block',
-                    block
-                });
-                dispatch(hideLoader());
-            } catch (e) {
-                dispatch(hideLoader());
-            }
-        }
+                    if (!first) {
+                        dispatch(showSnack({
+                            severity: 'error',
+                            message: 'No results found'
+                        }));
+                        dispatch(hideLoader());
+                        return;
+                    }
 
-        if (results.length > 0) {
-            if (results.length === 1) {
-                redirectToSelectedResult(results[0])
+                    let destination = getLink(first);
+
+                    if (block && first !== block) {
+                        destination += `?dym=block:${block.round}`;
+                    }
+                    dispatch(hideLoader());
+                    console.log("Navigating", destination);
+                    navigate(destination);
+                    return;
+                } catch (e) {
+                    dispatch(showSnack({
+                        severity: 'error',
+                        message: `Error while searching: ${(e as Error).message}`
+                    }));
+                    dispatch(hideLoader());
+                    return;
+                }
             }
-            else {
-                setState(prevState => ({...prevState, searchResults: results, showSearchResults: true}));
-            }
-        }
-        else {
+
             dispatch(showSnack({
                 severity: 'error',
-                message: 'No results found'
+                message: `Error: Not something I can search for: ${target}`,
             }));
-        }
-    }
+        })()
+    }, [searchStr, dispatch, navigate]);
+
+    const doPasteSearch = useCallback(() => {
+        (async function () {
+            try {
+                const value = await navigator.clipboard.readText();
+                setState(s => ({...s, searchStr: value}));
+                doSearch(value);
+            } catch(_e) {
+                const e = _e as Error;
+                if (e.message.includes('is not a function')) {
+                    dispatch(showSnack({
+                        severity: 'error',
+                        message: 'Could not paste and search: Your browser does not support this Paste button.'
+                    }));
+                } else {
+                    dispatch(showSnack({
+                        severity: 'error',
+                        message: `Could not paste and search: ${e.message}`
+                    }));
+                }
+            }
+        })()
+    }, [doSearch]);
 
     function handleClose() {
         setState(prevState => ({...prevState, showSearchResults: false}));
@@ -148,32 +176,48 @@ function Search(): JSX.Element {
 
     return (<div className={"search-wrapper"}>
         <div className={"search-container"}>
-
-
              <InputBase
-                 placeholder="Address / Transaction / Asset / Application"
-                style={{
-                    padding: 3,
-                    paddingLeft: 10,
-                    fontSize: 14,
-                    border: '1px solid ' + theme.palette.grey[200],
-                    borderRadius: '64px',
-                }}
-                value={searchStr}
-                startAdornment={<IconButton color="primary" onClick={() => {
-                    doSearch();
-                }}>
-                    <SearchIcon />
-                </IconButton>}
-                onChange={(ev) => {
-                    setState(prevState => ({...prevState, searchStr: ev.target.value}));
-                }}
-                onKeyUp={(event) => {
-                    if (event.key === 'Enter') {
-                        event.preventDefault();
-                        doSearch();
-                    }
-                }}
+                 inputRef={inputRef}
+                 autoFocus={autoFocus}
+                 placeholder={placeholder}
+                 style={{
+                     padding: 3,
+                         paddingLeft: 10,
+                         fontSize: 14,
+                         border: '1px solid ' + theme.palette.grey[500],
+                         borderRadius: '64px',
+                 }}
+                 value={searchStr}
+                 startAdornment={
+                     <IconButton onClick={() => doSearch() }>
+                         <SearchIcon style={{ color: theme.palette.grey[500] }} />
+                     </IconButton>
+                 }
+                 endAdornment={
+                     searchStr ? <Tooltip title="Clear">
+                         <IconButton onClick={() => clearState() } style={{color: theme.palette.grey[500]}}>
+                             <CloseIcon color="inherit" />
+                         </IconButton>
+                     </Tooltip>
+                     : <Tooltip title="Paste and search">
+                         <IconButton onClick={() => doPasteSearch() }>
+                             <ClipboardPaste size={20} color={theme.palette.grey[500]} />
+                         </IconButton>
+                     </Tooltip>
+                 }
+                 onChange={(ev) => {
+                     setState(prevState => ({...prevState, searchStr: ev.target.value}));
+                     const { length } = ev.target.value;
+                     if (length === 52 || length === 58) {
+                         doSearch(ev.target.value);
+                     }
+                 }}
+                 onKeyUp={(event) => {
+                     if (event.key === 'Enter') {
+                         event.preventDefault();
+                         doSearch();
+                     }
+                 }}
             fullWidth/>
 
             {showSearchResults ? <Dialog
@@ -194,19 +238,6 @@ function Search(): JSX.Element {
                     <div className="search-results-wrapper">
                         <div className="search-results-container">
                             <div>
-                                {searchResults.map((result) => {
-                                    return <Chip
-                                        key={result.type}
-                                        label={result.type + ' - ' + searchStr}
-                                        color={"primary"}
-                                        style={{marginLeft: 10}}
-                                        onClick={() => {
-                                            clearState();
-                                            redirectToSelectedResult(result);
-                                        }
-                                        }
-                                        size={"small"}></Chip>
-                                })}
                             </div>
                         </div>
                     </div>

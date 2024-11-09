@@ -11,8 +11,9 @@ import CustomError from "../../Common/CustomError/CustomError";
 import LinkToBlock from "../../Common/Links/LinkToBlock";
 import JsonViewer from "../../../../Common/JsonViewer/JsonViewer";
 import LinkToAccount from "../../Common/Links/LinkToAccount";
-import {Alert} from "@mui/lab";
 import Copyable from '../../../../Common/Copyable/Copyable';
+import useTitle from "../../../../Common/UseTitle/UseTitle";
+import TxnTypeChip from "../../Common/TxnTypeChip/TxnTypeChip";
 
 const network = process.env.REACT_APP_NETWORK;
 
@@ -27,15 +28,13 @@ function Block(): JSX.Element {
     const blockInstance = new CoreBlock(block.information);
     const txnTypes = blockInstance.getTransactionsTypesCount();
 
-    let txnTypesList: string[] = [];
-    if (txnTypes) {
-        txnTypesList = txnTypes.split(",");
-    }
+    const txnTypesList = React.useMemo(() => Object.keys(txnTypes), [txnTypes]);
 
     useEffect(() => {
         dispatch(loadBlock(Number(id)));
-        document.title = `A.O ${network}: Block ${id}`
     }, [dispatch, id]);
+
+    useTitle(`Block ${id}`);
 
     return (<div className={"block-wrapper"}>
         <div className={"block-container"}>
@@ -46,7 +45,7 @@ function Block(): JSX.Element {
                         Block overview
                     </div>
                     <div>
-                        <JsonViewer obj={block.information} title="Block"></JsonViewer>
+                        <JsonViewer filename={`block-${id}.json`} obj={block.information} title={`Block ${id}`}></JsonViewer>
                     </div>
                 </div>
 
@@ -59,29 +58,23 @@ function Block(): JSX.Element {
                     <div className="props">
                         <Grid container spacing={1}>
 
-
-
-                            <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
+                            <Grid item xs={12} sm={6} md={6} lg={5} xl={5}>
                                 <div className="property">
                                     <div className="key">
-                                        Total transactions : {blockInstance.getTransactionsCount()}
+                                        Total transactions: {blockInstance.getTransactionsCount()}
 
                                     </div>
                                     <div className="value">
-                                        {blockInstance.getTransactionsCount() > 0 ? <div>
-                                            {txnTypesList.map((type) => {
-                                                return <Alert key={type} color={'success'} icon={false} className="mini-alert">
-                                                    {type}
-                                                </Alert>
-                                            })}
-                                        </div> : 0}
-
-
+                                        {blockInstance.getTransactionsCount() > 0 ? <div style={{display: "flex", gap: "5px"}}>
+                                            {txnTypesList.map((type) =>
+                                                <TxnTypeChip type={type} count={txnTypes[type]} />
+                                            )}
+                                        </div> : null }
                                     </div>
                                 </div>
                             </Grid>
 
-                            <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
+                            <Grid item xs={12} sm={6} md={6} lg={5} xl={5}>
                                 <div className="property">
                                     <div className="key">
                                         Age
@@ -92,13 +85,10 @@ function Block(): JSX.Element {
                                 </div>
                             </Grid>
 
-
-
                             <Grid item xs={12} sm={12} md={12} lg={12} xl={12}>
                             </Grid>
 
-
-                            <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
+                            <Grid item xs={12} sm={6} md={6} lg={5} xl={5}>
                                 <div className="property">
                                     <div className="key">
                                         Timestamp
@@ -112,8 +102,7 @@ function Block(): JSX.Element {
 
                             </Grid>
 
-
-                            <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
+                            <Grid item xs={12} sm={6} md={6} lg={5} xl={5}>
                                 <div className="property">
                                     <div className="key">
                                         Previous round
@@ -148,13 +137,11 @@ function Block(): JSX.Element {
                         </Grid>
                     </div>
 
-
-
                     <div className="block-tabs">
 
                         <Tabs TabIndicatorProps={{ children: <span className="MuiTabs-indicatorSpan" />}} value="transactions" className="related-list">
                             <Tab label="Transactions" value="transactions" onClick={() => {
-                                navigate('/explorer/block/' + id + '/transactions');
+                                navigate('/block/' + id + '/transactions');
                             }}/>
                         </Tabs>
 

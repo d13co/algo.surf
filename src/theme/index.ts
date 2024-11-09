@@ -1,4 +1,5 @@
 import {createTheme} from "@mui/material";
+import pSBC from 'shade-blend-color';
 
 declare module '@mui/material/styles' {
     interface Theme {
@@ -9,13 +10,19 @@ declare module '@mui/material/styles' {
     }
 }
 
-const primaryColor = '#12afac';//6633CC//6b46fe
+const primaryColor = '#12afac';
+
+export const shadedClr = pSBC(-0.82, primaryColor);
+export const shadedClr1 = pSBC(-0.9, primaryColor);
+export const shadedClr2 = pSBC(-0.95, primaryColor);
+
 
 export const theme = createTheme({
     shape: {
         borderRadius: 10,
     },
     palette: {
+        mode: 'dark',
         primary: {
             main: primaryColor
         },
@@ -39,7 +46,8 @@ export const theme = createTheme({
         MuiTooltip: {
             styleOverrides: {
                 tooltip: {
-                    background: '#000'
+                    background: '#000',
+                    fontSize: '0.85rem',
                 }
             }
         },
@@ -75,7 +83,9 @@ export const theme = createTheme({
         MuiDialog: {
             styleOverrides: {
                 paper: {
-                    borderRadius: 15
+                    borderRadius: 15,
+                    backgroundColor: shadedClr,
+                    backgroundImage: "none",
                 }
             }
         },
@@ -92,12 +102,23 @@ export const theme = createTheme({
                 }
             }
         },
+        MuiAccordionSummary: {
+            styleOverrides: {
+                root: {
+                    backgroundColor: shadedClr,
+                },
+            },
+        },
         MuiAccordion: {
             styleOverrides: {
                 root: {
                     '&.rounded': {
                         borderRadius: 10
-                    }
+                    },
+                    backgroundColor: shadedClr,
+                },
+                region: {
+                    backgroundColor: shadedClr,
                 }
             }
         },
@@ -108,8 +129,13 @@ export const theme = createTheme({
                 },
                 standardWarning: {
                     color: '#000'
-                }
-            }
+                },
+                message: {
+                    flexGrow: 1,
+                    display: 'flex',
+                    alignItems: 'baseline',
+                },
+            },
         },
         MuiTabs: {
             styleOverrides: {
@@ -132,3 +158,6 @@ export const theme = createTheme({
         }
     }
 });
+
+
+export const shadedWarningClr = pSBC(-0.85, theme.palette.warning.main);

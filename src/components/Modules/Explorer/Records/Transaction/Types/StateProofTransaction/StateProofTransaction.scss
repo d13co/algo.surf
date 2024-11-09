@@ -12,17 +12,22 @@
         margin-top: 20px;
         border-radius: 10px;
         padding: 20px;
+        padding-top: 10px;
         .property {
           margin-top: 10px;
           .key {
-            font-family: PoppinsBold !important;
           }
           .value {
             margin-top: 10px;
-            color: $color-grey-dark;
             word-break: break-all;
             &.small {
               font-size: 13px;
+            }
+            &.dark {
+              background-color: $color-background;
+            }
+            &.rounded {
+              border-radius: 5px;
             }
           }
         }

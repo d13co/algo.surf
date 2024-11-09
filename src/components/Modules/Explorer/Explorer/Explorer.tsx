@@ -5,24 +5,19 @@ import {initLivedata} from "../../../../redux/explorer/actions/liveData";
 import {Outlet, useLocation} from "react-router-dom";
 import Header from "../Header/Header";
 
-const network = process.env.REACT_APP_NETWORK;
-
-function Explorer(): JSX.Element {
+function Explorer({ children }: { children: React.ReactNode }): JSX.Element {
   const location = useLocation();
 
   const dispatch = useDispatch();
-  dispatch(initLivedata());
 
   useEffect(() => {
-    if (location.pathname.endsWith('/explorer/home')) {
-      document.title = `A.O ${network}: Algorand Observer`;
-    }
-  }, [location]);
+    dispatch(initLivedata());
+  }, []);
 
   return (
     <div className="explorer-root">
     <Header></Header>
-    <Outlet />
+      {children}
     </div>
   );
 }

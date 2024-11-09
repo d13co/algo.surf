@@ -40,6 +40,10 @@ export interface A_Asset {
     params: A_AssetParams
 }
 
+export interface A_AssetResult extends A_Asset {
+    type: "asset"
+}
+
 export interface A_AssetParams {
     clawback?: string
     creator: string
@@ -63,6 +67,10 @@ export interface A_Application {
     params: A_ApplicationParams
 }
 
+export interface A_ApplicationResult extends A_Application {
+    type: "application"
+}
+
 export interface A_ApplicationParams {
     "approval-program": string
     "clear-state-program": string
@@ -83,6 +91,7 @@ export interface A_GlobalState {
 
 export interface A_GlobalStateDecrypted {
     key: string
+    sortKey?: Buffer,
     type: string
     value: string | number
 }
@@ -312,6 +321,10 @@ export type A_Block = {
     transactions: A_SearchTransaction[],
     proposer?: string
 };
+
+export interface A_BlockResult extends A_Block {
+    type: "block"
+}
 
 export type AlgodConnectionParams = {
     url: string,
