@@ -19,7 +19,7 @@ function Home(): JSX.Element {
         <div className={"home-container"}>
             <div className="home-body">
                 <div className="tag-line">
-                    Algorand <span style={{color: primary}}>{network}</span> <span className="grey">Observer</span>
+                    Algo <span style={{color: primary}}>{network}</span> <span className="grey">Surf</span>
                 </div>
                 <div className="search-section">
                     <Search autoFocus={true}></Search>

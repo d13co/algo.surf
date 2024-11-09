@@ -13,7 +13,7 @@ export default function Logo(): JSX.Element {
     const pulseClassName = React.useMemo(() => currentBlock % 2 === 0 ? 'pulse' : 'pulse2', [currentBlock]);
 
     return <span style={{whiteSpace: 'nowrap'}}>
-        <span className={pulseClassName}>Ⱥ</span> Observer{' '}
+        <span className={pulseClassName}>Ⱥ</span> Surf{' '}
         <span style={{color: primary}}>{networkLabel}</span>
     </span>;
 }

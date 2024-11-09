@@ -3,22 +3,22 @@ import {Link, Tooltip} from "@mui/material";
 import { Github, Twitter } from 'lucide-react';
 
 const map = {
-    "Mainnet": "https://algorand.observer",
-    "Testnet": "https://testnet.algorand.observer",
-    "Localnet": "https://localnet.algorand.observer",
-    "Betanet": "https://betanet.algorand.observer",
-    "FNet": "https://fnet.algorand.observer",
+    "Mainnet": "https://algo.surf",
+    "Testnet": "https://testnet.algo.surf",
+    "Localnet": "https://localnet.algo.surf",
+    "Betanet": "https://betanet.algo.surf",
+    "FNet": "https://fnet.algo.surf",
 }
 
 function Footer(): JSX.Element {
     return <div className="footer">
         <div className="left">
-            Algorand Observer
+            algo.surf
             <Tooltip title="Source on Github">
-                <Link href="https://github.com/d13co/algorand.observer"><Github size={16} color="white" strokeWidth={1.75} /></Link>
+                <Link href="https://github.com/d13co/algo.surf"><Github size={16} color="white" strokeWidth={1.75} /></Link>
             </Tooltip>
-            <Tooltip title="Maintainer on X">
-                <Link href="https://x.com/d13_co"><Twitter size={16} color="white" strokeWidth={1.75} /></Link>
+            <Tooltip title="Profile on X">
+                <Link href="https://x.com/algo_surf"><Twitter size={16} color="white" strokeWidth={1.75} /></Link>
             </Tooltip>
         </div>
         <div>

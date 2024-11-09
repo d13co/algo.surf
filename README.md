@@ -1,8 +1,8 @@
-# Algorand Observer
+# Algo Surf
 
 Based on [dappflow](https://github.com/intelli-scripts/dappflow).
 
-Deployment: [algorand.observer](https://algorand.observer).
+Deployment: [algo.surf](https://algo.surf).
 
 ## Getting Started
 
