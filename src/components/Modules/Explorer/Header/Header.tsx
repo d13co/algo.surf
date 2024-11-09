@@ -5,6 +5,7 @@ import {useNavigate, useLocation} from "react-router-dom";
 import {Grid, Slide, Typography, Tab, Tabs} from "@mui/material";
 import Search from "../Search/Search";
 import Logo from "./Logo";
+import Link from "../Common/Links/Link";
 
 const networkLabel = process.env.REACT_APP_NETWORK;
 const primary = theme.palette.primary.main;
@@ -28,21 +29,11 @@ function Header(): JSX.Element {
             <div>
                 <Grid container>
                     <Tabs variant="scrollable" scrollButtons="auto" sx={{marginLeft: '-20px'}} value={route} TabIndicatorProps={{ children: <span className="MuiTabs-indicatorSpan" />}}>
-                        <Tab label={<Logo />} value="home" onClick={() => {
-                            navigate('/explorer/home');
-                        }}/>
-                        <Tab label="Accounts" value="accounts" onClick={() => {
-                            navigate('/explorer/accounts');
-                        }}/>
-                        <Tab label="Txns" value="transactions" onClick={() => {
-                            navigate('/explorer/transactions');
-                        }}/>
-                        <Tab label="Assets" value="assets" onClick={() => {
-                            navigate('/explorer/assets');
-                        }}/>
-                        <Tab label="Apps" value="applications" onClick={() => {
-                            navigate('/explorer/applications');
-                        }}/>
+                        <Tab component={Link} href="/" label={<Logo />} value="home" />
+                        <Tab component={Link} href="/accounts" label="Accounts" value="accounts" />
+                        <Tab component={Link} href="/transactions" label="Txns" value="transactions" />
+                        <Tab component={Link} href="/assets" label="Assets" value="assets" />
+                        <Tab component={Link} href="/applications" label="Apps" value="applications" />
                     </Tabs>
                 </Grid>
             </div>
