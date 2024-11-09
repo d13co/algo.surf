@@ -1,0 +1,65 @@
+[ ] Localnet: Searched 235 -> went block -> cert.prop undefined
+[v] block greys
+[ ] asset resolved url wrapping mainnet asset 6
+[v] record pages padding-top in sections
+[ ] transaction pages -> txn type pill rename Transfer -> Asset Transfer, Payment -> Algo Transfer etc
+[v] multisig subsignatures broken / first txn mainnet
+[v] Search
+  [v] header
+    [v] hide on homepage
+    [v] shorten overflowing placeholder
+  [v] homepage
+    [v] autofocus
+    [ ] underline style
+      [v] with transition?
+  [v] "Did you mean..." instead of results
+  [v] error when searching junk
+  [v] search when filled paste to become X
+  [v] Search shortcut
+[v] Accounts: Authorizer-to tab! Easy, doesn't exist
+[v] account txn list OUT/ IN label no contrast, fix
+[v] resource not found: dont redirect. offer to switch network?
+  - was a mistake
+[ ] Tinyman v2 account kills the frog: XSKED5VKZZCSYNDWXZJI65JM2HP7HZFJWCOBIMOONKHTK5UVKENBNVDEYM
+  - we are thrashing /accounts on nodely. needs cache and throttling
+
+[v] Index pages do not update the title - Accounts / Txns /Assets
+[v] transaction pages need rekey pill, label / fields
+[v] LinkToXXXX does Link instead of navigate
+  - fix this with a custom <Link> ? 
+
+[v] pulsing A with every block
+[v] broke blocks
+
+[v] livestats in homepage
+[v] View JSON styling
+
+CustomError show error <- A_Account.error change from boolean
+CustomError offer to switch network
+
+store: zustand or tanstack store
+
+[v] Rekey txns
+
+keyreg offline UM6MTKKQ6VP3GTKUYAHSVUASR72VXEVNOXMOKHUFD3I4KTLEV6AQ
+afrz RAAPBAKQTLM4AWGCBEE2QTRIQXPC7U2Z6BFZQ7VMEBQAODWLHMGQ
+acfg FQ53K4J4HY7SKXB7IZX5MBIK…BZQE75LPPT4LVAZPVLF2KDA
+logic sisg APPCALL3RF2SBLZDILOTQ6GOBKHBCAWVAPQEZTOZHYBJMFHTNAAD46V4ME
+
+[v] DYM broken
+
+[ ] itxn padding, colors
+
+[v] app call broken bg colors
+
+[v] Fix group count like block count
+[v] Chip with tooltip for txn type count
+
+[ ] liveblocks make whole block link
+
+[ ] Block Cache
+[ ] Asset Cache
+
+[ ] flow address book integration
+[ ] NFD integration
+[ ] Rekey txns in all txn type pages: add common block
