@@ -41,7 +41,7 @@ function Application(): JSX.Element {
     const [dymString, dymLink] = useMemo(() => {
         if (dym) {
             const blockNum = dym.split(":")[1];
-            return [`Block ${blockNum}`, `/explorer/block/${blockNum}`];
+            return [`Block ${blockNum}`, `/block/${blockNum}`];
         } else {
             return [];
         }
@@ -168,7 +168,7 @@ function Application(): JSX.Element {
 
                         <Tabs TabIndicatorProps={{ children: <span className="MuiTabs-indicatorSpan" />}} value={tabValue} className="related-list">
                             <Tab label="Transactions" value="transactions" onClick={() => {
-                                navigate('/explorer/application/' + id + '/transactions');
+                                navigate('/application/' + id + '/transactions');
                             }}/>
                         </Tabs>
 
