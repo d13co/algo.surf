@@ -2,8 +2,8 @@ import { useEffect } from 'react';
 
 const network = process.env.REACT_APP_NETWORK ?? "";
 
-const defaultTitle = `A.O ${network}`;
-const defaultPrefix = `A.O ${network}: `;
+const defaultTitle = `Ⱥ Surf ${network}`;
+const defaultPrefix = `Ⱥ Surf ${network}: `;
 
 export default function useTitle(title: string, noPrefix?: true) {
     useEffect(() => {
