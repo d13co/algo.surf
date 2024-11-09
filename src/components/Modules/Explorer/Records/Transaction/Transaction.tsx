@@ -68,8 +68,10 @@ function Transaction(): JSX.Element {
                         <div className="id"><div className="long-id">{txnInstance.getId()}</div> <Copyable value={txnInstance.getId()} /></div>
                         <div style={{marginTop: 15}}>
                             <Chip color={"warning"} variant={"outlined"} label={txnInstance.getTypeDisplayValue()} size={"small"}></Chip>
+                            {txnInstance.getType() === "keyreg" && !txnInstance.getKeyRegPayload()["selection-participation-key"] ? <Chip style={{marginLeft: 10}} color={"warning"} label="Register offline" size={"small"} variant={"outlined"}></Chip> : ''}
                             {txnInstance.isMultiSig() ? <Chip style={{marginLeft: 10}} color={"warning"} label="MultiSig" size={"small"} variant={"outlined"}></Chip> : ''}
                             {txnInstance.isLogicSig() ? <Chip style={{marginLeft: 10}} color={"warning"} label="LogicSig" size={"small"} variant={"outlined"}></Chip> : ''}
+                            {txnInstance.getRekeyTo() ? <Chip style={{marginLeft: 10}} color={"warning"} label="Rekey" size={"small"} variant={"outlined"}></Chip> : ''}
                         </div>
 
                     </div>

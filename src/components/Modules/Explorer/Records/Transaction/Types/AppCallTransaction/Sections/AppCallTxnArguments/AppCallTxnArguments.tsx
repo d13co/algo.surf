@@ -12,6 +12,7 @@ import ABIMethodSignature from "../../../../../../../ABI/ABIMethodSignature/ABIM
 import {CoreTransaction} from "../../../../../../../../../packages/core-sdk/classes/core/CoreTransaction";
 import AppCallTxnReturnValue from "../AppCallTxnReturnValue/AppCallTxnReturnValue";
 import MultiFormatViewer from "../../../../../../../../../components/Common/MultiFormatViewer/MultiFormatViewer";
+import {shadedClr} from "../../../../../../../../../utils/common";
 
 interface AppCallTxnArgumentsState{
     textEncoding: string,
@@ -56,7 +57,7 @@ function AppCallTxnArguments(props): JSX.Element {
     return (<div className={"app-call-txn-arguments-wrapper"}>
         <div className={"app-call-txn-arguments-container"}>
 
-            <div className="props">
+            <div className="props" style={{background: shadedClr}}>
                 <div className="property">
                     <div className="key">
                         Application args

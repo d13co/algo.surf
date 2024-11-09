@@ -9,7 +9,7 @@ import NumberFormat from "react-number-format";
 import {A_GlobalStateDelta} from "../../../../../../../../../packages/core-sdk/types";
 import {CoreGlobalState} from "../../../../../../../../../packages/core-sdk/classes/core/CoreGlobalStateDelta";
 import {Grid} from "@mui/material";
-
+import {shadedClr} from "../../../../../../../../../utils/common";
 
 function AppCallTxnGlobalStateDelta(props): JSX.Element {
 
@@ -75,7 +75,7 @@ function AppCallTxnGlobalStateDelta(props): JSX.Element {
         <div className={"app-call-txn-global-state-delta-container"}>
 
 
-            <div className="props">
+            <div className="props" style={{background: shadedClr}}>
                 <Grid container spacing={2}>
                     <Grid item xs={12} sm={12} md={12} lg={12} xl={12}>
                         <div className="property">

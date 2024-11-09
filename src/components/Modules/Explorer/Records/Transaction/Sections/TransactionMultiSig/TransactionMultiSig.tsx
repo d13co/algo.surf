@@ -27,6 +27,7 @@ function TransactionMultiSig(props): JSX.Element {
     const {transaction} = props;
     const txnInstance = new CoreTransaction(transaction);
     const sig = txnInstance.getSig();
+    const subsigs = React.useMemo(() => txnInstance.isMultiSig() && txnInstance.getMultiSigSubSignatures(), [sig]);
 
     return (<div className={"transaction-multi-sig-wrapper"}>
         <div className={"transaction-multi-sig-container"}>
@@ -42,7 +43,7 @@ function TransactionMultiSig(props): JSX.Element {
                                 <span>Version</span><span className="value">{sig.multisig.version}</span>
                             </div>
                             <div className="HFlex">
-                                <span>Threshold</span><span className="value">{sig.multisig.threshold}</span>
+                                <span>Threshold</span><span className="value">{sig.multisig.threshold}</span>of<span className="value">{subsigs.length}</span>
                             </div>
                         </div>
                         <Grid item xs={12} sm={12} md={12} lg={12} xl={12}>
@@ -51,7 +52,7 @@ function TransactionMultiSig(props): JSX.Element {
                                     Subsignatures
                                 </div>
                                 <div className="value column">
-                                    {txnInstance.getMultiSigSubSignatures().map(([addr, signed]) =>
+                                    {subsigs.map(([addr, signed]) =>
                                         <SubSigner signed={signed} key={addr}>
                                             <LinkToAccount copySize="m" address={addr}></LinkToAccount>
                                         </SubSigner>

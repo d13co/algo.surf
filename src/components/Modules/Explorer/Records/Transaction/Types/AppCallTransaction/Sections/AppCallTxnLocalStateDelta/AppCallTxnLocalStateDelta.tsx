@@ -10,7 +10,7 @@ import {A_LocalStateDelta} from "../../../../../../../../../packages/core-sdk/ty
 import {CoreLocalState} from "../../../../../../../../../packages/core-sdk/classes/core/CoreLocalStateDelta";
 import {Grid} from "@mui/material";
 import LinkToAccount from "../../../../../../Common/Links/LinkToAccount";
-
+import {shadedClr} from "../../../../../../../../../utils/common";
 
 function AppCallTxnLocalStateDelta(props): JSX.Element {
 
@@ -75,7 +75,7 @@ function AppCallTxnLocalStateDelta(props): JSX.Element {
     return (<div className={"app-call-txn-local-state-delta-wrapper"}>
         <div className={"app-call-txn-local-state-delta-container"}>
 
-            <div className="props">
+            <div className="props" style={{background: shadedClr}}>
                 <Grid container spacing={2}>
                     <Grid item xs={12} sm={12} md={12} lg={12} xl={12}>
                         <div className="property">

@@ -58,45 +58,61 @@ function KeyRegTransaction(props): JSX.Element {
                         </Grid> : ''}
 
 
-
-                        <Grid item xs={12} sm={4} md={4} lg={4} xl={4}>
+                        {keyRegPayload["state-proof-key"] ? <Grid item xs={12} sm={12} md={12} lg={12} xl={12}>
                             <div className="property">
                                 <div className="key">
-                                    Vote first valid
+                                    State proof key
                                 </div>
                                 <div className="value small">
-                                    <LinkToBlock id={keyRegPayload["vote-first-valid"]}></LinkToBlock>
+                                    {keyRegPayload["state-proof-key"]}
                                 </div>
                             </div>
-                        </Grid>
+                        </Grid> : ''}
 
-                        <Grid item xs={12} sm={4} md={4} lg={4} xl={4}>
-                            <div className="property">
-                                <div className="key">
-                                    Vote last valid
+
+                        {keyRegPayload["selection-participation-key"] ? <>
+                            <Grid item xs={12} sm={4} md={4} lg={4} xl={4}>
+                                <div className="property">
+                                    <div className="key">
+                                        Vote first valid
+                                    </div>
+                                    <div className="value small">
+                                        <LinkToBlock id={keyRegPayload["vote-first-valid"]}></LinkToBlock>
+                                    </div>
                                 </div>
-                                <div className="value small">
-                                    <LinkToBlock id={keyRegPayload["vote-last-valid"]}></LinkToBlock>
+                            </Grid>
+
+                            <Grid item xs={12} sm={4} md={4} lg={4} xl={4}>
+                                <div className="property">
+                                    <div className="key">
+                                        Vote last valid
+                                    </div>
+                                    <div className="value small">
+                                        <LinkToBlock id={keyRegPayload["vote-last-valid"]}></LinkToBlock>
+                                    </div>
                                 </div>
-                            </div>
-                        </Grid>
+                            </Grid>
 
 
-                        <Grid item xs={12} sm={4} md={4} lg={4} xl={4}>
-                            <div className="property">
-                                <div className="key">
-                                    Vote key dilution
+                            <Grid item xs={12} sm={4} md={4} lg={4} xl={4}>
+                                <div className="property">
+                                    <div className="key">
+                                        Vote key dilution
+                                    </div>
+                                    <div className="value small">
+                                        {keyRegPayload["vote-key-dilution"]}
+                                    </div>
                                 </div>
-                                <div className="value small">
-                                    {keyRegPayload["vote-key-dilution"]}
+                            </Grid>
+                        </> : 
+                            <Grid item xs={12} sm={4} md={4} lg={4} xl={4}>
+                                <div className="property">
+                                    <div className="key">
+                                        Key registration offline
+                                    </div>
                                 </div>
-                            </div>
-                        </Grid>
-
-
-
-
-
+                            </Grid>
+                        }
                     </Grid>
                 </div>
 

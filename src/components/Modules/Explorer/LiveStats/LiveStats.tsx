@@ -41,8 +41,6 @@ function LiveStats(): JSX.Element {
         ];
     }, [liveData.blocks]);
 
-    console.log(tc);
-
     return (<div className={"live-stats-wrapper"}>
         <div className={"live-stats-container"}>
             <div className={"live-stats-header"}>

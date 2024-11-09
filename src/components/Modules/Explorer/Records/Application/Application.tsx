@@ -103,7 +103,7 @@ function Application(): JSX.Element {
                     <ApplicationProgram name="Approval program" program={applicationInstance.getApprovalProgram()}></ApplicationProgram>
                     <ApplicationProgram name="Clear state program" program={applicationInstance.getClearProgram()}></ApplicationProgram>
 
-                    <div className="props" style={{background: shadedClr}}>
+                    <div className="props" style={{background: shadedClr, paddingBottom: "0px"}}>
                         <Grid container spacing={2}>
 
                             <Grid item xs={12} sm={6} md={3} lg={3} xl={3}>
@@ -126,8 +126,6 @@ function Application(): JSX.Element {
                                     </div>
                                 </div>
                             </Grid>
-
-
 
                             <Grid item xs={12} sm={6} md={3} lg={3} xl={3}>
                                 <div className="property center">

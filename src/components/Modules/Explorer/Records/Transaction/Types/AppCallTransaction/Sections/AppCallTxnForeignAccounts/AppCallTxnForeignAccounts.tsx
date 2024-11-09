@@ -3,8 +3,6 @@ import React from "react";
 import {shadedClr} from "../../../../../../../../../utils/common";
 import LinkToAccount from "../../../../../../Common/Links/LinkToAccount";
 
-
-
 function AppCallTxnForeignAccounts(props): JSX.Element {
 
     let accounts: string[] = props.accounts;

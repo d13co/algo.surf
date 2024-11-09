@@ -7,7 +7,7 @@ function LinkToBlock({id, name = ''}): JSX.Element {
         name = id;
     }
 
-    return <Link className="long-id" href={"/block/" + id}>{name}</Link>;
+    return <Link href={"/block/" + id}>{name}</Link>;
 }
 
 export default LinkToBlock;

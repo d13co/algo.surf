@@ -63,6 +63,18 @@ function Account(): JSX.Element {
         tabValue = 'controlling-accounts';
     }
 
+    const [lastSent, isMultiSig, isLogicSig, isClosed] = React.useMemo(() => {
+        const lastSent = account.transactionsDetails.transactions.find(({sender}) => sender === address);
+        const isMultiSig = !!lastSent?.signature?.multisig;
+        const isLogicSig = !!lastSent?.signature?.logicsig;
+        const isClosed = account.information.amount === 0 && !!lastSent;
+        return [lastSent, isMultiSig, isLogicSig, isClosed];
+    }, [
+        address,
+        account.information.amount,
+        account.transactionsDetails?.transactions,
+    ]);
+
     useEffect(() => {
         dispatch(loadAccount(address));
     }, [dispatch, address]);
@@ -87,9 +99,19 @@ function Account(): JSX.Element {
                         <div className="id">
                             <div className="long-id">{account.information.address}</div> <Copyable value={account.information.address} />
                         </div>
-                        <div style={{marginTop: 10}}>
+                        <div style={{marginTop: 10, display: 'flex', gap: '5px'}}>
+                            { account.information.status === "Online" ? 
+                                <Chip color={"success"} variant={"outlined"} label="Validator"  size={"small"}></Chip> : null }
+                            { account.information["incentive-eligible"] === true ? 
+                                <Chip color={"success"} variant={"outlined"} label="Incentives Eligible"  size={"small"}></Chip> : null }
                             { account.escrowOf ? <LinkToApplication id={account.escrowOf}><Chip className="hover-cursor-pointer" color={"success"} variant="outlined" label={`App Escrow`} size="small" style={{marginRight: '4px'}} /></LinkToApplication> : null }
-                            <Chip color={"warning"} variant={"outlined"} label={account.information.status} size={"small"}></Chip>
+                            { isMultiSig ? 
+                                <Chip color={"warning"} variant={"outlined"} label="MultiSig"  size={"small"}></Chip> : null }
+                            { isLogicSig ? 
+                                <Chip color={"warning"} variant={"outlined"} label="LogicSig"  size={"small"}></Chip> : null }
+                            { isClosed ? 
+                                <Chip color={"warning"} variant={"outlined"} label="Closed"  size={"small"}></Chip> : null }
+
                         </div>
 
                     </div>

@@ -2,6 +2,7 @@ import './AppCallTxnLogs.scss';
 import React, {useState} from "react";
 import {Button, ButtonGroup} from "@mui/material";
 import atob from 'atob';
+import {shadedClr} from "../../../../../../../../../utils/common";
 
 enum TEXT_ENCODING {
     BASE64 = 'base64',
@@ -35,10 +36,7 @@ function AppCallTxnLogs(props): JSX.Element {
 
     return (<div className={"app-call-txn-logs-wrapper"}>
         <div className={"app-call-txn-logs-container"}>
-
-
-
-            <div className="props">
+            <div className="props" style={{background: shadedClr}}>
                 <div className="property">
                     <div className="key">
                         Logs

@@ -157,7 +157,7 @@ function TransactionsList({transactions = [], loading = false, reachedLastPage =
                 const appId = txnInstance.getAppId();
 
                 let showLink = true;
-                let showArrow = true;
+                let showArrow = false;
                 let inTxn = false;
                 if (record === 'account') {
                     showArrow = false;
@@ -169,11 +169,6 @@ function TransactionsList({transactions = [], loading = false, reachedLastPage =
 
 
                 return <div className="cell-content">
-                    {showArrow ? <ArrowForward fontSize={"small"} style={{verticalAlign: "text-bottom", marginRight: 5}}></ArrowForward> : <span>
-                        <Alert color={inTxn ? 'success' : 'warning'} icon={false} className="mini-alert">
-                            {inTxn ? 'IN' : 'OUT'}
-                        </Alert>
-                    </span>}
                     {type === TXN_TYPES.PAYMENT || type === TXN_TYPES.ASSET_TRANSFER ? <span>
                         {showLink ? <LinkToAccount copySize="s" address={to}></LinkToAccount> : to}
                     </span> : ''}

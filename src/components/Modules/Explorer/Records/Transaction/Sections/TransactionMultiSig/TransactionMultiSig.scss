@@ -11,12 +11,14 @@
       .threshold-version-container {
         display: flex;
         width: 100%;
-        justify-content: space-between;
+        padding-top: 10px;
+        justify-content: space-around;
         flex-direction: row-reverse;
         .value {
           color: $color-primary;
           font-size:110%;
           margin-left: 10px;
+          margin-right: 10px;
         }
         margin-bottom: 15px;
       }
