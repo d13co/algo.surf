@@ -10,6 +10,7 @@ import {CoreGroup} from "../../../../../packages/core-sdk/classes/core/CoreGroup
 import LinkToBlock from "../../Common/Links/LinkToBlock";
 import {Alert} from "@mui/lab";
 import useTitle from "../../../../Common/UseTitle/UseTitle";
+import TxnTypeChip from "../../Common/TxnTypeChip/TxnTypeChip";
 
 const network = process.env.REACT_APP_NETWORK;
 
@@ -24,10 +25,7 @@ function Group(): JSX.Element {
     const groupInstance = new CoreGroup(group.information);
 
     const txnTypes = groupInstance.getTransactionsTypesCount();
-    let txnTypesList: string[] = [];
-    if (txnTypes) {
-        txnTypesList = txnTypes.split(",");
-    }
+    const txnTypesList = React.useMemo(() => Object.keys(txnTypes), [txnTypes]);
 
     useEffect(() => {
         dispatch(loadGroup({id, blockId: Number(blockId)}));
@@ -79,19 +77,13 @@ function Group(): JSX.Element {
 
 
                     <div className="property">
-                        <div className="key">
-                            Total transactions : {groupInstance.getTransactionsCount()}
-                            <div>
-                                {txnTypesList.map((type) => {
-                                    return <Alert key={type} color={'success'} icon={false} className="mini-alert">
-                                        {type}
-                                    </Alert>
-                                })}
-                            </div>
+                        <div className="key nowrap">
+                            Total transactions: {groupInstance.getTransactionsCount()}
                         </div>
-                        <div className="value">
-
-
+                        <div className="value flexwrap">
+                            {txnTypesList.map((type) => {
+                                return <TxnTypeChip parentType="group" type={type} count={txnTypes[type]} />
+                            })}
                         </div>
                     </div>
 

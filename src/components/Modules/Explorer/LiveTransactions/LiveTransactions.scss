@@ -9,6 +9,7 @@
     .live-transactions-body {
       margin-top: 20px;
       .transaction {
+        color: $color-grey;
         padding: 15px;
         margin: 12px 0;
         display: flex;
@@ -43,14 +44,12 @@
             font-size: 13px;
             a {
               font-family: Poppins !important;
-              text-decoration-color: $color-grey-dark !important;
               font-size: 12px;
             }
           }
           a {
             font-size: 13px;
             font-weight: bold;
-            text-decoration: none;
           }
         }
       }

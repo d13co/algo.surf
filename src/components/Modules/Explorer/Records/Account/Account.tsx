@@ -104,7 +104,7 @@ function Account(): JSX.Element {
                                 <Chip color={"success"} variant={"outlined"} label="Validator"  size={"small"}></Chip> : null }
                             { account.information["incentive-eligible"] === true ? 
                                 <Chip color={"success"} variant={"outlined"} label="Incentives Eligible"  size={"small"}></Chip> : null }
-                            { account.escrowOf ? <LinkToApplication id={account.escrowOf}><Chip className="hover-cursor-pointer" color={"success"} variant="outlined" label={`App Escrow`} size="small" style={{marginRight: '4px'}} /></LinkToApplication> : null }
+                            { account.escrowOf ? <LinkToApplication className="no-underline" id={account.escrowOf}><Chip className="hover-cursor-pointer" color={"success"} variant="outlined" label={`App Escrow`} size="small" style={{marginRight: '4px'}} /></LinkToApplication> : null }
                             { isMultiSig ? 
                                 <Chip color={"warning"} variant={"outlined"} label="MultiSig"  size={"small"}></Chip> : null }
                             { isLogicSig ? 

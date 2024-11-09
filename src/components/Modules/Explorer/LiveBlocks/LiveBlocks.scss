@@ -17,6 +17,7 @@
         border-left: 1px solid $color-primary;
         border-left-width: 6px;
         border-radius: 4px;
+        overflow: hidden;
         .txn-count {
           font-size: 15px;
           font-weight: bold;
@@ -31,13 +32,28 @@
           transition: opacity 1000ms, transform 1000ms;
         }
         .round {
+          width: 100%;
+          .round-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+
+          }
+          .text-right {
+            text-align: right;
+            flex-grow: 1;
+          }
+          .faded {
+            color: $color-grey;
+          }
           .sub-text {
             margin-top: 15px;
             font-size: 13px;
           }
           a {
             font-weight: bold;
-            font-size: 13px;
+            font-size: 16px;
           }
         }
       }

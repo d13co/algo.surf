@@ -88,7 +88,7 @@ function Application(): JSX.Element {
                             <Grid item xs={12} sm={12} md={12} lg={12} xl={12}>
                                 <div className="property">
                                     <div className="key">
-                                        Application account
+                                        Application escrow account
                                     </div>
                                     <div className="value small">
                                         <LinkToAccount copySize="m" address={applicationInstance.getApplicationAddress()}></LinkToAccount>
