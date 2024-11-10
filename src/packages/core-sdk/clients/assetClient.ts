@@ -36,7 +36,7 @@ export class AssetClient{
             const asset = await this.client.getAssetByID(id).do();
             return { ...asset, type: "asset" } as A_AssetResult;
         } catch(e) {
-            if ((e as any).response.status === 404)
+            if ((e as any).response?.status === 404)
                 return null
             else
                 throw e;

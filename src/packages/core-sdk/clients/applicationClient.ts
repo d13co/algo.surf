@@ -33,7 +33,7 @@ export class ApplicationClient{
             const app = await this.client.getApplicationByID(id).do();
             return { ...app, type: "application" } as A_ApplicationResult
         } catch(e) {
-            if ((e as any).response.status === 404)
+            if ((e as any).response?.status === 404)
                 return null
             else
                 throw e;

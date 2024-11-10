@@ -24,7 +24,7 @@ export class BlockClient {
             const response = await this.indexer.lookupBlock(id).do();
             return { ...response, type: "block" } as A_BlockResult;
         } catch(e) {
-            if ((e as any).response.status === 404)
+            if ((e as any).response?.status === 404)
                 return null
             else
                 throw e;
