@@ -17,8 +17,11 @@ function Header(): JSX.Element {
     const location = useLocation();
 
     const route: string | boolean = React.useMemo(() => {
-        const route = location.pathname.substring(1).split('/')[1];
+        const route = location.pathname.substring(1).split('/')[0];
         if (routes.indexOf(route) === -1) {
+            if (route === "") {
+                return "home";
+            }
             return false;
         }
         return route

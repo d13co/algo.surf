@@ -35,7 +35,7 @@ function LiveBlocks(): JSX.Element {
                                             {blockInstance.getTransactionsCount()} Transactions
                                         </span>
                                     </div>
-                                    <div className="round-header">
+                                    <div className="round-header" style={{marginTop: "8px"}}>
                                         <div className="sub-text" style={{display: "flex", lineHeight: 5, flexWrap: "wrap", gap:"2px"}}>
                                             {Object.entries(blockInstance.getTransactionsTypesCount()).map(
                                                 ([type, count]) => <TxnTypeChip type={type} count={count} />
