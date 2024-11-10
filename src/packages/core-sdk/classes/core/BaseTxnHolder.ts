@@ -12,9 +12,7 @@ export default class BaseTxnHolder {
 
     ensureHasStats(transactions: A_SearchTransaction[]) {
         if (!this.countStats) {
-            console.time("Count");
             this.countStats = BaseTxnHolder.calculateBlockCountStats(transactions);
-            console.timeEnd("Count");
         }
     }
 
