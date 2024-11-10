@@ -31,6 +31,7 @@ import Loader from "../Common/Loader/Loader";
 import AppSnackbar from "./AppSnackbar";
 import Footer from "./Footer";
 import StripExplorerFromPath from "./StripExplorerFromPath";
+import SearchFromPath from "./SearchFromPath";
 
 function AppRouter(): JSX.Element {
     return (<div>
@@ -74,7 +75,7 @@ function AppRouter(): JSX.Element {
                                         <Route path="" element={<Navigate to="transactions" replace />}/>
                                     </Route>
                                     <Route path="/explorer/*" element={<StripExplorerFromPath />} />
-                                    { /* TODO REPLACE WITH SEARCH / 404 <Route path="*" element={<Navigate to="/explorer" replace />}/> */ }
+                                    <Route path="*" element={<SearchFromPath />}/>
                                 </Routes>
                             </Explorer>
                         </div>

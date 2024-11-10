@@ -11,14 +11,7 @@ import {
     Tooltip,
 } from "@mui/material";
 import {Search as SearchIcon} from "@mui/icons-material";
-import {isValidAddress} from "algosdk";
 import {useNavigate} from "react-router-dom";
-import {A_ApplicationResult, A_AssetResult, A_BlockResult} from "../../../../packages/core-sdk/types";
-import {AssetClient} from "../../../../packages/core-sdk/clients/assetClient";
-import {isNumber} from "../../../../utils/common";
-import explorer from "../../../../utils/dappflow";
-import {ApplicationClient} from "../../../../packages/core-sdk/clients/applicationClient";
-import {BlockClient} from "../../../../packages/core-sdk/clients/blockClient";
 import {hideLoader, showLoader} from "../../../../redux/common/actions/loader";
 import {useDispatch} from "react-redux";
 import {showSnack} from "../../../../redux/common/actions/snackbar";
@@ -26,17 +19,7 @@ import {theme} from "../../../../theme";
 import {ClipboardPaste} from 'lucide-react';
 import CloseIcon from "@mui/icons-material/Close";
 import { useHotkeys } from 'react-hotkeys-hook';
-
-function getLink(result: A_AssetResult | A_ApplicationResult | A_BlockResult) {
-    const { type } = result;
-    if (type === "block") {
-        return `/block/${result.round}`;
-    } else if (type === "asset" ) {
-        return `/asset/${result.index}/transactions`;
-    } else {
-        return `/application/${result.id}/transactions`;
-    }
-}
+import coreSearch from './CoreSearch';
 
 interface SettingsState{
     searchStr: string,
@@ -78,72 +61,28 @@ function Search(props: SearchProps): JSX.Element {
         setState({ ...initialState });
     }, []);
 
+
     const doSearch = useCallback((override?: string) => {
         (async function () {
             const target = override ?? searchStr;
             if (!target) {
                 return;
             }
-            if (isValidAddress(target)) {
-                setState(prevState => ({...prevState, target: ""}));
-                navigate('/account/' + target);
-                return;
-            } else if (target.length === 58) {
+
+            dispatch(showLoader("Searching"));
+            try {
+                const destination = await coreSearch(target);
+                setState({ ...initialState });
+                inputRef.current?.blur();
+                navigate(destination);
+            } catch(e) {
                 dispatch(showSnack({
                     severity: 'error',
-                    message: `Address is not valid`
+                    message: (e as Error).message,
                 }));
-                return;
             }
-            if (target.length === 52) {
-                setState(prevState => ({...prevState, target: ""}));
-                navigate('/transaction/' + target);
-                return;
-            }
+            dispatch(hideLoader());
 
-            if (isNumber(target)) {
-                try {
-                    dispatch(showLoader("Searching"));
-                    const searchNum = Number(target);
-                    const [asset, app, block] = await Promise.all([
-                        new AssetClient(explorer.network).search(searchNum),
-                        new ApplicationClient(explorer.network).search(searchNum),
-                        new BlockClient(explorer.network).search(searchNum),
-                    ]);
-                    const first = [asset, app, block].find(e => e);
-
-                    if (!first) {
-                        dispatch(showSnack({
-                            severity: 'error',
-                            message: 'No results found'
-                        }));
-                        dispatch(hideLoader());
-                        return;
-                    }
-
-                    let destination = getLink(first);
-
-                    if (block && first !== block) {
-                        destination += `?dym=block:${block.round}`;
-                    }
-                    dispatch(hideLoader());
-                    console.log("Navigating", destination);
-                    navigate(destination);
-                    return;
-                } catch (e) {
-                    dispatch(showSnack({
-                        severity: 'error',
-                        message: `Error while searching: ${(e as Error).message}`
-                    }));
-                    dispatch(hideLoader());
-                    return;
-                }
-            }
-
-            dispatch(showSnack({
-                severity: 'error',
-                message: `Error: Not something I can search for: ${target}`,
-            }));
         })()
     }, [searchStr, dispatch, navigate]);
 
