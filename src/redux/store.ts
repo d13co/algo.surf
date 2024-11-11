@@ -8,6 +8,7 @@ import settingsReducer from "./settings/actions/settings";
 import developerApiReducer from "./developerApi/actions/developerApi";
 import loaderReducer from "./common/actions/loader";
 import accountReducer from "./explorer/actions/account";
+import addressBookReducer from "./explorer/actions/addressBook";
 import blockReducer from "./explorer/actions/block";
 import assetReducer from "./explorer/actions/asset";
 import applicationReducer from "./explorer/actions/application";
@@ -29,6 +30,7 @@ export const store = configureStore({
     reducer: {
         snackbar: snackbarReducer,
         accounts: accountsReducer,
+        addressBook: addressBookReducer,
         transactions: transactionsReducer,
         assets: assetsReducer,
         applications: applicationsReducer,

@@ -4,7 +4,7 @@ import {matchPath, Outlet, useLocation, useNavigate, useParams} from "react-rout
 import {useDispatch, useSelector} from "react-redux";
 import {loadAccount} from "../../../../../redux/explorer/actions/account";
 import {RootState} from "../../../../../redux/store";
-import {Chip, Link, Grid, Tab, Tabs} from "@mui/material";
+import {Chip, Link, Grid, Tooltip, Tab, Tabs} from "@mui/material";
 import NumberFormat from "react-number-format";
 import {microalgosToAlgos} from "../../../../../utils/common";
 import AlgoIcon from "../../AlgoIcon/AlgoIcon";
@@ -16,6 +16,7 @@ import Copyable from '../../../../Common/Copyable/Copyable';
 import LinkToApplication from '../../Common/Links/LinkToApplication';
 import LinkToAccount from '../../Common/Links/LinkToAccount';
 import useTitle from "../../../../Common/UseTitle/UseTitle";
+import { theme } from "../../../../../theme/index";
 
 const network = process.env.REACT_APP_NETWORK;
 
@@ -30,6 +31,16 @@ function Account(): JSX.Element {
     const {address} = params;
 
     const account = useSelector((state: RootState) => state.account);
+    const addressBook = useSelector((state: RootState) => state.addressBook);
+    const addressLabel = React.useMemo(() => addressBook.data[address], [address, addressBook.data]);
+    const tinymanPool = React.useMemo(() => {
+        const { "auth-addr": auth } = account.information;
+        if (auth !== "XSKED5VKZZCSYNDWXZJI65JM2HP7HZFJWCOBIMOONKHTK5UVKENBNVDEYM") {
+            return false;
+        }
+        const type = (account.optedAssets ?? []).find(({params:{"unit-name":u}}) => u === "TMPOOL2");
+        return type ? type.params.name.replace('TinymanPool2.0 ', '') : false;
+    }, [address, account?.optedAssets, account.information]);
 
     let tabValue = 'transactions';
     const { pathname } = useLocation();
@@ -49,7 +60,7 @@ function Account(): JSX.Element {
             tabsRef.current.scrollIntoView();
         e.preventDefault();
         return false;
-    }, [tabsRef, address]);
+    }, [tabsRef?.current, address]);
 
     if (hasOptedAssets && matchPath("/account/:address/assets", pathname)) {
         tabValue = 'assets';
@@ -99,7 +110,17 @@ function Account(): JSX.Element {
                         <div className="id">
                             <div className="long-id">{account.information.address}</div> <Copyable value={account.information.address} />
                         </div>
-                        <div style={{marginTop: 10, display: 'flex', gap: '5px'}}>
+                        <div style={{marginTop: 10, display: 'flex', alignItems: 'center', gap: '5px'}}>
+                            { addressLabel ? <div>
+                                <Tooltip title={`This account is labelled in the algo.surf address book as: ${addressLabel}`}>
+                                    <Chip color="success" label={`${addressLabel}`} size={"medium"}></Chip>
+                                </Tooltip>
+                            </div> : null }
+                            { tinymanPool ? <div>
+                                <Tooltip title={`This account is the Tinyman 2 liquidity pool for ${tinymanPool}`}>
+                                    <Chip style={{backgroundColor: '#f1fe68', color: '#0e0b1c'}} label={`Tinyman 2 · ${tinymanPool}`} size={"medium"}></Chip>
+                                </Tooltip>
+                            </div> : null }
                             { account.information.status === "Online" ? 
                                 <Chip color={"success"} variant={"outlined"} label="Validator"  size={"small"}></Chip> : null }
                             { account.information["incentive-eligible"] === true ? 
@@ -113,7 +134,6 @@ function Account(): JSX.Element {
                                 <Chip color={"warning"} variant={"outlined"} label="Closed"  size={"small"}></Chip> : null }
 
                         </div>
-
                     </div>
 
                     <div className="props">
