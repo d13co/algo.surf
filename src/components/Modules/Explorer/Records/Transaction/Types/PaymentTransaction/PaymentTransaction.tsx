@@ -6,12 +6,18 @@ import AlgoIcon from "../../../../AlgoIcon/AlgoIcon";
 import NumberFormat from "react-number-format";
 import LinkToAccount from "../../../../Common/Links/LinkToAccount";
 import {microalgosToAlgos,shadedClr} from "../../../../../../../utils/common";
-
+import {useSelector} from "react-redux";
+import {RootState} from "../../../../../../../redux/store";
+import AccountLabelChip from "../../../../../../Common/AccountLabelChip/AccountLabelChip";
 
 function PaymentTransaction(props): JSX.Element {
     const {transaction} = props;
     const txnInstance = new CoreTransaction(transaction);
 
+    const addressBook = useSelector((state: RootState) => state.addressBook);
+    const senderLabel = React.useMemo(() => addressBook.data[transaction.sender], [transaction.sender, addressBook.data]);
+    const receiverLabel = React.useMemo(() => transaction["payment-transaction"] ? addressBook.data[transaction["payment-transaction"].receiver] : false, [transaction, addressBook.data]);
+    const closeToLabel = React.useMemo(() => transaction["payment-transaction"] ? addressBook.data[transaction["payment-transaction"]["close-remainder-to"]] : false, [transaction, addressBook.data]);
 
     return (<div className={"payment-transaction-wrapper"}>
         <div className={"payment-transaction-container"}>
@@ -26,7 +32,7 @@ function PaymentTransaction(props): JSX.Element {
                         <Grid item xs={12} sm={12} md={12} lg={12} xl={12}>
                             <div className="property">
                                 <div className="key">
-                                    Sender
+                                    Sender { senderLabel ? <AccountLabelChip size="small" label={senderLabel} /> : null }
                                 </div>
                                 <div className="value small">
                                     <LinkToAccount copySize="m" address={txnInstance.getFrom()}></LinkToAccount>
@@ -38,7 +44,7 @@ function PaymentTransaction(props): JSX.Element {
                         <Grid item xs={12} sm={12} md={12} lg={12} xl={12}>
                             <div className="property">
                                 <div className="key">
-                                    Receiver
+                                    Receiver { receiverLabel ? <AccountLabelChip size="small" label={receiverLabel} />: null }
                                 </div>
                                 <div className="value small">
                                     <LinkToAccount copySize="m" address={txnInstance.getTo()}></LinkToAccount>
@@ -68,7 +74,7 @@ function PaymentTransaction(props): JSX.Element {
                         {txnInstance.getCloseTo() ? <Grid item xs={12} sm={12} md={12} lg={12} xl={12}>
                             <div className="property">
                                 <div className="key">
-                                    Close account
+                                    Close account { receiverLabel ? <AccountLabelChip size="small" label={receiverLabel} /> : null }
                                 </div>
                                 <div className="value small">
                                     <LinkToAccount copySize="m" address={txnInstance.getCloseTo()}></LinkToAccount>

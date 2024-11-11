@@ -16,6 +16,9 @@
         .property {
           margin-top: 10px;
           .key {
+            display: flex;
+            align-items: center;
+            gap: 15px;
           }
           .value {
             margin-top: 10px;

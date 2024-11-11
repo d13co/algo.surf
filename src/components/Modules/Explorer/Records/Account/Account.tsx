@@ -13,6 +13,7 @@ import LoadingTile from "../../../../Common/LoadingTile/LoadingTile";
 import JsonViewer from "../../../../Common/JsonViewer/JsonViewer";
 import CustomError from "../../Common/CustomError/CustomError";
 import Copyable from '../../../../Common/Copyable/Copyable';
+import AccountLabelChip from '../../../../Common/AccountLabelChip/AccountLabelChip';
 import LinkToApplication from '../../Common/Links/LinkToApplication';
 import LinkToAccount from '../../Common/Links/LinkToAccount';
 import useTitle from "../../../../Common/UseTitle/UseTitle";
@@ -112,9 +113,7 @@ function Account(): JSX.Element {
                         </div>
                         <div style={{marginTop: 10, display: 'flex', alignItems: 'center', gap: '5px'}}>
                             { addressLabel ? <div>
-                                <Tooltip title={`This account is labelled in the algo.surf address book as: ${addressLabel}`}>
-                                    <Chip color="success" label={`${addressLabel}`} size={"medium"}></Chip>
-                                </Tooltip>
+                                <AccountLabelChip color="success" variant="filled" label={addressLabel} size="medium" />
                             </div> : null }
                             { tinymanPool ? <div>
                                 <Tooltip title={`This account is the Tinyman 2 liquidity pool for ${tinymanPool}`}>
