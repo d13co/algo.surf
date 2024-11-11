@@ -5,6 +5,7 @@ import {A_Block, A_SearchTransaction} from "../../../packages/core-sdk/types";
 import {NodeClient} from "../../../packages/core-sdk/clients/nodeClient";
 
 export const blockPreload = 3;
+export const blocksToKeep = 11;
 
 export interface LiveData {
     loading: number,
@@ -37,11 +38,10 @@ export const initLivedata = createAsyncThunk(
             const round = health.round;
 
             dispatch(setCurrentBlock(round));
-            dispatch(loadBlockInfo(round));
-            // TODO put back pre-fetch
-            for(let i=1; i<=blockPreload; i++) {
-                dispatch(loadBlockHistory(round - i));
-            }
+            dispatch(loadBlockInfo(round - 100));
+            // for(let i=1; i<=blockPreload; i++) {
+            //     dispatch(loadBlockHistory(round - i));
+            // }
             dispatch(setConnectionSuccess(true));
         }
         catch (e: any) {
@@ -69,11 +69,28 @@ export const loadBlockHistory = createAsyncThunk(
 export const loadBlockInfo = createAsyncThunk(
     'liveData/loadBlock',
     async (round: number, thunkAPI) => {
-        const {dispatch} = thunkAPI;
+        const {dispatch,getState} = thunkAPI;
         try {
+            const state = getState();
             const blockClient = new BlockClient(explorer.network);
-            await blockClient.statusAfterBlock(round);
+            const statusNow = await blockClient.statusAfterBlock(round);
+            const { "last-round": roundNow } = statusNow;
+            const delta = roundNow - round;
+            if (delta < 0) {
+                // we did not reach it yet
+                await sleep(500);
+                // try again
+                dispatch(loadBlockInfo(round));
+                return;
+            } else if (delta > blocksToKeep) {
+                // we are resuming and may be _way_ behind
+                // ignore and jump ahead
+                await sleep(100);
+                dispatch(loadBlockInfo(roundNow - blocksToKeep));
+                return;
+            }
             const blockInfo = await blockClient.get(round);
+            await sleep(500);
             dispatch(loadBlockInfo(round + 1));
             return blockInfo;
         }
@@ -107,8 +124,8 @@ export const liveDataSlice = createSlice({
                 blocks = blocks.sort((a, b) => b.round - a.round);
             }
             state.currentBlock = Math.max(action.payload.round, state.currentBlock);
-            if (state.blocks.length > 11) {
-                state.blocks = blocks.slice(0, 11);
+            if (state.blocks.length > blocksToKeep) {
+                state.blocks = blocks.slice(0, blocksToKeep);
             }
             if (action.payload?.transactions) {
                 const newTransactions = action.payload?.transactions;
@@ -126,3 +143,5 @@ export const liveDataSlice = createSlice({
 
 export const {resetLiveData, setCurrentBlock, setConnectionSuccess} = liveDataSlice.actions
 export default liveDataSlice.reducer
+
+async function sleep(ms: number) { return new Promise(resolve => setTimeout(resolve, ms)) }
