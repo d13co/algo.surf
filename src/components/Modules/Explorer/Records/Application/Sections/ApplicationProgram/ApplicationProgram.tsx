@@ -10,6 +10,7 @@ import {useDispatch} from "react-redux";
 import {hideLoader, showLoader} from "../../../../../../../redux/common/actions/loader";
 import {handleException} from "../../../../../../../redux/common/actions/exception";
 import {CodeBlock, tomorrowNightBright} from "react-code-blocks";
+import Copyable from "../../../../../../Common/Copyable/Copyable";
 
 const myTheme = {
     ...tomorrowNightBright,
@@ -43,11 +44,16 @@ function ApplicationProgram(props): JSX.Element {
         prg: program
     });
 
+    React.useEffect(() => {
+        if (name === "Approval program") {
+            setTextEncoding(PROGRAM_ENCODING.TEAL);
+        }
+    }, [name]);
+
     async function setTextEncoding(encoding: string) {
         if (encoding === PROGRAM_ENCODING.BASE64) {
             setState(prevState => ({...prevState, prg: program, encoding}));
         } else if (encoding === PROGRAM_ENCODING.TEAL) {
-
             try {
                 dispatch(showLoader("Decompiling ..."));
                 const applicationClient = new ApplicationClient(explorer.network);
@@ -77,7 +83,7 @@ function ApplicationProgram(props): JSX.Element {
                                     <Button variant={encoding === PROGRAM_ENCODING.BASE64 ? 'contained' : 'outlined'} onClick={() => {setTextEncoding(PROGRAM_ENCODING.BASE64)}}>Base 64</Button>
                                     <Button variant={encoding === PROGRAM_ENCODING.TEAL ? 'contained' : 'outlined'} onClick={() => {setTextEncoding(PROGRAM_ENCODING.TEAL)}}>Teal</Button>
                                 </ButtonGroup>
-
+                                <Copyable value={prg} style={{marginLeft: "20px"}} />
                             </div>
                             <div className="value small" style={{marginTop: 20}}>
                                 {encoding === PROGRAM_ENCODING.BASE64 ? prg : <div className="source">
