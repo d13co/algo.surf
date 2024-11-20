@@ -24,6 +24,8 @@ import AssetTransactions from "../Modules/Explorer/Records/Asset/RelatedList/Ass
 import Application from "../Modules/Explorer/Records/Application/Application";
 import ApplicationTransactions
     from "../Modules/Explorer/Records/Application/RelatedList/ApplicationTransactions/ApplicationTransactions";
+import ApplicationBoxes
+    from "../Modules/Explorer/Records/Application/RelatedList/ApplicationBoxes/ApplicationBoxes";
 import Transaction from "../Modules/Explorer/Records/Transaction/Transaction";
 import Group from "../Modules/Explorer/Records/Group/Group";
 import GroupTransactions from "../Modules/Explorer/Records/Group/RelatedList/GroupTransactions/GroupTransactions";
@@ -67,6 +69,7 @@ function AppRouter(): JSX.Element {
                                     </Route>
                                     <Route path="/application/:id" element={<Application></Application>}>
                                         <Route path="transactions" element={<ApplicationTransactions></ApplicationTransactions>} />
+                                        <Route path="boxes" element={<ApplicationBoxes></ApplicationBoxes>} />
                                         <Route path="" element={<Navigate to="transactions" replace />}/>
                                     </Route>
                                     <Route path="/transaction/:id" element={<Transaction></Transaction>}></Route>

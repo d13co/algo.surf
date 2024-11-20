@@ -1,0 +1,41 @@
+@import "src/assets/colors";
+
+.boxes-list-wrapper {
+  .boxes-list-container {
+    .boxes-list-header {
+      margin-top: 40px;
+      font-size: 20px;
+      font-weight: bold;
+    }
+    .boxes-list-body {
+      margin-top: 50px;
+      .copy-content {
+        font-size: 16px;
+        margin-right: 10px;
+        vertical-align: text-bottom;
+      }
+      .group-txn-icon {
+        margin-left: -5px;
+      }
+      .cell-content {
+        display: flex;
+        align-items: center;
+        .mini-alert {
+          width: 32px;
+          height: 24px;
+          padding: 0;
+          border-radius: 4px;
+          display: inline-block;
+          margin-right: 5px;
+          font-size: 12px;
+          font-weight: bold;
+          text-align: center;
+          .MuiAlert-message {
+            padding: 0;
+            margin-top: 5px;
+          }
+        }
+      }
+    }
+  }
+}

@@ -30,8 +30,8 @@ function Application(): JSX.Element {
     if (matchPath("/application/:id/transactions", pathname)) {
         tabValue = 'transactions';
     }
-    else if (matchPath("/application/:id/global-state", pathname)) {
-        tabValue = 'global-state';
+    else if (matchPath("/application/:id/boxes", pathname)) {
+        tabValue = 'boxes';
     }
 
     const application = useSelector((state: RootState) => state.application);
@@ -169,6 +169,9 @@ function Application(): JSX.Element {
                         <Tabs TabIndicatorProps={{ children: <span className="MuiTabs-indicatorSpan" />}} value={tabValue} className="related-list">
                             <Tab label="Transactions" value="transactions" onClick={() => {
                                 navigate('/application/' + id + '/transactions');
+                            }}/>
+                            <Tab label="Boxes" value="boxes" onClick={() => {
+                                navigate('/application/' + id + '/boxes');
                             }}/>
                         </Tabs>
 
