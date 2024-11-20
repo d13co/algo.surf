@@ -23,8 +23,15 @@ export function getOnCompleteOperations(): {name: string, value: string}[]{
     return onCompleteOperations;
 }
 
+interface BoxName {
+    name: string;
+}
+
+type A_ApplicationBoxNames = BoxName[];
+
 export class CoreApplication {
     application: A_Application;
+    boxes: A_ApplicationBoxNames;
 
     constructor(application: A_Application) {
         if (!application) {
@@ -33,8 +40,14 @@ export class CoreApplication {
         this.application = application;
     }
 
-    get(): A_Application{
+    get(): A_Application {
         return this.application;
+    }
+
+    getBoxes(forceFetch = false): A_ApplicationBoxNames {
+        if (!forceFetch && this.boxes) {
+            return this.boxes;
+        }
     }
 
     getId(): number {

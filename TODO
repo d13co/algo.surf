@@ -63,3 +63,8 @@ logic sisg APPCALL3RF2SBLZDILOTQ6GOBKHBCAWVAPQEZTOZHYBJMFHTNAAD46V4ME
 [ ] flow address book integration
 [ ] NFD integration
 [ ] Rekey txns in all txn type pages: add common block
+
+[ ] account assets view name clipped
+
+[ ] txn global state delta table header black
+https://algo.surf/transaction/OMSD2QORY23BMAT7K5MFJZSVNAHAXKUYHI2ZEKVVU5VTQW4JT4LQ

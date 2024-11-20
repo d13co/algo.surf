@@ -406,8 +406,14 @@ export type A_Genesis = {
     "timestamp": number
 }
 
-
-
 export type A_ABIMethodArgParams = ABIMethodArgParams & {value: string, decodedValue: ABIValue, decoded: boolean}
 
+export type A_BoxName = {
+    name: string;
+}
 
+export type A_BoxNames = A_BoxName[];
+
+export interface A_Box extends A_BoxName {
+    value: string;
+}

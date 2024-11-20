@@ -1,8 +1,9 @@
 import {createAsyncThunk, createSlice, PayloadAction} from '@reduxjs/toolkit'
 import {handleException} from "../../common/actions/exception";
 import explorer from "../../../utils/dappflow";
-import {A_Application} from "../../../packages/core-sdk/types";
+import {A_BoxNames,A_Application} from "../../../packages/core-sdk/types";
 import {A_ApplicationTransactionsResponse, ApplicationClient} from "../../../packages/core-sdk/clients/applicationClient";
+import {BoxClient} from "../../../packages/core-sdk/clients/boxClient";
 import {ApplicationABI} from "../../../packages/abi/classes/ApplicationABI";
 import {CoreApplication} from "../../../packages/core-sdk/classes/core/CoreApplication";
 import {ABIContractParams} from "algosdk";
@@ -12,6 +13,7 @@ export interface Application {
     error: boolean,
     information: A_Application,
     transactionsDetails: A_ApplicationTransactionsResponse & {completed: boolean, loading: boolean},
+    boxNames: A_BoxNames,
     abiDetails: {
         abi: ABIContractParams,
         loaded: boolean,
@@ -39,6 +41,7 @@ const initialState: Application = {
             }
         }
     },
+    boxNames: [],
     transactionsDetails: {
         "next-token": "",
         completed: false,
@@ -64,6 +67,7 @@ export const loadApplication = createAsyncThunk(
             dispatch(resetApplication());
             dispatch(setLoading(true));
             const applicationInfo = await applicationClient.get(id);
+            dispatch(loadApplicationBoxNames(id));
             dispatch(loadApplicationTransactions(id));
             dispatch(loadApplicationABI(applicationInfo));
             dispatch(setLoading(false));
@@ -77,18 +81,52 @@ export const loadApplication = createAsyncThunk(
     }
 );
 
+export const loadApplicationBoxNames = createAsyncThunk(
+    'application/loadApplicationBoxNames',
+    async (id: number, thunkAPI) => {
+        const {dispatch} = thunkAPI;
+        try {
+            const boxClient = new BoxClient(explorer.network);
+            dispatch(setLoading(true));
+            const boxNameResponse = await boxClient.getBoxNames(id);
+            dispatch(setLoading(false));
+            return boxNameResponse;
+        } catch (e: any) {
+            dispatch(handleException(e));
+            dispatch(setError(true));
+            dispatch(setLoading(false));
+        }
+    }
+);
+
+export const loadApplicationBox = createAsyncThunk(
+    'application/loadApplicationBox',
+    async ({id, name}: {id: number, name: string}, thunkAPI) => {
+        const {dispatch} = thunkAPI;
+        try {
+            const boxClient = new BoxClient(explorer.network);
+            dispatch(setLoading(true));
+            const box = await boxClient.getBox(id, name);
+            dispatch(setLoading(false));
+            return box;
+        } catch (e: any) {
+            dispatch(handleException(e));
+            dispatch(setError(true));
+            dispatch(setLoading(false));
+        }
+    }
+);
+
 export const loadApplicationABI = createAsyncThunk(
     'application/loadApplicationABI',
     async (applicationInfo: A_Application, thunkAPI) => {
         const {dispatch} = thunkAPI;
         try {
             const appABI = await new ApplicationABI().get(new CoreApplication(applicationInfo).getId());
-
             if (appABI) {
                 return appABI.abi;
             }
-        }
-        catch (e: any) {
+        } catch (e: any) {
             dispatch(handleException(e));
         }
     }
@@ -111,8 +149,7 @@ export const loadApplicationTransactions = createAsyncThunk(
             const response = await applicationClient.getApplicationTransactions(id, application.transactionsDetails["next-token"]);
             dispatch(setTxnsLoading(false));
             return response;
-        }
-        catch (e: any) {
+        } catch (e: any) {
             dispatch(setTxnsLoading(false));
             dispatch(handleException(e));
         }
@@ -138,6 +175,11 @@ export const applicationSlice = createSlice({
         builder.addCase(loadApplication.fulfilled, (state, action: PayloadAction<A_Application>) => {
             if (action.payload) {
                 state.information = action.payload;
+            }
+        });
+        builder.addCase(loadApplicationBoxNames.fulfilled, (state, action: PayloadAction<A_BoxNames>) => {
+            if (action.payload) {
+                state.boxNames = action.payload;
             }
         });
         builder.addCase(loadApplicationTransactions.fulfilled, (state, action: PayloadAction<A_ApplicationTransactionsResponse>) => {
