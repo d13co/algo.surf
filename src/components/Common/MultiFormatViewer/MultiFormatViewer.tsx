@@ -65,6 +65,7 @@ export default function MultiFormatViewer(props: MultiFormatViewerProps): JSX.El
     }, [includeNum, value]);
 
     const isAddress = useMemo(() => {
+        if (!value) return false;
         const buffer = Buffer.from(value, 'base64');
         if (buffer.length === 32) {
             return true;
@@ -119,6 +120,8 @@ export default function MultiFormatViewer(props: MultiFormatViewerProps): JSX.El
             setDisplayValue(value);
         }
     }, [value, view]);
+    
+    if (!value) return null;
 
     return <div className="HFlex dimparent">
         {displayValue}
