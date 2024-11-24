@@ -1,5 +1,5 @@
 import {theme} from "../index";
-import {shadedClr} from "../../utils/common";
+import {shadedClr,shadedClr1} from "../../utils/common";
 
 export const dataGridCellConfig = {
     sortable: false,
@@ -36,7 +36,7 @@ export const dataGridStyles = {
 export const dataGridStylesBlackHeader = {
     ...dataGridStyles,
     '.MuiDataGrid-columnHeader': {
-        background: theme.palette.common.black,
+        background: shadedClr1,
         color: theme.palette.common.white
     }
 };
