@@ -3,6 +3,7 @@ import React, {useState} from "react";
 import {Button, ButtonGroup} from "@mui/material";
 import atob from 'atob';
 import {shadedClr} from "../../../../../../../../../utils/common";
+import MultiFormatViewer from "../../../../../../../../Common/MultiFormatViewer/MultiFormatViewer";
 
 enum TEXT_ENCODING {
     BASE64 = 'base64',
@@ -40,21 +41,14 @@ function AppCallTxnLogs(props): JSX.Element {
                 <div className="property">
                     <div className="key">
                         Logs
-                        <ButtonGroup variant="outlined" size={"small"} style={{marginLeft: 20}}>
-                            <Button variant={textEncoding === TEXT_ENCODING.TEXT ? 'contained' : 'outlined'} onClick={() => {setTextEncoding(TEXT_ENCODING.TEXT)}}>Text</Button>
-                            <Button variant={textEncoding === TEXT_ENCODING.BASE64 ? 'contained' : 'outlined'} onClick={() => {setTextEncoding(TEXT_ENCODING.BASE64)}}>Base 64</Button>
-                            <Button variant={textEncoding === TEXT_ENCODING.NUM ? 'contained' : 'outlined'} onClick={() => {setTextEncoding(TEXT_ENCODING.NUM)}}>Number</Button>
-                        </ButtonGroup>
                     </div>
-                    <div className="value small">
+                    <ol start={0} className="value small start">
                         {logs.map((log, index) => {
-                            return <div key={index} className="item">
-                                {textEncoding === TEXT_ENCODING.BASE64 ? log : (
-                                    textEncoding === TEXT_ENCODING.NUM ? parseNum(log) : atob(log)
-                                )}
-                            </div>;
+                            return <li key={index} className="item">
+                                <MultiFormatViewer value={log} />
+                            </li>;
                         })}
-                    </div>
+                    </ol>
                 </div>
             </div>
 

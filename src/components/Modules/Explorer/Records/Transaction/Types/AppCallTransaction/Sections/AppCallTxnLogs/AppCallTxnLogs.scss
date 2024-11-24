@@ -11,7 +11,22 @@
       margin-bottom: 20px;
     }
     .item {
-      padding: 15px 0px;
+      margin-left: 35px;
+      padding-left: 2px;
+      list-style-type: decimal-leading-zero;
+    }
+    .item::marker {
+      color: $color-grey;
+      font-family: courier;
+    }
+    .value {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      counter-increment: start 0;
+      &.start {
+        align-items: flex-start !important;
+      }
     }
   }
 }
