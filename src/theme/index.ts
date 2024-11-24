@@ -16,7 +16,6 @@ export const shadedClr = pSBC(-0.82, primaryColor);
 export const shadedClr1 = pSBC(-0.9, primaryColor);
 export const shadedClr2 = pSBC(-0.95, primaryColor);
 
-
 export const theme = createTheme({
     shape: {
         borderRadius: 10,

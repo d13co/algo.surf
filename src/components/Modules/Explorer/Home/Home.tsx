@@ -7,6 +7,7 @@ import LiveBlocks from "../LiveBlocks/LiveBlocks";
 import LiveTransactions from "../LiveTransactions/LiveTransactions";
 import {theme} from '../../../../theme/index';
 import useTitle from "../../../Common/UseTitle/UseTitle";
+import logo from "../../../../assets/images/logo-site.png";
 
 const network = process.env.REACT_APP_NETWORK;
 
@@ -18,6 +19,7 @@ function Home(): JSX.Element {
     return (<div className={"home-wrapper"}>
         <div className={"home-container"}>
             <div className="home-body">
+                <img src={logo} className="bg-logo" />
                 <div className="tag-line">
                     <span className="grey">Algo</span> Surf <span style={{color: primary}}>{network}</span> 
                 </div>
