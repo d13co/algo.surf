@@ -120,7 +120,7 @@ function Search(props: SearchProps): JSX.Element {
                  autoFocus={autoFocus}
                  placeholder={placeholder}
                  style={{
-                     background: 'rgba(18,18,18,0.5)',
+                     background: 'rgba(18,18,18,0.7)',
                      padding: 3,
                      paddingLeft: 10,
                      fontSize: 14,
