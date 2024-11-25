@@ -52,8 +52,6 @@ export function CloseSquare(props: SvgIconProps) {
     );
 }
 
-
-
 interface AppCallTxnInnerTxnsState{
     showTxn: boolean,
     innerTxn?: A_SearchTransactionInner,
@@ -94,7 +92,7 @@ function AppCallTxnInnerTxns(props): JSX.Element {
             const type = txnInstance.getType();
             const appId = txnInstance.getAppId();
 
-            return <TreeItem {...props} label={<div className="txn-row">
+        return <TreeItem {...props} ContentProps={{style:{borderRadius: "10px"}}} label={<div className="txn-row">
                 {nodeId === '-1' ? 'Current transaction' : <div>
             <span className="item type">
             {txnInstance.getTypeDisplayValue()}
@@ -163,7 +161,6 @@ function AppCallTxnInnerTxns(props): JSX.Element {
                     defaultExpandIcon={<PlusSquare />}
                     defaultEndIcon={<CloseSquare />}
                 >
-
                     {renderTree(transaction)}
                 </TreeView>
 

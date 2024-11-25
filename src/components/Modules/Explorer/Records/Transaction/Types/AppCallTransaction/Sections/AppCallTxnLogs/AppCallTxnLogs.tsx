@@ -42,7 +42,7 @@ function AppCallTxnLogs(props): JSX.Element {
                     <div className="key">
                         Logs
                     </div>
-                    <ol start={0} className="value small start">
+                    <ol start={0} className="small">
                         {logs.map((log, index) => {
                             return <li key={index} className="item">
                                 <MultiFormatViewer value={log} />
