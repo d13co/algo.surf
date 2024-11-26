@@ -137,8 +137,6 @@ function AppCallTxnInnerTxns(props): JSX.Element {
         }
     }));
 
-
-
     const renderTree = (txn) => {
         const innerTxns = txn['inner-txns'];
         counter++
@@ -167,24 +165,15 @@ function AppCallTxnInnerTxns(props): JSX.Element {
             </div>
         </div>
 
-
-
         {showTxn ? <Dialog
             onClose={handleClose}
             fullWidth={true}
             maxWidth={"xl"}
             open={showTxn}
         >
-            <DialogTitle >
-                <div style={{display: 'flex', justifyContent: 'space-between'}}>
-                    <div>
-                        &nbsp;
-                    </div>
-                    <CloseIcon className="modal-close-button" onClick={handleClose}/>
-                </div>
-            </DialogTitle>
+            <CloseIcon className="modal-close-button abs" onClick={handleClose}/>
             <DialogContent>
-                <div>
+                <div style={{position: 'relative'}}>
                     <InnerTransaction txn={innerTxn} asset={asset}></InnerTransaction>
                 </div>
             </DialogContent>
