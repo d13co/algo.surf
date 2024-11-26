@@ -153,8 +153,6 @@ function Application(): JSX.Element {
                         </Grid>
                     </div>
 
-
-
                     <div>
                         <Grid container spacing={2}>
                             <Grid item xs={12} sm={12} md={12} lg={12} xl={12}>
@@ -163,22 +161,20 @@ function Application(): JSX.Element {
                         </Grid>
                     </div>
 
-
                     <div className="application-tabs">
-
                         <Tabs TabIndicatorProps={{ children: <span className="MuiTabs-indicatorSpan" />}} value={tabValue} className="related-list">
                             <Tab label="Transactions" value="transactions" onClick={() => {
                                 navigate('/application/' + id + '/transactions');
                             }}/>
+                            { application.boxNames.length ? 
                             <Tab label="Boxes" value="boxes" onClick={() => {
                                 navigate('/application/' + id + '/boxes');
-                            }}/>
+                            }}/> : null }
                         </Tabs>
 
                         <Outlet />
-
-
                     </div>
+
                 </div>}
             </div>}
 
