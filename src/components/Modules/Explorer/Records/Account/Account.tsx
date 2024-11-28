@@ -122,6 +122,8 @@ function Account(): JSX.Element {
                             </div> : null }
                             { account.information.status === "Online" ? 
                                 <Chip color={"success"} variant={"outlined"} label="Validator"  size={"small"}></Chip> : null }
+                            { account.information.status === "Not Participating" ? 
+                                <Chip color={"warning"} variant={"outlined"} label="Not Participating"  size={"small"}></Chip> : null }
                             { account.information["incentive-eligible"] === true ? 
                                 <Chip color={"success"} variant={"outlined"} label="Incentives Eligible"  size={"small"}></Chip> : null }
                             { account.escrowOf ? <LinkToApplication className="no-underline" id={account.escrowOf}><Chip className="hover-cursor-pointer" color={"success"} variant="outlined" label={`App Escrow`} size="small" style={{marginRight: '4px'}} /></LinkToApplication> : null }
