@@ -66,5 +66,21 @@ logic sisg APPCALL3RF2SBLZDILOTQ6GOBKHBCAWVAPQEZTOZHYBJMFHTNAAD46V4ME
 
 [ ] account assets view name clipped
 
-[ ] txn global state delta table header black
+[v] txn global state delta table header black
 https://algo.surf/transaction/OMSD2QORY23BMAT7K5MFJZSVNAHAXKUYHI2ZEKVVU5VTQW4JT4LQ
+
+[v] Boxes
+  [ ] Load boxes on demand vs when app loads? should do this with the tabbed view
+
+[ ] App page: restructure sources to be in expandable. Add stateful memory to all source expandables <3 LFG
+
+[v] app args clobbered bug
+
+[ ] home block fetch fails in early localnet
+[ ] do not space out localnet block querying
+[v] logo in home
+  [v] logo in static index html
+[ ] app args, accounts, assets add list numbering
+
+[ ] account with 1 asset opted in but not held does not show count
+https://algo.surf/account/AAACVAV5AKKJ44XFTR6GAG7DVGY2SM4TKLWKFNR7BJAJLHLBWAQ3SZCVLA/transactions
