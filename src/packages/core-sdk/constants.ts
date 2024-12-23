@@ -5,7 +5,8 @@ export enum TXN_TYPES {
     ASSET_TRANSFER = 'axfer',
     ASSET_FREEZE = 'afrz',
     APP_CALL = 'appl',
-    STATE_PROOF = 'stpf'
+    STATE_PROOF = 'stpf',
+    HEARTBEAT = 'hb',
 }
 
 export enum TEXT_ENCODING {

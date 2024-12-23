@@ -54,6 +54,9 @@ export class CoreTransaction {
 
     getTypeDisplayValue(): string {
         const type = this.getType();
+        if (type === TXN_TYPES.HEARTBEAT) {
+            return "Heartbeat";
+        }
         if (type === TXN_TYPES.PAYMENT) {
             return "Payment";
         }
