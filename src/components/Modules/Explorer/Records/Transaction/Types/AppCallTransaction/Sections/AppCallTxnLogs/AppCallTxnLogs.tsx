@@ -45,7 +45,7 @@ function AppCallTxnLogs(props): JSX.Element {
                     <ol start={0} className="small">
                         {logs.map((log, index) => {
                             return <li key={index} className="item">
-                                <MultiFormatViewer value={log} />
+                                <MultiFormatViewer includeNum={true} value={log} />
                             </li>;
                         })}
                     </ol>
