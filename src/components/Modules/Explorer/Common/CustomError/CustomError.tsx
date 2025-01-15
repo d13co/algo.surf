@@ -53,7 +53,7 @@ function CustomError({ error }: { error?: string }): JSX.Element {
 
 
             <Grid container spacing={2}>
-                <Grid item xs={12} sm={12} md={6} lg={6} xl={6}>
+                <Grid item xs={12} sm={12} md={7} lg={6} xl={6}>
                     <div className="info">
                         <Typography variant={"h4"}>Something went wrong</Typography>
                         <Alert icon={false} sx={{backgroundColor: shadedClr, color: "white"}} style={{marginTop: 20, borderRadius: 10}}>
