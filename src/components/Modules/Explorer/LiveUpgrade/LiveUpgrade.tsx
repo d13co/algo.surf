@@ -19,7 +19,7 @@ function LiveUpgrade(): JSX.Element {
             </div>
             <div className="right">
                 <div>
-                    Upgrade <span className="grey">Countdown</span>
+                    <span className="grey">Upgrade Countdown</span>
                 </div>
                 <div><b className="primary">{rounds.toLocaleString()}</b> <span className="">rounds</span></div>
                 <div>
