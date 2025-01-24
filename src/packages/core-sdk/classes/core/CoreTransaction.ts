@@ -5,6 +5,7 @@ import {
     A_SearchTransaction_Asset_Freeze_Payload,
     A_SearchTransaction_Asset_Transfer_Payload,
     A_SearchTransaction_KeyReg_Payload,
+    A_SearchTransaction_Heartbeat_Payload,
     A_SearchTransaction_Payment_Payload,
     A_SearchTransaction_Signature,
     A_SearchTransaction_State_Proof_Payload,
@@ -113,6 +114,10 @@ export class CoreTransaction {
 
     getKeyRegPayload(): A_SearchTransaction_KeyReg_Payload {
         return this.txn["keyreg-transaction"];
+    }
+
+    getHeartbeatPayload(): A_SearchTransaction_Heartbeat_Payload {
+        return this.txn["heartbeat-transaction"];
     }
 
     getAssetTransferPayload(): A_SearchTransaction_Asset_Transfer_Payload {

@@ -185,6 +185,19 @@ export interface A_SearchTransaction_Signature {
     }
 }
 
+export interface A_SearchTransaction_Heartbeat_Payload {
+    "hb-address": string;
+    "hb-key-dilution": number;
+    "hb-proof": {
+        "hb-pk": string;
+        "hb-pk1sig": string;
+        "hb-pk2": string;
+        "hb-pk2sig": string;
+        "hb-sig": string;
+    },
+    "hb-seed": string;
+    "hb-vote-id": string;
+}
 
 export interface A_SearchTransaction_KeyReg_Payload {
     "non-participation": boolean
