@@ -82,7 +82,7 @@ export const loadBlockHistory = createAsyncThunk(
 );
 
 const upgradeNameMap = {
-    default: "Algorand v4",
+    default: "Consensus Upgrade",
 };
 
 export const tick = createAsyncThunk(
