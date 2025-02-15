@@ -6,8 +6,21 @@
     .key {
       margin-bottom: 20px;
     }
-    .item {
-      margin: 10px 0px;
+    ol {
+      li {
+        display: list-item;
+        list-style-type: decimal-leading-zero;
+        list-style-position: inside;
+        padding-left: 2px;
+        margin-bottom: 5px;
+      }
+      li:last-child {
+        margin-bottom: 0px;
+      }
+      li::marker {
+        color: $color-grey;
+        font-family: courier;
+      }
     }
   }
 }

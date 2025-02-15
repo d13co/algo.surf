@@ -15,9 +15,11 @@ function AppCallTxnForeignApps(props): JSX.Element {
                     <div className="key">
                         Foreign apps
                     </div>
-                    {apps.map((app) => {
-                        return <div className="value" key={app}><LinkToApplication id={app}></LinkToApplication></div>
-                    })}
+                    <ol start={0} className="small">
+                        {apps.map((app) =>
+                            <li key={app}><LinkToApplication id={app}></LinkToApplication></li>
+                        )}
+                    </ol>
                 </div>
             </div>
 

@@ -20,6 +20,11 @@
       .cell-content {
         display: flex;
         align-items: center;
+        .dot-separator {
+          margin-left: 3px;
+          margin-right: 1px;
+          color: white;
+        }
         .mini-alert {
           width: 32px;
           height: 24px;

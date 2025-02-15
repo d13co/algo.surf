@@ -2,19 +2,26 @@
 
 .home-wrapper {
   .home-container {
+    position: relative;
     margin-top: 250px;
     @media only screen and (max-width: 900px) {
       margin-top: 225px;
     }
+    .grey {
+      color: $color-grey;
+    }
     .home-body {
+      position: relative;
       margin-left: 2px;
       margin-top: 100px;
-      .grey {
-        color: $color-grey;
-      }
-      .logo {
-        width: 60px;
-        height: 60px;
+      .bg-logo {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translate(-50%, -45%);
+        opacity: 0.11;
+        z-index: 0;
+        max-width: 80vw;  
       }
       .tag-line {
         font-size: 24px;

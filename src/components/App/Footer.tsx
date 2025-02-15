@@ -20,6 +20,11 @@ function Footer(): JSX.Element {
             <Tooltip title="Profile on X">
                 <Link href="https://x.com/algo_surf"><Twitter size={16} color="white" strokeWidth={1.75} /></Link>
             </Tooltip>
+            <Tooltip title="Profile on BlueSky">
+                <Link href="https://bsky.app/profile/algo.surf">
+                    <img src="/bluesky.svg" className="sociallogo"/>
+                </Link>
+            </Tooltip>
         </div>
         <div>
             <Tooltip title="Switch network">

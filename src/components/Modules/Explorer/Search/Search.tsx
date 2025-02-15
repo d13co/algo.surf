@@ -120,11 +120,12 @@ function Search(props: SearchProps): JSX.Element {
                  autoFocus={autoFocus}
                  placeholder={placeholder}
                  style={{
+                     background: 'rgba(18,18,18,0.7)',
                      padding: 3,
-                         paddingLeft: 10,
-                         fontSize: 14,
-                         border: '1px solid ' + theme.palette.grey[500],
-                         borderRadius: '64px',
+                     paddingLeft: 10,
+                     fontSize: 14,
+                     border: '1px solid ' + theme.palette.grey[500],
+                     borderRadius: '64px',
                  }}
                  value={searchStr}
                  startAdornment={

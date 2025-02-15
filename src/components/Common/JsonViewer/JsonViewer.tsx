@@ -40,7 +40,7 @@ function JsonViewer(props): JSX.Element {
         fullWidth = false;
     }
     if (!variant) {
-        variant = 'contained';
+        variant = 'outlined';
     }
 
     function handleClose() {
@@ -69,7 +69,6 @@ function JsonViewer(props): JSX.Element {
             <Button
                 variant={variant}
                 size={size}
-                sx={{backgroundColor: theme.palette.primary.main}}
                 fullWidth={fullWidth}
                 onClick={() => {
                     setState(prevState => ({...prevState, show: true}));

@@ -14,6 +14,7 @@ import PaymentTransaction from './Types/PaymentTransaction/PaymentTransaction';
 import AssetTransferTransaction from "./Types/AssetTransferTransaction/AssetTransferTransaction";
 import AssetConfigTransaction from "./Types/AssetConfigTransaction/AssetConfigTransaction";
 import KeyRegTransaction from "./Types/KeyRegTransaction/KeyRegTransaction";
+import HeartbeatTransaction from "./Types/HeartbeatTransaction/HeartbeatTransaction";
 import AppCallTransaction from "./Types/AppCallTransaction/AppCallTransaction";
 import LinkToBlock from "../../Common/Links/LinkToBlock";
 import LoadingTile from "../../../../Common/LoadingTile/LoadingTile";
@@ -146,7 +147,6 @@ function Transaction(): JSX.Element {
                         </Grid>
                     </div>
 
-
                     {txnInstance.getType() === TXN_TYPES.PAYMENT ? <PaymentTransaction transaction={txnObj}></PaymentTransaction> : ''}
                     {txnInstance.getType() === TXN_TYPES.ASSET_TRANSFER ? <AssetTransferTransaction transaction={txnObj} asset={asset}></AssetTransferTransaction> : ''}
                     {txnInstance.getType() === TXN_TYPES.ASSET_FREEZE ? <AssetFreezeTransaction transaction={txnObj} asset={asset}></AssetFreezeTransaction> : ''}
@@ -154,7 +154,7 @@ function Transaction(): JSX.Element {
                     {txnInstance.getType() === TXN_TYPES.KEY_REGISTRATION ? <KeyRegTransaction transaction={txnObj}></KeyRegTransaction> : ''}
                     {txnInstance.getType() === TXN_TYPES.APP_CALL ? <AppCallTransaction transaction={txnObj}></AppCallTransaction> : ''}
                     {txnInstance.getType() === TXN_TYPES.STATE_PROOF ? <StateProofTransaction transaction={txnObj}></StateProofTransaction> : ''}
-
+                    {txnInstance.getType() === TXN_TYPES.HEARTBEAT ? <HeartbeatTransaction transaction={txnObj}></HeartbeatTransaction> : ''}
 
                     <TransactionNote transaction={txnObj}></TransactionNote>
                     <TransactionMultiSig transaction={txnObj}></TransactionMultiSig>

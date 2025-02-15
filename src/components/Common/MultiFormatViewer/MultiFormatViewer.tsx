@@ -91,7 +91,8 @@ export default function MultiFormatViewer(props: MultiFormatViewerProps): JSX.El
         const currentViewIndex = possibleViews.indexOf(view);
         let nextViewIndex = (currentViewIndex + 1) % possibleViews.length
         while(true) {
-            if (possibleViews[nextViewIndex] === "num" && !hasNum) {
+            if ((possibleViews[nextViewIndex] === "num" && !hasNum) ||
+            (possibleViews[nextViewIndex] === "address" && !isAddress)) {
                 nextViewIndex = (nextViewIndex + 1) % possibleViews.length;
             } else {
                 return possibleViews[nextViewIndex];

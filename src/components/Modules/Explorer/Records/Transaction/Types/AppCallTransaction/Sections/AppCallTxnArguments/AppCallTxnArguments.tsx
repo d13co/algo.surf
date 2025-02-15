@@ -66,27 +66,19 @@ function AppCallTxnArguments(props): JSX.Element {
                             <Button variant={textEncoding === 'plain_text' ? 'contained' : 'outlined'} onClick={() => {setTextEncoding("plain_text")}}>Plain text</Button>
                             <Button variant={textEncoding === 'abi_decoded' ? 'contained' : 'outlined'} onClick={() => {setTextEncoding("abi_decoded")}}>ABI decoded</Button>
                         </ButtonGroup> :''}
-
-
                     </div>
-                    <div className="value">
+                    <ol className="value" start={0}>
                         {textEncoding === 'plain_text' ? <div className="plain-args">
-
                             {args.map((arg, index) => {
-                                return <div className="arg" key={arg + index}>
-                                    <Grid container spacing={0}>
-                                        <Grid item xs={12} sm={12} md={12} lg={12} xl={12}>
-                                            <MultiFormatViewer
-                                                view="auto"
-                                                includeNum={index === 0 ? undefined : "auto"}
-                                                value={arg}
-                                            />
-                                        </Grid>
-                                    </Grid>
-                                </div>;
+                                return <li className="arg" key={arg + index}>
+                                    <MultiFormatViewer
+                                        view="auto"
+                                        includeNum={index === 0 ? undefined : "auto"}
+                                        value={arg}
+                                    />
+                                </li>;
                             })}
                         </div> : ''}
-
 
                         {textEncoding === 'abi_decoded' ? <div className="abi-decoded-args">
                             {method ? <div>
@@ -137,10 +129,8 @@ function AppCallTxnArguments(props): JSX.Element {
                             </div>}
 
                         </div> : ''}
+                    </ol>
 
-
-
-                    </div>
                 </div>
             </div>
 

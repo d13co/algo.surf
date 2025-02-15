@@ -33,6 +33,12 @@ body {
 }
 
 .modal-close-button {
+  &.abs {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    z-index: 2;
+  }
   &:hover {
     cursor: pointer;
   }
@@ -61,4 +67,12 @@ body {
 
 .no-underline {
   text-decoration: none !important;
+}
+
+.small {
+  font-size: 14px;
+}
+
+.primary {
+  color: $color-primary;
 }

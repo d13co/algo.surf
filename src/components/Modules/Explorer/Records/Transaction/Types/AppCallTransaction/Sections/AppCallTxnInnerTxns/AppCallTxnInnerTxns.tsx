@@ -52,8 +52,6 @@ export function CloseSquare(props: SvgIconProps) {
     );
 }
 
-
-
 interface AppCallTxnInnerTxnsState{
     showTxn: boolean,
     innerTxn?: A_SearchTransactionInner,
@@ -94,7 +92,7 @@ function AppCallTxnInnerTxns(props): JSX.Element {
             const type = txnInstance.getType();
             const appId = txnInstance.getAppId();
 
-            return <TreeItem {...props} label={<div className="txn-row">
+        return <TreeItem {...props} ContentProps={{style:{borderRadius: "10px"}}} label={<div className="txn-row">
                 {nodeId === '-1' ? 'Current transaction' : <div>
             <span className="item type">
             {txnInstance.getTypeDisplayValue()}
@@ -139,8 +137,6 @@ function AppCallTxnInnerTxns(props): JSX.Element {
         }
     }));
 
-
-
     const renderTree = (txn) => {
         const innerTxns = txn['inner-txns'];
         counter++
@@ -163,14 +159,11 @@ function AppCallTxnInnerTxns(props): JSX.Element {
                     defaultExpandIcon={<PlusSquare />}
                     defaultEndIcon={<CloseSquare />}
                 >
-
                     {renderTree(transaction)}
                 </TreeView>
 
             </div>
         </div>
-
-
 
         {showTxn ? <Dialog
             onClose={handleClose}
@@ -178,16 +171,9 @@ function AppCallTxnInnerTxns(props): JSX.Element {
             maxWidth={"xl"}
             open={showTxn}
         >
-            <DialogTitle >
-                <div style={{display: 'flex', justifyContent: 'space-between'}}>
-                    <div>
-                        &nbsp;
-                    </div>
-                    <CloseIcon className="modal-close-button" onClick={handleClose}/>
-                </div>
-            </DialogTitle>
+            <CloseIcon className="modal-close-button abs" onClick={handleClose}/>
             <DialogContent>
-                <div>
+                <div style={{position: 'relative'}}>
                     <InnerTransaction txn={innerTxn} asset={asset}></InnerTransaction>
                 </div>
             </DialogContent>

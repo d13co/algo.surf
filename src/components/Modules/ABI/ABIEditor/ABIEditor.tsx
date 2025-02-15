@@ -12,7 +12,6 @@ import {A_AccountInformation} from "../../../../packages/core-sdk/types";
 import {defaultAccount} from "../../../../redux/wallet/actions/wallet";
 import ABIMethodExecutor from "../ABIMethodExecutor/ABIMethodExecutor";
 import {Delete, KeyboardArrowDown} from "@mui/icons-material";
-import CreateApp from "../../AppManager/CreateApp/CreateApp";
 
 type ABIEditorProps = {
     abi: ABIContractParams,
@@ -50,6 +49,7 @@ const initialState: ABIEditorState = {
 };
 
 function ABIEditor({abi = {methods: [], name: ""}, supportDelete = false, onDelete = () =>{}, hideNetworks = false, supportExecutor = false, supportCreateApp = false, appId = '', account = defaultAccount}: ABIEditorProps): JSX.Element {
+    supportCreateApp = false;
 
     const abiInstance = new ABIContract(abi);
     const networks = abiInstance.networks;
@@ -84,25 +84,6 @@ function ABIEditor({abi = {methods: [], name: ""}, supportDelete = false, onDele
                             <Grid item xs={12} sm={12} md={6} lg={6} xl={6}>
                                 <div style={{display: "flex", justifyContent: "end"}}>
                                     <JsonViewer obj={abi} variant="outlined" title="ABI JSON" name="ABI JSON"></JsonViewer>
-                                    {supportCreateApp ? <div style={{marginLeft: '10px'}}>
-                                        <Button color={"primary"}
-                                                variant={"outlined"}
-                                                size={"small"}
-                                                endIcon={<KeyboardArrowDown />}
-                                                onClick={(ev) => {
-                                                    if (!account.address) {
-                                                        dispatch(showSnack({
-                                                            severity: 'error',
-                                                            message: 'Please connect your wallet'
-                                                        }));
-                                                        return;
-                                                    }
-
-                                                    setAnchorEl(ev.currentTarget);
-                                                }}
-                                        >Create App</Button>
-                                    </div> : ''}
-
                                     {supportDelete ? <div style={{marginLeft: '10px'}}>
                                         <Button color={"warning"}
                                                 variant={"outlined"}
@@ -167,10 +148,6 @@ function ABIEditor({abi = {methods: [], name: ""}, supportDelete = false, onDele
                                     setState(prevState => ({...prevState, method: defaultMethod, showCreateApp: false}));
                                 }} account={account}></ABIMethodExecutor>
 
-                                <CreateApp show={showBareCreateApp} handleClose={() => {
-                                    setState(prevState => ({...prevState, showBareCreateApp: false}));
-                                }}></CreateApp>
-                                
                             </Grid>
                         </Grid>
 
