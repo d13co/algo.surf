@@ -11,7 +11,33 @@
       justify-content: space-between;
     }
     .application-body {
+      .code-tab-panel {
+        padding: 0;
+        padding-top: 24px;
+        &.padded {
+          padding-left: 14px;
+          padding-right: 14px;
+        }
+        .hashtitle {
+          margin-top: 24px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .hashtitle:first-of-type {
+          margin-top: 0;
+        }
+        .hash {
+          display: flex;
+          max-width: 100%;
+          margin-top: 10px;
+          word-break: break-all;
+          align-items: start;
+          color: $color-grey;
+        }
+      }
       margin-top: 30px;
+
       .id {
         font-size: 18px;
         margin-bottom: 20px;
@@ -27,7 +53,6 @@
           margin-top: 10px;
           word-wrap: anywhere;
           &.center {
-
           }
           .key {
           }
@@ -42,7 +67,7 @@
       }
 
       .application-tabs {
-        margin-top: 25px;
+        margin-top: 20px;
       }
     }
   }

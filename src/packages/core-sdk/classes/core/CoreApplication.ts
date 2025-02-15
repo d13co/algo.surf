@@ -135,7 +135,7 @@ export class CoreApplication {
                 gStateDecrypted.push(row);
             });
         }
-
+        // @ts-ignore
         const sorted = gStateDecrypted.sort(({sortKey: a}, {sortKey: b}) => Buffer.compare(a, b));
         return sorted.map(({ sortKey, ...row }) => row);
     }

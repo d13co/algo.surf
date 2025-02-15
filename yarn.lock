@@ -3825,6 +3825,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/lodash@npm:^4.17.15":
+  version: 4.17.15
+  resolution: "@types/lodash@npm:4.17.15"
+  checksum: 10c0/2eb2dc6d231f5fb4603d176c08c8d7af688f574d09af47466a179cd7812d9f64144ba74bb32ca014570ffdc544eedc51b7a5657212bad083b6eecbd72223f9bb
+  languageName: node
+  linkType: hard
+
 "@types/lru-cache@npm:^5.1.0":
   version: 5.1.1
   resolution: "@types/lru-cache@npm:5.1.1"
@@ -6781,6 +6788,7 @@ __metadata:
     "@testing-library/react": "npm:^12.0.0"
     "@testing-library/user-event": "npm:^13.2.1"
     "@types/jest": "npm:^27.0.1"
+    "@types/lodash": "npm:^4.17.15"
     "@types/node": "npm:^16.7.13"
     "@types/react": "npm:^17.0.20"
     "@types/react-dom": "npm:^17.0.9"
@@ -6799,6 +6807,7 @@ __metadata:
     humanize-duration: "npm:^3.27.3"
     is-utf8: "npm:^0.2.1"
     js-sha512: "npm:^0.8.0"
+    lodash: "npm:^4.17.21"
     lucide-react: "npm:^0.453.0"
     markdown-to-jsx: "npm:^7.1.7"
     material-ui-confirm: "npm:^3.0.7"
