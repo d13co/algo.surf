@@ -57,6 +57,17 @@ const initialState: Account = {
     optedApplications: []
 }
 
+const supportedEscrows = [
+    'mainnet',
+    'testnet',
+    'betanet',
+    'localnet',
+];
+
+const network = process.env.REACT_APP_NETWORK.toLowerCase()
+const networkSupportsEscrow = () => supportedEscrows.includes(network)
+const escrowUrl = `https://d13co.github.io/app-addrs/data/${network}/data`;
+
 export const loadAccount = createAsyncThunk(
     'account/loadAccount',
     async (address: string, thunkAPI) => {
@@ -72,7 +83,7 @@ export const loadAccount = createAsyncThunk(
             dispatch(loadOptedApplications(accountInfo));
             dispatch(loadAccountTransactions(accountInfo));
             dispatch(loadOptedAssets(accountInfo));
-            if (process.env.REACT_APP_NETWORK  == "Mainnet") {
+            if (networkSupportsEscrow()) {
                 dispatch(loadEscrowOf(accountInfo));
             }
             dispatch(setLoading(false));
@@ -93,8 +104,7 @@ export const loadEscrowOf = createAsyncThunk(
         try {
             const { address } = account;
             const prefix = address.slice(0, 3);
-            // TODO switch per network
-            const resp = await fetch(`https://d13co.github.io/app-addrs/data/mainnet/data/${prefix}.json`);
+            const resp = await fetch(`${escrowUrl}/${prefix}.json`);
             if (!resp.ok) {
                 return;
             }
