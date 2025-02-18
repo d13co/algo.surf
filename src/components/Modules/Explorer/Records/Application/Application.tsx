@@ -39,6 +39,8 @@ import Copyable from "../../../../Common/Copyable/Copyable";
 import { primaryColor } from "../../../../../theme/index";
 import { CircleHelp } from "lucide-react";
 
+const isDevNet = process.env.REACT_APP_NETWORK !== "Mainnet"
+
 function Application(): JSX.Element {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -158,7 +160,7 @@ function Application(): JSX.Element {
                   className="props"
                   style={{ background: shadedClr, padding: "8px" }}
                 >
-                  <Accordion className="transparent rounded">
+                  <Accordion defaultExpanded={isDevNet} className="transparent rounded">
                     <AccordionSummary
                       expandIcon={<ExpandMore />}
                       id="code-state"
