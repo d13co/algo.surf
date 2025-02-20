@@ -11,6 +11,7 @@ declare module '@mui/material/styles' {
 }
 
 export const primaryColor = '#12afac';
+export const grey = "#ccc";
 
 export const shadedClr = pSBC(-0.82, primaryColor);
 export const shadedClr1 = pSBC(-0.9, primaryColor);

@@ -28,7 +28,7 @@ function JsonViewer(props): JSX.Element {
         obj = {};
     }
     if (!name) {
-        name = 'View Raw JSON';
+        name = 'View JSON';
     }
     if (!title) {
         title = 'Raw JSON';

@@ -9,6 +9,18 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      color: $color-primary;
+      .title {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+      }
+      .navigate {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.25rem;
+        color: $color-grey;
+      }
     }
     .block-body {
       margin-top: 30px;

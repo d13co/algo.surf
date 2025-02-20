@@ -3,7 +3,7 @@ import React, { useEffect } from "react";
 import { Outlet, useNavigate, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../../../../../redux/store";
-import { Grid, Tab, Tabs } from "@mui/material";
+import { Grid, IconButton, Tab, Tabs, Tooltip } from "@mui/material";
 import { loadBlock } from "../../../../../redux/explorer/actions/block";
 import LoadingTile from "../../../../Common/LoadingTile/LoadingTile";
 import { CoreBlock } from "../../../../../packages/core-sdk/classes/core/CoreBlock";
@@ -17,6 +17,8 @@ import TxnTypeChip from "../../Common/TxnTypeChip/TxnTypeChip";
 import { microalgosToAlgos } from "algosdk";
 import NumberFormat from "react-number-format";
 import AlgoIcon from "../../AlgoIcon/AlgoIcon";
+import { Box, ArrowLeftFromLine, ArrowRightFromLine } from "lucide-react";
+import { grey, primaryColor } from "../../../../../theme";
 
 const network = process.env.REACT_APP_NETWORK;
 
@@ -47,7 +49,40 @@ function Block(): JSX.Element {
         ) : (
           <div>
             <div className="block-header">
-              <div>Block overview</div>
+              <div className="title">
+                <Box />
+                Block
+                <span>
+                  <span className="no-select">#</span>
+                  {blockInstance.getRound()}{" "}
+                </span>
+                <Copyable
+                  style={{ color: primaryColor }}
+                  value={blockInstance.getRound()}
+                />
+              </div>
+              <div className="navigate">
+                <LinkToBlock
+                  name={
+                    <Tooltip title="Previous block">
+                      <IconButton style={{ color: primaryColor }}>
+                        <ArrowLeftFromLine />
+                      </IconButton>
+                    </Tooltip>
+                  }
+                  id={blockInstance.getRound() - 1}
+                ></LinkToBlock>
+                <LinkToBlock
+                  name={
+                    <Tooltip title="Next block">
+                      <IconButton style={{ color: primaryColor }}>
+                        <ArrowRightFromLine />
+                      </IconButton>
+                    </Tooltip>
+                  }
+                  id={blockInstance.getRound() + 1}
+                ></LinkToBlock>
+              </div>
               <div>
                 <JsonViewer
                   filename={`block-${id}.json`}
@@ -61,15 +96,11 @@ function Block(): JSX.Element {
               <LoadingTile></LoadingTile>
             ) : (
               <div className="block-body">
-                <div className="address">
-                  <span className="no-select">#</span>
-                  {blockInstance.getRound()}{" "}
-                  <Copyable value={blockInstance.getRound()} />
-                </div>
+                <div className="address"></div>
 
                 <div className="props">
                   <Grid container spacing={1}>
-                    <Grid item xs={12} sm={12} md={6} lg={6} xl={6}>
+                    <Grid item xs={12} sm={12} md={12} lg={12} xl={12}>
                       <div className="property">
                         <div className="key">
                           Total transactions:{" "}
@@ -90,7 +121,7 @@ function Block(): JSX.Element {
                       </div>
                     </Grid>
 
-                    <Grid item xs={12} sm={12} md={6} lg={6} xl={6}>
+                    <Grid item xs={12} sm={5} md={6} lg={6} xl={6}>
                       <div className="property">
                         <div className="key">Age</div>
                         <div className="value">
@@ -99,9 +130,7 @@ function Block(): JSX.Element {
                       </div>
                     </Grid>
 
-                    <Grid item xs={12} sm={12} md={12} lg={12} xl={12}></Grid>
-
-                    <Grid item xs={6} sm={6} md={6} lg={6} xl={6}>
+                    <Grid item xs={12} sm={7} md={6} lg={6} xl={6}>
                       <div className="property">
                         <div className="key">Timestamp</div>
                         <div className="value">
@@ -109,17 +138,6 @@ function Block(): JSX.Element {
                           <Copyable
                             value={blockInstance.getTimestampDisplayValue()}
                           />
-                        </div>
-                      </div>
-                    </Grid>
-
-                    <Grid item xs={6} sm={6} md={6} lg={5} xl={5}>
-                      <div className="property">
-                        <div className="key">Previous round</div>
-                        <div className="value">
-                          <LinkToBlock
-                            id={blockInstance.getRound() - 1}
-                          ></LinkToBlock>
                         </div>
                       </div>
                     </Grid>

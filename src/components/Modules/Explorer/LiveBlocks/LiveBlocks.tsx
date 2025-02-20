@@ -30,7 +30,7 @@ function LiveBlocks(): JSX.Element {
                             <div className="block" key={blockInstance.getRound()} style={{backgroundColor: shadedClr}}>
                                 <div className="round">
                                     <div className="round-header">
-                                        <LinkToBlock name={'#' + blockInstance.getRound()} id={blockInstance.getRound()}></LinkToBlock>
+                                        <LinkToBlock name={<>#{blockInstance.getRound()}</>} id={blockInstance.getRound()}></LinkToBlock>
                                         <span className="text-right faded">
                                             {blockInstance.getTransactionsCount()} Transactions
                                         </span>
