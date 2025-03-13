@@ -87,3 +87,7 @@ https://algo.surf/transaction/OMSD2QORY23BMAT7K5MFJZSVNAHAXKUYHI2ZEKVVU5VTQW4JT4
 
 [ ] account with 1 asset opted in but not held does not show count
 https://algo.surf/account/AAACVAV5AKKJ44XFTR6GAG7DVGY2SM4TKLWKFNR7BJAJLHLBWAQ3SZCVLA/transactions
+
+[v] app create/update broken
+[ ] rounds in txn tables missing (?)
+[ ] rounds in first/last missing

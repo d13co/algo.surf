@@ -8,6 +8,31 @@
       font-weight: bold;
     }
     .app-call-transaction-body {
+      .code-tab-panel {
+        padding: 0;
+        padding-top: 24px;
+        &.padded {
+          padding-left: 14px;
+          padding-right: 14px;
+        }
+        .hashtitle {
+          margin-top: 24px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .hashtitle:first-of-type {
+          margin-top: 0;
+        }
+        .hash {
+          display: flex;
+          max-width: 100%;
+          margin-top: 10px;
+          word-break: break-all;
+          align-items: start;
+          color: $color-grey;
+        }
+      }
       .props {
         margin-top: 20px;
         border-radius: 10px;

@@ -79,7 +79,7 @@ function AppCallTxnGlobalStateDelta(props): JSX.Element {
                 <Grid container spacing={2}>
                     <Grid item xs={12} sm={12} md={12} lg={12} xl={12}>
                         <div className="property">
-                            <div className="key">
+                            <div className="key" style={{paddingLeft: "6px"}}>
                                 Global state delta
                             </div>
                             <div className="value" style={{marginTop: 20}}>

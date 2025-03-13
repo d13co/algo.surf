@@ -99,8 +99,6 @@ function Application(): JSX.Element {
     setCodeTabValue(newValue);
   };
 
-  console.log(application.hashes);
-
   return (
     <div className={"application-wrapper"}>
       <div className={"application-container"}>
