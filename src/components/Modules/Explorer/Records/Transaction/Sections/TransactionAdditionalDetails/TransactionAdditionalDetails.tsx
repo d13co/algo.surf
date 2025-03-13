@@ -41,7 +41,7 @@ function TransactionAdditionalDetails(props): JSX.Element {
                   <div className="property">
                     <div className="key">First round</div>
                     <div className="value">
-                      <LinkToBlock id={txnInstance.getFirstRound()} />
+                      <LinkToBlock id={txnInstance.getFirstRound()} /><span className="rnddelta">({txnInstance.getFirstRound() - txnInstance.getBlock()})</span>
                     </div>
                   </div>
                 </Grid>
@@ -49,7 +49,7 @@ function TransactionAdditionalDetails(props): JSX.Element {
                   <div className="property">
                     <div className="key">Last round</div>
                     <div className="value">
-                      <LinkToBlock id={txnInstance.getLastRound()} />
+                      <LinkToBlock id={txnInstance.getLastRound()} /><span className="rnddelta">(+{txnInstance.getLastRound() - txnInstance.getBlock()})</span>
                     </div>
                   </div>
                 </Grid>

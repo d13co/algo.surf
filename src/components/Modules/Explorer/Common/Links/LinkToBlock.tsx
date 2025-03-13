@@ -2,9 +2,11 @@ import Link from './Link';
 import React from "react";
 import './LinkTo.scss';
 
-function LinkToBlock({id, name = <></>}): JSX.Element {
-    if (!name) {
-        name = id;
+const emptyFragment = <></>;
+
+function LinkToBlock({id, name = emptyFragment}): JSX.Element {
+    if (name === emptyFragment) {
+        name = <>{id}</>;
     }
 
     return <Link href={"/block/" + id}>{name}</Link>;

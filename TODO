@@ -89,5 +89,6 @@ https://algo.surf/transaction/OMSD2QORY23BMAT7K5MFJZSVNAHAXKUYHI2ZEKVVU5VTQW4JT4
 https://algo.surf/account/AAACVAV5AKKJ44XFTR6GAG7DVGY2SM4TKLWKFNR7BJAJLHLBWAQ3SZCVLA/transactions
 
 [v] app create/update broken
-[ ] rounds in txn tables missing (?)
-[ ] rounds in first/last missing
+[v] rounds in txn tables missing (?)
+[v] rounds in first/last missing
+[v] additional info rounds +/- from current
