@@ -68,7 +68,7 @@ function Account(): JSX.Element {
   const numControlledAccounts = account.controllingAccounts.accounts.length;
   const hasAssetOrAppInfo =
     hasOptedAssets || hasCreatedAssets || hasOptedApps || hasCreatedApps;
-  const hasValidatorData = !!validatorData;
+  const hasValidatorData = validatorData.raw.proposals.length || validatorData.raw.suspensions.length;
 
   const tabsRef = useRef<HTMLDivElement>();
 

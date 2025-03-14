@@ -158,6 +158,7 @@ function Block(): JSX.Element {
                         <div className="value">
                           <LinkToAccount
                             copySize="m"
+                            subPage="validator"
                             address={block.proposer}
                           />
                         </div>

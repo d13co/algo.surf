@@ -4,10 +4,10 @@ import {ellipseString} from "../../../../../packages/core-sdk/utils";
 import Copyable from "../../../../Common/Copyable/Copyable";
 import './LinkTo.scss';
 
-function LinkToAccount({address, copy='right', copySize, strip = 0}): JSX.Element {
+function LinkToAccount({address, subPage="transactions", copy='right', copySize, strip = 0}): JSX.Element {
     return <>
         { copy === 'left' ? <Copyable size={copySize} value={address} /> : null }
-        <Link className="long-id" href={"/account/" + address}>{strip ? ellipseString(address, strip) : address}</Link>
+        <Link className="long-id" href={`/account/${address}/${subPage}`}>{strip ? ellipseString(address, strip) : address}</Link>
         { copy === 'right' ? <Copyable size={copySize} value={address} /> : null }
     </>
 }
