@@ -99,8 +99,13 @@ function ApplicationProgram(props: {
   );
   const wordCloud: Array<WordCount> = useMemo(() => {
     const words: Record<string, number> = {};
-    const regex = /\/\/ "([^"]+)"/g;
-    for (const [_, word] of prg.matchAll(regex)) {
+    const strRegex = /\/\/ "([^"]+)"/g;
+    const addrRegex = /\/\/ addr ([A-Z2-7]{58})/g;
+    for (const [_, word] of prg.matchAll(strRegex)) {
+      if (words[word]) words[word]++;
+      else words[word] = 1;
+    }
+    for (const [_, word] of prg.matchAll(addrRegex)) {
       if (words[word]) words[word]++;
       else words[word] = 1;
     }
@@ -140,7 +145,7 @@ function ApplicationProgram(props: {
           <div className="word-cloud-container">
             <div className="word-cloud-header">
               <span>
-                {id ? <>{name} word cloud</> : <>Logic Sig Word cloud</>}
+                {id ? <>{name} word cloud</> : <>Logic Sig word cloud</>}
               </span>
               <CloseIcon className="modal-close-button" onClick={handleClose} />
             </div>

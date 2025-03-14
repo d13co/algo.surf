@@ -94,3 +94,10 @@ https://algo.surf/account/AAACVAV5AKKJ44XFTR6GAG7DVGY2SM4TKLWKFNR7BJAJLHLBWAQ3SZ
 [v] additional info rounds +/- from current
 
 [v] dev reload glitched on navigate away
+[v] program word clouds
+[v] logic sig program styling broken
+[v] multisig/logic sig account chips deep link to txn content
+[v] app call local state delta styling fix
+
+[v] App wordcloud include addresses
+[ ] App wordcloud include numbers?
