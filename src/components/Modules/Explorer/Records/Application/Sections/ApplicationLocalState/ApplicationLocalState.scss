@@ -1,0 +1,20 @@
+@import "src/assets/colors";
+
+.application-local-state-wrapper {
+  .application-local-state-container {
+    border-radius: 10px;
+    .props {
+      margin-top: 0px !important;
+      padding: 0px !important;
+      .dim { opacity: 0.6; }
+    }
+    .application-local-state-body {
+      margin-top: 25px;
+      .copy-content {
+        font-size: 16px;
+        margin-right: 10px;
+        vertical-align: text-bottom;
+      }
+    }
+  }
+}

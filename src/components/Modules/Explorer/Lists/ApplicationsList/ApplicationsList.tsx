@@ -2,6 +2,7 @@ import './ApplicationsList.scss';
 import React from "react";
 import {useDispatch} from "react-redux";
 import {
+    Button,
     CircularProgress, Pagination,
     Tooltip
 } from "@mui/material";
@@ -22,16 +23,19 @@ import LinkToApplication from "../../Common/Links/LinkToApplication";
 import CustomNoRowsOverlay from "../../Common/CustomNoRowsOverlay/CustomNoRowsOverlay";
 import {A_Application, A_AppsLocalState} from "../../../../../packages/core-sdk/types";
 import Copyable from '../../../../Common/Copyable/Copyable';
+import { useNavigate } from 'react-router-dom';
 
 interface ApplicationsListProps {
     applications: A_Application[] | A_AppsLocalState[];
+    account?: string;
     loading?: boolean;
     reachedLastPage?: Function;
     fields?: string[]
 }
 
-function ApplicationsList({applications = [], loading = false, fields = ['id', 'creator'], reachedLastPage = () => {}}: ApplicationsListProps): JSX.Element {
+function ApplicationsList({applications = [], account="", loading = false, fields = ['id', 'creator'], reachedLastPage = () => {}}: ApplicationsListProps): JSX.Element {
     const dispatch = useDispatch();
+    const navigate = useNavigate();
 
     function CustomPagination({loading}) {
         const apiRef = useGridApiContext();
@@ -89,6 +93,21 @@ function ApplicationsList({applications = [], loading = false, fields = ['id', '
             }
         });
     }
+    if (fields.indexOf('state') !== -1) {
+        columns.push({
+            ...dataGridCellConfig,
+            field: 'state',
+            headerName: "​",
+            flex: 1,
+            renderCell: (params: GridValueGetterParams) => {
+                const appInstance = new CoreApplication(params.row);
+                return <div className="flex-end">
+                    <Button variant="outlined" onClick={() => navigate(`/account/${account}/opted-applications/${appInstance.getId()}`)}>View State</Button>
+                </div>;
+            }
+        });
+    }
+
 
     return (<div className={"applications-list-wrapper"}>
         <div className={"applications-list-container"}>

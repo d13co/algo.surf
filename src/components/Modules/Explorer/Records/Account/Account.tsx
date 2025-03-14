@@ -69,7 +69,7 @@ function Account(): JSX.Element {
         tabValue = 'created-assets';
     } else if (hasCreatedApps && matchPath("/account/:address/created-applications", pathname)) {
         tabValue = 'created-applications';
-    } else if (hasOptedApps && matchPath("/account/:address/opted-applications", pathname)) {
+    } else if (hasOptedApps && (matchPath("/account/:address/opted-applications", pathname) || matchPath("/account/:address/opted-applications/:id", pathname))) {
         tabValue = 'opted-applications';
     } else if (numControlledAccounts && matchPath("/account/:address/controller", pathname)) {
         tabValue = 'controlling-accounts';

@@ -9,6 +9,11 @@
     }
     .applications-list-body {
       margin-top: 50px;
+      .flex-end {
+        width: 100%;
+        display: flex;
+        justify-content: flex-end;
+      }
       .copy-content {
         font-size: 16px;
         margin-right: 10px;
