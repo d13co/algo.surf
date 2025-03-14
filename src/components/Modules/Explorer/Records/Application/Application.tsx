@@ -124,6 +124,7 @@ function Application(): JSX.Element {
                 <div className="id">
                   <span className="no-select">#</span>
                   {applicationInstance.getId()}
+                  <Copyable value={applicationInstance.getId()} />
                 </div>
 
                 <div className="props" style={{ background: shadedClr }}>
@@ -188,12 +189,14 @@ function Application(): JSX.Element {
                         <TabPanel value="approval" className="code-tab-panel">
                           <ApplicationProgram
                             name="Approval program"
+                            id={Number(id)}
                             program={applicationInstance.getApprovalProgram()}
                           />
                         </TabPanel>
                         <TabPanel value="clear" className="code-tab-panel">
                           <ApplicationProgram
                             name="Clear state program"
+                            id={Number(id)}
                             program={applicationInstance.getClearProgram()}
                           ></ApplicationProgram>
                         </TabPanel>

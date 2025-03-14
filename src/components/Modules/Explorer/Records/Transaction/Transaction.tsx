@@ -1,6 +1,6 @@
 import './Transaction.scss';
 import React, {useEffect} from "react";
-import {useParams} from "react-router-dom";
+import {useLocation, useParams} from "react-router-dom";
 import {useDispatch, useSelector} from "react-redux";
 import {
     Chip,
@@ -37,6 +37,7 @@ const network = process.env.REACT_APP_NETWORK;
 function Transaction(): JSX.Element {
     const dispatch = useDispatch();
     const params = useParams();
+    const location = useLocation();
     const {id} = params;
 
     const transaction = useSelector((state: RootState) => state.transaction);
@@ -50,6 +51,18 @@ function Transaction(): JSX.Element {
     }, [dispatch, id]);
 
     useTitle(`Txn ${id}`);
+
+    useEffect(() => {
+        let elem
+        if (location.hash === "#multisig" && txnInstance.isMultiSig()) {
+            elem = document.getElementById('multisig');
+            
+        } else if (location.hash === "#logicsig" && txnInstance.isLogicSig()) {
+            elem = document.getElementById('logicsig');
+        }
+        if (elem)
+            setTimeout(() => elem.scrollIntoView({behavior: "smooth", block: "start"}), 500);
+    }, [transaction.loading, location.hash])
 
     return (<div className={"transaction-wrapper"}>
         <div className={"transaction-container"}>

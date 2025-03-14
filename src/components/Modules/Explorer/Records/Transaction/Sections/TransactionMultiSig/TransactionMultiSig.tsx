@@ -33,7 +33,7 @@ function TransactionMultiSig(props): JSX.Element {
         <div className={"transaction-multi-sig-container"}>
 
             {txnInstance.isMultiSig() ? <div>
-                <div className="transaction-multi-sig-header">
+                <div className="transaction-multi-sig-header" id="multisig">
                     MultiSig
                 </div>
                 <div className="transaction-multi-sig-body">

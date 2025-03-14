@@ -39,6 +39,7 @@ function AppCallTransaction(props): JSX.Element {
 
   const callInstance = new CoreAppCall(appCallPayload);
   const isCreate = callInstance.isCreate();
+  const id = appCallPayload["application-id"];
 
   const [codeTabValue, setCodeTabValue] = React.useState("approval");
 
@@ -128,12 +129,14 @@ function AppCallTransaction(props): JSX.Element {
                       <TabPanel value="approval" className="code-tab-panel">
                         <ApplicationProgram
                           name="Approval program"
+                          id={Number(id)}
                           program={appCallPayload["approval-program"]}
                         />
                       </TabPanel>
                       <TabPanel value="clear" className="code-tab-panel">
                         <ApplicationProgram
                           name="Clear state program"
+                          id={Number(id)}
                           program={appCallPayload["clear-state-program"]}
                         ></ApplicationProgram>
                       </TabPanel>

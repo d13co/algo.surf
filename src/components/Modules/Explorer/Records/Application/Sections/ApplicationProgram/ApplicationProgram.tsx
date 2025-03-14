@@ -1,12 +1,19 @@
 import "./ApplicationProgram.scss";
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { shadedClr } from "../../../../../../../utils/common";
 import { theme } from "../../../../../../../theme/index";
-import { Button, ButtonGroup, Grid } from "@mui/material";
+import {
+  Button,
+  ButtonGroup,
+  Dialog,
+  DialogContent,
+  Grid,
+} from "@mui/material";
 import { PROGRAM_ENCODING } from "../../../../../../../packages/core-sdk/constants";
 import { ApplicationClient } from "../../../../../../../packages/core-sdk/clients/applicationClient";
 import explorer from "../../../../../../../utils/dappflow";
 import { useDispatch } from "react-redux";
+import CloseIcon from "@mui/icons-material/Close";
 import {
   hideLoader,
   showLoader,
@@ -14,6 +21,12 @@ import {
 import { handleException } from "../../../../../../../redux/common/actions/exception";
 import { CodeBlock, tomorrowNightBright } from "react-code-blocks";
 import Copyable from "../../../../../../Common/Copyable/Copyable";
+import account from "algosdk/dist/types/src/account";
+import LinkToAccount from "../../../../Common/Links/LinkToAccount";
+import ApplicationLocalState from "../ApplicationLocalState/ApplicationLocalState";
+import { ElectricScooterTwoTone } from "@mui/icons-material";
+import { kMaxLength } from "buffer";
+import { setSourceMapRange } from "typescript";
 
 const myTheme = {
   ...tomorrowNightBright,
@@ -35,8 +48,19 @@ const initialState: ApplicationApprovalProgramState = {
   prg: "",
 };
 
-function ApplicationProgram(props): JSX.Element {
-  const { name, program } = props;
+interface WordCount {
+  word: string;
+  count: number;
+}
+
+const initCopyLabel = "Tip: click to copy word";
+
+function ApplicationProgram(props: {
+  name: string;
+  program: string;
+  id: number;
+}): JSX.Element {
+  const { name, program, id } = props;
   const dispatch = useDispatch();
 
   const [{ encoding, prg }, setState] = useState({
@@ -45,7 +69,7 @@ function ApplicationProgram(props): JSX.Element {
   });
 
   React.useEffect(() => {
-    if (name === "Approval program") {
+    if (name === "Approval program" || name === "Logic program") {
       setTextEncoding(PROGRAM_ENCODING.TEAL);
     }
   }, [name]);
@@ -70,61 +94,177 @@ function ApplicationProgram(props): JSX.Element {
       }
     }
   }
+  const [showWordCloud, setShowWordCloud] = useState<"freq" | "alpha" | false>(
+    false
+  );
+  const wordCloud: Array<WordCount> = useMemo(() => {
+    const words: Record<string, number> = {};
+    const regex = /\/\/ "([^"]+)"/g;
+    for (const [_, word] of prg.matchAll(regex)) {
+      if (words[word]) words[word]++;
+      else words[word] = 1;
+    }
+    return Object.entries(words)
+      .sort(([wa, ca], [wb, cb]) => {
+        if (showWordCloud !== "freq" || ca === cb) return wa.localeCompare(wb);
+        if (ca < cb) return 1;
+        return -1;
+      })
+      .map(([word, count]) => ({ word, count }));
+  }, [showWordCloud, prg]);
+
+  React.useEffect(() => {
+    if (showWordCloud)
+      if (encoding !== PROGRAM_ENCODING.TEAL)
+        setTextEncoding(PROGRAM_ENCODING.TEAL);
+  }, [showWordCloud, encoding]);
+
+  const handleClose = () => setShowWordCloud(false);
+
+  const [copyLabel, setCopyLabel] = useState(initCopyLabel);
+  const copy = (word: string) => {
+    navigator.clipboard.writeText(word);
+    setCopyLabel("Copied: "+word)
+    setTimeout(() => setCopyLabel(initCopyLabel), 1500);
+  }
 
   return (
-    <div className={"application-program-wrapper"}>
-      <div className={"application-program-container"}>
-        <div className="key">
-          <span style={{marginLeft: "14px"}}>{name}</span>
+    <>
+      <Dialog
+        onClose={handleClose}
+        fullWidth={true}
+        maxWidth={"md"}
+        open={!!showWordCloud}
+      >
+        <DialogContent>
+          <div className="word-cloud-container">
+            <div className="word-cloud-header">
+              <span>
+                {id ? <>{name} word cloud</> : <>Logic Sig Word cloud</>}
+              </span>
+              <CloseIcon className="modal-close-button" onClick={handleClose} />
+            </div>
+            <div className="word-cloud-body">
+              <div className="line">
+                <span>{id ? <>App {id}</> : null}</span>
+                <span>
+                  <span className="sort-label">Sort</span>
+                  <ButtonGroup
+                    variant="outlined"
+                    size={"small"}
+                    style={{ marginLeft: "0.5rem" }}
+                  >
+                    <Button
+                      variant={
+                        showWordCloud === "freq" ? "contained" : "outlined"
+                      }
+                      onClick={() => {
+                        setShowWordCloud("freq");
+                      }}
+                    >
+                      Frequency
+                    </Button>
+                    <Button
+                      variant={
+                        showWordCloud === "alpha" ? "contained" : "outlined"
+                      }
+                      onClick={() => {
+                        setShowWordCloud("alpha");
+                      }}
+                    >
+                      Alphanumeric
+                    </Button>
+                  </ButtonGroup>
+                </span>
+              </div>
+              {wordCloud.length ? (
+                <>
+                  <div className="cloud">
+                    {wordCloud.map(({ word, count }) => (
+                      <div
+                        onClick={() => copy(word)}
+                        className="blob hover-cursor-pointer"
+                        key={word}
+                      >
+                        <span>{word}</span>{" "}
+                        <span className="faded">x{count}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <span className="sort-label">{copyLabel}</span>
+                </>
+              ) : (
+                <div className="line">No words in program</div>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <div className={"application-program-wrapper"}>
+        <div className={"application-program-container"}>
+          <div className="key">
+            <span style={{ marginLeft: "14px" }}>{name}</span>
 
-          <div>
-            <ButtonGroup
-              variant="outlined"
-              size={"small"}
-              style={{ marginLeft: 20 }}
-            >
-              <Button
-                variant={
-                  encoding === PROGRAM_ENCODING.BASE64
-                    ? "contained"
-                    : "outlined"
-                }
+            <div style={{whiteSpace: "nowrap"}}>
+              { wordCloud.length ? <Button
+                size="small"
+                variant="outlined"
                 onClick={() => {
-                  setTextEncoding(PROGRAM_ENCODING.BASE64);
+                  setShowWordCloud("freq");
                 }}
               >
-                Base 64
-              </Button>
-              <Button
-                variant={
-                  encoding === PROGRAM_ENCODING.TEAL ? "contained" : "outlined"
-                }
-                onClick={() => {
-                  setTextEncoding(PROGRAM_ENCODING.TEAL);
-                }}
+                Wordcloud
+              </Button> : null }
+              <ButtonGroup
+                variant="outlined"
+                size={"small"}
+                style={{ marginLeft: 10 }}
               >
-                Teal
-              </Button>
-            </ButtonGroup>
-            <Copyable value={prg} style={{ marginLeft: "20px" }} />
+                <Button
+                  variant={
+                    encoding === PROGRAM_ENCODING.BASE64
+                      ? "contained"
+                      : "outlined"
+                  }
+                  onClick={() => {
+                    setTextEncoding(PROGRAM_ENCODING.BASE64);
+                  }}
+                >
+                  Base 64
+                </Button>
+                <Button
+                  variant={
+                    encoding === PROGRAM_ENCODING.TEAL
+                      ? "contained"
+                      : "outlined"
+                  }
+                  onClick={() => {
+                    setTextEncoding(PROGRAM_ENCODING.TEAL);
+                  }}
+                >
+                  Teal
+                </Button>
+              </ButtonGroup>
+              <Copyable value={prg} style={{ marginLeft: "10px" }} />
+            </div>
+          </div>
+          <div className="small" style={{ marginTop: 20 }}>
+            {encoding === PROGRAM_ENCODING.BASE64 ? (
+              <div className="source padded">{prg}</div>
+            ) : (
+              <div className="source">
+                <CodeBlock
+                  text={prg}
+                  theme={myTheme}
+                  language="swift"
+                  showLineNumbers={false}
+                />
+              </div>
+            )}
           </div>
         </div>
-        <div className="small" style={{ marginTop: 20 }}>
-          {encoding === PROGRAM_ENCODING.BASE64 ? (
-            <div className="source padded">{prg}</div>
-          ) : (
-            <div className="source">
-              <CodeBlock
-                text={prg}
-                theme={myTheme}
-                language="swift"
-                showLineNumbers={false}
-              />
-            </div>
-          )}
-        </div>
       </div>
-    </div>
+    </>
   );
 }
 

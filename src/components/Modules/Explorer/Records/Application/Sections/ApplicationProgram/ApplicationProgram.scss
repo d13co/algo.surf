@@ -1,5 +1,54 @@
 @import "src/assets/colors";
 
+.word-cloud-container {
+  .word-cloud-header {
+    font-size: 20px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .word-cloud-body {
+    display: flex;
+    flex-direction: column;
+    margin-top: 1rem;
+    gap: 1.25rem;
+    .cloud {
+      display: flex;
+      gap: 0.25rem;
+      flex-wrap: wrap;
+      .blob {
+        display: inline-block;
+        border: 1px $color-grey-dark solid;
+        padding-left:   7px;
+        padding-right:  7px;
+        padding-top:    1px;
+        padding-bottom: 1px;
+        border-radius: 100px;
+        display: flex;
+        align-items: center;
+        gap: 0.50rem;
+        font-size: 14px;
+      }
+    }
+    .line {
+      width: 100%;
+      justify-content: space-between;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .faded {
+      font-size: 11px;
+      color: $color-grey-mid-dark;
+    }
+    .sort-label {
+      color: $color-grey-mid-dark;
+      font-size: 14px;
+    }
+  }
+}
+
 .application-program-wrapper {
   .application-program-container {
     .property {
