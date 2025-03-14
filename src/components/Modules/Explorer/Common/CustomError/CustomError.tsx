@@ -29,9 +29,10 @@ function CustomError({ error }: { error?: string }): JSX.Element {
     const navigate = useNavigate();
     const [retry, setRetry] = useState(0);
     const [countdown, setCountdown] = useState(2);
+    const [tmot, setTmot] = useState<ReturnType<typeof setTimeout>>();
 
     useEffect(() => {
-        console.log('hash', location.hash);
+        let tmot;
         if (isLocalnet) {
             const retry = getRetries(location.hash);
             setRetry(retry);
@@ -39,13 +40,16 @@ function CustomError({ error }: { error?: string }): JSX.Element {
                 const newLocation = new URL(window.location.href);
                 newLocation.hash = `#retry=${retry+1}`;
                 setTimeout(() => setCountdown(1), 1_000);
-                setTimeout(() => {
+                clearTimeout(tmot);
+                tmot = setTimeout(() => {
                     setCountdown(0);
                     window.history.replaceState(null, null, newLocation.toString());
                     window.location.reload();
                 }, 2_000);
+                setTmot(tmot)
             }
         }
+        return () => clearTimeout(tmot ?? 0)
     }, [location.hash]);
 
     return (<div className={"custom-error-wrapper"}>

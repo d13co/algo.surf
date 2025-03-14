@@ -92,3 +92,5 @@ https://algo.surf/account/AAACVAV5AKKJ44XFTR6GAG7DVGY2SM4TKLWKFNR7BJAJLHLBWAQ3SZ
 [v] rounds in txn tables missing (?)
 [v] rounds in first/last missing
 [v] additional info rounds +/- from current
+
+[v] dev reload glitched on navigate away
