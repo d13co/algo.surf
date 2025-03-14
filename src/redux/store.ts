@@ -1,59 +1,61 @@
 import { configureStore } from '@reduxjs/toolkit';
-import snackbarReducer from './common/actions/snackbar';
-import accountsReducer from "./explorer/actions/accounts";
-import transactionsReducer from "./explorer/actions/transactions";
-import assetsReducer from "./explorer/actions/assets";
-import applicationsReducer from "./explorer/actions/applications";
-import settingsReducer from "./settings/actions/settings";
-import developerApiReducer from "./developerApi/actions/developerApi";
-import loaderReducer from "./common/actions/loader";
-import accountReducer from "./explorer/actions/account";
-import addressBookReducer from "./explorer/actions/addressBook";
-import blockReducer from "./explorer/actions/block";
-import assetReducer from "./explorer/actions/asset";
-import applicationReducer from "./explorer/actions/application";
-import transactionReducer from "./explorer/actions/transaction";
-import groupReducer from "./explorer/actions/group";
-import liveData from "./explorer/actions/liveData";
-import arcs from "./arcPortal/actions/arcs";
-import arc from "./arcPortal/actions/arc";
-import node from "./network/actions/node";
-import app from "./app/actions/app";
-import kmd from "./explorer/actions/kmd";
-import connectWallet from "./wallet/actions/connectWallet";
-import wallet from "./wallet/actions/wallet";
-import signer from "./wallet/actions/signer";
 import abiStudio from "./abi/actions/abiStudio";
+import accountReducer from "./explorer/actions/account";
+import accountsReducer from "./explorer/actions/accounts";
+import addressBookReducer from "./explorer/actions/addressBook";
+import app from "./app/actions/app";
+import applicationReducer from "./explorer/actions/application";
+import applicationsReducer from "./explorer/actions/applications";
+import arc from "./arcPortal/actions/arc";
+import arcs from "./arcPortal/actions/arcs";
+import assetReducer from "./explorer/actions/asset";
+import assetsReducer from "./explorer/actions/assets";
+import blockReducer from "./explorer/actions/block";
+import connectWallet from "./wallet/actions/connectWallet";
+import developerApiReducer from "./developerApi/actions/developerApi";
 import devWallets from "./devWallets/actions/devWallets";
+import groupReducer from "./explorer/actions/group";
+import kmd from "./explorer/actions/kmd";
+import liveData from "./explorer/actions/liveData";
+import loaderReducer from "./common/actions/loader";
+import node from "./network/actions/node";
+import settingsReducer from "./settings/actions/settings";
+import signer from "./wallet/actions/signer";
+import snackbarReducer from './common/actions/snackbar';
+import transactionReducer from "./explorer/actions/transaction";
+import transactionsReducer from "./explorer/actions/transactions";
+import validatorReducer from "./explorer/actions/validator";
+import wallet from "./wallet/actions/wallet";
 
 export const store = configureStore({
     reducer: {
-        snackbar: snackbarReducer,
+        abiStudio: abiStudio,
+        account: accountReducer,
         accounts: accountsReducer,
         addressBook: addressBookReducer,
-        transactions: transactionsReducer,
-        assets: assetsReducer,
-        applications: applicationsReducer,
-        settings: settingsReducer,
-        developerApi: developerApiReducer,
-        loader: loaderReducer,
-        account: accountReducer,
-        block: blockReducer,
-        asset: assetReducer,
-        application: applicationReducer,
-        transaction: transactionReducer,
-        group: groupReducer,
-        liveData: liveData,
-        arcs: arcs,
-        arc: arc,
-        node: node,
         app: app,
-        kmd: kmd,
+        application: applicationReducer,
+        applications: applicationsReducer,
+        arc: arc,
+        arcs: arcs,
+        asset: assetReducer,
+        assets: assetsReducer,
+        block: blockReducer,
         connectWallet: connectWallet,
-        wallet: wallet,
+        developerApi: developerApiReducer,
+        devWallets: devWallets,
+        group: groupReducer,
+        kmd: kmd,
+        liveData: liveData,
+        loader: loaderReducer,
+        node: node,
+        settings: settingsReducer,
         signer: signer,
-        abiStudio: abiStudio,
-        devWallets: devWallets
+        snackbar: snackbarReducer,
+        transactions: transactionsReducer,
+        transaction: transactionReducer,
+        wallet: wallet,
+        validator: validatorReducer,
     },
 });
 

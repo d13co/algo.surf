@@ -24,8 +24,10 @@ import LinkToApplication from "../../Common/Links/LinkToApplication";
 import LinkToAccount from "../../Common/Links/LinkToAccount";
 import useTitle from "../../../../Common/UseTitle/UseTitle";
 import LinkToTransaction from "../../Common/Links/LinkToTransaction";
+import { loadValidator } from "../../../../../redux/explorer/actions/validator";
 
 const network = process.env.REACT_APP_NETWORK;
+const isMainnet = network === "Mainnet";
 
 function plural(num: number): string {
   return num !== 1 ? "s" : "";
@@ -39,6 +41,8 @@ function Account(): JSX.Element {
 
   const account = useSelector((state: RootState) => state.account);
   const addressBook = useSelector((state: RootState) => state.addressBook);
+  const validatorData = useSelector((state: RootState) => state.validator);
+
   const addressLabel = React.useMemo(
     () => addressBook.data[address],
     [address, addressBook.data]
@@ -64,12 +68,23 @@ function Account(): JSX.Element {
   const numControlledAccounts = account.controllingAccounts.accounts.length;
   const hasAssetOrAppInfo =
     hasOptedAssets || hasCreatedAssets || hasOptedApps || hasCreatedApps;
+  const hasValidatorData = !!validatorData;
 
   const tabsRef = useRef<HTMLDivElement>();
 
   const scrollToControllerTo = useCallback(
     (e) => {
       navigate(`/account/${address}/controller`);
+      if (tabsRef?.current) tabsRef.current.scrollIntoView();
+      e.preventDefault();
+      return false;
+    },
+    [tabsRef?.current, address]
+  );
+
+  const scrollToValidator = useCallback(
+    (e) => {
+      navigate(`/account/${address}/validator`);
       if (tabsRef?.current) tabsRef.current.scrollIntoView();
       e.preventDefault();
       return false;
@@ -100,6 +115,11 @@ function Account(): JSX.Element {
     matchPath("/account/:address/controller", pathname)
   ) {
     tabValue = "controlling-accounts";
+  } else if (
+    hasValidatorData &&
+    matchPath("/account/:address/validator", pathname)
+  ) {
+    tabValue = "validator";
   }
 
   const [lastSent, isMultiSig, isLogicSig, isClosed] = React.useMemo(() => {
@@ -118,6 +138,9 @@ function Account(): JSX.Element {
 
   useEffect(() => {
     dispatch(loadAccount(address));
+    if (isMainnet) {
+      dispatch(loadValidator(address));
+    }
   }, [dispatch, address]);
 
   useTitle(`Account ${address}`);
@@ -184,12 +207,21 @@ function Account(): JSX.Element {
                       </div>
                     ) : null}
                     {account.information.status === "Online" ? (
-                      <Chip
-                        color={"success"}
-                        variant={"outlined"}
-                        label="Validator"
-                        size={"small"}
-                      ></Chip>
+                      <Tooltip title={`Click to view validator information.`}>
+                        <Link
+                          href="#"
+                          onClick={scrollToValidator}
+                          style={{ marginTop: "-2px" }}
+                        >
+                          <Chip
+                            color={"success"}
+                            variant={"outlined"}
+                            label="Validator"
+                            size={"small"}
+                            className="hover-cursor-pointer"
+                          ></Chip>
+                        </Link>
+                      </Tooltip>
                     ) : null}
                     {account.information.status === "Not Participating" ? (
                       <Chip
@@ -477,6 +509,15 @@ function Account(): JSX.Element {
                         value="controlling-accounts"
                         onClick={() => {
                           navigate("/account/" + address + "/controller");
+                        }}
+                      />
+                    ) : null}
+                    {hasValidatorData ? (
+                      <Tab
+                        label="Validator info"
+                        value="validator"
+                        onClick={() => {
+                          navigate("/account/" + address + "/validator");
                         }}
                       />
                     ) : null}

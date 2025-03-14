@@ -34,6 +34,7 @@ import AppSnackbar from "./AppSnackbar";
 import Footer from "./Footer";
 import StripExplorerFromPath from "./StripExplorerFromPath";
 import SearchFromPath from "./SearchFromPath";
+import AccountValidator from "../Modules/Explorer/Records/Account/RelatedList/AccountValidator/AccountValidator";
 
 function AppRouter(): JSX.Element {
     return (<div>
@@ -58,6 +59,7 @@ function AppRouter(): JSX.Element {
                                         <Route path="opted-applications" element={<AccountOptedApplications></AccountOptedApplications>} />
                                         <Route path="opted-applications/:id" element={<AccountOptedApplications></AccountOptedApplications>} />
                                         <Route path="controller" element={<AccountControllerTo />} />
+                                        <Route path="validator" element={<AccountValidator />} />
                                         <Route path="" element={<Navigate to="transactions" replace />}/>
                                     </Route>
                                     <Route path="/block/:id" element={<Block></Block>}>
