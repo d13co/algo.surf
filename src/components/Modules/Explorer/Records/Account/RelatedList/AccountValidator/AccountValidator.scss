@@ -27,11 +27,13 @@
           display: flex;
           align-self: center;
           justify-content: space-between;
-          min-width: calc(min(90%, 350px));
+          min-width: calc(min(90%, 375px));
+          color: $color-grey;
           .row-value {
             display: flex;
             align-items: center;
             gap: 0.25rem;
+            color: white;
           }
         }
     }

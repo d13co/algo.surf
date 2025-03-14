@@ -99,7 +99,6 @@ function AccountValidator(): JSX.Element {
     const nodeClientInstance = new NodeClient(explorer.network);
     const status = await nodeClientInstance.status();
     setLastRound(status["last-round"]);
-    // console.log({ now: status["last-round"] });
     setLastNow(Date.now() / 1000);
   }
 
