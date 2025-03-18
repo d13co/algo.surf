@@ -514,7 +514,7 @@ function Account(): JSX.Element {
                     ) : null}
                     {hasValidatorData ? (
                       <Tab
-                        label="Validator info"
+                        label="Validator Data"
                         value="validator"
                         onClick={() => {
                           navigate("/account/" + address + "/validator");

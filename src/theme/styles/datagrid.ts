@@ -12,6 +12,9 @@ export const dataGridStyles = {
     '.MuiDataGrid-columnSeparator': {
         display: 'none',
     },
+    '.MuiDataGrid-sortIcon': {
+        color: theme.palette.primary.contrastText,
+    },
     // '.MuiDataGrid-row:nth-of-type(even)': {
     //     backgroundColor: shadedClr
     // },
