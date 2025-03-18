@@ -36,6 +36,12 @@
         .property {
           margin-top: 10px;
           .key {
+            .flex {
+              display: flex;
+              gap: 0.2rem;
+              align-items: center;
+              width: fit-content;
+            }
           }
           .value {
             display: flex;

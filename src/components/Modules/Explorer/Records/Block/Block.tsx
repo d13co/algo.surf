@@ -19,6 +19,8 @@ import NumberFormat from "react-number-format";
 import AlgoIcon from "../../AlgoIcon/AlgoIcon";
 import { Box, ArrowLeftFromLine, ArrowRightFromLine } from "lucide-react";
 import { grey, primaryColor } from "../../../../../theme";
+import { Info as InfoIcon } from "lucide-react";
+import WarningIcon from "@mui/icons-material/Warning";
 
 const network = process.env.REACT_APP_NETWORK;
 
@@ -216,6 +218,39 @@ function Block(): JSX.Element {
                           </div>
                         </Grid>
                       </>
+                    ) : null}
+
+                    {block.information["participation-updates"] ? (
+                      <Grid item xs={12} sm={12} md={12} lg={12} xl={12}>
+                        <div className="property">
+                          <div className="key">
+                            <Tooltip title="Account suspended from consensus for non-participation">
+                              <div className="flex">
+                                <WarningIcon
+                                  color="warning"
+                                  style={{ fontSize: "20px" }}
+                                />
+                                Suspended Accounts
+                                <InfoIcon
+                                  size="16"
+                                  style={{ marginLeft: "0.5rem" }}
+                                />{" "}
+                              </div>
+                            </Tooltip>
+                          </div>
+                          {block.information["participation-updates"][
+                            "absent-participation-accounts"
+                          ].map((acct) => (
+                            <div key={`sus${acct}`} className="value">
+                              <LinkToAccount
+                                copySize="m"
+                                subPage="validator"
+                                address={acct}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </Grid>
                     ) : null}
                   </Grid>
                 </div>

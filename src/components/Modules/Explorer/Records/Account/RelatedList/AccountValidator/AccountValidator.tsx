@@ -1,23 +1,18 @@
 import "./AccountValidator.scss";
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../../../../../../../redux/store";
-import ApplicationsList from "../../../../Lists/ApplicationsList/ApplicationsList";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import CloseIcon from "@mui/icons-material/Close";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import WarningIcon from "@mui/icons-material/Warning";
 import {
   Dialog,
   DialogContent,
-  DialogActions,
   Button,
   ButtonGroup,
   DialogTitle,
 } from "@mui/material";
-import LinkToAccount from "../../../../Common/Links/LinkToAccount";
-import LinkToApplication from "../../../../Common/Links/LinkToApplication";
-import ApplicationLocalState from "../../../Application/Sections/ApplicationLocalState/ApplicationLocalState";
 import Copyable from "../../../../../../Common/Copyable/Copyable";
 import AlgoIcon from "../../../../AlgoIcon/AlgoIcon";
 import { NodeClient } from "../../../../../../../packages/core-sdk/clients/nodeClient";
@@ -254,7 +249,7 @@ function AccountValidator(): JSX.Element {
               rows={dialog === "blocks" ? proposals : suspensions}
               columns={colDefs}
               autoHeight
-              pageSize={20}
+              pageSize={16}
               getRowId={(row) => {
                 return row.rnd;
               }}
