@@ -95,7 +95,7 @@ function Accounts(): JSX.Element {
         {
             ...dataGridCellConfig,
             field: 'total-created-apps',
-            headerName: 'Created applications'
+            headerName: 'Created apps'
         }
     ];
 

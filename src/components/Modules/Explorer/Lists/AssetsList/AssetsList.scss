@@ -9,10 +9,11 @@
     }
     .assets-list-body {
       margin-top: 50px;
-      .copy-content {
-        font-size: 16px;
-        margin-right: 10px;
-        vertical-align: text-bottom;
+      .balance-cell {
+        display: flex;
+        gap: 0.3rem;
+        align-items: center;
+        color: #46daff;
       }
     }
   }

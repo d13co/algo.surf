@@ -428,7 +428,7 @@ function Account(): JSX.Element {
 
                         {hasCreatedApps ? (
                           <div className="property">
-                            <div className="key">Created applications</div>
+                            <div className="key">Created apps</div>
                             <div className="value padded">
                               {account.createdApplications.length}
                             </div>
@@ -483,7 +483,7 @@ function Account(): JSX.Element {
                     ) : null}
                     {account.createdApplications.length ? (
                       <Tab
-                        label="Created applications"
+                        label="Created apps"
                         value="created-applications"
                         onClick={() => {
                           navigate(

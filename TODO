@@ -102,4 +102,10 @@ https://algo.surf/account/AAACVAV5AKKJ44XFTR6GAG7DVGY2SM4TKLWKFNR7BJAJLHLBWAQ3SZ
 [v] App wordcloud include addresses
 [ ] App wordcloud include numbers?
 
-[ ] asset freeze status
+[v] asset freeze status
+[v] validator data
+  [v] detail data dialog
+[v] block suspensions
+
+[ ] bug: app create txn word cloud: "logic sig" (because app zero)
+

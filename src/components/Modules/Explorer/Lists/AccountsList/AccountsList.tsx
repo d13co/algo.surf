@@ -99,7 +99,7 @@ function AccountsList({accounts = [], loading = false, reachedLastPage = () => {
         {
             ...dataGridCellConfig,
             field: 'total-created-apps',
-            headerName: 'Created applications'
+            headerName: 'Created apps'
         }
     ];
 
