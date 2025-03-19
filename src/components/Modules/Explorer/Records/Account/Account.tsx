@@ -207,11 +207,10 @@ function Account(): JSX.Element {
                       </div>
                     ) : null}
                     {account.information.status === "Online" ? (
-                      <Tooltip title={`Click to view validator information.`}>
+                      <Tooltip style={{ position: "relative", top: '-2px' }} title={`Click to view validator information.`}>
                         <Link
                           href="#"
                           onClick={scrollToValidator}
-                          style={{ marginTop: "-2px" }}
                         >
                           <Chip
                             color={"success"}
@@ -219,6 +218,7 @@ function Account(): JSX.Element {
                             label="Validator"
                             size={"small"}
                             className="hover-cursor-pointer"
+                            style={{paddingTop: '2px'}}
                           ></Chip>
                         </Link>
                       </Tooltip>
