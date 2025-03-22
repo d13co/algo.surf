@@ -61,6 +61,14 @@ const initialState: AppCallTxnInnerTxnsState = {
     showTxn: false
 };
 
+function countInnerTxns(transaction: A_SearchTransaction | A_SearchTransactionInner) {
+    let count = transaction['inner-txns'].length
+    for(const itxn of transaction['inner-txns'])
+        if (itxn['inner-txns'])
+            count += countInnerTxns(itxn)
+    return count;
+}
+
 function AppCallTxnInnerTxns(props): JSX.Element {
 
     let transaction: A_SearchTransaction = props.transaction;
@@ -78,6 +86,11 @@ function AppCallTxnInnerTxns(props): JSX.Element {
     function handleClose() {
         clearState();
     }
+
+    const count = React.useMemo(() => {
+        console.log("counted",)
+        return countInnerTxns(transaction)
+    }, [transaction]);
 
     const StyledTreeItem = styled((props: any) => {
 
@@ -149,7 +162,7 @@ function AppCallTxnInnerTxns(props): JSX.Element {
     return (<div className={"app-call-txn-inner-txns-wrapper"}>
         <div className={"app-call-txn-inner-txns-container"}>
             <div className="app-call-txn-inner-txns-header">
-                Inner transactions
+                Inner transactions ({count})
             </div>
             <div className="app-call-txn-inner-txns-body">
 
