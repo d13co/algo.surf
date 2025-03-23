@@ -173,7 +173,7 @@ function AssetsList({
               {isFrozen ? <ThermometerSnowflake size={16} /> : null}
               <span>
                 <NumberFormat
-                  value={holding?.amount ?? 0}
+                  value={holding?.amount ? assetInstance.getAmountInDecimals(holding?.amount) : 0}
                   displayType={"text"}
                   thousandSeparator={true}
                 ></NumberFormat>{" "}
