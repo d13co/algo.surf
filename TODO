@@ -109,3 +109,8 @@ https://algo.surf/account/AAACVAV5AKKJ44XFTR6GAG7DVGY2SM4TKLWKFNR7BJAJLHLBWAQ3SZ
 
 [ ] bug: app create txn word cloud: "logic sig" (because app zero)
 
+
+[ ] inner app delete asset breaks: https://fnet.algo.surf/transaction/M4WYLTVXQ6FBPO2QESAR3CW23VABGWROZRQ4AFVDF4Q4ZC6PJSNQ
+[v] search from url: trim trailing ,
+[ ] make /transactions suffix route optional/default
+  - search should land in account/{addr} instead

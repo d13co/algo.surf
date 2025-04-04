@@ -22,6 +22,15 @@ export class ServerError extends Error {}
 export class NotSearchableError extends Error {}
 
 export default async function (target: string): Promise<string> {
+    // support trailing junk [address,] [txid,] [12345678n]
+    if (target.length === 59 || target.length === 53) {
+        if (target.endsWith(",")) {
+            target = target.slice(0, -1)
+        }
+    } else if (target.length <= 9 && target.endsWith('n') && isNumber(target.slice(0, -1))) {
+        target = target.slice(0, -1)
+    }
+
     if (target.length === 58) {
         if (isValidAddress(target)) {
             return '/account/' + target;
