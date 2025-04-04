@@ -13,7 +13,7 @@ function getLink(result: A_AssetResult | A_ApplicationResult | A_BlockResult) {
     } else if (type === "asset" ) {
         return `/asset/${result.index}/transactions`;
     } else {
-        return `/application/${result.id}/transactions`;
+        return `/application/${result.id}`;
     }
 }
 

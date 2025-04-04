@@ -460,7 +460,7 @@ function Account(): JSX.Element {
                       label="Transactions"
                       value="transactions"
                       onClick={() => {
-                        navigate("/account/" + address + "/transactions");
+                        navigate("/account/" + address );
                       }}
                     />
                     {account.optedAssets.length ? (
