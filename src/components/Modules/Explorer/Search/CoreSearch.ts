@@ -27,7 +27,7 @@ export default async function (target: string): Promise<string> {
         if (target.endsWith(",")) {
             target = target.slice(0, -1)
         }
-    } else if (target.length <= 9 && target.endsWith('n') && isNumber(target.slice(0, -1))) {
+    } else if (target.length <= 9 && (target.endsWith('n') || target.endsWith(',')) && isNumber(target.slice(0, -1))) {
         target = target.slice(0, -1)
     }
 
