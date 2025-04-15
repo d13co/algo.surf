@@ -113,7 +113,7 @@ export function getNodes(): NodeConnectionParams[] {
                 token: '',
             },
             indexer: {
-                url: 'https://fnet-idx.d13.co',
+                url: 'https://fnet-idx.4160.nodely.dev',
                 port: '443',
                 token: '',
             }
