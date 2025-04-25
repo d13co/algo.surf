@@ -166,6 +166,22 @@ function AccountValidator(): JSX.Element {
             },
           },
           {
+            field: "dt",
+            headerName: "Date & time",
+            flex: 1,
+            renderCell: (params: GridValueGetterParams) => {
+              const val = params.row.ts;
+              debugger
+              return val ? (
+                <>
+                  {new Date(val * 1000).toLocaleString()}
+                </>
+              ) : (
+                <>-</>
+              );
+            },
+          },
+          {
             field: "pp",
             headerName: "Rewards",
             flex: 1,
