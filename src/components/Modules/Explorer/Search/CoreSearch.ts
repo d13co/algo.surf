@@ -27,6 +27,7 @@ export class NotSearchableError extends Error {}
 
 async function searchNFD(query: string): Promise<string[]> {
   try {
+    query = query.trim().toLowerCase()
     const response = await fetch(`https://api.nf.domains/nfd/${query}`);
     if (response.status === 404)
         throw new Error(`${query} was not found`)
