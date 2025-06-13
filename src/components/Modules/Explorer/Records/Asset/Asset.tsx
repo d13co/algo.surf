@@ -116,7 +116,7 @@ function Asset(): JSX.Element {
                     </div>
                   </div>
                   { !pv ? null : <div className="pera-verified">
-                    <ShieldCheck style={{marginTop: '3px'}}/>
+                    <ShieldCheck style={{color: "#FFEE55", marginTop: '3px'}}/>
                     <div className="small primary">Pera Verified</div>
                   </div> }
                 </div>
