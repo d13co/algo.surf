@@ -1,5 +1,5 @@
 import {Algodv2} from "algosdk";
-import IndexerClient from "algosdk/dist/types/src/client/v2/indexer/indexer";
+import IndexerClient from "algosdk/dist/types/client/v2/indexer/indexer";
 import {Network} from "../network";
 import {A_Genesis, A_Health, A_Status, A_VersionsCheck} from "../types";
 

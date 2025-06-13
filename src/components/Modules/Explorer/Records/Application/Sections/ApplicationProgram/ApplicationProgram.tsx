@@ -21,7 +21,7 @@ import {
 import { handleException } from "../../../../../../../redux/common/actions/exception";
 import { CodeBlock, tomorrowNightBright } from "react-code-blocks";
 import Copyable from "../../../../../../Common/Copyable/Copyable";
-// import account from "algosdk/dist/types/src/account";
+// import account from "algosdk/dist/types/account";
 import LinkToAccount from "../../../../Common/Links/LinkToAccount";
 import ApplicationLocalState from "../ApplicationLocalState/ApplicationLocalState";
 import { ElectricScooterTwoTone } from "@mui/icons-material";

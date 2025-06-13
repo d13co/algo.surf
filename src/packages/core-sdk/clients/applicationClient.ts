@@ -1,10 +1,10 @@
 import { Algodv2} from 'algosdk';
-import IndexerClient from "algosdk/dist/types/src/client/v2/indexer/indexer";
+import IndexerClient from "algosdk/dist/types/client/v2/indexer/indexer";
 import { A_Application, A_ApplicationResult, } from "../types";
 import {Network} from "../network";
 import axios from 'axios';
 import {A_TransactionsResponse} from "./transactionClient";
-import {CompileResponse} from "algosdk/dist/types/src/client/v2/algod/models/types";
+import {CompileResponse} from "algosdk/dist/types/client/v2/algod/models/types";
 
 export type A_ApplicationTransactionsResponse = A_TransactionsResponse;
 export type A_ApplicationsResponse = {

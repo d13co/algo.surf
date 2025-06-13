@@ -1,5 +1,5 @@
 import {Account, Kmd, secretKeyToMnemonic} from "algosdk";
-import {CustomTokenHeader, KMDTokenHeader} from "algosdk/dist/types/src/client/urlTokenBaseHTTPClient";
+import {CustomTokenHeader, KMDTokenHeader} from "algosdk/dist/types/client/urlTokenBaseHTTPClient";
 import * as sdk from "algosdk";
 import {KMDConnectionParams} from "../types";
 
