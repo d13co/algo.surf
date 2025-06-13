@@ -1,7 +1,7 @@
 import {A_Asset} from "../../../core-sdk/types";
 import {A_Arc69_Metadata, A_Arc_Validation} from "../../types";
 import {CoreAsset} from "../../../core-sdk/classes/core/CoreAsset";
-import IndexerClient from "algosdk/dist/types/src/client/v2/indexer/indexer";
+import IndexerClient from "algosdk/dist/types/client/v2/indexer/indexer";
 
 export class ARC69 {
     assetInstance: CoreAsset

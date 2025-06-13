@@ -28,7 +28,6 @@ import {hideLoader, showLoader} from "../../../../redux/common/actions/loader";
 import {TransactionClient} from "../../../../packages/core-sdk/clients/transactionClient";
 import {BaseTransaction} from "../../../../packages/core-sdk/transactions/baseTransaction";
 import {Edit, Error, ExpandMore, FileUploadOutlined} from "@mui/icons-material";
-import {CompileResponse} from "algosdk/dist/types/src/client/v2/algod/models/types";
 import {getFileContent} from "../../../../packages/core-sdk/utils/fileUtils";
 import {ApplicationClient} from "../../../../packages/core-sdk/clients/applicationClient";
 import {CoreTransaction} from "../../../../packages/core-sdk/classes/core/CoreTransaction";
@@ -39,7 +38,7 @@ import {A_AccountInformation, A_Asset, A_SearchTransaction} from "../../../../pa
 import {updateAppId} from "../../../../redux/abi/actions/abiStudio";
 import AppCallTxnReturnValue
     from "../../Explorer/Records/Transaction/Types/AppCallTransaction/Sections/AppCallTxnReturnValue/AppCallTxnReturnValue";
-
+import { CompileResponse } from 'algosdk/dist/types/client/v2/algod/models/types';
 
 const ShadedInput = styled(InputBase)<InputBaseProps>(({ theme }) => {
     return {

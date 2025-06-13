@@ -5,6 +5,17 @@ __metadata:
   version: 8
   cacheKey: 10c0
 
+"@algorandfoundation/algokit-utils@npm:7":
+  version: 7.1.0
+  resolution: "@algorandfoundation/algokit-utils@npm:7.1.0"
+  dependencies:
+    buffer: "npm:^6.0.3"
+  peerDependencies:
+    algosdk: ">=2.9.0 <3.0"
+  checksum: 10c0/f9b6556231444436d28565fbb5bf36d587952358d81dbc76c8f6f90c340e056ab328f5d361b9129d9121a18e94dcd12978fbe629525d464537baba7cb027d8fe
+  languageName: node
+  linkType: hard
+
 "@ampproject/remapping@npm:^2.1.0":
   version: 2.1.2
   resolution: "@ampproject/remapping@npm:2.1.2"
@@ -4637,6 +4648,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"abel-sdk@npm:^0.1.0":
+  version: 0.1.0
+  resolution: "abel-sdk@npm:0.1.0"
+  peerDependencies:
+    "@algorandfoundation/algokit-utils": ^7.0.2
+    algosdk: ^2.8.0
+    p-map: ^7.0.3
+  checksum: 10c0/01d560bbf7929f2306e9bf52aebbbbcdcc10c97ef5830556def838d2558282bb6f1d5d32c0e57c865d05bf6b88776a3c36ad1f4daf60816725ef09d7b5a20646
+  languageName: node
+  linkType: hard
+
 "accepts@npm:~1.3.4, accepts@npm:~1.3.5, accepts@npm:~1.3.8":
   version: 1.3.8
   resolution: "accepts@npm:1.3.8"
@@ -4839,6 +4861,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "algo-surf@workspace:."
   dependencies:
+    "@algorandfoundation/algokit-utils": "npm:7"
     "@craco/craco": "npm:^6.4.3"
     "@emotion/react": "npm:^11.9.0"
     "@emotion/styled": "npm:^11.8.1"
@@ -4859,7 +4882,8 @@ __metadata:
     "@types/react-dom": "npm:^17.0.9"
     "@types/react-transition-group": "npm:^4.4.5"
     "@types/sass-loader": "npm:^8.0.3"
-    algosdk: "npm:^1.23.1"
+    abel-sdk: "npm:^0.1.0"
+    algosdk: "npm:^2.11.0"
     atob: "npm:^2.1.2"
     axios: "npm:^0.27.2"
     buffer: "npm:^6.0.3"
@@ -4901,13 +4925,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"algosdk@npm:^1.23.1":
-  version: 1.23.1
-  resolution: "algosdk@npm:1.23.1"
+"algosdk@npm:^2.11.0":
+  version: 2.11.0
+  resolution: "algosdk@npm:2.11.0"
   dependencies:
     algo-msgpack-with-bigint: "npm:^2.1.1"
-    buffer: "npm:^6.0.2"
-    cross-fetch: "npm:^3.1.5"
+    buffer: "npm:^6.0.3"
     hi-base32: "npm:^0.5.1"
     js-sha256: "npm:^0.9.0"
     js-sha3: "npm:^0.8.0"
@@ -4915,7 +4938,7 @@ __metadata:
     json-bigint: "npm:^1.0.0"
     tweetnacl: "npm:^1.0.3"
     vlq: "npm:^2.0.4"
-  checksum: 10c0/e9020f511fa565c7a1ea6afba3222e386fb7e90fed1dd4daf9e604ee1512a1a5df6fbc75bbbd85f98a75ea49aa9166d0c89329fb2c14e637bd8f314772b54c19
+  checksum: 10c0/732c19c6c9a95e74d9e0b0efabb7fc7359a9e3e8c49a9c34ccdf4032f36bddd8494f5bb59c498d7905fbb7217e2c2ca4f9e4280133c4e49ba79f5d9fa02d36d4
   languageName: node
   linkType: hard
 
@@ -5797,7 +5820,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"buffer@npm:^6.0.2, buffer@npm:^6.0.3":
+"buffer@npm:^6.0.3":
   version: 6.0.3
   resolution: "buffer@npm:6.0.3"
   dependencies:

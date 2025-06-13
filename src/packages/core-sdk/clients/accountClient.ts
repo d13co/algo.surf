@@ -1,5 +1,5 @@
 import {Algodv2} from "algosdk";
-import IndexerClient from "algosdk/dist/types/src/client/v2/indexer/indexer";
+import IndexerClient from "algosdk/dist/types/client/v2/indexer/indexer";
 import {
     A_AccountInformation,
     A_SearchAccount
