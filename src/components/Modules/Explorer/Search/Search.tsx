@@ -151,6 +151,9 @@ function Search(props: SearchProps): JSX.Element {
                      if (length === 52 || length === 58) {
                          doSearch(ev.target.value);
                      }
+                     if (ev.target.value.endsWith(".algo")) {
+                        doSearch(ev.target.value.trim())
+                     }
                  }}
                  onKeyUp={(event) => {
                      if (event.key === 'Enter') {
