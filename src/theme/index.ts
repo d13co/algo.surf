@@ -159,5 +159,6 @@ export const theme = createTheme({
     }
 });
 
+export const nfdColor = "#f65624";
 
 export const shadedWarningClr = pSBC(-0.85, theme.palette.warning.main);

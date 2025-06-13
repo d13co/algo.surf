@@ -3467,6 +3467,45 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@tanstack/query-core@npm:5.80.7":
+  version: 5.80.7
+  resolution: "@tanstack/query-core@npm:5.80.7"
+  checksum: 10c0/bd96393e1a94aebc4d10da05e03de89ddce09d7266d0fcff2785480c544425d732f9fb03ecb93c96520980f57655f143452b9701f9bcb620cd07a04077018583
+  languageName: node
+  linkType: hard
+
+"@tanstack/query-persist-client-core@npm:5.80.7":
+  version: 5.80.7
+  resolution: "@tanstack/query-persist-client-core@npm:5.80.7"
+  dependencies:
+    "@tanstack/query-core": "npm:5.80.7"
+  checksum: 10c0/fb2d51a0d5d85d05b38b73504aa5de1320698b2e88819d579cba247e356faef1b6b1279fddce9ef5baf35ffd4bf6b3fec6e167a38709fed9e3a22aa96eacf6a2
+  languageName: node
+  linkType: hard
+
+"@tanstack/react-query-persist-client@npm:^5.80.7":
+  version: 5.80.7
+  resolution: "@tanstack/react-query-persist-client@npm:5.80.7"
+  dependencies:
+    "@tanstack/query-persist-client-core": "npm:5.80.7"
+  peerDependencies:
+    "@tanstack/react-query": ^5.80.7
+    react: ^18 || ^19
+  checksum: 10c0/5159256a9afb2aae46e336d5a38f2d1f89c5e5f384f731853575a5d8216165d60731348bac5857bd75233779a0efbfdafb80bca15dd5c6eecd92dce4c2d6e9f9
+  languageName: node
+  linkType: hard
+
+"@tanstack/react-query@npm:^5.80.7":
+  version: 5.80.7
+  resolution: "@tanstack/react-query@npm:5.80.7"
+  dependencies:
+    "@tanstack/query-core": "npm:5.80.7"
+  peerDependencies:
+    react: ^18 || ^19
+  checksum: 10c0/2d2fb8a7c60fe94c90f3345050673e217366e968fd28565a92bf4097a320c7c73bc6ecaa1b20ca70a705accbf8618a9888016c5a1813bb57fe86b6c824973a21
+  languageName: node
+  linkType: hard
+
 "@testing-library/dom@npm:^8.0.0":
   version: 8.13.0
   resolution: "@testing-library/dom@npm:8.13.0"
@@ -4634,6 +4673,22 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@yornaath/batshit-devtools@npm:^1.7.1":
+  version: 1.7.1
+  resolution: "@yornaath/batshit-devtools@npm:1.7.1"
+  checksum: 10c0/99702781cf1af69e52234578336e619215dcba1d9f2e716469f25a5554a21a3ebc6148c597e576de4dfa0e849f80d7e28b86c2699cdd3613392c6e2e51505a2a
+  languageName: node
+  linkType: hard
+
+"@yornaath/batshit@npm:^0.10.1":
+  version: 0.10.1
+  resolution: "@yornaath/batshit@npm:0.10.1"
+  dependencies:
+    "@yornaath/batshit-devtools": "npm:^1.7.1"
+  checksum: 10c0/4b74c08f464b8a2dce5b0f9183de2893f8ff31c8786eecfb7862db2c20a1197b52727c4b7452d715685be59b4cba85be13cee7e81316e52878c0c51e6a722fdf
+  languageName: node
+  linkType: hard
+
 "abab@npm:^2.0.3, abab@npm:^2.0.5":
   version: 2.0.5
   resolution: "abab@npm:2.0.5"
@@ -4872,6 +4927,8 @@ __metadata:
     "@perawallet/connect": "npm:^1.0.7"
     "@randlabs/myalgo-connect": "npm:^1.4.0"
     "@reduxjs/toolkit": "npm:^1.8.1"
+    "@tanstack/react-query": "npm:^5.80.7"
+    "@tanstack/react-query-persist-client": "npm:^5.80.7"
     "@testing-library/jest-dom": "npm:^5.14.1"
     "@testing-library/react": "npm:^12.0.0"
     "@testing-library/user-event": "npm:^13.2.1"
@@ -4882,6 +4939,7 @@ __metadata:
     "@types/react-dom": "npm:^17.0.9"
     "@types/react-transition-group": "npm:^4.4.5"
     "@types/sass-loader": "npm:^8.0.3"
+    "@yornaath/batshit": "npm:^0.10.1"
     abel-sdk: "npm:^0.1.0"
     algosdk: "npm:^2.11.0"
     atob: "npm:^2.1.2"
@@ -4894,6 +4952,7 @@ __metadata:
     dexie: "npm:^3.2.2"
     github-markdown-css: "npm:^5.1.0"
     humanize-duration: "npm:^3.27.3"
+    idb-keyval: "npm:^6.2.2"
     is-utf8: "npm:^0.2.1"
     js-sha512: "npm:^0.8.0"
     lodash: "npm:^4.17.21"
@@ -9208,6 +9267,13 @@ __metadata:
   peerDependencies:
     postcss: ^8.1.0
   checksum: 10c0/39c92936fabd23169c8611d2b5cc39e39d10b19b0d223352f20a7579f75b39d5f786114a6b8fc62bee8c5fed59ba9e0d38f7219a4db383e324fb3061664b043d
+  languageName: node
+  linkType: hard
+
+"idb-keyval@npm:^6.2.2":
+  version: 6.2.2
+  resolution: "idb-keyval@npm:6.2.2"
+  checksum: 10c0/b52f0d2937cc2ec9f1da536b0b5c0875af3043ca210714beaffead4ec1f44f2ad322220305fd024596203855224d9e3523aed83e971dfb62ddc21b5b1721aeef
   languageName: node
   linkType: hard
 

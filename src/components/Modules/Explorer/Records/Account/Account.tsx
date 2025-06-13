@@ -1,11 +1,12 @@
 import "./Account.scss";
-import React, { useRef, useCallback, useEffect } from "react";
+import React, { useRef, useCallback, useEffect, useMemo } from "react";
 import {
   matchPath,
   Outlet,
   useLocation,
   useNavigate,
   useParams,
+  useSearchParams,
 } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { loadAccount } from "../../../../../redux/explorer/actions/account";
@@ -25,6 +26,9 @@ import LinkToAccount from "../../Common/Links/LinkToAccount";
 import useTitle from "../../../../Common/UseTitle/UseTitle";
 import LinkToTransaction from "../../Common/Links/LinkToTransaction";
 import { loadValidator } from "../../../../../redux/explorer/actions/validator";
+import { useReverseNFD, useReverseNFDs } from "../../../../Common/UseNFD";
+import DymNFD from "../DymNFD";
+import { nfdColor } from "../../../../../theme";
 
 const network = process.env.REACT_APP_NETWORK;
 const isMainnet = network === "Mainnet";
@@ -38,10 +42,30 @@ function Account(): JSX.Element {
   const navigate = useNavigate();
   const params = useParams();
   const { address } = params;
+  const { data: nfd } = useReverseNFD(address);
 
   const account = useSelector((state: RootState) => state.account);
   const addressBook = useSelector((state: RootState) => state.addressBook);
   const validatorData = useSelector((state: RootState) => state.validator);
+
+  const [searchParams] = useSearchParams();
+  const altNFDQuery = searchParams.get("alt");
+  const altNFDAccounts = useMemo(() => {
+    if (nfd && altNFDQuery) {
+      return altNFDQuery.split(":");
+    } else {
+      return [];
+    }
+  }, [altNFDQuery, nfd]);
+
+  const { data: confirmAltNFDAccounts } = useReverseNFDs(altNFDAccounts);
+
+  const altNFDAccountsToShow = useMemo(() => {
+    if (!nfd || !confirmAltNFDAccounts) return;
+    return confirmAltNFDAccounts
+      .filter(([_, _nfd]) => nfd === _nfd)
+      .map(([addr]) => addr);
+  }, [nfd, confirmAltNFDAccounts]);
 
   const addressLabel = React.useMemo(
     () => addressBook.data[address],
@@ -68,7 +92,8 @@ function Account(): JSX.Element {
   const numControlledAccounts = account.controllingAccounts.accounts.length;
   const hasAssetOrAppInfo =
     hasOptedAssets || hasCreatedAssets || hasOptedApps || hasCreatedApps;
-  const hasValidatorData = validatorData.raw.proposals.length || validatorData.raw.suspensions.length;
+  const hasValidatorData =
+    validatorData.raw.proposals.length || validatorData.raw.suspensions.length;
 
   const tabsRef = useRef<HTMLDivElement>();
 
@@ -152,6 +177,10 @@ function Account(): JSX.Element {
           <CustomError />
         ) : (
           <div>
+            {nfd && altNFDAccountsToShow?.length ? (
+              <DymNFD nfd={nfd} accounts={altNFDAccountsToShow} />
+            ) : null}
+
             <div className="account-header">
               <div>Account overview</div>
               <div>
@@ -167,6 +196,12 @@ function Account(): JSX.Element {
               <LoadingTile></LoadingTile>
             ) : (
               <div className="account-body">
+                {!nfd ? null : (
+                  <div className="nfd">
+                    {nfd}
+                    <Copyable style={{ color: nfdColor }} value={nfd} />
+                  </div>
+                )}
                 <div className="address">
                   <div className="id">
                     <div className="long-id">{account.information.address}</div>{" "}
@@ -207,18 +242,18 @@ function Account(): JSX.Element {
                       </div>
                     ) : null}
                     {account.information.status === "Online" ? (
-                      <Tooltip style={{ position: "relative", top: '-2px' }} title={`Click to view validator information.`}>
-                        <Link
-                          href="#"
-                          onClick={scrollToValidator}
-                        >
+                      <Tooltip
+                        style={{ position: "relative", top: "-2px" }}
+                        title={`Click to view validator information.`}
+                      >
+                        <Link href="#" onClick={scrollToValidator}>
                           <Chip
                             color={"success"}
                             variant={"outlined"}
                             label="Validator"
                             size={"small"}
                             className="hover-cursor-pointer"
-                            style={{paddingTop: '2px'}}
+                            style={{ paddingTop: "2px" }}
                           ></Chip>
                         </Link>
                       </Tooltip>
@@ -460,7 +495,7 @@ function Account(): JSX.Element {
                       label="Transactions"
                       value="transactions"
                       onClick={() => {
-                        navigate("/account/" + address );
+                        navigate("/account/" + address);
                       }}
                     />
                     {account.optedAssets.length ? (

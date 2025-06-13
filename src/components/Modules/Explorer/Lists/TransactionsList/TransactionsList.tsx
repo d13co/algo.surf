@@ -33,6 +33,9 @@ import { Alert } from "@mui/lab";
 import AssetBalance from "../../Common/AssetBalance/AssetBalance";
 import Copyable from "../../../../Common/Copyable/Copyable";
 import RekeyIcon from "./RekeyIcon";
+import { useRecordHotkeys } from "react-hotkeys-hook";
+import { useReverseNFD, useReverseNFDs } from "../../../../Common/UseNFD";
+import { DisplayAccount } from "../../../../Common/DisplayAccount";
 
 interface TransactionsListProps {
   transactions: A_SearchTransaction[];
@@ -188,7 +191,7 @@ function TransactionsList({
               </>
             ) : (
               <>
-                {from}
+                <DisplayAccount address={from} />
                 {secondFrom}
               </>
             )}
@@ -228,7 +231,7 @@ function TransactionsList({
                 {showLink ? (
                   <LinkToAccount copySize="s" address={to}></LinkToAccount>
                 ) : (
-                  to
+                  <DisplayAccount address={to} />
                 )}
               </span>
             ) : (

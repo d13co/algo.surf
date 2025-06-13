@@ -1,6 +1,6 @@
 @import "src/assets/colors";
 
-.dym {
+.dym, .dymnfd {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -12,4 +12,25 @@
   font-style: italic;
   border-left-width: 2px;
   border-left-style: solid;
+}
+
+.dymnfd {
+  font-style: normal;
+  a {
+    color: $color-nfd;
+    text-decoration-color: $color-nfd;
+  }
+  .padbottom {
+    margin-bottom: 4px;
+  }
+  .grey {
+    color: $color-grey;
+  }
+  .nfd {
+        color: $color-nfd;
+    text-decoration-color: $color-nfd;
+  }
+  .acct {
+    white-space: nowrap;
+  }
 }
