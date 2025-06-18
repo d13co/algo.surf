@@ -1,0 +1,11 @@
+@import "src/assets/colors";
+
+.transaction-rekey-wrapper {
+  .transaction-rekey-container {
+    .key {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }    
+  }
+}

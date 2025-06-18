@@ -31,6 +31,7 @@ import AssetFreezeTransaction from "./Types/AssetFreezeTransaction/AssetFreezeTr
 import StateProofTransaction from "./Types/StateProofTransaction/StateProofTransaction";
 import Copyable from '../../../../Common/Copyable/Copyable';
 import useTitle from "../../../../Common/UseTitle/UseTitle";
+import TransactionRekey from './Sections/TransactionRekey/TransactionRekey';
 
 const network = process.env.REACT_APP_NETWORK;
 
@@ -169,6 +170,7 @@ function Transaction(): JSX.Element {
                     {txnInstance.getType() === TXN_TYPES.STATE_PROOF ? <StateProofTransaction transaction={txnObj}></StateProofTransaction> : ''}
                     {txnInstance.getType() === TXN_TYPES.HEARTBEAT ? <HeartbeatTransaction transaction={txnObj}></HeartbeatTransaction> : ''}
 
+                    <TransactionRekey transaction={txnObj}></TransactionRekey>
                     <TransactionNote transaction={txnObj}></TransactionNote>
                     <TransactionMultiSig transaction={txnObj}></TransactionMultiSig>
                     <TransactionLogicSig transaction={txnObj}></TransactionLogicSig>

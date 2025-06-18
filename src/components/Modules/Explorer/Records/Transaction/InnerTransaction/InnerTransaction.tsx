@@ -16,6 +16,7 @@ import TransactionAdditionalDetails from "../Sections/TransactionAdditionalDetai
 import TransactionNote from "../Sections/TransactionNotes/TransactionNote";
 import {microalgosToAlgos,shadedClr} from "../../../../../../utils/common";
 import JsonViewer from "../../../../../Common/JsonViewer/JsonViewer";
+import TransactionRekey from '../Sections/TransactionRekey/TransactionRekey';
 
 
 function InnerTransaction(props): JSX.Element {
@@ -92,7 +93,7 @@ function InnerTransaction(props): JSX.Element {
                 {txnInstance.getType() === TXN_TYPES.KEY_REGISTRATION ? <KeyRegTransaction transaction={txnObj}></KeyRegTransaction> : ''}
                 {txnInstance.getType() === TXN_TYPES.APP_CALL ? <AppCallTransaction transaction={txnObj}></AppCallTransaction> : ''}
 
-
+                <TransactionRekey transaction={txnObj}></TransactionRekey>
                 <TransactionNote transaction={txnObj}></TransactionNote>
                 <TransactionAdditionalDetails transaction={txnObj}></TransactionAdditionalDetails>
             </div>
