@@ -210,10 +210,12 @@ function TransactionsList({
         const txnInstance = new CoreTransaction(params.row);
 
         const to = txnInstance.getTo();
+        const closeTo = txnInstance.getCloseTo();
         const type = txnInstance.getType();
         const appId = txnInstance.getAppId();
 
         let showLink = true;
+        let showCloseLink = true;
         let showArrow = false;
         let inTxn = false;
         if (record === "account") {
@@ -222,18 +224,38 @@ function TransactionsList({
             showLink = false;
             inTxn = true;
           }
+          if (recordId === closeTo) {
+            showCloseLink = false;
+            inTxn = true;
+          }
         }
 
         return (
           <div className="cell-content">
             {type === TXN_TYPES.PAYMENT || type === TXN_TYPES.ASSET_TRANSFER ? (
-              <span>
-                {showLink ? (
-                  <LinkToAccount copySize="s" address={to}></LinkToAccount>
-                ) : (
-                  <DisplayAccount address={to} />
-                )}
-              </span>
+              <>
+                <div className="cell-content-flex-col">
+                  <span>
+                    {showLink ? (
+                      <LinkToAccount copySize="s" address={to}></LinkToAccount>
+                    ) : (
+                      <DisplayAccount address={to} />
+                    )}
+                  </span>
+                  {closeTo ? (
+                    <span>
+                      {showCloseLink ? (
+                        <LinkToAccount
+                          copySize="s"
+                          address={closeTo}
+                        ></LinkToAccount>
+                      ) : (
+                        <DisplayAccount address={closeTo} />
+                      )}
+                    </span>
+                  ) : null}
+                </div>
+              </>
             ) : (
               ""
             )}
@@ -262,6 +284,8 @@ function TransactionsList({
       renderCell: (params: GridValueGetterParams) => {
         const txnInstance = new CoreTransaction(params.row);
         const amount = txnInstance.getAmount();
+        const closeTo = !!txnInstance.getCloseTo();
+        const closeAmount = txnInstance.getCloseAmount();
         const type = txnInstance.getType();
 
         return (
@@ -275,6 +299,18 @@ function TransactionsList({
                   thousandSeparator={true}
                   style={{ marginLeft: 5 }}
                 ></NumberFormat>
+                {closeTo ? (
+                  <>
+                    <br />
+                    <AlgoIcon width={10}></AlgoIcon>
+                    <NumberFormat
+                      value={microalgosToAlgos(closeAmount)}
+                      displayType={"text"}
+                      thousandSeparator={true}
+                      style={{ marginLeft: 5 }}
+                    ></NumberFormat>
+                  </>
+                ) : null}
               </div>
             ) : (
               ""
@@ -295,6 +331,21 @@ function TransactionsList({
                     balance={amount}
                   ></AssetBalance>
                 )}
+                {closeTo ? (
+                  record === "asset" ? (
+                    <AssetBalance
+                      by="asset"
+                      assetDef={recordDef}
+                      id={txnInstance.getAssetId()}
+                      balance={closeAmount}
+                    ></AssetBalance>
+                  ) : (
+                    <AssetBalance
+                      id={txnInstance.getAssetId()}
+                      balance={closeAmount}
+                    ></AssetBalance>
+                  )
+                ) : null}
               </div>
             ) : (
               ""
@@ -332,8 +383,21 @@ function TransactionsList({
       field: "type",
       headerName: "Type",
       renderCell: (params: GridValueGetterParams) => {
-        const type = new CoreTransaction(params.row).getTypeDisplayValue();
-        return <div className="cell-content">{type}</div>;
+        const txn = new CoreTransaction(params.row);
+        const type = txn.getTypeDisplayValue();
+        const closeTo = txn.getCloseTo();
+        return (
+          <div className="cell-content">
+            {closeTo ? (
+              <div className="cell-content-flex-col">
+                {type}
+                <span>Close</span>
+              </div>
+            ) : (
+              type
+            )}
+          </div>
+        );
       },
     });
   }

@@ -20,6 +20,10 @@
       .cell-content {
         display: flex;
         align-items: center;
+        .cell-content-flex-col {
+          display: flex;
+          flex-direction: column;
+        }
         .dot-separator {
           margin-left: 3px;
           margin-right: 1px;

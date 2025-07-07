@@ -288,10 +288,9 @@ export class CoreTransaction {
                 const pk = subSig["public-key"];
                 const signed = !!subSig["signature"];
                 const buf = Buffer.from(pk, "base64");
-                addresses.push([encodeAddress(buf), signed]);
+                addresses.push([encodeAddress(new Uint8Array(buf)), signed]);
             });
         }
-
         return addresses;
     }
 
