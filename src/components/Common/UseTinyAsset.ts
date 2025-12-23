@@ -2,6 +2,7 @@ import { UseQueryResult, useQuery } from "@tanstack/react-query";
 import { queryClient } from "../../db/query-client";
 import { abel, abelTinyToAssetTiny } from "../../packages/abel/abel";
 import { A_AssetTiny } from "../../packages/core-sdk/types";
+import AssetCache from "./AssetCache";
 
 export function useTinyAsset(
   assetId: number
@@ -9,11 +10,25 @@ export function useTinyAsset(
   return useQuery({
     queryKey: ["tiny-asset", assetId],
     queryFn: async () => {
+      // Try IndexedDB cache first (ignore cache errors)
+      let cached: A_AssetTiny | null = null;
+      try {
+        cached = await AssetCache.getByIndex(assetId);
+      } catch {
+        // ignore cache failures
+      }
+      if (cached) return cached;
+
+      // Fallback to ABEL and persist
       const abelData = await abel.getAssetsTiny([BigInt(assetId)]);
-      return abelTinyToAssetTiny(abelData.get(BigInt(assetId)));
+      const tiny = abelTinyToAssetTiny(abelData.get(BigInt(assetId)));
+      if (tiny) {
+        // Persist to IndexedDB asynchronously (ignore errors)
+        void AssetCache.insertOne(tiny).catch(() => {});
+      }
+      return tiny ?? null;
     },
     staleTime: Infinity,
-    gcTime: Infinity,
   });
 }
 
@@ -25,38 +40,46 @@ export function useTinyAssets(
     queryFn: async () => {
       if (assetIds.length === 0) return [];
 
-      const cached = assetIds.map((id) =>
-        queryClient.getQueryData<A_AssetTiny>(["tiny-asset", id])
-      );
-      const missingIds = assetIds.filter((id, index) => !cached[index]);
-      if (missingIds.length === 0) return cached as A_AssetTiny[];
-
-      const timeLabel = `Fetching ${missingIds.length} tiny assets from ABEL`;
-      console.time(timeLabel);
-      const abelData = await abel.getAssetsTiny(
-        missingIds.map((id) => BigInt(id))
-      );
-      console.timeEnd(timeLabel);
-
-      if (abelData.size < 1000) {
-        // caching only if less than 1000 assets to avoid flooding the cache and blocking thread
-        for (const abelTiny of abelData.values()) {
-          queryClient.setQueryData<A_AssetTiny>(
-            ["tiny-asset", Number(abelTiny.id)],
-            abelTinyToAssetTiny(abelTiny)
-          );
-        }
+      // First, hydrate from IndexedDB cache (ignore cache errors)
+      let cachedMap: Map<number, A_AssetTiny> = new Map();
+      try {
+        cachedMap = await AssetCache.getByIndices(assetIds);
+      } catch {
+        // ignore cache failures
       }
 
-      return assetIds.map((id) => {
-        if (abelData.has(BigInt(id))) {
-          return abelTinyToAssetTiny(abelData.get(BigInt(id)));
-        } else {
-          return cached.find((c) => c?.index === id)!;
-        }
-      });
+      const missingIds = assetIds.filter((id) => !cachedMap.has(id));
+      if (missingIds.length === 0) {
+        // Return in requested order
+        return assetIds.map((id) => cachedMap.get(id)!) as A_AssetTiny[];
+      }
+
+      // Fetch missing from ABEL
+      const timeLabel = `Fetching ${missingIds.length} tiny assets from ABEL`;
+      console.time(timeLabel);
+      const abelData = await abel.getAssetsTiny(missingIds.map((id) => BigInt(id)));
+      console.timeEnd(timeLabel);
+
+      // Convert and persist missing
+      const fetchedList: A_AssetTiny[] = missingIds
+        .map((id) => abelData.get(BigInt(id)))
+        .filter((v) => !!v)
+        .map((v) => abelTinyToAssetTiny(v!));
+
+      if (fetchedList.length) {
+        // Persist asynchronously
+        setTimeout(() => {
+          void AssetCache.insertMany(fetchedList).catch(() => {});
+        }, 1000);
+        // Update local map
+        for (const a of fetchedList) cachedMap.set(a.index, a);
+      }
+
+      // Assemble in requested order
+      return assetIds
+        .map((id) => cachedMap.get(id))
+        .filter((a): a is A_AssetTiny => !!a);
     },
     staleTime: Infinity,
-    gcTime: Infinity,
   });
 }

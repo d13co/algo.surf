@@ -163,7 +163,6 @@ function AssetsList({
         let isFrozen = false;
         let unitName = "";
         let displayAmount = 0;
-        const assetInstance = new CoreAsset(params.row);
         if ("amount" in params.row) {
           isFrozen = params.row.frozen;
           unitName = params.row["params"]["unit-name"] || "";
