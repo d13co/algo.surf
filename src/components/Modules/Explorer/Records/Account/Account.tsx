@@ -213,7 +213,7 @@ function Account(): JSX.Element {
               <div className="account-body">
                 {!nfd ? null : (
                   <div className="nfd">
-                    {nfd}
+                    <a href={`https://app.nf.domains/name/${nfd}`} target="_blank" rel="noopener noreferrer">{nfd}</a>
                     <Copyable style={{ color: nfdColor }} value={nfd} />
                   </div>
                 )}
