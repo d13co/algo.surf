@@ -28,6 +28,20 @@ export interface A_AppsTotalSchema {
     "num-uint": number
 }
 
+export interface A_AssetTiny {
+    index: number
+    params: {
+        decimals: number
+        name: string
+        "unit-name": string
+    }
+}
+
+export interface A_AssetHoldingTiny extends A_AssetTiny {
+    amount: number
+    frozen: boolean
+}
+
 export interface A_AssetHolding {
     amount: number
     "asset-id": number

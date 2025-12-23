@@ -4703,14 +4703,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"abel-sdk@npm:^0.1.0":
-  version: 0.1.0
-  resolution: "abel-sdk@npm:0.1.0"
+"abel-sdk@npm:^0.1.6":
+  version: 0.1.6
+  resolution: "abel-sdk@npm:0.1.6"
   peerDependencies:
     "@algorandfoundation/algokit-utils": ^7.0.2
     algosdk: ^2.8.0
     p-map: ^7.0.3
-  checksum: 10c0/01d560bbf7929f2306e9bf52aebbbbcdcc10c97ef5830556def838d2558282bb6f1d5d32c0e57c865d05bf6b88776a3c36ad1f4daf60816725ef09d7b5a20646
+  checksum: 10c0/ef075dfb485bda71fef66e28c16a5df28694ea754051e5a2f3399e44b6c716b0f4eb84add1a8df64826d26cafd8b1463eca5e2905191740649e41c47ca7c1497
   languageName: node
   linkType: hard
 
@@ -4940,7 +4940,7 @@ __metadata:
     "@types/react-transition-group": "npm:^4.4.5"
     "@types/sass-loader": "npm:^8.0.3"
     "@yornaath/batshit": "npm:^0.10.1"
-    abel-sdk: "npm:^0.1.0"
+    abel-sdk: "npm:^0.1.6"
     algosdk: "npm:^2.11.0"
     atob: "npm:^2.1.2"
     axios: "npm:^0.27.2"

@@ -2,9 +2,23 @@
 
 .account-assets-wrapper {
   .account-assets-container {
+    display: flex;
+    flex-direction: column;
+    .asset-search-container {
+      margin-top: 10px;
+      margin-left: 16px;
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      color: $color-grey;
+      align-items: center;
+      align-self: stretch;
+      font-size: 0.875rem;
+    }
     .account-assets-body {
+      align-self: stretch;
       .assets-list-body {
-        margin-top: 20px;
+        margin-top: 10px;
       }
       .copy-content {
         font-size: 16px;

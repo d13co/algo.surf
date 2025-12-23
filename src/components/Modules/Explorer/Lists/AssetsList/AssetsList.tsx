@@ -1,5 +1,4 @@
 import "./AssetsList.scss";
-import { useDispatch } from "react-redux";
 import { CircularProgress, Pagination, Tooltip } from "@mui/material";
 import {
   DataGrid,
@@ -22,15 +21,16 @@ import CustomNoRowsOverlay from "../../Common/CustomNoRowsOverlay/CustomNoRowsOv
 import {
   A_AccountInformation,
   A_Asset,
+  A_AssetHoldingTiny,
+  A_AssetTiny,
 } from "../../../../../packages/core-sdk/types";
 import { CoreAccount } from "../../../../../packages/core-sdk/classes/core/CoreAccount";
 import NumberFormat from "react-number-format";
 import Copyable from "../../../../Common/Copyable/Copyable";
 import { ThermometerSnowflake } from "lucide-react";
-import assets from "../../../../../redux/explorer/actions/assets";
 
 interface AssetsListProps {
-  assets: A_Asset[];
+  assets: A_Asset[] | A_AssetHoldingTiny[] | A_AssetTiny[];
   loading?: boolean;
   reachedLastPage?: Function;
   fields?: string[];
@@ -41,11 +41,9 @@ function AssetsList({
   assets = [],
   loading = false,
   accountInfo,
-  fields = ["name", "index", "uint", "url", "creator"],
+  fields = ["name", "index", "unit", "url", "creator"],
   reachedLastPage = () => {},
 }: AssetsListProps): JSX.Element {
-  const dispatch = useDispatch();
-
   function CustomPagination({ loading }) {
     const apiRef = useGridApiContext();
     const page = useGridSelector(apiRef, gridPageSelector);
@@ -108,7 +106,7 @@ function AssetsList({
         );
       },
     },
-    uint: {
+    unit: {
       ...dataGridCellConfig,
       field: "unit",
       headerName: "Unit",
@@ -162,22 +160,39 @@ function AssetsList({
       field: "balance",
       headerName: "Balance",
       renderCell: (params: GridValueGetterParams) => {
-        const accountInstance = new CoreAccount(accountInfo);
-        const holding = accountInstance.getHoldingAsset(params.row.index);
+        let isFrozen = false;
+        let unitName = "";
+        let displayAmount = 0;
         const assetInstance = new CoreAsset(params.row);
-        const isFrozen = holding && holding["is-frozen"];
+        if ("amount" in params.row) {
+          isFrozen = params.row.frozen;
+          unitName = params.row["params"]["unit-name"] || "";
+          displayAmount =
+            params.row.amount / 10 ** (params.row["params"].decimals || 0);
+        } else {
+          const accountInstance = new CoreAccount(accountInfo);
+          const holding = accountInstance.getHoldingAsset(params.row.index);
+          const assetInstance = new CoreAsset(params.row);
+          displayAmount = assetInstance.getAmountInDecimals(
+            holding?.amount || 0
+          );
+          isFrozen = holding && holding["is-frozen"];
+        }
         const className = isFrozen ? "balance-cell" : "";
         return (
-          <Tooltip open={isFrozen ? undefined : false } title="This asset is frozen for this account">
+          <Tooltip
+            open={isFrozen ? undefined : false}
+            title="This asset is frozen for this account"
+          >
             <div className={className}>
               {isFrozen ? <ThermometerSnowflake size={16} /> : null}
               <span>
                 <NumberFormat
-                  value={holding?.amount ? assetInstance.getAmountInDecimals(holding?.amount) : 0}
+                  value={displayAmount}
                   displayType={"text"}
                   thousandSeparator={true}
                 ></NumberFormat>{" "}
-                {assetInstance.getUnitName()}
+                {unitName}
               </span>
             </div>
           </Tooltip>

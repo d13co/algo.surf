@@ -29,9 +29,11 @@ import { loadValidator } from "../../../../../redux/explorer/actions/validator";
 import { useReverseNFD, useReverseNFDs } from "../../../../Common/UseNFD";
 import DymNFD from "../DymNFD";
 import { nfdColor } from "../../../../../theme";
+import { useTinyAssets } from "../../../../Common/UseTinyAsset";
 
 const network = process.env.REACT_APP_NETWORK;
 const isMainnet = network === "Mainnet";
+const tinymanAppEscrow = "XSKED5VKZZCSYNDWXZJI65JM2HP7HZFJWCOBIMOONKHTK5UVKENBNVDEYM"
 
 function plural(num: number): string {
   return num !== 1 ? "s" : "";
@@ -71,22 +73,35 @@ function Account(): JSX.Element {
     () => addressBook.data[address],
     [address, addressBook.data]
   );
+
+  const assetIdsToLookup = useMemo(() => {
+    if (account.information["auth-addr"] === tinymanAppEscrow) {
+      return account.information.assets.map((a) => a["asset-id"]);
+    } else {
+      return [];
+    }
+  }, [account.information]);
+
+  const optedAssets = useTinyAssets(
+    assetIdsToLookup
+  ).data;
+
   const tinymanPool = React.useMemo(() => {
     const { "auth-addr": auth } = account.information;
-    if (auth !== "XSKED5VKZZCSYNDWXZJI65JM2HP7HZFJWCOBIMOONKHTK5UVKENBNVDEYM") {
+    if (auth !== tinymanAppEscrow) {
       return false;
     }
-    const type = (account.optedAssets ?? []).find(
+    const type = (optedAssets ?? []).find(
       ({ params: { "unit-name": u } }) => u === "TMPOOL2"
     );
     return type ? type.params.name.replace("TinymanPool2.0 ", "") : false;
-  }, [address, account?.optedAssets, account.information]);
+  }, [address, optedAssets, account.information]);
 
   let tabValue = "transactions";
   const { pathname } = useLocation();
 
-  const hasOptedAssets = account.optedAssets.length;
-  const hasCreatedAssets = account.createdAssets.length;
+  const hasOptedAssets = account.information.assets.length;
+  const hasCreatedAssets = account.information["created-assets"].length;
   const hasOptedApps = account.optedApplications.length;
   const hasCreatedApps = account.createdApplications.length;
   const numControlledAccounts = account.controllingAccounts.accounts.length;
@@ -447,7 +462,7 @@ function Account(): JSX.Element {
                           <div className="property">
                             <div className="key">Holding assets</div>
                             <div className="value padded">
-                              {account.optedAssets.length}
+                              {account.information.assets?.length}
                             </div>
                           </div>
                         ) : null}
@@ -456,7 +471,7 @@ function Account(): JSX.Element {
                           <div className="property">
                             <div className="key">Created assets</div>
                             <div className="value padded">
-                              {account.createdAssets.length}
+                              {account.information["created-assets"].length}
                             </div>
                           </div>
                         ) : null}
@@ -498,7 +513,7 @@ function Account(): JSX.Element {
                         navigate("/account/" + address);
                       }}
                     />
-                    {account.optedAssets.length ? (
+                    {account.information.assets?.length ? (
                       <Tab
                         label="Assets"
                         value="assets"
@@ -507,7 +522,7 @@ function Account(): JSX.Element {
                         }}
                       />
                     ) : null}
-                    {account.createdAssets.length ? (
+                    {account.information["created-assets"].length ? (
                       <Tab
                         label="Created assets"
                         value="created-assets"
