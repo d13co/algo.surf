@@ -22,6 +22,7 @@ algorand.getSuggestedParams();
 
 export const abel = new AbelSDK({
   algorand,
+  concurrency: 6,
   appId: BigInt(2914159523),
 });
 
