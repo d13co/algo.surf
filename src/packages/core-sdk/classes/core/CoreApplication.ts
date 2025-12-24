@@ -55,31 +55,54 @@ export class CoreApplication {
     }
 
     getCreator(): string {
-        return this.application.params.creator;
+        const creator = this.application.params.creator;
+        console.log('[CoreApplication.getCreator] application.params.creator:', creator, 'type:', typeof creator);
+        
+        // Handle null/undefined or already a string
+        if (!creator || typeof creator === 'string') {
+            return creator || '';
+        }
+        
+        // If creator is an Address object, convert it to string
+        // Type assertion needed because the type says string but runtime value might be Address
+        const creatorObj = creator as any;
+        if (creatorObj && typeof creatorObj === 'object') {
+            if ('publicKey' in creatorObj && creatorObj.publicKey instanceof Uint8Array) {
+                console.log('[CoreApplication.getCreator] Converting Address object to string');
+                return encodeAddress(creatorObj.publicKey as Uint8Array);
+            }
+            // Use toString() method if available
+            if (typeof creatorObj.toString === 'function') {
+                console.log('[CoreApplication.getCreator] Using toString() method');
+                return creatorObj.toString();
+            }
+            console.error('[CoreApplication.getCreator] WARNING: creator is an unknown object type!', creatorObj);
+        }
+        return '';
     }
 
     getApprovalProgram(): string {
-        return this.application.params["approval-program"];
+        return this.application.params["approval-program"] || "";
     }
 
     getClearProgram(): string {
-        return this.application.params["clear-state-program"];
+        return this.application.params["clear-state-program"] || "";
     }
 
     getGlobalSchemaByte(): number {
-        return this.application.params["global-state-schema"]["num-byte-slice"];
+        return this.application.params["global-state-schema"]?.["num-byte-slice"] ?? 0;
     }
 
     getGlobalSchemaUint(): number {
-        return this.application.params["global-state-schema"]["num-uint"];
+        return this.application.params["global-state-schema"]?.["num-uint"] ?? 0;
     }
 
     getLocalSchemaByte(): number {
-        return this.application.params["local-state-schema"]["num-byte-slice"];
+        return this.application.params["local-state-schema"]?.["num-byte-slice"] ?? 0;
     }
 
     getLocalSchemaUint(): number {
-        return this.application.params["local-state-schema"]["num-uint"];
+        return this.application.params["local-state-schema"]?.["num-uint"] ?? 0;
     }
 
     getGlobalStorage(): A_GlobalState[] {
@@ -141,6 +164,23 @@ export class CoreApplication {
     }
 
     getApplicationAddress(): string {
-        return getApplicationAddress(this.getId()) as unknown as string;
+        const addr = getApplicationAddress(this.getId());
+        console.log('[CoreApplication.getApplicationAddress] Raw address:', addr, 'type:', typeof addr);
+        // In algosdk v3, getApplicationAddress returns an Address object, not a string
+        if (addr && typeof addr === 'object') {
+            if ('publicKey' in addr) {
+                const result = encodeAddress(addr.publicKey as Uint8Array);
+                console.log('[CoreApplication.getApplicationAddress] Converted to string:', result);
+                return result;
+            }
+            // Use toString() method if available
+            if (typeof (addr as any).toString === 'function') {
+                const result = (addr as any).toString();
+                console.log('[CoreApplication.getApplicationAddress] Converted using toString():', result);
+                return result;
+            }
+        }
+        console.log('[CoreApplication.getApplicationAddress] Already a string:', addr);
+        return addr as unknown as string;
     }
 }

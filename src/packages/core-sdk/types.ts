@@ -170,6 +170,7 @@ export interface A_SearchTransaction{
     "genesis-id": string
     id: string
     group?: string
+    "rekey-to"?: string
     "inner-txns"?: A_SearchTransactionInner[]
     "created-application-index"?: number
     "created-asset-index"?: number
@@ -179,6 +180,7 @@ export interface A_SearchTransaction{
     "payment-transaction"?: A_SearchTransaction_Payment_Payload,
     "asset-config-transaction"?: A_Asset,
     "keyreg-transaction"?: A_SearchTransaction_KeyReg_Payload,
+    "heartbeat-transaction"?: A_SearchTransaction_Heartbeat_Payload,
     "state-proof-transaction"?: A_SearchTransaction_State_Proof_Payload
     "global-state-delta"?: A_GlobalStateDelta[],
     "local-state-delta"?: A_LocalStateDelta[]

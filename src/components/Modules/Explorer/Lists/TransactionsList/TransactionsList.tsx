@@ -171,7 +171,7 @@ function TransactionsList({
               <LinkToAccount
                 copySize="s"
                 copy="none"
-                address={params.row["heartbeat-transaction"]["hb-address"]}
+                address={params.row["heartbeat-transaction"]?.["hb-address"] || ""}
               ></LinkToAccount>
             </>
           );

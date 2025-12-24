@@ -61,8 +61,13 @@ function Asset(): JSX.Element {
     (async() => {
         setPv(false)
         if (network !== "Mainnet") return false;
-        const labels = await abel.getAssetLabels(BigInt(id))
-        return setPv(labels.includes("pv"))
+        try {
+          const labels = await abel.getAssetLabels(BigInt(id))
+          return setPv(labels.includes("pv"))
+        } catch (e) {
+          console.warn("Failed to fetch asset labels:", e);
+          return setPv(false);
+        }
     })()
   }, [id])
   

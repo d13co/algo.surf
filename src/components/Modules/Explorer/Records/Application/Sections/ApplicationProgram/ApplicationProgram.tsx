@@ -61,6 +61,7 @@ function ApplicationProgram(props: {
   id: number;
 }): JSX.Element {
   const { name, program, id } = props;
+  console.log({ program })
   const dispatch = useDispatch();
 
   const [{ encoding, prg }, setState] = useState({
@@ -98,6 +99,7 @@ function ApplicationProgram(props: {
     false
   );
   const wordCloud: Array<WordCount> = useMemo(() => {
+    if (!prg) return [];
     const words: Record<string, number> = {};
     const strRegex = /\/\/ "([^"]+)"/g;
     const addrRegex = /\/\/ addr ([A-Z2-7]{58})/g;

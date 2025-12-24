@@ -44,6 +44,14 @@ export class BlockClient {
         if (typeof respUnknown === 'object' && respUnknown !== null && 'proposer' in respUnknown) {
             const p = (respUnknown as { proposer?: unknown }).proposer;
             if (typeof p === 'string') return p;
+            if (p && typeof p === 'object') {
+                if ('publicKey' in p && (p as any).publicKey instanceof Uint8Array) {
+                    return encodeAddress((p as any).publicKey as Uint8Array);
+                }
+                if (typeof (p as any).toString === 'function') {
+                    return (p as any).toString();
+                }
+            }
             if (p != null) return String(p);
         }
         return "";

@@ -112,7 +112,11 @@ export default function MultiFormatViewer(props: MultiFormatViewerProps): JSX.El
                 setDisplayValue(`${prefix} ${address}`);
             }
         } else if (view === 'utf8') {
-            setDisplayValue(atob(value));
+            try {
+                setDisplayValue(atob(value));
+            } catch (e) {
+                setDisplayValue(Buffer.from(value, 'base64').toString('utf8'));
+            }
         } else if (view === 'num') {
             setDisplayValue(String(
                 parseInt(Buffer.from(value, 'base64').toString('hex'), 16)

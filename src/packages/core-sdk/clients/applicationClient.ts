@@ -26,8 +26,13 @@ export class ApplicationClient{
     }
 
     async get(id: number): Promise<A_Application>{
+        console.log('[ApplicationClient.get] Fetching application', id);
         const app = await this.client.getApplicationByID(id).do();
-        return toA_Application(app);
+        console.log('[ApplicationClient.get] Raw response from algod:', app);
+        console.log('[ApplicationClient.get] Raw params.creator:', app?.params?.creator);
+        const result = toA_Application(app);
+        console.log('[ApplicationClient.get] After toA_Application, result.params.creator:', result.params.creator);
+        return result;
     }
 
     async search(id: number): Promise<A_ApplicationResult | null>{

@@ -20,11 +20,33 @@ import {
   A_Genesis,
   A_Health,
 } from "../types";
+import { Buffer } from "buffer";
+import { encodeAddress } from "algosdk";
 
 type JsonObject = Record<string, unknown>;
 
 function isObject(value: unknown): value is JsonObject {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function toNumber(v: unknown): number {
+  if (typeof v === "number") return v;
+  if (typeof v === "bigint") return Number(v);
+  return 0;
+}
+
+function toString(v: unknown): string {
+  if (typeof v === "string") return v;
+  if (v instanceof Uint8Array) return Buffer.from(v).toString("base64");
+  if (isObject(v) && "publicKey" in v && v.publicKey instanceof Uint8Array) {
+    // Handle Address type from algosdk v3
+    return encodeAddress(v.publicKey as Uint8Array);
+  }
+  // Handle Address objects with toString method
+  if (v && typeof v === "object" && typeof (v as any).toString === "function" && "publicKey" in v) {
+    return (v as any).toString();
+  }
+  return "";
 }
 
 function getNumber(obj: JsonObject, keys: string[], fallback = 0): number {
@@ -40,6 +62,14 @@ function getString(obj: JsonObject, keys: string[], fallback = ""): string {
   for (const k of keys) {
     const v = obj[k];
     if (typeof v === "string") return v;
+    if (v instanceof Uint8Array) return Buffer.from(v).toString("base64");
+    if (isObject(v) && "publicKey" in v && v.publicKey instanceof Uint8Array) {
+      return encodeAddress(v.publicKey as Uint8Array);
+    }
+    // Handle Address objects with toString method
+    if (v && typeof v === "object" && typeof (v as any).toString === "function" && "publicKey" in v) {
+      return (v as any).toString();
+    }
   }
   return fallback;
 }
@@ -58,6 +88,29 @@ function getArray(obj: JsonObject, keys: string[]): unknown[] {
     if (Array.isArray(v)) return v;
   }
   return [];
+}
+
+function serializeValue(v: unknown): unknown {
+  if (typeof v === "bigint") return Number(v);
+  if (v instanceof Uint8Array) return Buffer.from(v).toString("base64");
+  if (isObject(v)) {
+    if ("publicKey" in v && v.publicKey instanceof Uint8Array) {
+      return encodeAddress(v.publicKey as Uint8Array);
+    }
+    // Handle Address objects with toString method
+    if (typeof (v as any).toString === "function" && "publicKey" in v) {
+      return (v as any).toString();
+    }
+    const result: JsonObject = {};
+    for (const key in v) {
+      result[key] = serializeValue(v[key]);
+    }
+    return result;
+  }
+  if (Array.isArray(v)) {
+    return v.map(serializeValue);
+  }
+  return v;
 }
 
 function convertPayment(obj: unknown): A_SearchTransaction_Payment_Payload | undefined {
@@ -96,21 +149,25 @@ function convertAssetFreeze(
 
 function convertAppCall(obj: unknown): A_SearchTransaction_App_Call_Payload | undefined {
   if (!isObject(obj)) return undefined;
+  
+  const accounts = getArray(obj, ["accounts"]).map(v => toString(v));
+  const applicationArgs = getArray(obj, ["application-args", "applicationArgs"]).map(v => toString(v));
+  const foreignApps = getArray(obj, ["foreign-apps", "foreignApps"]).map(v => toNumber(v));
+  const foreignAssets = getArray(obj, ["foreign-assets", "foreignAssets"]).map(v => toNumber(v));
+  
   return {
-    accounts: (getArray(obj, ["accounts"]) as string[]) ?? [],
-    "application-args": (getArray(obj, ["application-args", "applicationArgs"]) as string[]) ?? [],
+    accounts,
+    "application-args": applicationArgs,
     "application-id": getNumber(obj, ["application-id", "applicationId"]),
     "approval-program": getString(obj, ["approval-program", "approvalProgram"]),
     "clear-state-program": getString(obj, ["clear-state-program", "clearStateProgram"]),
-    "foreign-apps": (getArray(obj, ["foreign-apps", "foreignApps"]) as number[]) ?? [],
-    "foreign-assets": (getArray(obj, ["foreign-assets", "foreignAssets"]) as number[]) ?? [],
+    "foreign-apps": foreignApps,
+    "foreign-assets": foreignAssets,
     "global-state-schema": (isObject(obj["global-state-schema"]) || isObject(obj["globalStateSchema"]))
-      ? (obj["global-state-schema"] as A_SearchTransaction_App_Call_Payload["global-state-schema"]) ??
-        (obj["globalStateSchema"] as A_SearchTransaction_App_Call_Payload["global-state-schema"]) ?? { "num-byte-slice": 0, "num-uint": 0 }
+      ? serializeValue(obj["global-state-schema"] ?? obj["globalStateSchema"]) as A_SearchTransaction_App_Call_Payload["global-state-schema"]
       : { "num-byte-slice": 0, "num-uint": 0 },
     "local-state-schema": (isObject(obj["local-state-schema"]) || isObject(obj["localStateSchema"]))
-      ? (obj["local-state-schema"] as A_SearchTransaction_App_Call_Payload["local-state-schema"]) ??
-        (obj["localStateSchema"] as A_SearchTransaction_App_Call_Payload["local-state-schema"]) ?? { "num-byte-slice": 0, "num-uint": 0 }
+      ? serializeValue(obj["local-state-schema"] ?? obj["localStateSchema"]) as A_SearchTransaction_App_Call_Payload["local-state-schema"]
       : { "num-byte-slice": 0, "num-uint": 0 },
     "on-completion": getString(obj, ["on-completion", "onCompletion"]),
   };
@@ -130,18 +187,34 @@ function convertKeyReg(obj: unknown): A_SearchTransaction_KeyReg_Payload | undef
 
 function convertHeartbeat(obj: unknown): A_SearchTransaction_Heartbeat_Payload | undefined {
   if (!isObject(obj)) return undefined;
-  return {
-    "hb-address": getString(obj, ["hb-address", "hbAddress"]),
-    "hb-key-dilution": getNumber(obj, ["hb-key-dilution", "hbKeyDilution"]),
-    "hb-proof": isObject(obj["hb-proof"]) || isObject(obj["hbProof"]) ? ((obj["hb-proof"] ?? obj["hbProof"]) as {
-      [k: string]: unknown;
-    } as unknown as A_SearchTransaction_Heartbeat_Payload["hb-proof"]) : {
+  
+  const proofRaw = obj["hb-proof"] ?? obj["hbProof"];
+  let hbProof: A_SearchTransaction_Heartbeat_Payload["hb-proof"];
+  
+  if (isObject(proofRaw)) {
+    // Serialize the proof object to convert Uint8Arrays to base64 strings
+    const serializedProof = serializeValue(proofRaw) as any;
+    hbProof = {
+      "hb-pk": getString(serializedProof, ["hb-pk", "hbPk"]),
+      "hb-pk1sig": getString(serializedProof, ["hb-pk1sig", "hbPk1sig"]),
+      "hb-pk2": getString(serializedProof, ["hb-pk2", "hbPk2"]),
+      "hb-pk2sig": getString(serializedProof, ["hb-pk2sig", "hbPk2sig"]),
+      "hb-sig": getString(serializedProof, ["hb-sig", "hbSig"]),
+    };
+  } else {
+    hbProof = {
       "hb-pk": "",
       "hb-pk1sig": "",
       "hb-pk2": "",
       "hb-pk2sig": "",
       "hb-sig": "",
-    },
+    };
+  }
+  
+  return {
+    "hb-address": getString(obj, ["hb-address", "hbAddress"]),
+    "hb-key-dilution": getNumber(obj, ["hb-key-dilution", "hbKeyDilution"]),
+    "hb-proof": hbProof,
     "hb-seed": getString(obj, ["hb-seed", "hbSeed"]),
     "hb-vote-id": getString(obj, ["hb-vote-id", "hbVoteId"]),
   };
@@ -207,13 +280,14 @@ function convertAssetConfig(obj: unknown): A_Asset | undefined {
   if (!isObject(obj)) return undefined;
   const index = getNumber(obj, ["asset-id", "index", "assetId"]);
   const paramsRaw = (obj["params"] as unknown);
-  const params = isObject(paramsRaw) ? (paramsRaw as unknown as A_Asset["params"]) : undefined;
+  const params = isObject(paramsRaw) ? serializeValue(paramsRaw) as A_Asset["params"] : undefined;
   return typeof index === "number" && params ? ({ index, params } as A_Asset) : undefined;
 }
 
 function convertStateProof(obj: unknown): A_SearchTransaction_State_Proof_Payload | undefined {
   if (!isObject(obj)) return undefined;
-  return obj as unknown as A_SearchTransaction_State_Proof_Payload;
+  // Serialize the entire state proof object to convert Uint8Arrays and bigints
+  return serializeValue(obj) as A_SearchTransaction_State_Proof_Payload;
 }
 
 export function toA_SearchTransaction(input: unknown): A_SearchTransaction {
@@ -239,6 +313,7 @@ export function toA_SearchTransaction(input: unknown): A_SearchTransaction {
     "genesis-id": getString(o, ["genesis-id", "genesisId"]),
     id: getString(o, ["id"]),
     group: getString(o, ["group"]),
+    "rekey-to": getString(o, ["rekey-to", "rekeyTo"]),
     "inner-txns": innerRaw,
 
     "created-application-index": getNumber(o, ["created-application-index", "createdApplicationIndex"]),
@@ -250,13 +325,14 @@ export function toA_SearchTransaction(input: unknown): A_SearchTransaction {
     "payment-transaction": convertPayment(o["payment-transaction"] ?? o["paymentTransaction"]) ,
     "asset-config-transaction": convertAssetConfig(o["asset-config-transaction"] ?? o["assetConfigTransaction"]) ,
     "keyreg-transaction": convertKeyReg(o["keyreg-transaction"] ?? o["keyregTransaction"]) ,
+    "heartbeat-transaction": convertHeartbeat(o["heartbeat-transaction"] ?? o["heartbeatTransaction"]) ,
     "state-proof-transaction": convertStateProof(o["state-proof-transaction"] ?? o["stateProofTransaction"]) ,
 
     "global-state-delta": convertStateDelta(o["global-state-delta"] ?? o["globalStateDelta"]) ,
     "local-state-delta": convertLocalStateDelta(o["local-state-delta"] ?? o["localStateDelta"]) ,
 
     signature: convertSignature(o["signature"]),
-    logs: (getArray(o, ["logs"]) as string[]),
+    logs: getArray(o, ["logs"]).map(v => toString(v)),
   };
 
   return txn;
@@ -270,18 +346,51 @@ export function toA_Block(input: unknown): A_Block {
     timestamp: getNumber(o, ["timestamp", "time"], 0),
     "txn-counter": getNumber(o, ["txn-counter", "txnCounter", "transactionsCount"], transactions.length),
     transactions,
-    proposer: isObject(o["proposer"]) ? undefined : getString(o, ["proposer"]),
+    proposer: getString(o, ["proposer"]),
   };
   return block;
 }
 
 export function toA_AccountInformation(input: unknown): A_AccountInformation {
   const o = isObject(input) ? input : {};
-  const appsLocalState = Array.isArray(o["apps-local-state"]) ? (o["apps-local-state"] as unknown) : (o["appsLocalState"] as unknown);
-  const createdApps = Array.isArray(o["created-apps"]) ? (o["created-apps"] as unknown) : (o["createdApps"] as unknown);
-  const createdAssets = Array.isArray(o["created-assets"]) ? (o["created-assets"] as unknown) : (o["createdAssets"] as unknown);
-  const assets = Array.isArray(o["assets"]) ? (o["assets"] as unknown) : [];
-  const appsTotalSchema = (isObject(o["apps-total-schema"]) ? o["apps-total-schema"] : o["appsTotalSchema"]) as unknown;
+  
+  // Serialize apps-local-state
+  const appsLocalStateRaw = getArray(o, ["apps-local-state", "appsLocalState"]);
+  const appsLocalState = appsLocalStateRaw.map((app): any => {
+    if (!isObject(app)) return app;
+    const schemaRaw = isObject(app.schema) ? app.schema : {};
+    return {
+      id: toNumber(app.id),
+      "key-value": Array.isArray(app["key-value"]) || Array.isArray(app.keyValue) 
+        ? serializeValue(app["key-value"] ?? app.keyValue)
+        : [],
+      schema: {
+        "num-byte-slice": getNumber(schemaRaw, ["num-byte-slice", "numByteSlice"], 0),
+        "num-uint": getNumber(schemaRaw, ["num-uint", "numUint"], 0),
+      }
+    };
+  });
+  
+  // Serialize created-apps
+  const createdAppsRaw = getArray(o, ["created-apps", "createdApps"]);
+  const createdApps = createdAppsRaw.map(app => toA_Application(app));
+  
+  // Serialize created-assets
+  const createdAssetsRaw = getArray(o, ["created-assets", "createdAssets"]);
+  const createdAssets = createdAssetsRaw.map(asset => toA_Asset(asset));
+  
+  // Serialize assets
+  const assetsRaw = getArray(o, ["assets"]);
+  const assets = assetsRaw.map((asset): any => {
+    if (!isObject(asset)) return asset;
+    return serializeValue(asset);
+  });
+  
+  const appsTotalSchemaRaw = (isObject(o["apps-total-schema"]) ? o["apps-total-schema"] : o["appsTotalSchema"]);
+  const appsTotalSchema = isObject(appsTotalSchemaRaw) ? {
+    "num-byte-slice": getNumber(appsTotalSchemaRaw, ["num-byte-slice", "numByteSlice"], 0),
+    "num-uint": getNumber(appsTotalSchemaRaw, ["num-uint", "numUint"], 0),
+  } : { "num-byte-slice": 0, "num-uint": 0 };
 
   return {
     address: getString(o, ["address"]),
@@ -289,11 +398,11 @@ export function toA_AccountInformation(input: unknown): A_AccountInformation {
     amount: getNumber(o, ["amount"]),
     "min-balance": getNumber(o, ["min-balance", "minBalance"]),
     "amount-without-pending-rewards": getNumber(o, ["amount-without-pending-rewards", "amountWithoutPendingRewards"]),
-    "apps-local-state": (appsLocalState as A_AccountInformation["apps-local-state"]) ?? [],
-    "apps-total-schema": (appsTotalSchema as A_AccountInformation["apps-total-schema"]) ?? { "num-byte-slice": 0, "num-uint": 0 },
-    assets: (assets as A_AccountInformation["assets"]) ?? [],
-    "created-apps": (createdApps as A_AccountInformation["created-apps"]) ?? [],
-    "created-assets": (createdAssets as A_AccountInformation["created-assets"]) ?? [],
+    "apps-local-state": appsLocalState,
+    "apps-total-schema": appsTotalSchema,
+    assets: assets,
+    "created-apps": createdApps,
+    "created-assets": createdAssets,
     "pending-rewards": getNumber(o, ["pending-rewards", "pendingRewards"]),
     "reward-base": getNumber(o, ["reward-base", "rewardBase"]),
     rewards: getNumber(o, ["rewards"]),
@@ -325,13 +434,48 @@ export function toA_Application(input: unknown): A_Application {
   const idRaw = (o["id"] as unknown);
   const id = typeof idRaw === 'bigint' ? Number(idRaw) : (typeof idRaw === 'number' ? idRaw : 0);
   const paramsRaw = (o["params"] as unknown);
-  const params = isObject(paramsRaw) ? (paramsRaw as unknown as A_Application["params"]) : {
-    "approval-program": "",
-    "clear-state-program": "",
-    creator: "",
-    "global-state-schema": { "num-byte-slice": 0, "num-uint": 0 },
-    "local-state-schema": { "num-byte-slice": 0, "num-uint": 0 },
+  
+  console.log('[toA_Application] Raw input:', JSON.stringify(input, (key, value) => 
+    typeof value === 'bigint' ? value.toString() + 'n' :
+    value instanceof Uint8Array ? `Uint8Array(${value.length})` :
+    value && typeof value === 'object' && 'publicKey' in value ? `Address{publicKey: Uint8Array(${value.publicKey?.length})}` :
+    value
+  , 2));
+  
+  if (!isObject(paramsRaw)) {
+    return {
+      id,
+      params: {
+        "approval-program": "",
+        "clear-state-program": "",
+        creator: "",
+        "global-state-schema": { "num-byte-slice": 0, "num-uint": 0 },
+        "local-state-schema": { "num-byte-slice": 0, "num-uint": 0 },
+      }
+    };
+  }
+  
+  const serializedParams = serializeValue(paramsRaw) as any;
+  
+  // Helper to convert schema objects
+  const convertSchema = (schemaObj: any) => {
+    if (!schemaObj) return { "num-byte-slice": 0, "num-uint": 0 };
+    return {
+      "num-byte-slice": getNumber(schemaObj, ["num-byte-slice", "numByteSlice"], 0),
+      "num-uint": getNumber(schemaObj, ["num-uint", "numUint"], 0),
+    };
   };
+  
+  // Build the params object with proper field name mapping
+  const params = {
+    "approval-program": getString(serializedParams, ["approval-program", "approvalProgram"], ""),
+    "clear-state-program": getString(serializedParams, ["clear-state-program", "clearStateProgram"], ""),
+    "creator": getString(serializedParams, ["creator"], ""),
+    "global-state": serializedParams["global-state"] ?? serializedParams["globalState"],
+    "global-state-schema": convertSchema(serializedParams["global-state-schema"] ?? serializedParams["globalStateSchema"]),
+    "local-state-schema": convertSchema(serializedParams["local-state-schema"] ?? serializedParams["localStateSchema"]),
+  };
+  
   return { id, params };
 }
 
@@ -349,7 +493,32 @@ export function toA_Asset(input: unknown): A_Asset {
   const indexRaw = o["index"] ?? o["asset-id"] ?? o["assetId"];
   const index = typeof indexRaw === 'bigint' ? Number(indexRaw) : (typeof indexRaw === 'number' ? indexRaw : 0);
   const paramsRaw = o["params"] as unknown;
-  const params = isObject(paramsRaw) ? (paramsRaw as unknown as A_Asset["params"]) : ({} as A_Asset["params"]);
+  
+  if (!isObject(paramsRaw)) {
+    return { index, params: {} as A_Asset["params"] };
+  }
+  
+  const serializedParams = serializeValue(paramsRaw) as any;
+  
+  // Build the params object with proper field name mapping
+  const params = {
+    clawback: getString(serializedParams, ["clawback"]),
+    creator: getString(serializedParams, ["creator"], ""),
+    decimals: getNumber(serializedParams, ["decimals"], 0),
+    "default-frozen": getBoolean(serializedParams, ["default-frozen", "defaultFrozen"], false),
+    freeze: getString(serializedParams, ["freeze"]),
+    manager: getString(serializedParams, ["manager"]),
+    name: getString(serializedParams, ["name"], ""),
+    "name-b64": getString(serializedParams, ["name-b64", "nameB64"], ""),
+    reserve: getString(serializedParams, ["reserve"]),
+    total: getNumber(serializedParams, ["total"], 0),
+    "unit-name": getString(serializedParams, ["unit-name", "unitName"], ""),
+    "unit-name-b64": getString(serializedParams, ["unit-name-b64", "unitNameB64"], ""),
+    url: getString(serializedParams, ["url"]),
+    "url-b64": getString(serializedParams, ["url-b64", "urlB64"]),
+    "metadata-hash": getString(serializedParams, ["metadata-hash", "metadataHash"]),
+  };
+  
   return { index, params };
 }
 
@@ -388,7 +557,15 @@ export function toA_Status(input: unknown): A_Status {
 
 export function toA_VersionsCheck(input: unknown): A_VersionsCheck {
   const o = isObject(input) ? input : {};
-  const build = isObject(o["build"]) ? (o["build"] as unknown as A_VersionsCheck["build"]) : undefined;
+  const buildRaw = o["build"];
+  const build = isObject(buildRaw) ? {
+    major: getNumber(buildRaw, ["major"], 0),
+    minor: getNumber(buildRaw, ["minor"], 0),
+    build_number: getNumber(buildRaw, ["build_number", "buildNumber"], 0),
+    commit_hash: getString(buildRaw, ["commit_hash", "commitHash"], ""),
+    branch: getString(buildRaw, ["branch"], ""),
+    channel: getString(buildRaw, ["channel"], ""),
+  } : undefined;
   return {
     versions: Array.isArray(o["versions"]) ? (o["versions"] as string[]) : undefined,
     genesis_id: getString(o, ["genesis_id", "genesisId"], ""),
