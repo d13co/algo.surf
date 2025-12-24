@@ -4905,13 +4905,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"algo-msgpack-with-bigint@npm:^2.1.1":
-  version: 2.1.1
-  resolution: "algo-msgpack-with-bigint@npm:2.1.1"
-  checksum: 10c0/1e567167dcf8a3bd060403d0727686b890e1f6df9475a6e5eee62b21b4d13b0c9961ce9d9a1f8c3154910d29837e6b59fe4aa24a14be20dcde59d859588232e0
-  languageName: node
-  linkType: hard
-
 "algo-surf@workspace:.":
   version: 0.0.0-use.local
   resolution: "algo-surf@workspace:."
@@ -4941,7 +4934,7 @@ __metadata:
     "@types/sass-loader": "npm:^8.0.3"
     "@yornaath/batshit": "npm:^0.10.1"
     abel-sdk: "npm:^0.1.6"
-    algosdk: "npm:^2.11.0"
+    algosdk: "npm:^3.5.2"
     atob: "npm:^2.1.2"
     axios: "npm:^0.27.2"
     buffer: "npm:^6.0.3"
@@ -4984,12 +4977,18 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"algosdk@npm:^2.11.0":
-  version: 2.11.0
-  resolution: "algosdk@npm:2.11.0"
+"algorand-msgpack@npm:^1.1.0":
+  version: 1.1.0
+  resolution: "algorand-msgpack@npm:1.1.0"
+  checksum: 10c0/82ee0288001a607576528227ec8b1b75ad79367fd3de018aab0e37bb7edf5889b3440ed111f7bd173728144bec28524d51730e3d212f5da87460c641f2180be3
+  languageName: node
+  linkType: hard
+
+"algosdk@npm:^3.5.2":
+  version: 3.5.2
+  resolution: "algosdk@npm:3.5.2"
   dependencies:
-    algo-msgpack-with-bigint: "npm:^2.1.1"
-    buffer: "npm:^6.0.3"
+    algorand-msgpack: "npm:^1.1.0"
     hi-base32: "npm:^0.5.1"
     js-sha256: "npm:^0.9.0"
     js-sha3: "npm:^0.8.0"
@@ -4997,7 +4996,7 @@ __metadata:
     json-bigint: "npm:^1.0.0"
     tweetnacl: "npm:^1.0.3"
     vlq: "npm:^2.0.4"
-  checksum: 10c0/732c19c6c9a95e74d9e0b0efabb7fc7359a9e3e8c49a9c34ccdf4032f36bddd8494f5bb59c498d7905fbb7217e2c2ca4f9e4280133c4e49ba79f5d9fa02d36d4
+  checksum: 10c0/0ced61831448f747f102728d2bd2238467596c85d3b36949abc91a1d3a7ca54f5ef33fc82bd270037829a8624a771076c3756f0740567dc6a5a2e9391755f302
   languageName: node
   linkType: hard
 
