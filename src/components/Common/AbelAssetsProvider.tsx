@@ -60,7 +60,8 @@ async function loadAllAssetsIntoCache(): Promise<void> {
         }
       }
     }
-  } catch {
+  } catch(e) {
+    console.error("Abel error:", e)
     // Swallow all errors to keep UI responsive
   }
 }

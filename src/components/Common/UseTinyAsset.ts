@@ -57,28 +57,35 @@ export function useTinyAssets(
       // Fetch missing from ABEL
       const timeLabel = `Fetching ${missingIds.length} tiny assets from ABEL`;
       console.time(timeLabel);
-      const abelData = await abel.getAssetsTinyLabels(missingIds.map((id) => BigInt(id)));
-      console.timeEnd(timeLabel);
+      try {
+        const abelData = await abel.getAssetsTinyLabels(
+          missingIds.map((id) => BigInt(id))
+        );
+        
+        // Convert and persist missing
+        const fetchedList: A_AssetTiny[] = missingIds
+          .map((id) => abelData.get(BigInt(id)))
+          .filter((v) => !!v)
+          .map((v) => abelTinyToAssetTiny(v!));
 
-      // Convert and persist missing
-      const fetchedList: A_AssetTiny[] = missingIds
-        .map((id) => abelData.get(BigInt(id)))
-        .filter((v) => !!v)
-        .map((v) => abelTinyToAssetTiny(v!));
+        if (fetchedList.length) {
+          // Persist asynchronously
+          setTimeout(() => {
+            void AssetCache.insertMany(fetchedList).catch(() => {});
+          }, 1000);
+          // Update local map
+          for (const a of fetchedList) cachedMap.set(a.index, a);
+        }
 
-      if (fetchedList.length) {
-        // Persist asynchronously
-        setTimeout(() => {
-          void AssetCache.insertMany(fetchedList).catch(() => {});
-        }, 1000);
-        // Update local map
-        for (const a of fetchedList) cachedMap.set(a.index, a);
+        // Assemble in requested order
+        return assetIds
+          .map((id) => cachedMap.get(id))
+          .filter((a): a is A_AssetTiny => !!a);
+      } catch (e) {
+        console.error("Error fetching tiny assets from ABEL:", e);
+        throw e;
       }
-
-      // Assemble in requested order
-      return assetIds
-        .map((id) => cachedMap.get(id))
-        .filter((a): a is A_AssetTiny => !!a);
+      console.timeEnd(timeLabel);
     },
     staleTime: Infinity,
   });

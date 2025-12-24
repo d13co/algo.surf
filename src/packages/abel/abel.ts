@@ -1,12 +1,12 @@
-import { AbelSDK } from "abel-sdk";
+import { AbelGhostSDK } from "abel-ghost-sdk";
 import { getNodeConfig } from "../../utils/nodeConfig";
 import { AlgorandClient } from "@algorandfoundation/algokit-utils";
-import { AssetTinyLabels } from "abel-sdk";
-import { A_AssetHoldingTiny, A_AssetTiny } from "../core-sdk/types";
-import React, { useEffect } from "react";
-import AssetCache from "../../components/Common/AssetCache";
+import { A_AssetTiny } from "../core-sdk/types";
+import { AssetTinyLabels } from "abel-ghost-sdk";
 
 const config = getNodeConfig();
+const network = process.env.REACT_APP_NETWORK;
+const isMainnet = network === "Mainnet";
 
 const { url: server, port, token } = config.algod;
 
@@ -20,10 +20,11 @@ const algorand = AlgorandClient.fromConfig({ algodConfig });
 algorand.setSuggestedParamsCacheTimeout(20000);
 algorand.getSuggestedParams();
 
-export const abel = new AbelSDK({
+export const abel = new AbelGhostSDK({
   algorand,
   concurrency: 7,
-  appId: BigInt(2914159523),
+  registryAppId: isMainnet ? BigInt(2914159523) : undefined,
+  ghostAppId: isMainnet ? BigInt(3381542955) : undefined,
 });
 
 export const abelTinyToAssetTiny = (tiny: AssetTinyLabels): A_AssetTiny => {

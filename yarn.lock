@@ -5,14 +5,14 @@ __metadata:
   version: 8
   cacheKey: 10c0
 
-"@algorandfoundation/algokit-utils@npm:7":
-  version: 7.1.0
-  resolution: "@algorandfoundation/algokit-utils@npm:7.1.0"
+"@algorandfoundation/algokit-utils@npm:9.2.0":
+  version: 9.2.0
+  resolution: "@algorandfoundation/algokit-utils@npm:9.2.0"
   dependencies:
     buffer: "npm:^6.0.3"
   peerDependencies:
-    algosdk: ">=2.9.0 <3.0"
-  checksum: 10c0/f9b6556231444436d28565fbb5bf36d587952358d81dbc76c8f6f90c340e056ab328f5d361b9129d9121a18e94dcd12978fbe629525d464537baba7cb027d8fe
+    algosdk: ^3.5.2
+  checksum: 10c0/f8594ded33bfcf676ffb43ef134525265199c9011b0a77a40b0d8b55b558fff6e3474e87f6ccb8b4160a983e41e394b82e5ec3bf2b2b788a92fd186166c8c9ed
   languageName: node
   linkType: hard
 
@@ -4703,14 +4703,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"abel-sdk@npm:^0.1.6":
-  version: 0.1.6
-  resolution: "abel-sdk@npm:0.1.6"
+"abel-ghost-sdk@npm:0.0.3":
+  version: 0.0.3
+  resolution: "abel-ghost-sdk@npm:0.0.3"
+  dependencies:
+    p-map: "npm:^7.0.4"
   peerDependencies:
-    "@algorandfoundation/algokit-utils": ^7.0.2
-    algosdk: ^2.8.0
-    p-map: ^7.0.3
-  checksum: 10c0/ef075dfb485bda71fef66e28c16a5df28694ea754051e5a2f3399e44b6c716b0f4eb84add1a8df64826d26cafd8b1463eca5e2905191740649e41c47ca7c1497
+    "@algorandfoundation/algokit-utils": ^9.2.0
+    algosdk: ^3.5.2
+  checksum: 10c0/829cca11316c82eccbf2439d72e3d11d186bb90f0aac4c6eb91746e5760228d3aad62318d661aa9b9fe7fdfe7e8f4b0fa402049e249ac9e67ae416a474eccb3a
   languageName: node
   linkType: hard
 
@@ -4909,7 +4910,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "algo-surf@workspace:."
   dependencies:
-    "@algorandfoundation/algokit-utils": "npm:7"
+    "@algorandfoundation/algokit-utils": "npm:9.2.0"
     "@craco/craco": "npm:^6.4.3"
     "@emotion/react": "npm:^11.9.0"
     "@emotion/styled": "npm:^11.8.1"
@@ -4933,7 +4934,7 @@ __metadata:
     "@types/react-transition-group": "npm:^4.4.5"
     "@types/sass-loader": "npm:^8.0.3"
     "@yornaath/batshit": "npm:^0.10.1"
-    abel-sdk: "npm:^0.1.6"
+    abel-ghost-sdk: "npm:0.0.3"
     algosdk: "npm:^3.5.2"
     atob: "npm:^2.1.2"
     axios: "npm:^0.27.2"
@@ -11898,6 +11899,13 @@ __metadata:
   dependencies:
     aggregate-error: "npm:^3.0.0"
   checksum: 10c0/592c05bd6262c466ce269ff172bb8de7c6975afca9b50c975135b974e9bdaafbfe80e61aaaf5be6d1200ba08b30ead04b88cfa7e25ff1e3b93ab28c9f62a2c75
+  languageName: node
+  linkType: hard
+
+"p-map@npm:^7.0.4":
+  version: 7.0.4
+  resolution: "p-map@npm:7.0.4"
+  checksum: 10c0/a5030935d3cb2919d7e89454d1ce82141e6f9955413658b8c9403cfe379283770ed3048146b44cde168aa9e8c716505f196d5689db0ae3ce9a71521a2fef3abd
   languageName: node
   linkType: hard
 

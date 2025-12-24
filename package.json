@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@algorandfoundation/algokit-utils": "7",
+    "@algorandfoundation/algokit-utils": "9.2.0",
     "@craco/craco": "^6.4.3",
     "@emotion/react": "^11.9.0",
     "@emotion/styled": "^11.8.1",
@@ -26,7 +26,7 @@
     "@types/react-transition-group": "^4.4.5",
     "@types/sass-loader": "^8.0.3",
     "@yornaath/batshit": "^0.10.1",
-    "abel-sdk": "^0.1.6",
+    "abel-ghost-sdk": "0.0.3",
     "algosdk": "^3.5.2",
     "atob": "^2.1.2",
     "axios": "^0.27.2",
