@@ -93,6 +93,7 @@
   "devDependencies": {
     "@types/lodash": "^4.17.15",
     "sass": "^1.49.11",
-    "sass-loader": "^12.6.0"
+    "sass-loader": "^12.6.0",
+    "webpack": "^5.104.1"
   }
 }
