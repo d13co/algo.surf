@@ -55,7 +55,7 @@ export function useTinyAssets(
       }
 
       // Fetch missing from ABEL
-      const timeLabel = `Fetching ${missingIds.length} tiny assets from ABEL`;
+      const timeLabel = `Fetch ${missingIds.length} assets from ABEL`;
       console.time(timeLabel);
       try {
         const abelData = await abel.getAssetsTinyLabels(
@@ -84,8 +84,9 @@ export function useTinyAssets(
       } catch (e) {
         console.error("Error fetching tiny assets from ABEL:", e);
         throw e;
+      } finally {
+        console.timeEnd(timeLabel);
       }
-      console.timeEnd(timeLabel);
     },
     staleTime: Infinity,
   });
