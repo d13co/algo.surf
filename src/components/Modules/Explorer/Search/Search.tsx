@@ -1,11 +1,6 @@
 import './Search.scss';
-import React, {useCallback,useState,useRef} from "react";
+import {useCallback,useState,useRef} from "react";
 import {
-    Chip,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogTitle,
     IconButton,
     InputBase,
     Tooltip,
@@ -19,7 +14,8 @@ import {theme} from "../../../../theme";
 import {ClipboardPaste} from 'lucide-react';
 import CloseIcon from "@mui/icons-material/Close";
 import { useHotkeys } from 'react-hotkeys-hook';
-import coreSearch from './CoreSearch';
+import coreSearch, { NotSearchableError } from './CoreSearch';
+import { useAbelAssetsContext } from '../../../Common/AbelAssetsProvider';
 
 interface SettingsState{
     searchStr: string,
@@ -51,6 +47,7 @@ function Search(props: SearchProps): JSX.Element {
 
     const navigate = useNavigate();
     const dispatch = useDispatch();
+    const { loading: abelLoading, loadedPromise } = useAbelAssetsContext();
 
     const [
         {searchStr, showSearchResults},
@@ -76,15 +73,34 @@ function Search(props: SearchProps): JSX.Element {
                 inputRef.current?.blur();
                 navigate(destination);
             } catch(e) {
-                dispatch(showSnack({
-                    severity: 'error',
-                    message: (e as Error).message,
-                }));
+                // If assets aren’t searchable yet but ABEL is still loading, wait and retry
+                if (e instanceof NotSearchableError && abelLoading && loadedPromise) {
+                    console.log("Retrying search after ABEL assets load");
+                    dispatch(hideLoader());
+                    dispatch(showLoader('Loading verified asset database...'));
+                    try {
+                        await loadedPromise;
+                        const destination = await coreSearch(target);
+                        setState({ ...initialState });
+                        inputRef.current?.blur();
+                        navigate(destination);
+                    } catch(e2) {
+                        dispatch(showSnack({
+                            severity: 'error',
+                            message: (e2 as Error).message,
+                        }));
+                    }
+                } else {
+                    dispatch(showSnack({
+                        severity: 'error',
+                        message: (e as Error).message,
+                    }));
+                }
             }
             dispatch(hideLoader());
 
         })()
-    }, [searchStr, dispatch, navigate]);
+    }, [searchStr, dispatch, navigate, abelLoading, loadedPromise]);
 
     const doPasteSearch = useCallback(() => {
         (async function () {
@@ -109,16 +125,13 @@ function Search(props: SearchProps): JSX.Element {
         })()
     }, [doSearch]);
 
-    function handleClose() {
-        setState(prevState => ({...prevState, showSearchResults: false}));
-    }
-
     return (<div className={"search-wrapper"}>
         <div className={"search-container"}>
              <InputBase
                  inputRef={inputRef}
                  autoFocus={autoFocus}
                  placeholder={placeholder}
+                 fullWidth
                  style={{
                      background: 'rgba(18,18,18,0.7)',
                      padding: 3,
@@ -161,35 +174,7 @@ function Search(props: SearchProps): JSX.Element {
                          doSearch();
                      }
                  }}
-            fullWidth/>
-
-            {showSearchResults ? <Dialog
-                onClose={handleClose}
-                fullWidth={true}
-                maxWidth={"xs"}
-                open={showSearchResults}
-            >
-                <DialogTitle >
-                    <div style={{display: 'flex', justifyContent: 'space-between'}}>
-                        <div>
-                            <div style={{fontWeight: "bold", fontSize: 18}}>Search results</div>
-                        </div>
-                        <CloseIcon className="modal-close-button" onClick={handleClose}/>
-                    </div>
-                </DialogTitle>
-                <DialogContent>
-                    <div className="search-results-wrapper">
-                        <div className="search-results-container">
-                            <div>
-                            </div>
-                        </div>
-                    </div>
-                </DialogContent>
-                <DialogActions>
-
-                </DialogActions>
-            </Dialog> : ''}
-
+            />
 
         </div>
     </div>);

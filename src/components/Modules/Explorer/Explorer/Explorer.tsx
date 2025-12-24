@@ -1,14 +1,11 @@
-import React, { useEffect } from 'react';
-import './Explorer.scss';
-import {useDispatch} from "react-redux";
-import {initLivedata} from "../../../../redux/explorer/actions/liveData";
-import {loadAddressBook} from "../../../../redux/explorer/actions/addressBook";
-import {Outlet, useLocation} from "react-router-dom";
+import React, { useEffect } from "react";
+import "./Explorer.scss";
+import { useDispatch } from "react-redux";
+import { initLivedata } from "../../../../redux/explorer/actions/liveData";
+import { loadAddressBook } from "../../../../redux/explorer/actions/addressBook";
 import Header from "../Header/Header";
 
 function Explorer({ children }: { children: React.ReactNode }): JSX.Element {
-  const location = useLocation();
-
   const dispatch = useDispatch();
 
   useEffect(() => {
@@ -18,7 +15,7 @@ function Explorer({ children }: { children: React.ReactNode }): JSX.Element {
 
   return (
     <div className="explorer-root">
-    <Header></Header>
+      <Header></Header>
       {children}
     </div>
   );

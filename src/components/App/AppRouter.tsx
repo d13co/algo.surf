@@ -32,6 +32,7 @@ import AccountValidator from "../Modules/Explorer/Records/Account/RelatedList/Ac
 import { queryClient } from "../../db/query-client";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { persister } from "../../db/query-persister";
+import { AbelAssetsProvider } from "../Common/AbelAssetsProvider";
 
 function AppRouter(): JSX.Element {
   return (
@@ -41,146 +42,153 @@ function AppRouter(): JSX.Element {
           persistOptions={{ persister }}
           client={queryClient}
         >
-          <div className="app-container">
-            <div className="app-right">
-              <div className="content-wrapper">
-                <div className="content-container">
-                  <Explorer>
-                    <Routes>
-                      <Route index element={<Home></Home>} />
-                      <Route
-                        path="/explorer/home"
-                        element={<Navigate to="/" replace />}
-                      />
-                      <Route path="/accounts" element={<Accounts></Accounts>} />
-                      <Route
-                        path="/transactions"
-                        element={<Transactions></Transactions>}
-                      />
-                      <Route path="/assets" element={<Assets></Assets>} />
-                      <Route
-                        path="/applications"
-                        element={<Applications></Applications>}
-                      />
-                      <Route
-                        path="/account/:address"
-                        element={<Account></Account>}
-                      >
+          <AbelAssetsProvider>
+            <div className="app-container">
+              <div className="app-right">
+                <div className="content-wrapper">
+                  <div className="content-container">
+                    <Explorer>
+                      <Routes>
+                        <Route index element={<Home></Home>} />
                         <Route
-                          path="assets"
-                          element={<AccountAssets></AccountAssets>}
+                          path="/explorer/home"
+                          element={<Navigate to="/" replace />}
                         />
                         <Route
-                          path="transactions"
-                          element={<Navigate to=".." replace />}
+                          path="/accounts"
+                          element={<Accounts></Accounts>}
                         />
                         <Route
-                          path="created-assets"
-                          element={
-                            <AccountCreatedAssets></AccountCreatedAssets>
-                          }
+                          path="/transactions"
+                          element={<Transactions></Transactions>}
+                        />
+                        <Route path="/assets" element={<Assets></Assets>} />
+                        <Route
+                          path="/applications"
+                          element={<Applications></Applications>}
                         />
                         <Route
-                          path="created-applications"
-                          element={
-                            <AccountCreatedApplications></AccountCreatedApplications>
-                          }
-                        />
+                          path="/account/:address"
+                          element={<Account></Account>}
+                        >
+                          <Route
+                            path="assets"
+                            element={<AccountAssets></AccountAssets>}
+                          />
+                          <Route
+                            path="transactions"
+                            element={<Navigate to=".." replace />}
+                          />
+                          <Route
+                            path="created-assets"
+                            element={
+                              <AccountCreatedAssets></AccountCreatedAssets>
+                            }
+                          />
+                          <Route
+                            path="created-applications"
+                            element={
+                              <AccountCreatedApplications></AccountCreatedApplications>
+                            }
+                          />
+                          <Route
+                            path="opted-applications"
+                            element={
+                              <AccountOptedApplications></AccountOptedApplications>
+                            }
+                          />
+                          <Route
+                            path="opted-applications/:id"
+                            element={
+                              <AccountOptedApplications></AccountOptedApplications>
+                            }
+                          />
+                          <Route
+                            path="controller"
+                            element={<AccountControllerTo />}
+                          />
+                          <Route
+                            path="validator"
+                            element={<AccountValidator />}
+                          />
+                          <Route
+                            path=""
+                            element={
+                              <AccountTransactions></AccountTransactions>
+                            }
+                          />
+                        </Route>
+                        <Route path="/block/:id" element={<Block></Block>}>
+                          <Route
+                            path="transactions"
+                            element={<BlockTransactions></BlockTransactions>}
+                          />
+                          <Route
+                            path=""
+                            element={<Navigate to="transactions" replace />}
+                          />
+                        </Route>
+                        <Route path="/asset/:id" element={<Asset></Asset>}>
+                          <Route
+                            path="transactions"
+                            element={<AssetTransactions></AssetTransactions>}
+                          />
+                          <Route
+                            path=""
+                            element={<Navigate to="transactions" replace />}
+                          />
+                        </Route>
                         <Route
-                          path="opted-applications"
-                          element={
-                            <AccountOptedApplications></AccountOptedApplications>
-                          }
-                        />
+                          path="/application/:id"
+                          element={<Application></Application>}
+                        >
+                          <Route
+                            path="transactions"
+                            element={
+                              <ApplicationTransactions></ApplicationTransactions>
+                            }
+                          />
+                          <Route
+                            path="boxes"
+                            element={<ApplicationBoxes></ApplicationBoxes>}
+                          />
+                          <Route
+                            path=""
+                            element={<Navigate to="transactions" replace />}
+                          />
+                        </Route>
                         <Route
-                          path="opted-applications/:id"
-                          element={
-                            <AccountOptedApplications></AccountOptedApplications>
-                          }
-                        />
+                          path="/transaction/:id"
+                          element={<Transaction></Transaction>}
+                        ></Route>
                         <Route
-                          path="controller"
-                          element={<AccountControllerTo />}
-                        />
+                          path="/group/:id/:blockId"
+                          element={<Group></Group>}
+                        >
+                          <Route
+                            path="transactions"
+                            element={<GroupTransactions></GroupTransactions>}
+                          />
+                          <Route
+                            path=""
+                            element={<Navigate to="transactions" replace />}
+                          />
+                        </Route>
                         <Route
-                          path="validator"
-                          element={<AccountValidator />}
+                          path="/explorer/*"
+                          element={<StripExplorerFromPath />}
                         />
-                        <Route
-                          path=""
-                          element={<AccountTransactions></AccountTransactions>}
-                        />
-                      </Route>
-                      <Route path="/block/:id" element={<Block></Block>}>
-                        <Route
-                          path="transactions"
-                          element={<BlockTransactions></BlockTransactions>}
-                        />
-                        <Route
-                          path=""
-                          element={<Navigate to="transactions" replace />}
-                        />
-                      </Route>
-                      <Route path="/asset/:id" element={<Asset></Asset>}>
-                        <Route
-                          path="transactions"
-                          element={<AssetTransactions></AssetTransactions>}
-                        />
-                        <Route
-                          path=""
-                          element={<Navigate to="transactions" replace />}
-                        />
-                      </Route>
-                      <Route
-                        path="/application/:id"
-                        element={<Application></Application>}
-                      >
-                        <Route
-                          path="transactions"
-                          element={
-                            <ApplicationTransactions></ApplicationTransactions>
-                          }
-                        />
-                        <Route
-                          path="boxes"
-                          element={<ApplicationBoxes></ApplicationBoxes>}
-                        />
-                        <Route
-                          path=""
-                          element={<Navigate to="transactions" replace />}
-                        />
-                      </Route>
-                      <Route
-                        path="/transaction/:id"
-                        element={<Transaction></Transaction>}
-                      ></Route>
-                      <Route
-                        path="/group/:id/:blockId"
-                        element={<Group></Group>}
-                      >
-                        <Route
-                          path="transactions"
-                          element={<GroupTransactions></GroupTransactions>}
-                        />
-                        <Route
-                          path=""
-                          element={<Navigate to="transactions" replace />}
-                        />
-                      </Route>
-                      <Route
-                        path="/explorer/*"
-                        element={<StripExplorerFromPath />}
-                      />
-                      <Route path="*" element={<SearchFromPath />} />
-                    </Routes>
-                  </Explorer>
+                        <Route path="*" element={<SearchFromPath />} />
+                      </Routes>
+                    </Explorer>
+                  </div>
+                  <Footer />
                 </div>
-                <Footer />
               </div>
             </div>
-          </div>
-          <Loader></Loader>
-          <AppSnackbar></AppSnackbar>
+            <Loader></Loader>
+            <AppSnackbar></AppSnackbar>
+          </AbelAssetsProvider>
         </PersistQueryClientProvider>
       </BrowserRouter>
     </div>

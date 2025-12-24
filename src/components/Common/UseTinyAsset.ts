@@ -20,7 +20,7 @@ export function useTinyAsset(
       if (cached) return cached;
 
       // Fallback to ABEL and persist
-      const abelData = await abel.getAssetsTiny([BigInt(assetId)]);
+      const abelData = await abel.getAssetsTinyLabels([BigInt(assetId)]);
       const tiny = abelTinyToAssetTiny(abelData.get(BigInt(assetId)));
       if (tiny) {
         // Persist to IndexedDB asynchronously (ignore errors)
@@ -57,7 +57,7 @@ export function useTinyAssets(
       // Fetch missing from ABEL
       const timeLabel = `Fetching ${missingIds.length} tiny assets from ABEL`;
       console.time(timeLabel);
-      const abelData = await abel.getAssetsTiny(missingIds.map((id) => BigInt(id)));
+      const abelData = await abel.getAssetsTinyLabels(missingIds.map((id) => BigInt(id)));
       console.timeEnd(timeLabel);
 
       // Convert and persist missing

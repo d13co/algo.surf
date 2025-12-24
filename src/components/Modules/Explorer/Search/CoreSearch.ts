@@ -9,6 +9,7 @@ import explorer from "../../../../utils/dappflow";
 import { AssetClient } from "../../../../packages/core-sdk/clients/assetClient";
 import { ApplicationClient } from "../../../../packages/core-sdk/clients/applicationClient";
 import { BlockClient } from "../../../../packages/core-sdk/clients/blockClient";
+import AssetCache from "../../../Common/AssetCache";
 
 function getLink(result: A_AssetResult | A_ApplicationResult | A_BlockResult) {
   const { type } = result;
@@ -101,5 +102,9 @@ export default async function (target: string): Promise<string> {
     }
   }
 
+  // asset search
+  const results = await AssetCache.searchByNameOrUnit({ exact: target, peraVerified: true });
+  if (results.length) return `/asset/${results[0].index}/transactions`;
+  
   throw new NotSearchableError(`Not something I can search for: ${target}`);
 }

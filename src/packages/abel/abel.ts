@@ -1,8 +1,10 @@
 import { AbelSDK } from "abel-sdk";
 import { getNodeConfig } from "../../utils/nodeConfig";
 import { AlgorandClient } from "@algorandfoundation/algokit-utils";
-import { AssetTiny } from "abel-sdk";
+import { AssetTinyLabels } from "abel-sdk";
 import { A_AssetHoldingTiny, A_AssetTiny } from "../core-sdk/types";
+import React, { useEffect } from "react";
+import AssetCache from "../../components/Common/AssetCache";
 
 const config = getNodeConfig();
 
@@ -13,14 +15,17 @@ const algodConfig = {
   port,
   token,
 };
+
 const algorand = AlgorandClient.fromConfig({ algodConfig });
+algorand.setSuggestedParamsCacheTimeout(20000);
+algorand.getSuggestedParams();
 
 export const abel = new AbelSDK({
   algorand,
   appId: BigInt(2914159523),
 });
 
-export const abelTinyToAssetTiny = (tiny: AssetTiny): A_AssetTiny => {
+export const abelTinyToAssetTiny = (tiny: AssetTinyLabels): A_AssetTiny => {
   // @ts-ignore
   if ("deleted" in tiny && tiny.deleted) {
     return {
@@ -30,6 +35,7 @@ export const abelTinyToAssetTiny = (tiny: AssetTiny): A_AssetTiny => {
         name: "(deleted)",
         "unit-name": "(none)",
       },
+      peraVerified: false,
     };
   }
   return {
@@ -39,5 +45,6 @@ export const abelTinyToAssetTiny = (tiny: AssetTiny): A_AssetTiny => {
       name: tiny.name,
       "unit-name": tiny.unitName,
     },
+    peraVerified: tiny.labels.includes("pv"),
   };
-}
+};

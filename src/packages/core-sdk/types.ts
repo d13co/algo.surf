@@ -35,6 +35,7 @@ export interface A_AssetTiny {
         name: string
         "unit-name": string
     }
+    peraVerified: boolean
 }
 
 export interface A_AssetHoldingTiny extends A_AssetTiny {
