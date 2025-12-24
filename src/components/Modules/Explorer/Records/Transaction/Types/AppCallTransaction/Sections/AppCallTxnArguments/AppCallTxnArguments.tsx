@@ -1,16 +1,13 @@
 import './AppCallTxnArguments.scss';
-import React, {useEffect, useState} from "react";
+import {useEffect, useState} from "react";
 import {
     A_SearchTransaction,
     A_SearchTransaction_App_Call_Payload
 } from "../../../../../../../../../packages/core-sdk/types";
-import {Alert, Button, ButtonGroup, Grid, Typography} from "@mui/material";
-import {ApplicationABI} from "../../../../../../../../../packages/abi/classes/ApplicationABI";
+import {Button, ButtonGroup} from "@mui/material";
 import {CoreAppCall} from "../../../../../../../../../packages/core-sdk/classes/core/CoreAppCall";
 import {ABIContractParams} from "algosdk";
-import ABIMethodSignature from "../../../../../../../ABI/ABIMethodSignature/ABIMethodSignature";
 import {CoreTransaction} from "../../../../../../../../../packages/core-sdk/classes/core/CoreTransaction";
-import AppCallTxnReturnValue from "../AppCallTxnReturnValue/AppCallTxnReturnValue";
 import MultiFormatViewer from "../../../../../../../../../components/Common/MultiFormatViewer/MultiFormatViewer";
 import {shadedClr} from "../../../../../../../../../utils/common";
 
@@ -33,16 +30,6 @@ function AppCallTxnArguments(props): JSX.Element {
     const callInstance = new CoreAppCall(appCallPayload);
     const args = callInstance.getAppCallArguments();
 
-    useEffect(() => {
-        async function loadABI() {
-            const abiDetails = await new ApplicationABI().get(txnInstance.getAppId());
-            if (abiDetails) {
-                setState(prevState => ({...prevState, abi: abiDetails.abi, showEncoding: true}));
-            }
-        }
-
-        loadABI();
-    }, []);
     const [
         {textEncoding, showEncoding, abi},
         setState
@@ -80,7 +67,7 @@ function AppCallTxnArguments(props): JSX.Element {
                             })}
                         </div> : ''}
 
-                        {textEncoding === 'abi_decoded' ? <div className="abi-decoded-args">
+                        {/* textEncoding === 'abi_decoded' ? <div className="abi-decoded-args">
                             {method ? <div>
                                 <ABIMethodSignature method={method}></ABIMethodSignature>
                                 <div className="arguments">
@@ -128,7 +115,7 @@ function AppCallTxnArguments(props): JSX.Element {
                                 </Alert>
                             </div>}
 
-                        </div> : ''}
+                        </div> : '' */}
                     </ol>
 
                 </div>

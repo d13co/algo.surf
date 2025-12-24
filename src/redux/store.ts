@@ -11,21 +11,17 @@ import arcs from "./arcPortal/actions/arcs";
 import assetReducer from "./explorer/actions/asset";
 import assetsReducer from "./explorer/actions/assets";
 import blockReducer from "./explorer/actions/block";
-import connectWallet from "./wallet/actions/connectWallet";
 import developerApiReducer from "./developerApi/actions/developerApi";
-import devWallets from "./devWallets/actions/devWallets";
 import groupReducer from "./explorer/actions/group";
 import kmd from "./explorer/actions/kmd";
 import liveData from "./explorer/actions/liveData";
 import loaderReducer from "./common/actions/loader";
 import node from "./network/actions/node";
 import settingsReducer from "./settings/actions/settings";
-import signer from "./wallet/actions/signer";
 import snackbarReducer from './common/actions/snackbar';
 import transactionReducer from "./explorer/actions/transaction";
 import transactionsReducer from "./explorer/actions/transactions";
 import validatorReducer from "./explorer/actions/validator";
-import wallet from "./wallet/actions/wallet";
 
 export const store = configureStore({
     reducer: {
@@ -41,20 +37,16 @@ export const store = configureStore({
         asset: assetReducer,
         assets: assetsReducer,
         block: blockReducer,
-        connectWallet: connectWallet,
         developerApi: developerApiReducer,
-        devWallets: devWallets,
         group: groupReducer,
         kmd: kmd,
         liveData: liveData,
         loader: loaderReducer,
         node: node,
         settings: settingsReducer,
-        signer: signer,
         snackbar: snackbarReducer,
         transactions: transactionsReducer,
         transaction: transactionReducer,
-        wallet: wallet,
         validator: validatorReducer,
     },
 });
