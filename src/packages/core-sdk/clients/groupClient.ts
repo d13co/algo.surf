@@ -1,5 +1,5 @@
 import {Algodv2} from "algosdk";
-import IndexerClient from "algosdk/dist/types/client/v2/indexer/indexer";
+import type { Indexer } from "algosdk";
 import {Network} from "../network";
 import {A_Group} from "../types";
 import {BlockClient} from "./blockClient";
@@ -7,7 +7,7 @@ import {BlockClient} from "./blockClient";
 
 export class GroupClient {
     client: Algodv2;
-    indexer: IndexerClient;
+    indexer: Indexer;
     network: Network;
 
     constructor(network: Network) {

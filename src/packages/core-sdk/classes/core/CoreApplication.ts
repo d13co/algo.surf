@@ -141,6 +141,6 @@ export class CoreApplication {
     }
 
     getApplicationAddress(): string {
-        return getApplicationAddress(this.getId());
+        return getApplicationAddress(this.getId()) as unknown as string;
     }
 }

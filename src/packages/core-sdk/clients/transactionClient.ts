@@ -1,7 +1,8 @@
 import {Algodv2} from "algosdk";
-import IndexerClient from "algosdk/dist/types/client/v2/indexer/indexer";
+import type { Indexer } from "algosdk";
 import {Network} from "../network";
 import {A_SearchTransaction} from "../types";
+import { toA_SearchTransaction } from "../utils/v3Adapters";
 
 
 export type A_TransactionsResponse = {
@@ -11,7 +12,7 @@ export type A_TransactionsResponse = {
 
 export class TransactionClient {
     client: Algodv2;
-    indexer: IndexerClient;
+    indexer: Indexer;
     network: Network;
 
     constructor(network: Network) {
@@ -27,11 +28,12 @@ export class TransactionClient {
         }
 
         const response = await req.do();
-        return response as A_TransactionsResponse;
+        const transactions = (response.transactions ?? []).map((t: unknown) => toA_SearchTransaction(t));
+        return { 'next-token': (response['next-token'] as string) ?? '', transactions } as A_TransactionsResponse;
     }
 
     async get(id: string): Promise<A_SearchTransaction> {
         const {transaction} = await this.indexer.lookupTransactionByID(id).do();
-        return transaction as A_SearchTransaction;
+        return toA_SearchTransaction(transaction);
     }
 }

@@ -1,11 +1,12 @@
 import {Algodv2} from "algosdk";
-import IndexerClient from "algosdk/dist/types/client/v2/indexer/indexer";
+import type { Indexer } from "algosdk";
 import {
     A_AccountInformation,
     A_SearchAccount
 } from "../types";
 import {Network} from "../network";
 import {A_TransactionsResponse} from "./transactionClient";
+import { toA_SearchTransaction, toA_AccountInformation, toA_AccountsResponse } from "../utils/v3Adapters";
 
 export type A_AccountsResponse = {
     'next-token': string,
@@ -16,7 +17,7 @@ export type A_AccountTransactionsResponse = A_TransactionsResponse;
 
 export class AccountClient{
     client: Algodv2;
-    indexer: IndexerClient;
+    indexer: Indexer;
     network: Network
 
     constructor(network: Network) {
@@ -26,8 +27,8 @@ export class AccountClient{
     }
 
     async getAccountInformation(address: string): Promise<A_AccountInformation> {
-        const accountInformation = await this.client.accountInformation(address).do() as A_AccountInformation;
-        return accountInformation;
+        const accountInformation = await this.client.accountInformation(address).do();
+        return toA_AccountInformation(accountInformation);
     }
 
     async getAccounts(token?: string): Promise<A_AccountsResponse> {
@@ -37,7 +38,7 @@ export class AccountClient{
         }
 
         const response = await req.do();
-        return response as A_AccountsResponse;
+        return toA_AccountsResponse(response);
     }
 
     async getAccountTransactions(address: string, token?: string): Promise<A_AccountTransactionsResponse> {
@@ -47,7 +48,8 @@ export class AccountClient{
         }
 
         const response = await req.do();
-        return response as A_AccountTransactionsResponse;
+        const transactions = (response.transactions ?? []).map((t: unknown) => toA_SearchTransaction(t));
+        return { 'next-token': (response['next-token'] as string) ?? '', transactions } as A_AccountTransactionsResponse;
     }
 
     async getAuthAddr(address: string, token?: string): Promise<A_AccountsResponse> {
@@ -57,6 +59,6 @@ export class AccountClient{
         }
 
         const response = await req.do();
-        return response as A_AccountsResponse;
+        return toA_AccountsResponse(response);
     }
 }

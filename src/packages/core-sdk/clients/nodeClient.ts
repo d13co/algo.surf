@@ -1,12 +1,13 @@
 import {Algodv2} from "algosdk";
-import IndexerClient from "algosdk/dist/types/client/v2/indexer/indexer";
+import type { Indexer } from "algosdk";
 import {Network} from "../network";
 import {A_Genesis, A_Health, A_Status, A_VersionsCheck} from "../types";
+import { toA_Status, toA_VersionsCheck, toA_Genesis, toA_Health } from "../utils/v3Adapters";
 
 
 export class NodeClient {
     client: Algodv2;
-    indexer: IndexerClient;
+    indexer: Indexer;
     network: Network;
 
     constructor(network: Network) {
@@ -17,21 +18,21 @@ export class NodeClient {
 
     async versionsCheck(): Promise<A_VersionsCheck> {
         const versions = await this.client.versionsCheck().do();
-        return versions as A_VersionsCheck;
+        return toA_VersionsCheck(versions);
     }
 
     async status(): Promise<A_Status> {
         const status = await this.client.status().do();
-        return status as A_Status;
+        return toA_Status(status);
     }
 
     async genesis(): Promise<A_Genesis> {
         const genesis = await this.client.genesis().do();
-        return genesis as A_Genesis;
+        return toA_Genesis(genesis);
     }
 
     async health(): Promise<A_Health> {
         const health = await this.indexer.makeHealthCheck().do();
-        return health as A_Health;
+        return toA_Health(health);
     }
 }

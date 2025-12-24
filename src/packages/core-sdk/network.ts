@@ -1,5 +1,5 @@
 import * as sdk from "algosdk";
-import IndexerClient from "algosdk/dist/types/client/v2/indexer/indexer";
+import type { Indexer } from "algosdk";
 import {Algodv2} from "algosdk";
 import {AlgodTokenHeader, CustomTokenHeader, IndexerTokenHeader} from "algosdk/dist/types/client/urlTokenBaseHTTPClient";
 import {AlgodConnectionParams, IndexerConnectionParams, NodeConnectionParams} from "./types";
@@ -42,7 +42,7 @@ export class Network {
         return new sdk.Algodv2(token, url, port);
     }
 
-    getIndexer(): IndexerClient {
+    getIndexer(): Indexer {
         const {url, port, token} = this.indexer;
         return new sdk.Indexer(token, url, port);
     }

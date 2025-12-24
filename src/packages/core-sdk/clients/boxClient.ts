@@ -1,14 +1,11 @@
 import {Algodv2} from 'algosdk';
-import IndexerClient from "algosdk/dist/types/client/v2/indexer/indexer";
+import type { Indexer } from "algosdk";
 import {A_BoxName, A_BoxNames, A_Box,} from "../types";
 import {Network} from "../network";
-import axios from 'axios';
-import {A_TransactionsResponse} from "./transactionClient";
-import {CompileResponse} from "algosdk/dist/types/client/v2/algod/models/types";
 
 export class BoxClient{
     client: Algodv2;
-    indexer: IndexerClient;
+    indexer: Indexer;
     network: Network
 
     constructor(network: Network) {
