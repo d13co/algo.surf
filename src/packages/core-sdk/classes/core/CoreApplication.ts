@@ -56,8 +56,7 @@ export class CoreApplication {
 
     getCreator(): string {
         const creator = this.application.params.creator;
-        console.log('[CoreApplication.getCreator] application.params.creator:', creator, 'type:', typeof creator);
-        
+
         // Handle null/undefined or already a string
         if (!creator || typeof creator === 'string') {
             return creator || '';
@@ -165,22 +164,18 @@ export class CoreApplication {
 
     getApplicationAddress(): string {
         const addr = getApplicationAddress(this.getId());
-        console.log('[CoreApplication.getApplicationAddress] Raw address:', addr, 'type:', typeof addr);
         // In algosdk v3, getApplicationAddress returns an Address object, not a string
         if (addr && typeof addr === 'object') {
             if ('publicKey' in addr) {
                 const result = encodeAddress(addr.publicKey as Uint8Array);
-                console.log('[CoreApplication.getApplicationAddress] Converted to string:', result);
                 return result;
             }
             // Use toString() method if available
             if (typeof (addr as any).toString === 'function') {
                 const result = (addr as any).toString();
-                console.log('[CoreApplication.getApplicationAddress] Converted using toString():', result);
                 return result;
             }
         }
-        console.log('[CoreApplication.getApplicationAddress] Already a string:', addr);
         return addr as unknown as string;
     }
 }

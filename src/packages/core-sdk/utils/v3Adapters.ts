@@ -379,11 +379,17 @@ export function toA_AccountInformation(input: unknown): A_AccountInformation {
   const createdAssetsRaw = getArray(o, ["created-assets", "createdAssets"]);
   const createdAssets = createdAssetsRaw.map(asset => toA_Asset(asset));
   
-  // Serialize assets
+  // Serialize assets (asset holdings)
   const assetsRaw = getArray(o, ["assets"]);
   const assets = assetsRaw.map((asset): any => {
     if (!isObject(asset)) return asset;
-    return serializeValue(asset);
+    const serialized = serializeValue(asset) as any;
+    return {
+      amount: getNumber(serialized, ["amount"], 0),
+      "asset-id": getNumber(serialized, ["asset-id", "assetId"], 0),
+      creator: getString(serialized, ["creator"], ""),
+      "is-frozen": getBoolean(serialized, ["is-frozen", "isFrozen"], false),
+    };
   });
   
   const appsTotalSchemaRaw = (isObject(o["apps-total-schema"]) ? o["apps-total-schema"] : o["appsTotalSchema"]);
@@ -434,13 +440,6 @@ export function toA_Application(input: unknown): A_Application {
   const idRaw = (o["id"] as unknown);
   const id = typeof idRaw === 'bigint' ? Number(idRaw) : (typeof idRaw === 'number' ? idRaw : 0);
   const paramsRaw = (o["params"] as unknown);
-  
-  console.log('[toA_Application] Raw input:', JSON.stringify(input, (key, value) => 
-    typeof value === 'bigint' ? value.toString() + 'n' :
-    value instanceof Uint8Array ? `Uint8Array(${value.length})` :
-    value && typeof value === 'object' && 'publicKey' in value ? `Address{publicKey: Uint8Array(${value.publicKey?.length})}` :
-    value
-  , 2));
   
   if (!isObject(paramsRaw)) {
     return {
