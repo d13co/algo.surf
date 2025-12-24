@@ -6,8 +6,6 @@ import addressBookReducer from "./explorer/actions/addressBook";
 import app from "./app/actions/app";
 import applicationReducer from "./explorer/actions/application";
 import applicationsReducer from "./explorer/actions/applications";
-import arc from "./arcPortal/actions/arc";
-import arcs from "./arcPortal/actions/arcs";
 import assetReducer from "./explorer/actions/asset";
 import assetsReducer from "./explorer/actions/assets";
 import blockReducer from "./explorer/actions/block";
@@ -32,8 +30,6 @@ export const store = configureStore({
         app: app,
         application: applicationReducer,
         applications: applicationsReducer,
-        arc: arc,
-        arcs: arcs,
         asset: assetReducer,
         assets: assetsReducer,
         block: blockReducer,

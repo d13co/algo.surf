@@ -7,7 +7,6 @@ import {
   ApplicationClient,
 } from "../../../packages/core-sdk/clients/applicationClient";
 import { BoxClient } from "../../../packages/core-sdk/clients/boxClient";
-import { ApplicationABI } from "../../../packages/abi/classes/ApplicationABI";
 import { CoreApplication } from "../../../packages/core-sdk/classes/core/CoreApplication";
 import { ABIContractParams, makeApplicationClearStateTxnFromObject } from "algosdk";
 import chunk from "lodash/chunk.js";
@@ -25,13 +24,13 @@ export async function getProgramHashes(appInfo: A_Application): Promise<Applicat
     const clearProgream = Buffer.from(clearB64, 'base64');
     const approvalPagesSha256 = await Promise.all(
         approvalProgramPages.map(page => 
-            crypto.subtle.digest('SHA-256', Buffer.from(page))
+            crypto.subtle.digest('SHA-256', Buffer.from(page) as any)
         )
     );
     const sha256: ApplicationHashesInner = {
-        approval: arrayBufferToHex(await crypto.subtle.digest('SHA-256', approvalProgram)),
+        approval: arrayBufferToHex(await crypto.subtle.digest('SHA-256', approvalProgram as any)),
         approvalPages: approvalPagesSha256.map(page => arrayBufferToHex(page)),
-        clear: arrayBufferToHex(await crypto.subtle.digest('SHA-256', approvalProgram)),
+        clear: arrayBufferToHex(await crypto.subtle.digest('SHA-256', approvalProgram as any)),
     }
     const sha512_256: ApplicationHashesInner = {
         approval: sha512.sha512_256(new Uint8Array(approvalProgram)),
@@ -130,7 +129,6 @@ export const loadApplication = createAsyncThunk(
       dispatch(calculateApplicationHashes(applicationInfo));
       dispatch(loadApplicationBoxNames(id));
       dispatch(loadApplicationTransactions(id));
-      dispatch(loadApplicationABI(applicationInfo));
       dispatch(setLoading(false));
       return applicationInfo;
     } catch (e: any) {
@@ -183,23 +181,6 @@ export const loadApplicationBox = createAsyncThunk(
       dispatch(handleException(e));
       dispatch(setError(true));
       dispatch(setLoading(false));
-    }
-  }
-);
-
-export const loadApplicationABI = createAsyncThunk(
-  "application/loadApplicationABI",
-  async (applicationInfo: A_Application, thunkAPI) => {
-    const { dispatch } = thunkAPI;
-    try {
-      const appABI = await new ApplicationABI().get(
-        new CoreApplication(applicationInfo).getId()
-      );
-      if (appABI) {
-        return appABI.abi;
-      }
-    } catch (e: any) {
-      dispatch(handleException(e));
     }
   }
 );
@@ -286,23 +267,6 @@ export const applicationSlice = createSlice({
           if (!nextToken) {
             state.transactionsDetails.completed = true;
           }
-        }
-      }
-    );
-    builder.addCase(
-      loadApplicationABI.fulfilled,
-      (state, action: PayloadAction<ABIContractParams>) => {
-        if (action.payload) {
-          state.abiDetails = {
-            abi: action.payload,
-            loaded: true,
-            present: true,
-          };
-        } else {
-          state.abiDetails = {
-            ...initialState.abiDetails,
-            loaded: true,
-          };
         }
       }
     );
