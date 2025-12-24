@@ -1,8 +1,7 @@
 import './Loader.scss';
 import {useSelector} from "react-redux";
 import {RootState} from "../../../redux/store";
-import {CircularProgress} from "@mui/material";
-import {theme} from '../../../theme/index';
+import LoadingTile from '../LoadingTile/LoadingTile';
 
 function Loader(): JSX.Element {
     const loader = useSelector((state: RootState) => state.loader);
@@ -11,10 +10,10 @@ function Loader(): JSX.Element {
       <div>
           {loader.count ? <div>
               <div className="loading-box">
-                  <CircularProgress sx={{color: theme.palette.primary.main}} className="progress-bar"></CircularProgress>
                   <div className="message">
                       {loader.message}
                   </div>
+                  <LoadingTile count={5} />
               </div>
               <div className="loader-wrapper">
               </div>

@@ -75,7 +75,7 @@ function Search(props: SearchProps): JSX.Element {
             } catch(e) {
                 // If assets aren’t searchable yet but ABEL is still loading, wait and retry
                 if (e instanceof NotSearchableError && abelLoading && loadedPromise) {
-                    console.log("Retrying search after ABEL assets load");
+                    console.log("Retrying search after ABEL assets load", e);
                     dispatch(hideLoader());
                     dispatch(showLoader('Loading verified asset database...'));
                     try {

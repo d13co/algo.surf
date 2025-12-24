@@ -37,9 +37,9 @@ export default function SearchFromPath(): JSX.Element {
                 let destination: string;
                 try {
                     destination = await search(target);
-
                 } catch(e) {
                     if (abelLoading && loadedPromise) {
+                        console.error("First search failed with:", e)
                         setLoadingMessage("Loading verified asset database...");
                         await loadedPromise;
                         destination = await search(target);

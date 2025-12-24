@@ -103,7 +103,9 @@ export default async function (target: string): Promise<string> {
   }
 
   // asset search
+  console.time("AssetCache searchByNameOrUnit "+target);
   const results = await AssetCache.searchByNameOrUnit({ exact: target, peraVerified: true });
+  console.timeEnd("AssetCache searchByNameOrUnit "+target);
   if (results.length) return `/asset/${results[0].index}/transactions`;
   
   throw new NotSearchableError(`Not something I can search for: ${target}`);
