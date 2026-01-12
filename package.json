@@ -26,7 +26,7 @@
     "@types/react-transition-group": "^4.4.5",
     "@types/sass-loader": "^8.0.3",
     "@yornaath/batshit": "^0.10.1",
-    "abel-ghost-sdk": "0.0.3",
+    "abel-ghost-sdk": "0.0.4",
     "algosdk": "^3.5.2",
     "atob": "^2.1.2",
     "axios": "^0.27.2",

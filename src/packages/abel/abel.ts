@@ -25,6 +25,7 @@ export const abel = new AbelGhostSDK({
   concurrency: 7,
   registryAppId: isMainnet ? BigInt(2914159523) : undefined,
   ghostAppId: isMainnet ? BigInt(3381542955) : undefined,
+  readerAccount: isMainnet ? "Y76M3MSY6DKBRHBL7C3NNDXGS5IIMQVQVUAB6MP4XEMMGVF2QWNPL226CA" : undefined,
 });
 
 export const abelTinyToAssetTiny = (tiny: AssetTinyLabels): A_AssetTiny => {

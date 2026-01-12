@@ -4922,15 +4922,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"abel-ghost-sdk@npm:0.0.3":
-  version: 0.0.3
-  resolution: "abel-ghost-sdk@npm:0.0.3"
+"abel-ghost-sdk@npm:0.0.4":
+  version: 0.0.4
+  resolution: "abel-ghost-sdk@npm:0.0.4"
   dependencies:
     p-map: "npm:^7.0.4"
   peerDependencies:
     "@algorandfoundation/algokit-utils": ^9.2.0
     algosdk: ^3.5.2
-  checksum: 10c0/829cca11316c82eccbf2439d72e3d11d186bb90f0aac4c6eb91746e5760228d3aad62318d661aa9b9fe7fdfe7e8f4b0fa402049e249ac9e67ae416a474eccb3a
+  checksum: 10c0/a7513ec56c4b5e122308421ece980af53e6b547b842654eb78806dd50cf709b567f213301d5de8c75743be880626d8a74640af96b45f36745e376a297b4eba6f
   languageName: node
   linkType: hard
 
@@ -5183,7 +5183,7 @@ __metadata:
     "@types/react-transition-group": "npm:^4.4.5"
     "@types/sass-loader": "npm:^8.0.3"
     "@yornaath/batshit": "npm:^0.10.1"
-    abel-ghost-sdk: "npm:0.0.3"
+    abel-ghost-sdk: "npm:0.0.4"
     algosdk: "npm:^3.5.2"
     atob: "npm:^2.1.2"
     axios: "npm:^0.27.2"
