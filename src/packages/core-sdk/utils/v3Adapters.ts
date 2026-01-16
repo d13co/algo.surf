@@ -450,6 +450,7 @@ export function toA_Application(input: unknown): A_Application {
         creator: "",
         "global-state-schema": { "num-byte-slice": 0, "num-uint": 0 },
         "local-state-schema": { "num-byte-slice": 0, "num-uint": 0 },
+        "extra-program-pages": 0,
       }
     };
   }
@@ -473,6 +474,7 @@ export function toA_Application(input: unknown): A_Application {
     "global-state": serializedParams["global-state"] ?? serializedParams["globalState"],
     "global-state-schema": convertSchema(serializedParams["global-state-schema"] ?? serializedParams["globalStateSchema"]),
     "local-state-schema": convertSchema(serializedParams["local-state-schema"] ?? serializedParams["localStateSchema"]),
+    "extra-program-pages": getNumber(serializedParams, ["extra-program-pages", "extraProgramPages"], 0),
   };
   
   return { id, params };

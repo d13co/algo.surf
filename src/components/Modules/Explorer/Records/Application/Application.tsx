@@ -37,6 +37,7 @@ import { TabContext, TabList, TabPanel } from "@mui/lab";
 import Copyable from "../../../../Common/Copyable/Copyable";
 import { primaryColor } from "../../../../../theme/index";
 import { CircleHelp } from "lucide-react";
+import { usePersistenBooleanState } from "../../../../../utils/usePersistenBooleanState";
 
 const isDevNet = process.env.REACT_APP_NETWORK !== "Mainnet";
 
@@ -57,6 +58,10 @@ function Application(): JSX.Element {
   }
 
   const [codeTabValue, setCodeTabValue] = React.useState("global");
+  const [expanded, setExpanded] = usePersistenBooleanState(
+    "application-code-expanded",
+    isDevNet
+  );
 
   const application = useSelector((state: RootState) => state.application);
   const applicationInstance = new CoreApplication(application.information);
@@ -99,8 +104,14 @@ function Application(): JSX.Element {
   };
 
   const [approvalSize, clearSize] = useMemo(() => {
-    const approval = Buffer.from(application.information.params["approval-program"] || "", "base64");
-    const clear = Buffer.from(application.information.params["clear-state-program"] || "", "base64");
+    const approval = Buffer.from(
+      application.information.params["approval-program"] || "",
+      "base64"
+    );
+    const clear = Buffer.from(
+      application.information.params["clear-state-program"] || "",
+      "base64"
+    );
     return [approval.length, clear.length];
   }, [application]);
 
@@ -165,7 +176,10 @@ function Application(): JSX.Element {
                   style={{ background: shadedClr, padding: "8px" }}
                 >
                   <Accordion
-                    defaultExpanded={isDevNet}
+                    defaultExpanded={expanded}
+                    onChange={(_, expanded) => {
+                      setExpanded(expanded);
+                    }}
                     className="transparent rounded"
                   >
                     <AccordionSummary
@@ -250,7 +264,9 @@ function Application(): JSX.Element {
                             <Grid item xs={12} sm={6} md={6} lg={3} xl={3}>
                               <div className="property center">
                                 <div className="key">Approval program size</div>
-                                <div className="value">{approvalSize} bytes</div>
+                                <div className="value">
+                                  {approvalSize} bytes
+                                </div>
                               </div>
                             </Grid>
 
@@ -258,6 +274,19 @@ function Application(): JSX.Element {
                               <div className="property center">
                                 <div className="key">Clear program size</div>
                                 <div className="value">{clearSize} bytes</div>
+                              </div>
+                            </Grid>
+
+                            <Grid item xs={12} sm={6} md={6} lg={3} xl={3}>
+                              <div className="property center">
+                                <div className="key">Extra Program Pages</div>
+                                <div className="value">
+                                  {
+                                    application.information.params[
+                                      "extra-program-pages"
+                                    ]
+                                  }
+                                </div>
                               </div>
                             </Grid>
 
@@ -359,7 +388,6 @@ function Application(): JSX.Element {
                       />
                     ) : null}
                   </Tabs>
-
                   <Outlet />
                 </div>
               </div>

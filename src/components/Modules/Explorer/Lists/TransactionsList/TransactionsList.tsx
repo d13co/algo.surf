@@ -1,7 +1,6 @@
 import "./TransactionsList.scss";
-import React from "react";
 import { useDispatch } from "react-redux";
-import { CircularProgress, Pagination, Tooltip } from "@mui/material";
+import { CircularProgress, Pagination } from "@mui/material";
 import NumberFormat from "react-number-format";
 import {
   DataGrid,
@@ -16,12 +15,10 @@ import {
   dataGridCellConfig,
   dataGridStyles,
 } from "../../../../../theme/styles/datagrid";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import { microalgosToAlgos, copyContent } from "../../../../../utils/common";
+import { microalgosToAlgos } from "../../../../../utils/common";
 import AlgoIcon from "../../AlgoIcon/AlgoIcon";
 import { CoreTransaction } from "../../../../../packages/core-sdk/classes/core/CoreTransaction";
 import { TXN_TYPES } from "../../../../../packages/core-sdk/constants";
-import { ArrowForward } from "@mui/icons-material";
 import LinkToAccount from "../../Common/Links/LinkToAccount";
 import LinkToApplication from "../../Common/Links/LinkToApplication";
 import LinkToTransaction from "../../Common/Links/LinkToTransaction";
@@ -29,12 +26,9 @@ import LinkToBlock from "../../Common/Links/LinkToBlock";
 import CustomNoRowsOverlay from "../../Common/CustomNoRowsOverlay/CustomNoRowsOverlay";
 import { A_SearchTransaction } from "../../../../../packages/core-sdk/types";
 import LinkToGroup from "../../Common/Links/LinkToGroup";
-import { Alert } from "@mui/lab";
 import AssetBalance from "../../Common/AssetBalance/AssetBalance";
 import Copyable from "../../../../Common/Copyable/Copyable";
 import RekeyIcon from "./RekeyIcon";
-import { useRecordHotkeys } from "react-hotkeys-hook";
-import { useReverseNFD, useReverseNFDs } from "../../../../Common/UseNFD";
 import { DisplayAccount } from "../../../../Common/DisplayAccount";
 
 interface TransactionsListProps {
@@ -264,7 +258,8 @@ function TransactionsList({
               <span>
                 <LinkToApplication
                   id={appId}
-                  name={"Application: " + appId}
+                  name={"App " + appId}
+                  copySize="m"
                 ></LinkToApplication>
               </span>
             ) : (
@@ -275,6 +270,7 @@ function TransactionsList({
       },
     });
   }
+  
   if (fields.indexOf("amount") !== -1) {
     columns.push({
       ...dataGridCellConfig,

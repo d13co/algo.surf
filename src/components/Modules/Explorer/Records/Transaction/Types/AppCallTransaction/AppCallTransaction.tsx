@@ -7,14 +7,13 @@ import {
   Box,
   Grid,
   Tab,
-  Tooltip,
   Typography,
 } from "@mui/material";
 import { CoreTransaction } from "../../../../../../../packages/core-sdk/classes/core/CoreTransaction";
 import AppCallTxnGlobalStateDelta from "./Sections/AppCallTxnGlobalStateDelta/AppCallTxnGlobalStateDelta";
 import LinkToAccount from "../../../../Common/Links/LinkToAccount";
 import LinkToApplication from "../../../../Common/Links/LinkToApplication";
-import { shadedClr } from "../../../../../../../utils/common";
+import { capitalizeFirst, shadedClr } from "../../../../../../../utils/common";
 import AppCallTxnLocalStateDelta from "./Sections/AppCallTxnLocalStateDelta/AppCallTxnLocalStateDelta";
 import AppCallTxnInnerTxns from "./Sections/AppCallTxnInnerTxns/AppCallTxnInnerTxns";
 import AppCallTxnArguments from "./Sections/AppCallTxnArguments/AppCallTxnArguments";
@@ -26,10 +25,6 @@ import ApplicationProgram from "../../../Application/Sections/ApplicationProgram
 import { CoreAppCall } from "../../../../../../../packages/core-sdk/classes/core/CoreAppCall";
 import { ExpandMore } from "@mui/icons-material";
 import { TabContext, TabList, TabPanel } from "@mui/lab";
-import { CircleHelp } from "lucide-react";
-import application from "../../../../../../../redux/explorer/actions/application";
-import { primaryColor } from "../../../../../../../theme";
-import Copyable from "../../../../../../Common/Copyable/Copyable";
 
 function AppCallTransaction(props): JSX.Element {
   const { transaction } = props;
@@ -63,6 +58,8 @@ function AppCallTransaction(props): JSX.Element {
                   <div className="value">
                     <LinkToApplication
                       id={txnInstance.getAppId()}
+                      copy="right"
+                      copySize="s"
                     ></LinkToApplication>
                   </div>
                 </div>
@@ -78,7 +75,7 @@ function AppCallTransaction(props): JSX.Element {
               <Grid item xs={12} sm={6} md={4} lg={4} xl={4}>
                 <div className="property">
                   <div className="key">On completion</div>
-                  <div className="value">{appCallPayload["on-completion"]}</div>
+                  <div className="value">{capitalizeFirst(appCallPayload["on-completion"])}</div>
                 </div>
               </Grid>
 
@@ -166,7 +163,7 @@ function AppCallTransaction(props): JSX.Element {
                               <div className="property center">
                                 <div className="key">Local state byte</div>
                                 <div className="value">
-                                  {appCallPayload["local-state-schema"]["num-byte-slice"]}
+                                  {appCallPayload["local-state-schema"]["num-byte-slice"] ?? 0}
                                 </div>
                               </div>
                             </Grid>
@@ -174,7 +171,7 @@ function AppCallTransaction(props): JSX.Element {
                               <div className="property center">
                                 <div className="key">Local state uint</div>
                                 <div className="value">
-                                  {appCallPayload["local-state-schema"]["num-uint"]}
+                                  {appCallPayload["local-state-schema"]["num-uint"] ?? 0}
                                 </div>
                               </div>
                             </Grid>

@@ -93,6 +93,7 @@ export interface A_ApplicationParams {
     "global-state"?: A_GlobalState[]
     "global-state-schema": A_StateSchema
     "local-state-schema": A_StateSchema
+    "extra-program-pages": number
 }
 
 export interface A_GlobalState {

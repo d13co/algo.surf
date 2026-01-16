@@ -53,6 +53,10 @@ export class CoreTransaction {
         return this.txn["tx-type"];
     }
 
+    getIsCreate(): boolean {
+        return this.txn['application-transaction'] && this.txn['application-transaction']['application-id'] === 0;
+    }
+
     getTypeDisplayValue(): string {
         const type = this.getType();
         if (type === TXN_TYPES.HEARTBEAT) {
@@ -81,7 +85,7 @@ export class CoreTransaction {
                 case "closeout":	  return "App close out";
                 case "clear":	      return "App clear";
                 case "update":	    return "App update";
-                case "delete":	    return "App delete";
+                case "delete":	    return this.getIsCreate() ? "OpUp" : "App delete";
                 case "noop":
                 default:
                     const appId = appPayload['application-id'];

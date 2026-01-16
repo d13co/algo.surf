@@ -86,6 +86,7 @@ const initialState: Application = {
         "num-byte-slice": 0,
         "num-uint": 0,
       },
+      "extra-program-pages": 0,
     },
   },
   hashes: {

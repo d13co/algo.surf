@@ -64,3 +64,10 @@ export function shortDuration(from: number, to: number): string {
   }
   return str.slice(0, 2).join(', ');
 }
+
+export function capitalizeFirst(str: string): string {
+  if (!str || str.length === 0) {
+    return str;
+  }
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}

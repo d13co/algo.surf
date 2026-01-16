@@ -73,8 +73,7 @@ function ApplicationsList({applications = [], account="", loading = false, field
             renderCell: (params: GridValueGetterParams) => {
                 const appInstance = new CoreApplication(params.row);
                 return <div>
-                    <Copyable value={appInstance.getId()} />
-                    <LinkToApplication id={appInstance.getId()}></LinkToApplication>
+                    <LinkToApplication copy="left" id={appInstance.getId()}></LinkToApplication>
                 </div>;
             }
         });

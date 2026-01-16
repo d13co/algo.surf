@@ -385,8 +385,7 @@ function Account(): JSX.Element {
                           <div className="property">
                             <div className="key">Application Escrow</div>
                             <div className="value">
-                              <LinkToApplication id={account.escrowOf} />
-                              <Copyable value={account.escrowOf} />
+                              <LinkToApplication id={account.escrowOf} copy="right" />
                             </div>
                           </div>
                         </Grid>
