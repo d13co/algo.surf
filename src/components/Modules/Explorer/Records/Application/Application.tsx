@@ -38,7 +38,7 @@ import Copyable from "../../../../Common/Copyable/Copyable";
 import { primaryColor } from "../../../../../theme/index";
 import { CircleHelp } from "lucide-react";
 
-const isDevNet = process.env.REACT_APP_NETWORK !== "Mainnet"
+const isDevNet = process.env.REACT_APP_NETWORK !== "Mainnet";
 
 function Application(): JSX.Element {
   const dispatch = useDispatch();
@@ -97,6 +97,12 @@ function Application(): JSX.Element {
   ) => {
     setCodeTabValue(newValue);
   };
+
+  const [approvalSize, clearSize] = useMemo(() => {
+    const approval = Buffer.from(application.information.params["approval-program"] || "", "base64");
+    const clear = Buffer.from(application.information.params["clear-state-program"] || "", "base64");
+    return [approval.length, clear.length];
+  }, [application]);
 
   return (
     <div className={"application-wrapper"}>
@@ -158,7 +164,10 @@ function Application(): JSX.Element {
                   className="props"
                   style={{ background: shadedClr, padding: "8px" }}
                 >
-                  <Accordion defaultExpanded={isDevNet} className="transparent rounded">
+                  <Accordion
+                    defaultExpanded={isDevNet}
+                    className="transparent rounded"
+                  >
                     <AccordionSummary
                       expandIcon={<ExpandMore />}
                       id="code-state"
@@ -179,7 +188,7 @@ function Application(): JSX.Element {
                             <Tab label="Approval Program" value="approval" />
                             <Tab label="Clear State Program" value="clear" />
                             <Tab label="Program Hashes" value="hashes" />
-                            <Tab label="Schema" value="schema" />
+                            <Tab label="Schema & Size" value="schema" />
                           </TabList>
                         </Box>
                         <TabPanel value="global" className="code-tab-panel">
@@ -238,6 +247,20 @@ function Application(): JSX.Element {
                               </div>
                             </Grid>
 
+                            <Grid item xs={12} sm={6} md={6} lg={3} xl={3}>
+                              <div className="property center">
+                                <div className="key">Approval program size</div>
+                                <div className="value">{approvalSize} bytes</div>
+                              </div>
+                            </Grid>
+
+                            <Grid item xs={12} sm={6} md={6} lg={3} xl={3}>
+                              <div className="property center">
+                                <div className="key">Clear program size</div>
+                                <div className="value">{clearSize} bytes</div>
+                              </div>
+                            </Grid>
+
                             <Grid
                               item
                               xs={12}
@@ -254,7 +277,9 @@ function Application(): JSX.Element {
                         >
                           <div className="hashtitle">Approval SHA512/256</div>
                           <div className="hash small">
-                            <span>{application.hashes.sha512_256.approval}</span>
+                            <span>
+                              {application.hashes.sha512_256.approval}
+                            </span>
                             <Copyable
                               value={application.hashes.sha512_256.approval}
                             />
@@ -264,22 +289,30 @@ function Application(): JSX.Element {
                           1 ? (
                             <>
                               <div className="hashtitle">
-                                Approval pages SHA512/256 <Tooltip title="Approval program hashed in 4 KB chunks"><CircleHelp color={primaryColor} size={16} fontSize={16} /></Tooltip>
+                                Approval pages SHA512/256{" "}
+                                <Tooltip title="Approval program hashed in 4 KB chunks">
+                                  <CircleHelp
+                                    color={primaryColor}
+                                    size={16}
+                                    fontSize={16}
+                                  />
+                                </Tooltip>
                               </div>
                               {application.hashes.sha512_256.approvalPages.map(
                                 (pageHash, i) => (
                                   <div className="hash small">
                                     <span>
-                                      <span style={{ fontWeight: "bold", color: primaryColor }}>
+                                      <span
+                                        style={{
+                                          fontWeight: "bold",
+                                          color: primaryColor,
+                                        }}
+                                      >
                                         {i + 1}/
                                       </span>{" "}
                                       {pageHash}
                                     </span>
-                                    <Copyable
-                                      value={
-                                        pageHash
-                                      }
-                                    />
+                                    <Copyable value={pageHash} />
                                   </div>
                                 )
                               )}
