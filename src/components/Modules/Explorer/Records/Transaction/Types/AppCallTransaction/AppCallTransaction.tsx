@@ -316,6 +316,7 @@ function AppCallTransaction(props): JSX.Element {
               <Grid container spacing={2}>
                 <Grid item xs={12} sm={12} md={12} lg={12} xl={12}>
                   <AppCallTxnLocalStateDelta
+                    appId={txnInstance.getAppId()}
                     state={transaction["local-state-delta"]}
                   ></AppCallTxnLocalStateDelta>
                 </Grid>

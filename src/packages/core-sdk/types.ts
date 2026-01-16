@@ -115,9 +115,9 @@ export interface A_GlobalStateDecrypted {
 export interface A_GlobalStateDelta {
     key: string
     value: {
-        bytes: string
+        bytes?: string
         action: number
-        uint: number
+        uint?: number
     }
 }
 
@@ -129,9 +129,9 @@ export interface A_LocalStateDelta {
 export interface A_AppStateDelta {
     key: string
     value: {
-        bytes: string
+        bytes?: string
         action: number
-        uint: number
+        uint?: number
     }
 }
 

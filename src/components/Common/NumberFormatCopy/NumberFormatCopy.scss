@@ -1,0 +1,12 @@
+.dimparent {
+   & svg { position: relative; top: -0.1rem; }
+  .dim > * {
+    opacity: 0.6;
+  }
+}
+
+.dimparent:hover {
+  .dim > * {
+    opacity: 1;
+  }
+}

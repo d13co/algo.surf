@@ -14,6 +14,7 @@ import { Grid } from "@mui/material";
 import MultiFormatViewer from "../../../../../../../components/Common/MultiFormatViewer/MultiFormatViewer";
 import { A_AppsLocalState } from "../../../../../../../packages/core-sdk/types";
 import Copyable from "../../../../../../Common/Copyable/Copyable";
+import NumberFormatCopy from "../../../../../../Common/NumberFormatCopy/NumberFormatCopy";
 
 function ApplicationlocalState({
   state,
@@ -25,7 +26,6 @@ function ApplicationlocalState({
       ...dataGridCellConfig,
       field: "type",
       flex: 0,
-      width: 60,
       headerName: "Type",
       renderCell: (params: GridValueGetterParams) => {
         return (
@@ -46,7 +46,7 @@ function ApplicationlocalState({
             view="auto"
             includeNum="auto"
             value={params.row.key}
-            style={{ marginLeft: "15px" }}
+            side="left"
           />
         );
       },
@@ -61,17 +61,19 @@ function ApplicationlocalState({
           <div>
             {params.row.value.type === 2 ? (
               <>
-                <NumberFormat
+                <NumberFormatCopy
+                  copyPosition="left"
                   value={params.row.value.uint}
                   displayType={"text"}
                   thousandSeparator={true}
-                ></NumberFormat>
+                ></NumberFormatCopy>
               </>
             ) : (
               <MultiFormatViewer
                 view="auto"
                 includeNum="auto"
                 value={params.row.value.bytes}
+                side="left"
               />
             )}
           </div>

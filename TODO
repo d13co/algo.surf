@@ -116,14 +116,24 @@ https://algo.surf/account/AAACVAV5AKKJ44XFTR6GAG7DVGY2SM4TKLWKFNR7BJAJLHLBWAQ3SZ
 
 offlined-aware validator labels in accounts - compare last-roudn with last valid - test with FNet accts [online]	Unnamed-123	CLCVXRH5LBLTBF6UYXQODQLYTXEAKI5EKPCCC6GKCGCXR7KW7A2PO5YWLU	30515500000 microAlgos [online]	Unnamed-107	DJOYI3S4UPMLL43MYW53TKCIPQFUMJMZ2OZSHLWWTL6PZHPI23RLBMGJVQ	30555200000 microAlgos [online]	Unnamed-115	DP5RRWRYM7MCYSIIGKTPB42B6ZNO6MT33NSGORSHEVPPXCH622TQJAIN3I	30654100000 microAlgos [online]	Unnamed-117	FLQSYNTDAYUCDZTXEWQGYYPN3Z7HZ2BWCB6KBUOPKJW7WKHQVR2L6I4LPA	30723300000 microAlgos [online]	Unnamed-111	GS4ZFQOT6RJVULIGMJEI3M2Q5EO7K7G5U5UVTG4FPUCDZQDCCBHHATQOO4	30505500000 microAlgos
 
-app schema + extra pages
+[v] close-remainder+close-asset-to: add close amounts to amounts in table view
 
-[ ] close-remainder+close-asset-to: add close amounts to amounts in table view
+[v] acct/app escrow double copy icon
 
-[ ] global state delta broken: https://testnet.algo.surf/transaction/5TLK3MMA7GJPK5XEFQDC42CYVEMTSAQ3ESMCGAV6ZWAVKPX4NGFA
+[v] app txns only go up to 100
 
-[ ] local state delta also broken: https://fnet.algo.surf/transaction/F6A5YFSFU6VE3WOD6FJ7BC34UZCFZ2ROVWFQLQP4M3XSZGFT4UYA
+[v] app schema + extra pages
+[v] app program sizes
 
-acct/app escrow double copy icon
+[v] global state delta broken: https://testnet.algo.surf/transaction/5TLK3MMA7GJPK5XEFQDC42CYVEMTSAQ3ESMCGAV6ZWAVKPX4NGFA
+[v] local state delta also broken: https://fnet.algo.surf/transaction/F6A5YFSFU6VE3WOD6FJ7BC34UZCFZ2ROVWFQLQP4M3XSZGFT4UYA
+  [v] local state delta table column widths
 
-app txns only go up to 100
+[v] multiformat
+  [v] app global state
+  [v] app local state
+  [v] app gsd
+  [v] app lsd
+
+[v] numberformat with copybutton
+[ ] numberformat with navigate/search button when num > 1000

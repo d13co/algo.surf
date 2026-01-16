@@ -12,6 +12,7 @@ import { shadedClr } from "../../../../../../../theme/index";
 import NumberFormat from "react-number-format";
 import { Grid } from "@mui/material";
 import MultiFormatViewer from "../../../../../../../components/Common/MultiFormatViewer/MultiFormatViewer";
+import NumberFormatCopy from "../../../../../../Common/NumberFormatCopy/NumberFormatCopy";
 
 function ApplicationGlobalState(): JSX.Element {
   const application = useSelector((state: RootState) => state.application);
@@ -40,12 +41,7 @@ function ApplicationGlobalState(): JSX.Element {
       headerName: "Key",
       renderCell: (params: GridValueGetterParams) => {
         return (
-          <MultiFormatViewer
-            view="auto"
-            includeNum="auto"
-            value={params.row.key}
-            style={{ marginLeft: "15px" }}
-          />
+          <MultiFormatViewer view="auto" value={params.row.key} side="left" />
         );
       },
     },
@@ -58,13 +54,19 @@ function ApplicationGlobalState(): JSX.Element {
         return (
           <div>
             {params.row.type === "uint" ? (
-              <NumberFormat
+              <NumberFormatCopy
                 value={params.row.value}
                 displayType={"text"}
                 thousandSeparator={true}
-              ></NumberFormat>
+                copyPosition="left"
+              ></NumberFormatCopy>
             ) : (
-              params.row.value
+              <MultiFormatViewer
+                side="left"
+                view="auto"
+                includeNum="auto"
+                value={params.row.value}
+              />
             )}
           </div>
         );

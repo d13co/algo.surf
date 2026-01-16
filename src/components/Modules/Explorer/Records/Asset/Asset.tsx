@@ -23,6 +23,7 @@ import Dym from "../Dym";
 import useTitle from "../../../../Common/UseTitle/UseTitle";
 import { ShieldCheck } from 'lucide-react'
 import { abel } from "../../../../../packages/abel/abel";
+import NumberFormatCopy from "../../../../Common/NumberFormatCopy/NumberFormatCopy";
 
 const network = process.env.REACT_APP_NETWORK;
 
@@ -163,12 +164,11 @@ function Asset(): JSX.Element {
                       <div className="property">
                         <div className="key">Total supply</div>
                         <div className="value">
-                          <NumberFormat
+                          <NumberFormatCopy
                             value={assetInstance.getTotalSupply()}
                             displayType={"text"}
                             thousandSeparator={true}
                           />
-                          <Copyable value={assetInstance.getTotalSupply()} />
                         </div>
                       </div>
                     </Grid>

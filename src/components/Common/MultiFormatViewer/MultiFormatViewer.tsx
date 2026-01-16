@@ -1,146 +1,182 @@
-import { encodeAddress, decodeUint64 } from 'algosdk';
+import { encodeAddress, decodeUint64 } from "algosdk";
 import { theme } from "../../../theme/index";
-import React, {useState, useMemo, useEffect, useCallback} from "react";
-import IconButton from '@mui/material/IconButton';
-import { BookUser, Binary, Type, Hash } from 'lucide-react';
-import FormatBoldOutlinedIcon from '@mui/icons-material/FormatBoldOutlined';
-import './MultiFormatViewer.scss';
-import Copyable from '../../../components/Common/Copyable/Copyable';
+import React, { useState, useMemo, useEffect, useCallback } from "react";
+import IconButton from "@mui/material/IconButton";
+import { BookUser, Binary, Type, Hash } from "lucide-react";
+import FormatBoldOutlinedIcon from "@mui/icons-material/FormatBoldOutlined";
+import "./MultiFormatViewer.scss";
+import Copyable from "../../../components/Common/Copyable/Copyable";
 import { Tooltip } from "@mui/material";
-import isUtf8 from 'is-utf8';
+import isUtf8 from "is-utf8";
 
-type View = 'utf8' | 'base64' | 'auto' | 'num' | 'address';
+type View = "utf8" | "base64" | "auto" | "num" | "address";
 
 interface MultiFormatViewerProps {
-    view?: View;
-    value: string;
-    includeNum?: true | "auto";
-    style?: Record<string, any>;
+  view?: View;
+  value: string;
+  includeNum?: true | "auto";
+  style?: Record<string, any>;
+  outerStyle?: Record<string, any>;
+  side?: "left" | "right";
 }
 
-const defaultStyle = { marginLeft: '6px' };
+const defaultStyle = { marginLeft: "6px", marginRight: "6px" };
 
 const niceNames = {
-    utf8: "Text (UTF-8)",
-    num: "Numeric",
-    base64: "Base 64",
-    address: "Address",
-}
+  utf8: "Text (UTF-8)",
+  num: "Numeric",
+  base64: "Base 64",
+  address: "Address",
+};
 
 function isUint64(value: string) {
-    try {
-        decodeUint64(Buffer.from(value, "base64"), "safe");
+  try {
+    decodeUint64(new Uint8Array(Buffer.from(value, "base64")), "safe");
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function getDefaultView(
+  view: View,
+  value: string,
+  hasNum: undefined | boolean,
+  isAddress: undefined | boolean
+): View {
+  if (view === "auto") {
+    const buffer = Buffer.from(value, "base64");
+    if (isUtf8(buffer)) {
+      return "utf8";
+    } else if (hasNum !== false && isUint64(value)) {
+      return "num";
+    } else if (isAddress) {
+      return "address";
+    } else {
+      return "base64";
+    }
+  }
+  return view;
+}
+
+const possibleViews = ["utf8", "address", "base64", "num", ];
+
+export default function MultiFormatViewer(
+  props: MultiFormatViewerProps
+): JSX.Element {
+  const {
+    value,
+    side = "right",
+    view: defaultView = "auto",
+    includeNum = false,
+    style = defaultStyle,
+    outerStyle,
+  } = props;
+
+  const hasNum = useMemo(() => {
+    if (includeNum === true) return true;
+    if (includeNum === false) return false;
+    if (isUint64(value)) return true;
+    // can also be undefined
+  }, [includeNum, value]);
+
+  const isAddress = useMemo(() => {
+    if (!value) return false;
+    const buffer = Buffer.from(value, "base64");
+    if (buffer.length === 32) {
+      return true;
+    }
+    if (buffer.length > 32) {
+      const prefixLen = buffer.length - 32;
+      const prefix = buffer.slice(0, prefixLen);
+      if (isUtf8(prefix)) {
         return true;
-    } catch(e) {
-        return false;
+      }
     }
-}
+  }, [value]);
 
-function getDefaultView(view: View, value: string, hasNum: undefined | boolean, isAddress: undefined | boolean): View {
-    if (view === "auto") {
-        const buffer = Buffer.from(value, 'base64');
-        if (isUtf8(buffer)) {
-            return "utf8";
-        } else if (hasNum !== false && isUint64(value)) {
-            return 'num';
-        } else if (isAddress) {
-            return "address";
-        } else {
-            return "base64";
-        }
+  const [view, setView] = useState(
+    getDefaultView(defaultView, value, hasNum, isAddress)
+  );
+  const [displayValue, setDisplayValue] = useState<string>();
+
+  const changeView = useCallback((_, nextView) => {
+    if (nextView) setView(nextView);
+  }, []);
+
+  const nextView = React.useMemo(() => {
+    const currentViewIndex = possibleViews.indexOf(view);
+    let nextViewIndex = (currentViewIndex + 1) % possibleViews.length;
+    while (true) {
+      if (
+        (possibleViews[nextViewIndex] === "num" && !hasNum) ||
+        (possibleViews[nextViewIndex] === "address" && !isAddress)
+      ) {
+        nextViewIndex = (nextViewIndex + 1) % possibleViews.length;
+      } else {
+        return possibleViews[nextViewIndex];
+      }
     }
-    return view;
-}
+  }, [view, hasNum]);
 
-const possibleViews = ['utf8', 'base64', 'num', 'address'];
+  useEffect(() => {
+    if (view === "address") {
+      const buffer = Buffer.from(value, "base64");
+      if (buffer.length === 32) {
+        setDisplayValue(encodeAddress(new Uint8Array(buffer)));
+      } else {
+        const addrStart = buffer.length - 32;
+        const prefix = buffer.slice(0, addrStart).toString();
+        const address = encodeAddress(new Uint8Array(buffer.slice(addrStart)));
+        setDisplayValue(`${prefix} ${address}`);
+      }
+    } else if (view === "utf8") {
+      try {
+        setDisplayValue(atob(value));
+      } catch (e) {
+        setDisplayValue(Buffer.from(value, "base64").toString("utf8"));
+      }
+    } else if (view === "num") {
+      setDisplayValue(
+        String(parseInt(Buffer.from(value, "base64").toString("hex"), 16))
+      );
+    } else {
+      setDisplayValue(value);
+    }
+  }, [value, view]);
 
-export default function MultiFormatViewer(props: MultiFormatViewerProps): JSX.Element {
-    const { value, view: defaultView = 'auto', includeNum = false, style = defaultStyle, } = props;
+  if (!value) return null;
 
-    const hasNum = useMemo(() => {
-        if (includeNum === true) return true;
-        if (includeNum === false) return false;
-        if (isUint64(value)) return true;
-        // can also be undefined
-    }, [includeNum, value]);
+  const rside = side === "right";
+  const rightStyle = style;
+  const leftStyle = { marginLeft: rside ? "8px" : "-4px", marginRight: "-4px" };
 
-    const isAddress = useMemo(() => {
-        if (!value) return false;
-        const buffer = Buffer.from(value, 'base64');
-        if (buffer.length === 32) {
-            return true;
-        }
-        if (buffer.length > 32) {
-            const prefixLen = buffer.length - 32;
-            const prefix = buffer.slice(0, prefixLen);
-            if (isUtf8(prefix)) {
-                return true;
-            }
-        }
-    }, [value]);
-
-    const [view, setView] = useState(getDefaultView(defaultView, value, hasNum, isAddress));
-    const [displayValue, setDisplayValue] = useState<string>();
-
-    const changeView = useCallback((_, nextView) => {
-        if (nextView) 
-            setView(nextView)
-    }, []);
-
-    const nextView = React.useMemo(() => {
-        const currentViewIndex = possibleViews.indexOf(view);
-        let nextViewIndex = (currentViewIndex + 1) % possibleViews.length
-        while(true) {
-            if ((possibleViews[nextViewIndex] === "num" && !hasNum) ||
-            (possibleViews[nextViewIndex] === "address" && !isAddress)) {
-                nextViewIndex = (nextViewIndex + 1) % possibleViews.length;
-            } else {
-                return possibleViews[nextViewIndex];
-            }
-        }
-    }, [view, hasNum]);
-
-    useEffect(() => {
-        if (view === 'address') {
-            const buffer = Buffer.from(value, 'base64');
-            if (buffer.length === 32) {
-                setDisplayValue(encodeAddress(buffer));
-            } else {
-                const addrStart = buffer.length - 32;
-                const prefix = buffer.slice(0, addrStart).toString();
-                const address = encodeAddress(buffer.slice(addrStart));
-                setDisplayValue(`${prefix} ${address}`);
-            }
-        } else if (view === 'utf8') {
-            try {
-                setDisplayValue(atob(value));
-            } catch (e) {
-                setDisplayValue(Buffer.from(value, 'base64').toString('utf8'));
-            }
-        } else if (view === 'num') {
-            setDisplayValue(String(
-                parseInt(Buffer.from(value, 'base64').toString('hex'), 16)
-            ));
-        } else {
-            setDisplayValue(value);
-        }
-    }, [value, view]);
-    
-    if (!value) return null;
-
-    return <div className="HFlex dimparent">
-        {displayValue}
-        <span className="nowrap dim">
-            <Tooltip title={`Showing ${niceNames[view]}. Click to show ${niceNames[nextView]}`}>
-                <IconButton size="small" onClick={() => changeView(null, nextView)} style={{opacity: view === "num" ? 1 : undefined, marginLeft: "8px", marginRight: "-4px", fontSize: "10px"}}>
-                    { view === "utf8" ? <Type size={16} /> : (
-                        view === "num" ? <Hash size={16} color={theme.palette.primary.main} /> : (
-                            view === "address" ? <BookUser size={16} /> : <Binary size={16} />
-                        )
-                    ) }
-                </IconButton>
-            </Tooltip>
-            <Copyable style={style} value={displayValue} />
-        </span>
-    </div>;
+  return (
+    <div className="dimparent" style={outerStyle}>
+      {rside ? <span style={{wordBreak: "break-all"}}>{displayValue}</span> : null}
+      {!rside ? <Copyable  className="dim" style={leftStyle} value={displayValue} /> : null}
+      <Tooltip
+        title={`Showing ${niceNames[view]}. Click to show ${niceNames[nextView]}`}
+      >
+        <IconButton
+          size="small"
+          className="dim"
+          onClick={() => changeView(null, nextView)}
+          style={!rside ? rightStyle : leftStyle}
+        >
+          {view === "utf8" ? (
+            <Type size={16} />
+          ) : view === "num" ? (
+            <Hash size={16} color={theme.palette.primary.main} />
+          ) : view === "address" ? (
+            <BookUser size={16} />
+          ) : (
+            <Binary size={16} />
+          )}
+        </IconButton>
+      </Tooltip>
+      {rside ? <Copyable className="dim" style={rightStyle} value={displayValue} /> : null}
+      {!rside ? <span style={{wordBreak: "break-all"}}>{displayValue}</span> : null}
+    </div>
+  );
 }

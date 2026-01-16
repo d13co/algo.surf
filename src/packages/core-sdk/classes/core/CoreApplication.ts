@@ -117,37 +117,13 @@ export class CoreApplication {
                 const row:A_GlobalStateDecrypted = {key: "", type: "", value: undefined};
 
                 row.sortKey = Buffer.from(gStateProp.key, 'base64');
-                let key = preserveBase64 ? gStateProp.key : row.sortKey;
-
-                if (preserveBase64) {
-                    row.key = Buffer.isBuffer(key) ? key.toString("base64") : key;
-                } else {
-                    if (isUtf8(key)) {
-                        row.key = key.toString();
-                    }
-                    else {
-                        row.key = '0x' + key.toString('hex');
-                    }
-                }
+                row.key = gStateProp.key;
 
                 const {value} = gStateProp;
 
                 if (value.type === 1) {
                     row.type = 'bytes';
-                    const buf = Buffer.from(value.bytes, 'base64');
-
-                    if (buf.length === 32) {
-                        row.value = encodeAddress(new Uint8Array(buf));
-                    }
-                    else {
-                        let val = Buffer.from(value.bytes, 'base64');
-                        if (isUtf8(val)) {
-                            row.value = val.toString();
-                        }
-                        else {
-                            row.value = val.toString('base64');
-                        }
-                    }
+                    row.value = value.bytes
                 }
                 else {
                     row.type = 'uint';

@@ -6,12 +6,13 @@ import {
   dataGridStyles,
   dataGridStylesBlackHeader,
 } from "../../../../../../../../../theme/styles/datagrid";
-import NumberFormat from "react-number-format";
+import NumberFormatCopy from "../../../../../../../../Common/NumberFormatCopy/NumberFormatCopy";
 import { A_LocalStateDelta } from "../../../../../../../../../packages/core-sdk/types";
 import { CoreLocalState } from "../../../../../../../../../packages/core-sdk/classes/core/CoreLocalStateDelta";
 import { Grid } from "@mui/material";
 import LinkToAccount from "../../../../../../Common/Links/LinkToAccount";
 import { shadedClr } from "../../../../../../../../../utils/common";
+import MultiFormatViewer from "../../../../../../../../Common/MultiFormatViewer/MultiFormatViewer";
 
 function AppCallTxnLocalStateDelta(props): JSX.Element {
   let localStateDelta: A_LocalStateDelta[] = props.state;
@@ -22,20 +23,12 @@ function AppCallTxnLocalStateDelta(props): JSX.Element {
   const columns: GridColDef[] = [
     {
       ...dataGridCellConfig,
-      field: "action",
-      headerName: "Action",
+      field: "operation",
+      flex: 0,
+      headerName: "Operation",
       renderCell: (params: GridValueGetterParams) => {
         const gStateDeltaInstance = new CoreLocalState(params.row);
-        return <div>{gStateDeltaInstance.getActionDisplayValue()}</div>;
-      },
-    },
-    {
-      ...dataGridCellConfig,
-      field: "type",
-      headerName: "Type",
-      renderCell: (params: GridValueGetterParams) => {
-        const gStateDeltaInstance = new CoreLocalState(params.row);
-        return <div>{gStateDeltaInstance.getType()}</div>;
+        return <div>{gStateDeltaInstance.getActionTypeDisplayValue()}</div>;
       },
     },
     {
@@ -43,28 +36,35 @@ function AppCallTxnLocalStateDelta(props): JSX.Element {
       field: "key",
       headerName: "Key",
       renderCell: (params: GridValueGetterParams) => {
-        const gStateDeltaInstance = new CoreLocalState(params.row);
-        return <div>{gStateDeltaInstance.getKey()}</div>;
+        return (
+          <MultiFormatViewer view="auto" value={params.row.key} side="left" />
+        );
       },
     },
     {
       ...dataGridCellConfig,
       field: "value",
       headerName: "Value",
-      flex: 3,
+      flex: 2,
       renderCell: (params: GridValueGetterParams) => {
-        const gStateDeltaInstance = new CoreLocalState(params.row);
-        const action = gStateDeltaInstance.getAction();
+        const deltaInstance = new CoreLocalState(params.row);
+        const action = deltaInstance.getAction();
         return (
           <div>
             {action === 2 ? (
-              <NumberFormat
-                value={gStateDeltaInstance.getValue()}
+              <NumberFormatCopy
+                value={params.row.value.uint}
+                copyPosition="left"
                 displayType={"text"}
                 thousandSeparator={true}
-              ></NumberFormat>
+              ></NumberFormatCopy>
             ) : (
-              gStateDeltaInstance.getValue()
+              <MultiFormatViewer
+                side="left"
+                view="auto"
+                includeNum="auto"
+                value={deltaInstance.getValue()}
+              />
             )}
           </div>
         );
@@ -95,6 +95,7 @@ function AppCallTxnLocalStateDelta(props): JSX.Element {
                               <LinkToAccount
                                 copySize="m"
                                 address={accountLocalState.address}
+                                subPage={`opted-applications/${props.appId}`}
                               ></LinkToAccount>
                             </div>
                             <div className="state-delta">
