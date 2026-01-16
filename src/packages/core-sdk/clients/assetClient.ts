@@ -64,7 +64,7 @@ export class AssetClient{
 
         const response = await req.do();
         const transactions = (response.transactions ?? []).map((t: unknown) => toA_SearchTransaction(t));
-        return { 'next-token': (response['next-token'] as string) ?? '', transactions } as A_AssetTransactionsResponse;
+        return { 'next-token': response['nextToken'] ?? '', transactions } as A_AssetTransactionsResponse;
     }
 
     async searchForAssetsByName(searchText: string): Promise<A_Asset> {

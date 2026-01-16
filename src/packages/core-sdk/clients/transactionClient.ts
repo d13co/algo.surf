@@ -29,7 +29,7 @@ export class TransactionClient {
 
         const response = await req.do();
         const transactions = (response.transactions ?? []).map((t: unknown) => toA_SearchTransaction(t));
-        return { 'next-token': (response['next-token'] as string) ?? '', transactions } as A_TransactionsResponse;
+        return { 'next-token': (response['nextToken'] as string) ?? '', transactions } as A_TransactionsResponse;
     }
 
     async get(id: string): Promise<A_SearchTransaction> {

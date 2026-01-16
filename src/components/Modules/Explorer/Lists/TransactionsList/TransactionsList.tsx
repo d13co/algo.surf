@@ -408,7 +408,7 @@ function TransactionsList({
         <div className="transactions-list-body">
           <div style={{ width: "100%" }}>
             <DataGrid
-              loading={loading}
+              // loading={loading}
               rows={transactions}
               columns={columns}
               pageSize={10}

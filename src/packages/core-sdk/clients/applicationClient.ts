@@ -62,7 +62,7 @@ export class ApplicationClient{
 
         const response = await req.do();
         const transactions = (response.transactions ?? []).map((t: unknown) => toA_SearchTransaction(t));
-        return { 'next-token': (response['next-token'] as string) ?? '', transactions } as A_ApplicationTransactionsResponse;
+        return { 'next-token': response['nextToken'] ?? '', transactions } as A_ApplicationTransactionsResponse;
     }
 
     async decompileProgram(program: string) {

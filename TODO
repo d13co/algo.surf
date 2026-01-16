@@ -125,3 +125,5 @@ app schema + extra pages
 [ ] local state delta also broken: https://fnet.algo.surf/transaction/F6A5YFSFU6VE3WOD6FJ7BC34UZCFZ2ROVWFQLQP4M3XSZGFT4UYA
 
 acct/app escrow double copy icon
+
+app txns only go up to 100

@@ -49,7 +49,7 @@ export class AccountClient{
 
         const response = await req.do();
         const transactions = (response.transactions ?? []).map((t: unknown) => toA_SearchTransaction(t));
-        return { 'next-token': (response['next-token'] as string) ?? '', transactions } as A_AccountTransactionsResponse;
+        return { 'next-token': (response['nextToken'] as string) ?? '', transactions } as A_AccountTransactionsResponse;
     }
 
     async getAuthAddr(address: string, token?: string): Promise<A_AccountsResponse> {
