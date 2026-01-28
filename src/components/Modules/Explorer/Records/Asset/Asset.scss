@@ -9,6 +9,11 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      .asset-header-right {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
     }
     .asset-body {
       margin-top: 30px;

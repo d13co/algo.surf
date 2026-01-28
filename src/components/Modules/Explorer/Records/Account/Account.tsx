@@ -30,8 +30,9 @@ import { useReverseNFD, useReverseNFDs } from "../../../../Common/UseNFD";
 import DymNFD from "../DymNFD";
 import { nfdColor } from "../../../../../theme";
 import { useTinyAssets } from "../../../../Common/UseTinyAsset";
+import { network } from "../../../../../packages/core-sdk/constants";
+import OpenInMenu from "../../../../Common/OpenIn/OpenInMenu";
 
-const network = process.env.REACT_APP_NETWORK;
 const isMainnet = network === "Mainnet";
 const tinymanAppEscrow = "XSKED5VKZZCSYNDWXZJI65JM2HP7HZFJWCOBIMOONKHTK5UVKENBNVDEYM"
 
@@ -198,12 +199,13 @@ function Account(): JSX.Element {
 
             <div className="account-header">
               <div>Account overview</div>
-              <div>
+              <div className="account-header-right">
                 <JsonViewer
                   obj={account.information}
                   filename={`account-${address}.json`}
                   title={`Account ${address.slice(0, 16)}..`}
                 ></JsonViewer>
+                <OpenInMenu pageType="account" id={address} />
               </div>
             </div>
 

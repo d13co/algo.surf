@@ -18,13 +18,18 @@ import { microalgosToAlgos } from "algosdk";
 import NumberFormat from "react-number-format";
 import AlgoIcon from "../../AlgoIcon/AlgoIcon";
 import { Box, ArrowLeftFromLine, ArrowRightFromLine } from "lucide-react";
-import { grey, primaryColor } from "../../../../../theme";
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { useTheme } from '@mui/material/styles';
+import { primaryColor } from "../../../../../theme";
 import { Info as InfoIcon } from "lucide-react";
 import WarningIcon from "@mui/icons-material/Warning";
+import OpenInMenu from "../../../../Common/OpenIn/OpenInMenu";
 
 const network = process.env.REACT_APP_NETWORK;
 
 function Block(): JSX.Element {
+  const theme = useTheme();
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const params = useParams();
@@ -53,7 +58,7 @@ function Block(): JSX.Element {
             <div className="block-header">
               <div className="title">
                 <Box />
-                Block
+                {!isSmallScreen && <span>Block</span>}
                 <span>
                   <span className="no-select">#</span>
                   {blockInstance.getRound()}{" "}
@@ -85,12 +90,13 @@ function Block(): JSX.Element {
                   id={blockInstance.getRound() + 1}
                 ></LinkToBlock>
               </div>
-              <div>
+              <div className="block-header-right">
                 <JsonViewer
                   filename={`block-${id}.json`}
                   obj={block.information}
                   title={`Block ${id}`}
                 ></JsonViewer>
+                <OpenInMenu pageType={"block"} id={id} />
               </div>
             </div>
 

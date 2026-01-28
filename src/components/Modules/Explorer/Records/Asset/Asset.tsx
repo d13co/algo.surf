@@ -1,5 +1,5 @@
 import "./Asset.scss";
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Outlet,
   useNavigate,
@@ -11,7 +11,6 @@ import { RootState } from "../../../../../redux/store";
 import { Grid, Link, Tab, Tabs } from "@mui/material";
 import { loadAsset } from "../../../../../redux/explorer/actions/asset";
 import { CoreAsset } from "../../../../../packages/core-sdk/classes/core/CoreAsset";
-import NumberFormat from "react-number-format";
 import LinkToAccount from "../../Common/Links/LinkToAccount";
 import LoadingTile from "../../../../Common/LoadingTile/LoadingTile";
 import { shadedClr } from "../../../../../utils/common";
@@ -21,9 +20,10 @@ import MultiFormatViewer from "../../../../../components/Common/MultiFormatViewe
 import Copyable from "../../../../../components/Common/Copyable/Copyable";
 import Dym from "../Dym";
 import useTitle from "../../../../Common/UseTitle/UseTitle";
-import { ShieldCheck } from 'lucide-react'
+import { ShieldCheck } from "lucide-react";
 import { abel } from "../../../../../packages/abel/abel";
 import NumberFormatCopy from "../../../../Common/NumberFormatCopy/NumberFormatCopy";
+import OpenInMenu from "../../../../Common/OpenIn/OpenInMenu";
 
 const network = process.env.REACT_APP_NETWORK;
 
@@ -57,21 +57,21 @@ function Asset(): JSX.Element {
   }, [dym]);
 
   const [pv, setPv] = useState(false);
-  
+
   useEffect(() => {
-    (async() => {
-        setPv(false)
-        if (network !== "Mainnet") return false;
-        try {
-          const labels = await abel.getAssetLabels(BigInt(id))
-          return setPv(labels.includes("pv"))
-        } catch (e) {
-          console.warn("Failed to fetch asset labels:", e);
-          return setPv(false);
-        }
-    })()
-  }, [id])
-  
+    (async () => {
+      setPv(false);
+      if (network !== "Mainnet") return false;
+      try {
+        const labels = await abel.getAssetLabels(BigInt(id));
+        return setPv(labels.includes("pv"));
+      } catch (e) {
+        console.warn("Failed to fetch asset labels:", e);
+        return setPv(false);
+      }
+    })();
+  }, [id]);
+
   return (
     <div className={"asset-wrapper"}>
       <div className={"asset-container"}>
@@ -83,12 +83,13 @@ function Asset(): JSX.Element {
           <div>
             <div className="asset-header">
               <div>Asset overview</div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <div className="asset-header-right">
                 <JsonViewer
                   filename={`asset-${id}.json`}
                   obj={asset.information}
                   title={`Asset ${id}`}
                 ></JsonViewer>
+                <OpenInMenu pageType={"asset"} id={id} />
               </div>
             </div>
 
@@ -121,10 +122,14 @@ function Asset(): JSX.Element {
                       )}
                     </div>
                   </div>
-                  { !pv ? null : <div className="pera-verified">
-                    <ShieldCheck style={{color: "#FFEE55", marginTop: '3px'}}/>
-                    <div className="small primary">Pera Verified</div>
-                  </div> }
+                  {!pv ? null : (
+                    <div className="pera-verified">
+                      <ShieldCheck
+                        style={{ color: "#FFEE55", marginTop: "3px" }}
+                      />
+                      <div className="small primary">Pera Verified</div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="props" style={{ background: shadedClr }}>

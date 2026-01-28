@@ -1,6 +1,5 @@
+import { network } from "../packages/core-sdk/constants";
 import {KMDConnectionParams, NodeConnectionParams} from "../packages/core-sdk/types";
-import {REACT_APP_NETWORK} from "../env";
-import {NETWORKS} from "../packages/core-sdk/constants";
 
 export const supportSettings = true;
 
@@ -9,7 +8,6 @@ export function getNodeConfig(): NodeConnectionParams {
 
     let defaultNode = availableNodes[1];
 
-    const network = REACT_APP_NETWORK;
     if (network) {
         const networkNode = availableNodes.find(({id}) => id.toLocaleLowerCase().endsWith(network.toLowerCase()));
         if (networkNode) {
@@ -92,7 +90,7 @@ export function getNodes(): NodeConnectionParams[] {
         },
         {
             id: 'nodely_betanet',
-            label: 'Algorand betanet (Nodely)',
+            label: 'Algorand Betanet (Nodely)',
             algod: {
                 url: 'https://betanet-api.4160.nodely.dev',
                 port: '443',
@@ -106,7 +104,7 @@ export function getNodes(): NodeConnectionParams[] {
         },
         {
             id: 'nodely_fnet',
-            label: 'Algorand FNet (Nodely)',
+            label: 'Algorand Fnet (Nodely)',
             algod: {
                 url: 'https://fnet-api.4160.nodely.dev',
                 port: '443',

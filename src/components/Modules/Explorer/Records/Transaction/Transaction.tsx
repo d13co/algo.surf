@@ -32,6 +32,7 @@ import StateProofTransaction from "./Types/StateProofTransaction/StateProofTrans
 import Copyable from '../../../../Common/Copyable/Copyable';
 import useTitle from "../../../../Common/UseTitle/UseTitle";
 import TransactionRekey from './Sections/TransactionRekey/TransactionRekey';
+import OpenInMenu from '../../../../Common/OpenIn/OpenInMenu';
 
 const network = process.env.REACT_APP_NETWORK;
 
@@ -73,8 +74,9 @@ function Transaction(): JSX.Element {
                     <div>
                         Transaction overview
                     </div>
-                    <div>
+                    <div className='transaction-header-right'>
                         <JsonViewer filename={`txn-${id}.json`} obj={txnObj} title={`Transaction ${id.slice(0, 24)}..`}></JsonViewer>
+                        <OpenInMenu pageType={"transaction"} id={id} />
                     </div>
                 </div>
 

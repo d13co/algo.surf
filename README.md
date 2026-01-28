@@ -22,7 +22,7 @@ Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
 
 To specify the network, pass one of these values as the REACT_APP_NETWORK env var:
 
-`Mainnet` `Testnet` `Betanet` `Localnet` `FNet`
+`Mainnet` `Testnet` `Betanet` `Localnet` `Fnet`
 
 Example:
 

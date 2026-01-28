@@ -33,9 +33,6 @@ function JsonViewer(props): JSX.Element {
     if (!title) {
         title = 'Raw JSON';
     }
-    if (!size) {
-        size = 'small';
-    }
     if (!fullWidth) {
         fullWidth = false;
     }

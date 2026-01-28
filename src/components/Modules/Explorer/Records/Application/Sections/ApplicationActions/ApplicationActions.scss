@@ -3,5 +3,7 @@
 .application-actions-wrapper {
   .application-actions-container {
     display: flex;
+    align-items: center;
+    gap: 10px;
   }
 }
