@@ -10,6 +10,7 @@ import { CssTransition } from "@mui/base/Transitions";
 import { styled } from "@mui/system";
 import { alpha } from "@mui/material/styles";
 import { PopupContext } from "@mui/base/Unstable_Popup";
+import { useHotkeys } from "react-hotkeys-hook";
 
 export default function OpenInMenu({
   pageType,
@@ -18,6 +19,7 @@ export default function OpenInMenu({
   pageType: PageType;
   id: string;
 }): JSX.Element {
+
   const options = React.useMemo(() => {
     return openInOptions(pageType).map((option) => {
       const url = option.url(pageType, id, network);
@@ -25,18 +27,18 @@ export default function OpenInMenu({
     });
   }, [pageType, id]);
 
-  const handleClick = (name: string) => {
-    const openIn = options.find((o) => o.name === name);
-    if (openIn?.url) {
-      window.location.href = openIn.url;
-    } else {
-      console.error("No URL found for selected option");
-    }
-  };
+  // Dropdown open/close state
+  const [open, setOpen] = React.useState(false);
+
+  const onHotkey = React.useCallback(() => {
+    setOpen((prev) => !prev);
+  }, []);
+
+  useHotkeys('o', onHotkey);
 
   return (
-    <Dropdown>
-      <MenuButton>Open In...</MenuButton>
+    <Dropdown open={open} onOpenChange={(_event, nextOpen) => setOpen(nextOpen)}>
+      <MenuButton><span className="underline">O</span>pen In...</MenuButton>
       <Menu slots={{ listbox: AnimatedListbox }}>
         {options.map((option) => (
           <MenuItem
@@ -47,6 +49,7 @@ export default function OpenInMenu({
                 const anchor = e.currentTarget.querySelector('a');
                 if (anchor) anchor.click();
               }
+              setOpen(false);
             }}
           >
             <a

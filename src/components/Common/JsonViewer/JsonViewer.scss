@@ -1,5 +1,9 @@
 @import "src/assets/colors";
 
+.underline {
+  text-decoration: underline !important;
+}
+
 .json-viewer-content {
   font-size: 13px;
   .json-viewer-content-header {
