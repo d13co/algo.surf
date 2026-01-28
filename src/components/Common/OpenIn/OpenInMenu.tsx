@@ -4,7 +4,7 @@ import { Menu, MenuListboxSlotProps } from "@mui/base/Menu";
 import { MenuButton as BaseMenuButton } from "@mui/base/MenuButton";
 import { MenuItem as BaseMenuItem } from "@mui/base/MenuItem";
 import { network } from "../../../packages/core-sdk/constants";
-import { openInOptions } from "./OpenIn";
+import { getOpenInOptions } from "./OpenIn";
 import { PageType } from "./OpenInBase";
 import { CssTransition } from "@mui/base/Transitions";
 import { styled } from "@mui/system";
@@ -19,10 +19,9 @@ export default function OpenInMenu({
   pageType: PageType;
   id: string;
 }): JSX.Element {
-
   const options = React.useMemo(() => {
-    return openInOptions(pageType).map((option) => {
-      const url = option.url(pageType, id, network);
+    return getOpenInOptions(network, pageType, ['Algo Surf']).map((option) => {
+      const url = option.getUrl(network, pageType, id);
       return { name: option.siteName, url };
     });
   }, [pageType, id]);
@@ -34,19 +33,24 @@ export default function OpenInMenu({
     setOpen((prev) => !prev);
   }, []);
 
-  useHotkeys('o', onHotkey);
+  useHotkeys("o", onHotkey);
 
   return (
-    <Dropdown open={open} onOpenChange={(_event, nextOpen) => setOpen(nextOpen)}>
-      <MenuButton><span className="underline">O</span>pen In...</MenuButton>
+    <Dropdown
+      open={open}
+      onOpenChange={(_event, nextOpen) => setOpen(nextOpen)}
+    >
+      <MenuButton>
+        <span className="underline">O</span>pen In...
+      </MenuButton>
       <Menu slots={{ listbox: AnimatedListbox }}>
         {options.map((option) => (
           <MenuItem
             key={option.name}
-            onClick={e => {
+            onClick={(e) => {
               // Only trigger anchor click if not mouse event (keyboard activation)
               if (e.detail === 0) {
-                const anchor = e.currentTarget.querySelector('a');
+                const anchor = e.currentTarget.querySelector("a");
                 if (anchor) anchor.click();
               }
               setOpen(false);
@@ -56,11 +60,11 @@ export default function OpenInMenu({
               href={option.url}
               rel="noopener noreferrer"
               style={{
-                display: 'block',
-                width: '100%',
-                height: '100%',
-                color: 'inherit',
-                textDecoration: 'none',
+                display: "block",
+                width: "100%",
+                height: "100%",
+                color: "inherit",
+                textDecoration: "none",
                 padding: 0,
                 margin: 0,
               }}

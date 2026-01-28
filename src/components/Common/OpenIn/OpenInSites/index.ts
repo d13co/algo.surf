@@ -1,9 +1,13 @@
+import { OpenInAlgoSurf } from "./OpenInAlgoSurf";
+import { OpenInAllo } from "./OpenInAllo";
 import { OpenInFlow } from "./OpenInFlow";
 import { OpenInLora } from "./OpenInLora";
 import { OpenInPera } from "./OpenInPera";
 
-export const OpenInRegistry = {
-    Lora: new OpenInLora(),
-    Pera: new OpenInPera(),
-    Flow: new OpenInFlow(),
-}
+export const OpenInRegistry = [
+  new OpenInLora(),
+  new OpenInAllo(),
+  new OpenInPera(),
+  new OpenInAlgoSurf(),
+  new OpenInFlow(),
+];

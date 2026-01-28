@@ -10,18 +10,34 @@ export type PageType =
 export abstract class OpenInBase {
   /** Site name to display */
   abstract siteName: string;
-  /** Base URL, can include {network} or {networksubdomain} placeholders */
+
+  /** Base URL, can include {network} or {networksubdomain} placeholders.
+   * {network} will be replaced with the lowercase network name (e.g., "mainnet", "testnet").
+   * {networksubdomain} will be replaced with the lowercase network name followed by a dot (e.g., "mainnet.", "testnet.")
+   */
   abstract baseUrl: string;
-  /** Map of network-specific base URL overrides */
+
+  /** Map of network-specific base URL overrides
+   * You can use this to set explicit base URLs for specific networks
+   */
   baseUrlOverride: Map<Networks, string> = new Map();
 
   /** Supported networks */
   abstract networks: Set<Networks>;
-  /** Map of supported page types to URL suffixes */
+
+  /** Map of supported page types to URL suffixes
+   * The suffix can include an {id} placeholder for the entity identifier
+   * Otherwise, the id will be appended to the suffix
+  */
   abstract pageTypeSuffixMap: Map<PageType, string>;
 
+  /** Check if the network is supported */
+  supportsNetwork(network: Networks): boolean {
+    return this.networks.has(network);
+  }
+
   /** Check if the page type is supported */
-  has(pageType: PageType): boolean {
+  supportsPageType(pageType: PageType): boolean {
     return this.pageTypeSuffixMap.has(pageType);
   }
 
@@ -39,13 +55,9 @@ export abstract class OpenInBase {
     return this.baseUrl.replace("{network}", network.toLowerCase());
   }
 
-  /** Construct the full URL for a given page type, identifier, and network */
-  url(
-    pageType: PageType,
-    identifier: string,
-    network: Networks,
-  ): string | null {
-    if (!this.has(pageType) || !this.networks.has(network)) {
+  /** Construct the full URL for a given network, page type and id */
+  getUrl(network: Networks, pageType: PageType, id: string): string | null {
+    if (!this.supportsPageType(pageType) || !this.supportsNetwork(network)) {
       return null;
     }
     let baseUrl = this.getBaseUrl(network);
@@ -59,6 +71,11 @@ export abstract class OpenInBase {
     if (suffix.endsWith("/")) {
       suffix = suffix.slice(0, -1);
     }
-    return `${baseUrl}/${suffix}/${identifier}`;
+    if (suffix.includes("{id}")) {
+      suffix = `${suffix.replace("{id}", id)}`;
+    } else {
+      suffix = `${suffix}/${id}`;
+    }
+    return `${baseUrl}/${suffix}`;
   }
 }

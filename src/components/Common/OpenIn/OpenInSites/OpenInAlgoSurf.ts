@@ -1,10 +1,14 @@
 import { Networks } from "../../../../packages/core-sdk/constants";
 import { OpenInBase, PageType } from "../OpenInBase";
 
-export class OpenInLora extends OpenInBase {
-  siteName = "Lora";
+export class OpenInAlgoSurf extends OpenInBase {
+  siteName = "Algo Surf";
 
-  baseUrl = "https://lora.algokit.io/{network}";
+  baseUrl = "https://{networksubdomain}algo.surf";
+
+  baseUrlOverride: Map<Networks, string> = new Map([
+    [Networks.Mainnet, "https://algo.surf"],
+  ]);
 
   networks = new Set([
     Networks.Mainnet,
@@ -13,12 +17,12 @@ export class OpenInLora extends OpenInBase {
     Networks.Localnet,
     Networks.Fnet,
   ]);
-
+  
   pageTypeSuffixMap: Map<PageType, string> = new Map([
-    ["block", "/block"],
     ["transaction", "/transaction"],
     ["account", "/account"],
-    ["asset", "/asset"],
-    ["application", "/application"],
+    ["block", "/block/{id}/transactions"],
+    ["asset", "/asset/{id}/transactions"],
+    ["application", "/application/{id}/transactions"],
   ]);
 }
