@@ -37,7 +37,13 @@ export default function OpenInMenu({
   return (
     <Dropdown
       open={open}
-      onOpenChange={(_event, nextOpen) => setOpen(nextOpen)}
+      onOpenChange={(event, nextOpen) => {
+        // Keep menu open if modifier key is held (e.g. ctrl+click to open in new tab)
+        if (!nextOpen && event && 'ctrlKey' in event && (event.ctrlKey || event.metaKey || event.shiftKey)) {
+          return;
+        }
+        setOpen(nextOpen);
+      }}
     >
       <MenuButton>
         <span className="underline">O</span>pen In...
@@ -52,7 +58,10 @@ export default function OpenInMenu({
                 const anchor = e.currentTarget.querySelector("a");
                 if (anchor) anchor.click();
               }
-              setOpen(false);
+              // Keep menu open if modifier key is held (e.g. ctrl+click to open in new tab)
+              if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                // setOpen(false);
+              }
             }}
           >
             <a
@@ -64,8 +73,8 @@ export default function OpenInMenu({
                 height: "100%",
                 color: "inherit",
                 textDecoration: "none",
-                padding: 0,
-                margin: 0,
+                padding: 8,
+                margin: -8,
               }}
               tabIndex={-1}
             >
@@ -149,6 +158,7 @@ const MenuItem = styled(BaseMenuItem)(
   border-radius: 8px;
   cursor: default;
   user-select: none;
+  overflow: hidden;
 
   &:last-of-type {
     border-bottom: none;
