@@ -1,3 +1,5 @@
+import { Network as OpenInNetwork } from "@d13co/open-in";
+
 export enum TXN_TYPES {
   PAYMENT = "pay",
   KEY_REGISTRATION = "keyreg",
@@ -34,6 +36,8 @@ export enum Networks {
 
 export const network =
   Networks[process.env.REACT_APP_NETWORK as keyof typeof Networks];
+
+export const openInNetwork = network.toLowerCase() as OpenInNetwork
 
   if (!network) {
     throw new Error(

@@ -137,3 +137,6 @@ offlined-aware validator labels in accounts - compare last-roudn with last valid
 
 [v] numberformat with copybutton
 [ ] numberformat with navigate/search button when num > 1000
+[ ] global state hidden on mobile for large values - fix overflow
+
+openinmenu no close when modifier held on click

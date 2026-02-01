@@ -3,9 +3,8 @@ import { Dropdown } from "@mui/base/Dropdown";
 import { Menu, MenuListboxSlotProps } from "@mui/base/Menu";
 import { MenuButton as BaseMenuButton } from "@mui/base/MenuButton";
 import { MenuItem as BaseMenuItem } from "@mui/base/MenuItem";
-import { network } from "../../../packages/core-sdk/constants";
-import { getOpenInOptions } from "./OpenIn";
-import { PageType } from "./OpenInBase";
+import { openInNetwork } from "../../../packages/core-sdk/constants";
+import { getOpenInEntries, PageType } from "@d13co/open-in";
 import { CssTransition } from "@mui/base/Transitions";
 import { styled } from "@mui/system";
 import { alpha } from "@mui/material/styles";
@@ -20,8 +19,8 @@ export default function OpenInMenu({
   id: string;
 }): JSX.Element {
   const options = React.useMemo(() => {
-    return getOpenInOptions(network, pageType, ['Algo Surf']).map((option) => {
-      const url = option.getUrl(network, pageType, id);
+    return getOpenInEntries(openInNetwork, pageType, { excludeSiteNames: ['Algo Surf'] }).map((option) => {
+      const url = option.getUrl(openInNetwork, pageType, id);
       return { name: option.siteName, url };
     });
   }, [pageType, id]);

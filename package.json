@@ -5,6 +5,7 @@
   "dependencies": {
     "@algorandfoundation/algokit-utils": "9.2.0",
     "@craco/craco": "^6.4.3",
+    "@d13co/open-in": "^0.1.0",
     "@emotion/react": "^11.9.0",
     "@emotion/styled": "^11.8.1",
     "@mui/base": "5.0.0-beta.70",

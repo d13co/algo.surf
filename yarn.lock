@@ -1815,6 +1815,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@d13co/open-in@npm:^0.1.0":
+  version: 0.1.0
+  resolution: "@d13co/open-in@npm:0.1.0"
+  checksum: 10c0/e9aedbccde371229b8a6612ad63f29dcd9c4d631abd331fdfac080db60f43146ca3a76e8883c6c054ed0f5a52839d61a11b52c1a1339afe17af3328bb4ca2438
+  languageName: node
+  linkType: hard
+
 "@date-io/core@npm:^2.14.0":
   version: 2.14.0
   resolution: "@date-io/core@npm:2.14.0"
@@ -5274,6 +5281,7 @@ __metadata:
   dependencies:
     "@algorandfoundation/algokit-utils": "npm:9.2.0"
     "@craco/craco": "npm:^6.4.3"
+    "@d13co/open-in": "npm:^0.1.0"
     "@emotion/react": "npm:^11.9.0"
     "@emotion/styled": "npm:^11.8.1"
     "@mui/base": "npm:5.0.0-beta.70"
