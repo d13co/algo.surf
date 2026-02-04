@@ -29,6 +29,7 @@
     "@types/sass-loader": "^8.0.3",
     "@yornaath/batshit": "^0.10.1",
     "abel-ghost-sdk": "0.0.4",
+    "algo-group-balance-changes": "0.0.1",
     "algosdk": "^3.5.2",
     "atob": "^2.1.2",
     "axios": "^0.27.2",

@@ -9,43 +9,80 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      min-width: 0;
+      > div {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
+      }
+    }
+    .vflex {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      .splitrow {
+        width: 100%;
+        display: flex;
+        gap: 20px;
+        margin-bottom: 14px;
+        .left {
+          flex-grow: 1;
+          text-align: left;
+        }
+        .right {
+          flex-grow: 1;
+          align-items: right;
+          .delta {
+            width: 100%;
+            text-align: right;
+          }
+        }
+      }
     }
     .group-body {
-      margin-top: 30px;
-      .id {
+      margin-top: 10px;
+      .id,
+      .balance-impact-title {
         font-size: 18px;
         margin-bottom: 20px;
         font-weight: normal;
       }
-      .props {
-        max-width: 500px;
-        margin-top: 30px;
-        padding-right: 8px;
-        .property {
-          display: flex;
-          justify-content: space-between;
-          margin-top: 20px;
-          .key {
-            margin-right: 4px;
-            &.nowrap {
-              white-space: pre;
+      .props-container {
+        display: flex;
+        justify-content: space-between;
+        width: 100%;
+        gap: 8px;
+        .props {
+          max-width: 500px;
+          flex-grow: 1;
+          .property {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            .key {
+              margin-right: 4px;
+              &.nowrap {
+                white-space: pre;
+              }
             }
-          }
-          .value {
-            color: $color-grey-dark;
-            .algo-icon {
-              margin-left: 5px;
-            }
-            &.flexwrap {
-              display: flex;
-              gap: 2px;
-              flex-wrap: wrap;
+            .value {
+              color: $color-grey-dark;
+              .algo-icon {
+                margin-left: 5px;
+              }
+              &.flexwrap {
+                display: flex;
+                gap: 2px;
+                flex-wrap: wrap;
+              }
             }
           }
         }
       }
+
       .group-tabs {
-        margin-top: 50px;
+        margin-top: 20px;
       }
     }
   }

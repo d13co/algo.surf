@@ -5275,6 +5275,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"algo-group-balance-changes@npm:0.0.1":
+  version: 0.0.1
+  resolution: "algo-group-balance-changes@npm:0.0.1"
+  peerDependencies:
+    "@algorandfoundation/algokit-utils": ^9.2.0
+    algosdk: ^3.5.2
+  checksum: 10c0/9b2c74251735091436094821007b6f7b42be30947f2cdcef4eaf9a09ff6071b572ca030292ab5ff5e2e527d318d23817029ca31c87e753b20f10291026c5d863
+  languageName: node
+  linkType: hard
+
 "algo-surf@workspace:.":
   version: 0.0.0-use.local
   resolution: "algo-surf@workspace:."
@@ -5306,6 +5316,7 @@ __metadata:
     "@types/sass-loader": "npm:^8.0.3"
     "@yornaath/batshit": "npm:^0.10.1"
     abel-ghost-sdk: "npm:0.0.4"
+    algo-group-balance-changes: "npm:0.0.1"
     algosdk: "npm:^3.5.2"
     atob: "npm:^2.1.2"
     axios: "npm:^0.27.2"

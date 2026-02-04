@@ -39,19 +39,20 @@ export function useTinyAssets(
     queryKey: ["tiny-assets", assetIds.join(",")],
     queryFn: async () => {
       if (assetIds.length === 0) return [];
+      const realAssetIds = assetIds.includes(0) ? assetIds.filter((id) => id !== 0) : assetIds;
 
       // First, hydrate from IndexedDB cache (ignore cache errors)
       let cachedMap: Map<number, A_AssetTiny> = new Map();
       try {
-        cachedMap = await AssetCache.getByIndices(assetIds);
+        cachedMap = await AssetCache.getByIndices(realAssetIds);
       } catch {
         // ignore cache failures
       }
 
-      const missingIds = assetIds.filter((id) => !cachedMap.has(id));
+      const missingIds = realAssetIds.filter((id) => !cachedMap.has(id));
       if (missingIds.length === 0) {
         // Return in requested order
-        return assetIds.map((id) => cachedMap.get(id)!) as A_AssetTiny[];
+        return realAssetIds.map((id) => cachedMap.get(id)!) as A_AssetTiny[];
       }
 
       // Fetch missing from ABEL
@@ -78,7 +79,7 @@ export function useTinyAssets(
         }
 
         // Assemble in requested order
-        return assetIds
+        return realAssetIds
           .map((id) => cachedMap.get(id))
           .filter((a): a is A_AssetTiny => !!a);
       } catch (e) {
