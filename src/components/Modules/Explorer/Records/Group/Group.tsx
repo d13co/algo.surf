@@ -13,12 +13,11 @@ import TxnTypeChip from "../../Common/TxnTypeChip/TxnTypeChip";
 import {
   BalanceImpact,
   calculateGroupBalanceImpact,
-} from "algo-group-balance-changes";
+} from "@d13co/algo-group-balance-impact";
 import dappflow from "../../../../../utils/dappflow";
 import { useTinyAssets } from "../../../../Common/UseTinyAsset";
 import NumberFormatCopy from "../../../../Common/NumberFormatCopy/NumberFormatCopy";
 import LinkToAsset from "../../Common/Links/LinkToAsset";
-import { primaryColor } from "../../../../../theme";
 import LinkToAccount from "../../Common/Links/LinkToAccount";
 import Copyable from "../../../../Common/Copyable/Copyable";
 
@@ -115,14 +114,12 @@ function Group(): JSX.Element {
                 </div>
 
                 <div className="property">
-                  <div className="key nowrap">
-                    Transaction Types
-                  </div>
+                  <div className="key nowrap">Transaction Types</div>
                   <div className="value flexwrap">
                     <span style={{ marginRight: "8px" }}>
-                        {groupInstance.getTransactionsCount()}x
-                        
-                    </span>{txnTypesList.map((type) => {
+                      {groupInstance.getTransactionsCount()}x
+                    </span>
+                    {txnTypesList.map((type) => {
                       return (
                         <TxnTypeChip
                           parentType="group"
@@ -182,25 +179,29 @@ function Group(): JSX.Element {
                                     <div
                                       key={i}
                                       className="delta"
-                                      style={{ color, textDecorationColor: color }}
+                                      style={{
+                                        color,
+                                        textDecorationColor: color,
+                                      }}
                                     >
                                       <NumberFormatCopy
                                         value={amount}
                                         dimmable={true}
                                         showSign={true}
                                         copyPosition="left"
-                                        copyStyle={{marginRight: '0px'}}
+                                        copyStyle={{ marginRight: "0px" }}
                                         displayType={"text"}
                                         thousandSeparator={true}
-                                        style={{marginRight: "4px"}}
+                                        style={{ marginRight: "4px" }}
                                       />
                                       {assetId === "0" ? (
-                                        <span>
-                                          {assetLabel}
-                                        </span>
+                                        <span>{assetLabel}</span>
                                       ) : (
                                         <LinkToAsset
-                                          style={{ color: "inherit", textDecorationColor: "inherit" }}
+                                          style={{
+                                            color: "inherit",
+                                            textDecorationColor: "inherit",
+                                          }}
                                           id={assetId}
                                           name={assetLabel}
                                         />

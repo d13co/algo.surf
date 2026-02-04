@@ -1815,6 +1815,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@d13co/algo-group-balance-impact@npm:^0.0.1":
+  version: 0.0.1
+  resolution: "@d13co/algo-group-balance-impact@npm:0.0.1"
+  peerDependencies:
+    "@algorandfoundation/algokit-utils": ^9.2.0
+    algosdk: ^3.5.2
+  checksum: 10c0/615456f3785d996d25ab5dbed67e1fbfbb13d37e407e82f3feb63d47555f888b80b6011f513a657e5795ea016386379b36fb441673aa7648089bef05595159ec
+  languageName: node
+  linkType: hard
+
 "@d13co/open-in@npm:^0.1.0":
   version: 0.1.0
   resolution: "@d13co/open-in@npm:0.1.0"
@@ -5275,22 +5285,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"algo-group-balance-changes@npm:0.0.1":
-  version: 0.0.1
-  resolution: "algo-group-balance-changes@npm:0.0.1"
-  peerDependencies:
-    "@algorandfoundation/algokit-utils": ^9.2.0
-    algosdk: ^3.5.2
-  checksum: 10c0/9b2c74251735091436094821007b6f7b42be30947f2cdcef4eaf9a09ff6071b572ca030292ab5ff5e2e527d318d23817029ca31c87e753b20f10291026c5d863
-  languageName: node
-  linkType: hard
-
 "algo-surf@workspace:.":
   version: 0.0.0-use.local
   resolution: "algo-surf@workspace:."
   dependencies:
     "@algorandfoundation/algokit-utils": "npm:9.2.0"
     "@craco/craco": "npm:^6.4.3"
+    "@d13co/algo-group-balance-impact": "npm:^0.0.1"
     "@d13co/open-in": "npm:^0.1.0"
     "@emotion/react": "npm:^11.9.0"
     "@emotion/styled": "npm:^11.8.1"
@@ -5316,7 +5317,6 @@ __metadata:
     "@types/sass-loader": "npm:^8.0.3"
     "@yornaath/batshit": "npm:^0.10.1"
     abel-ghost-sdk: "npm:0.0.4"
-    algo-group-balance-changes: "npm:0.0.1"
     algosdk: "npm:^3.5.2"
     atob: "npm:^2.1.2"
     axios: "npm:^0.27.2"
