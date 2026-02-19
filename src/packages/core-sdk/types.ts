@@ -200,6 +200,7 @@ export interface A_SearchTransaction_Signature {
     }
     logicsig?: {
         logic: string
+        args?: string[]
     }
 }
 

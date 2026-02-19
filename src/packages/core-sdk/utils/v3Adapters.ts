@@ -296,6 +296,9 @@ function convertSignature(obj: unknown): A_SearchTransaction_Signature {
     logicsig: isObject(logicsig)
       ? {
           logic: getString(logicsig, ["logic"]),
+          args: getArray(logicsig, ["args"]).length > 0
+            ? getArray(logicsig, ["args"]).map((v) => toString(v))
+            : undefined,
         }
       : undefined,
   };

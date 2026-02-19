@@ -257,7 +257,10 @@ function ApplicationProgram(props: {
           </div>
           <div className="small" style={{ marginTop: 20 }}>
             {encoding === PROGRAM_ENCODING.BASE64 ? (
-              <div className="source padded">{prg}</div>
+              <>
+                <div className="source padded">{prg}</div>
+                <div className="program-length">{Buffer.from(prg, "base64").length} bytes</div>
+              </>
             ) : (
               <div className="source">
                 <CodeBlock
