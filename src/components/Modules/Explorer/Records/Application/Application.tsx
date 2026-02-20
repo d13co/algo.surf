@@ -378,7 +378,7 @@ function Application(): JSX.Element {
                         navigate("/application/" + id + "/transactions");
                       }}
                     />
-                    {application.boxNames.length ? (
+                    {application.boxNames.length || application.boxError ? (
                       <Tab
                         label="Boxes"
                         value="boxes"

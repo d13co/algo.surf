@@ -60,6 +60,7 @@ export interface Application {
     loading: boolean;
   };
   boxNames: A_BoxNames;
+  boxError: string;
   abiDetails: {
     abi: ABIContractParams;
     loaded: boolean;
@@ -102,6 +103,7 @@ const initialState: Application = {
     },
   },
   boxNames: [],
+  boxError: "",
   transactionsDetails: {
     "next-token": "",
     completed: false,
@@ -161,9 +163,10 @@ export const loadApplicationBoxNames = createAsyncThunk(
       dispatch(setLoading(false));
       return boxNameResponse;
     } catch (e: any) {
-      dispatch(handleException(e));
-      dispatch(setError(true));
+      // some apps will have too many boxes to fail
+      // do not throw error so as to not block loading the application details and transactions
       dispatch(setLoading(false));
+      return thunkAPI.rejectWithValue(e.message || "Failed to load box names");
     }
   }
 );
@@ -251,6 +254,12 @@ export const applicationSlice = createSlice({
         if (action.payload) {
           state.boxNames = action.payload;
         }
+      }
+    );
+    builder.addCase(
+      loadApplicationBoxNames.rejected,
+      (state, action) => {
+        state.boxError = action.payload as string || "Failed to load box names";
       }
     );
     builder.addCase(
