@@ -1,4 +1,4 @@
-import { Algodv2} from 'algosdk';
+import { Algodv2, indexerModels } from 'algosdk';
 import type { Indexer } from "algosdk";
 import {
     A_Asset,
@@ -27,15 +27,15 @@ export class AssetClient{
         this.indexer = network.getIndexer();
     }
 
-    async get(id: number): Promise<A_Asset>{
-        const asset = await this.client.getAssetByID(id).do();
-        return toA_Asset(asset);
+    async get(id: number): Promise<indexerModels.Asset>{
+        const response = await this.indexer.lookupAssetByID(id).includeAll().do();
+        return response.asset;
     }
 
     async search(id: number): Promise<A_AssetResult | null>{
         try {
-            const asset = await this.client.getAssetByID(id).do();
-            const converted = toA_Asset(asset);
+            const response = await this.indexer.lookupAssetByID(id).includeAll().do();
+            const converted = toA_Asset(response.asset);
             return { ...converted, type: "asset" } as A_AssetResult;
         } catch(e) {
             if ((e as any).response?.status === 404)

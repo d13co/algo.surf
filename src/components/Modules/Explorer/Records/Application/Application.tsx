@@ -321,7 +321,6 @@ function Application(): JSX.Element {
                                 Approval pages SHA512/256{" "}
                                 <Tooltip title="Approval program hashed in 4 KB chunks">
                                   <CircleHelp
-                                    color={primaryColor}
                                     size={16}
                                     fontSize={16}
                                   />
@@ -334,7 +333,6 @@ function Application(): JSX.Element {
                                       <span
                                         style={{
                                           fontWeight: "bold",
-                                          color: primaryColor,
                                         }}
                                       >
                                         {i + 1}/

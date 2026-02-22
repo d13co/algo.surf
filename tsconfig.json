@@ -1,12 +1,13 @@
 {
   "compilerOptions": {
-    "target": "es2015",
+    "target": "es2020",
     "lib": [
       "es6",
       "dom",
       "dom.iterable",
       "esnext"
     ],
+    "types": ["vite/client"],
     "allowJs": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
@@ -22,7 +23,11 @@
     "jsx": "react-jsx",
     "noImplicitAny": false,
     "noImplicitThis": true,
-    "strictNullChecks": false
+    "strictNullChecks": false,
+    "baseUrl": ".",
+    "paths": {
+      "src/*": ["src/*"]
+    }
   },
   "include": [
     "src"

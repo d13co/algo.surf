@@ -711,7 +711,8 @@ export function toA_Asset(input: unknown): A_Asset {
     ]),
   };
 
-  return { index, params };
+  const deleted = getBoolean(o, ["deleted"], false);
+  return { index, params, ...(deleted ? { deleted: true } : {}) };
 }
 
 export function toA_AssetsResponse(input: unknown): {

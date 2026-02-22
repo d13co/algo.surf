@@ -1,7 +1,8 @@
 import {createAsyncThunk, createSlice, PayloadAction} from '@reduxjs/toolkit'
 import {handleException} from "../../common/actions/exception";
 import explorer from "../../../utils/dappflow";
-import {A_Asset, A_SearchTransaction} from "../../../packages/core-sdk/types";
+import {A_SearchTransaction} from "../../../packages/core-sdk/types";
+import {indexerModels} from "algosdk";
 import {TransactionClient} from "../../../packages/core-sdk/clients/transactionClient";
 import {CoreTransaction} from "../../../packages/core-sdk/classes/core/CoreTransaction";
 import {TXN_TYPES} from "../../../packages/core-sdk/constants";
@@ -13,7 +14,7 @@ export interface Transaction {
     loading: boolean,
     error: boolean,
     asset: {
-        information: A_Asset
+        information: indexerModels.Asset
     }
 }
 
@@ -45,26 +46,14 @@ const initialState: Transaction = {
         }
     },
     asset: {
-        information: {
-            index: 0,
-            params: {
-                clawback: "",
+        information: new indexerModels.Asset({
+            index: 0n,
+            params: new indexerModels.AssetParams({
                 creator: "",
                 decimals: 0,
-                "default-frozen": false,
-                freeze: "",
-                manager: "",
-                name: "",
-                "name-b64": "",
-                reserve: "",
-                total: 0,
-                "unit-name": "",
-                "unit-name-b64": "",
-                url: "",
-                "url-b64": "",
-                "metadata-hash": "",
-            }
-        },
+                total: 0n,
+            }),
+        }),
     }
 }
 
@@ -133,7 +122,7 @@ export const transactionSlice = createSlice({
                 state.information = action.payload;
             }
         });
-        builder.addCase(loadTxnAsset.fulfilled, (state, action: PayloadAction<A_Asset>) => {
+        builder.addCase(loadTxnAsset.fulfilled, (state, action: PayloadAction<indexerModels.Asset>) => {
             if (action.payload) {
                 state.asset.information = action.payload;
             }

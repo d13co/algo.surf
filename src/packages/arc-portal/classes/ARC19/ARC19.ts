@@ -1,7 +1,7 @@
 import {A_Asset} from "../../../core-sdk/types";
 import {A_Arc_Validation} from "../../types";
 import {CoreAsset} from "../../../core-sdk/classes/core/CoreAsset";
-import {decodeAddress} from "algosdk";
+import {decodeAddress, indexerModels} from "algosdk";
 import { CID } from 'multiformats/cid'
 import * as mfsha2 from 'multiformats/hashes/sha2'
 import * as digest from 'multiformats/hashes/digest'
@@ -12,7 +12,7 @@ import axios, {AxiosResponse} from "axios";
 export class ARC19 {
     assetInstance: CoreAsset
 
-    constructor(asset: A_Asset) {
+    constructor(asset: indexerModels.Asset | A_Asset) {
         this.assetInstance = new CoreAsset(asset);
     }
 

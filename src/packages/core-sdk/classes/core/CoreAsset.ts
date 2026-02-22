@@ -3,72 +3,114 @@ import {
 } from "../../types";
 import {IPFS_GATEWAY} from "../../../arc-portal/utils";
 import {ARC19} from "../../../arc-portal/classes/ARC19/ARC19";
+import { indexerModels, bytesToBase64, ALGORAND_ZERO_ADDRESS_STRING } from "algosdk";
+import { encodingDataToPlain } from "../../utils/serialize";
 
+function isValidAddress(addr: string | undefined): boolean {
+    return Boolean(addr) && addr !== ALGORAND_ZERO_ADDRESS_STRING;
+}
 
 export class CoreAsset {
-    asset: A_Asset;
+    asset: indexerModels.Asset;
 
-    constructor(asset: A_Asset) {
+    constructor(asset: indexerModels.Asset | A_Asset) {
         if (!asset) {
             throw new Error("Invalid asset");
         }
-        this.asset = asset;
+        if (asset instanceof indexerModels.Asset) {
+            this.asset = asset;
+        } else {
+            this.asset = CoreAsset.fromLegacy(asset);
+        }
     }
 
-    get(): A_Asset{
+    private static fromLegacy(a: A_Asset): indexerModels.Asset {
+        const p = a.params;
+        return new indexerModels.Asset({
+            index: BigInt(a.index ?? 0),
+            deleted: a.deleted,
+            params: new indexerModels.AssetParams({
+                creator: p.creator ?? "",
+                decimals: p.decimals ?? 0,
+                total: BigInt(p.total ?? 0),
+                clawback: p.clawback,
+                defaultFrozen: p["default-frozen"],
+                freeze: p.freeze,
+                manager: p.manager,
+                name: p.name,
+                nameB64: p["name-b64"] ? Uint8Array.from(atob(p["name-b64"]), c => c.charCodeAt(0)) : undefined,
+                reserve: p.reserve,
+                unitName: p["unit-name"],
+                unitNameB64: p["unit-name-b64"] ? Uint8Array.from(atob(p["unit-name-b64"]), c => c.charCodeAt(0)) : undefined,
+                url: p.url,
+                urlB64: p["url-b64"] ? Uint8Array.from(atob(p["url-b64"]), c => c.charCodeAt(0)) : undefined,
+                metadataHash: p["metadata-hash"] ? Uint8Array.from(atob(p["metadata-hash"]), c => c.charCodeAt(0)) : undefined,
+            }),
+        });
+    }
+
+    get(): indexerModels.Asset {
         return this.asset;
     }
 
+    toJSON(): Record<string, unknown> {
+        return encodingDataToPlain(this.asset.toEncodingData());
+    }
+
+    isDeleted(): boolean {
+        return this.asset.deleted === true;
+    }
+
     hasManager(): boolean {
-        return Boolean(this.asset.params.manager);
+        return isValidAddress(this.asset.params.manager);
     }
 
     hasReserve(): boolean {
-        return Boolean(this.asset.params.reserve);
+        return isValidAddress(this.asset.params.reserve);
     }
 
     hasFreeze(): boolean {
-        return Boolean(this.asset.params.freeze);
+        return isValidAddress(this.asset.params.freeze);
     }
 
     hasClawback(): boolean {
-        return Boolean(this.asset.params.clawback);
+        return isValidAddress(this.asset.params.clawback);
     }
 
     getManager(): string {
-        return this.asset.params.manager;
+        return this.asset.params.manager ?? "";
     }
 
     getReserve(): string {
-        return this.asset.params.reserve;
+        return this.asset.params.reserve ?? "";
     }
 
     getFreeze(): string {
-        return this.asset.params.freeze;
+        return this.asset.params.freeze ?? "";
     }
 
     getClawback(): string {
-        return this.asset.params.clawback;
+        return this.asset.params.clawback ?? "";
     }
 
     getIndex(): number {
-        return this.asset.index;
+        return Number(this.asset.index);
     }
 
     getName(): string {
-        return this.asset.params.name;
+        return this.asset.params.name ?? "";
     }
 
     getNameB64(): string {
-        return this.asset.params['name-b64'];
+        return this.asset.params.nameB64 ? bytesToBase64(this.asset.params.nameB64) : "";
     }
 
     getUnitName(): string {
-        return this.asset.params["unit-name"];
+        return this.asset.params.unitName ?? "";
     }
 
     getUnitNameB64(): string {
-        return this.asset.params["unit-name-b64"];
+        return this.asset.params.unitNameB64 ? bytesToBase64(this.asset.params.unitNameB64) : "";
     }
 
     getDecimals(): number {
@@ -76,7 +118,7 @@ export class CoreAsset {
     }
 
     getTotal(): number {
-        return this.asset.params.total;
+        return Number(this.asset.params.total);
     }
 
     getTotalSupply(): number {
@@ -92,15 +134,15 @@ export class CoreAsset {
     }
 
     getDefaultFrozen(): boolean {
-        return this.asset.params["default-frozen"];
+        return this.asset.params.defaultFrozen ?? false;
     }
 
     getUrl(): string {
-        return this.asset.params.url;
+        return this.asset.params.url ?? "";
     }
 
     getMetadataHash(): string {
-        return this.asset.params["metadata-hash"];
+        return this.asset.params.metadataHash ? bytesToBase64(this.asset.params.metadataHash) : "";
     }
 
     getUrlProtocol(): string {

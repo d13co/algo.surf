@@ -1,17 +1,16 @@
 import './LiveBlocks.scss';
 import React from "react";
-import {useSelector} from "react-redux";
-import {RootState} from "../../../../redux/store";
+import {useLiveData} from "../../../../hooks/useLiveData";
 import {shadedClr} from "../../../../utils/common";
 import LinkToBlock from "../Common/Links/LinkToBlock";
 import {CoreBlock} from "../../../../packages/core-sdk/classes/core/CoreBlock";
 import { CSSTransition, TransitionGroup } from 'react-transition-group';
 import {Chip,Box} from "@mui/material";
 import TxnTypeChip from "../Common/TxnTypeChip/TxnTypeChip";
+import MultiDateViewer from "../../../v2/MultiDateViewer";
 
 function LiveBlocks(): JSX.Element {
-    const liveData = useSelector((state: RootState) => state.liveData);
-    const {blocks} = liveData;
+    const {blocks} = useLiveData();
 
     return (<div className={"live-blocks-wrapper"}>
         <div className={"live-blocks-container"}>
@@ -42,7 +41,7 @@ function LiveBlocks(): JSX.Element {
                                             )}
                                         </div>
                                         <div className="sub-text faded text-right" style={{marginLeft: "2px"}}>
-                                            {blockInstance.getTimestampDuration()} ago
+                                            <MultiDateViewer timestamp={blockInstance.getTimestamp()} />
                                         </div>
                                     </div>
                                 </div>

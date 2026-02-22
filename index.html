@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#121212" />
+    <meta
+      name="description"
+      content="Algo Surf: Algorand Explorer"
+    />
+    <link rel="apple-touch-icon" href="/logo192.png" />
+    <link rel="manifest" href="/manifest.json" />
+
+    <title>Algo.Surf</title>
+    <style>
+      html,body {
+        background-color: #121212;
+      }
+      @keyframes fadeinout {
+        75% {
+          opacity: 0.1;
+        }
+        100% {
+          opacity: 0.5;
+        }
+      }
+      #html-loading {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100svh;
+        width: 100%;
+      }
+      #html-loading img {
+        opacity: 0.5;
+        animation: fadeinout 1300ms infinite ease-in-out;
+      }
+    </style>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root">
+      <div id="html-loading">
+        <img src="/logo.png" />
+      </div>
+    </div>
+    <script type="module" src="/src/index.tsx"></script>
+  </body>
+</html>

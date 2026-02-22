@@ -1,7 +1,6 @@
 import './LiveTransactions.scss';
 import React from "react";
-import {useSelector} from "react-redux";
-import {RootState} from "../../../../redux/store";
+import {useLiveData} from "../../../../hooks/useLiveData";
 import {shadedClr} from "../../../../utils/common";
 import { CSSTransition, TransitionGroup } from 'react-transition-group';
 import {CoreTransaction} from "../../../../packages/core-sdk/classes/core/CoreTransaction";
@@ -12,8 +11,7 @@ import LinkToApplication from "../Common/Links/LinkToApplication";
 import {Typography, Box} from "@mui/material";
 
 function LiveTransactions(): JSX.Element {
-    const liveData = useSelector((state: RootState) => state.liveData);
-    const {transactions} = liveData;
+    const {transactions} = useLiveData();
 
     return (<div className={"live-transactions-wrapper"}>
         <div className={"live-transactions-container"}>

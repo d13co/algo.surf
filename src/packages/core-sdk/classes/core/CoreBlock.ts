@@ -1,26 +1,36 @@
 import {
-    A_Block, A_SearchTransaction
+    A_SearchTransaction
 } from "../../types";
 import {TIMESTAMP_DISPLAY_FORMAT} from "../../constants";
 import dateFormat  from "dateformat";
-import {CoreTransaction} from "./CoreTransaction";
 import humanizeDuration from 'humanize-duration';
 import BaseTxnHolder  from "./BaseTxnHolder";
+import { indexerModels, encodeAddress } from "algosdk";
+import { toA_SearchTransaction } from "../../utils/v3Adapters";
+import { encodingDataToPlain } from "../../utils/serialize";
 
 export class CoreBlock extends BaseTxnHolder {
-    block: A_Block;
+    block: indexerModels.Block;
+    private _transactions?: A_SearchTransaction[];
 
-    constructor(block: A_Block) {
+    constructor(block: indexerModels.Block) {
         super();
         this.block = block;
     }
 
-    get(): A_Block{
+    get(): indexerModels.Block {
         return this.block;
     }
 
+    toJSON(): Record<string, unknown> {
+        if (typeof this.block.toEncodingData === "function") {
+            return encodingDataToPlain(this.block.toEncodingData());
+        }
+        return this.block as unknown as Record<string, unknown>;
+    }
+
     getRound(): number {
-        return this.block.round;
+        return Number(this.block.round);
     }
 
     getTimestamp(): number {
@@ -39,16 +49,48 @@ export class CoreBlock extends BaseTxnHolder {
     }
 
     getTransactions(): A_SearchTransaction[] {
-        return this.block.transactions;
+        if (!this._transactions) {
+            this._transactions = (this.block.transactions ?? []).map(
+                (txn) => toA_SearchTransaction(txn)
+            );
+        }
+        return this._transactions;
     }
 
     getTransactionsCount(): number {
-        this.ensureHasStats(this.block.transactions);
+        this.ensureHasStats(this.getTransactions());
         return this.countStats.total;
     }
 
     getTransactionsTypesCount() {
-        this.ensureHasStats(this.block.transactions);
+        this.ensureHasStats(this.getTransactions());
         return this.countStats.txnTypeCounts;
+    }
+
+    getProposer(): string {
+        if (!this.block.proposer) return "";
+        if (typeof this.block.proposer === "string") return this.block.proposer;
+        if ("publicKey" in this.block.proposer && this.block.proposer.publicKey instanceof Uint8Array) {
+            return encodeAddress(this.block.proposer.publicKey);
+        }
+        return String(this.block.proposer);
+    }
+
+    getBonus(): number {
+        return this.block.bonus ?? 0;
+    }
+
+    getProposerPayout(): number {
+        return this.block.proposerPayout ?? 0;
+    }
+
+    getFeesCollected(): number {
+        return this.block.feesCollected ?? 0;
+    }
+
+    getSuspendedAccounts(): string[] {
+        const pu = this.block.participationUpdates;
+        if (!pu) return [];
+        return pu.absentParticipationAccounts ?? [];
     }
 }

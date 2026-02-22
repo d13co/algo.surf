@@ -1,0 +1,31 @@
+@import "reset-css/reset.css" layer(reset);
+@import "tailwindcss" source(none);
+@source "../components/v2";
+@source "../components/Modules/Explorer/v2";
+
+@theme {
+  --color-primary: #12afac;
+  --color-primary-dark: #064a49;
+  --color-primary-foreground: #ffffff;
+
+  --color-secondary: #f44336;
+
+  --color-background: #121212;
+  --color-background-card: #052220;
+  --color-background-muted: #031a16;
+
+  --color-border: rgba(18, 175, 172, 0.5);
+  --color-ring: rgba(18, 175, 172, 0.5);
+  --color-foreground: #ffffff;
+
+  --color-muted: #888888;
+  --color-muted-foreground: #cccccc;
+
+  --color-warning: #ff9800;
+  --color-nfd: #f65624;
+
+  --radius: 10px;
+  --radius-lg: 10px;
+
+  --font-sans: "Poppins", sans-serif;
+}

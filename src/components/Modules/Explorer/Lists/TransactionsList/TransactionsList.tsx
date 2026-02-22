@@ -30,6 +30,7 @@ import AssetBalance from "../../Common/AssetBalance/AssetBalance";
 import Copyable from "../../../../Common/Copyable/Copyable";
 import RekeyIcon from "./RekeyIcon";
 import { DisplayAccount } from "../../../../Common/DisplayAccount";
+import MultiDateViewer from "../../../../v2/MultiDateViewer";
 
 interface TransactionsListProps {
   transactions: A_SearchTransaction[];
@@ -140,8 +141,8 @@ function TransactionsList({
       headerName: "Age",
       flex: 1.5,
       renderCell: (params: GridValueGetterParams) => {
-        const age = new CoreTransaction(params.row).getTimestampDuration();
-        return <div className="cell-content">{age} ago</div>;
+        const timestamp = new CoreTransaction(params.row).getTimestamp();
+        return <div className="cell-content"><MultiDateViewer timestamp={timestamp} /></div>;
       },
     });
   }

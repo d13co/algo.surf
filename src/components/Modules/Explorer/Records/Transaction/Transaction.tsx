@@ -33,6 +33,7 @@ import Copyable from '../../../../Common/Copyable/Copyable';
 import useTitle from "../../../../Common/UseTitle/UseTitle";
 import TransactionRekey from './Sections/TransactionRekey/TransactionRekey';
 import OpenInMenu from '../../../../Common/OpenIn/OpenInMenu';
+import MultiDateViewer from '../../../../v2/MultiDateViewer';
 
 const network = process.env.REACT_APP_NETWORK;
 
@@ -142,8 +143,7 @@ function Transaction(): JSX.Element {
                                         Timestamp
                                     </div>
                                     <div className="value">
-                                        {txnInstance.getTimestampDisplayValue()}
-                                        <Copyable value={txnInstance.getTimestampDisplayValue()} />
+                                        <MultiDateViewer timestamp={txnInstance.getTimestamp()} />
                                     </div>
                                 </div>
                             </Grid>

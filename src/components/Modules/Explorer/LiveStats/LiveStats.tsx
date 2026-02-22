@@ -1,45 +1,49 @@
 import './LiveStats.scss';
 import React from "react";
-import {useSelector} from "react-redux";
-import {RootState} from "../../../../redux/store";
+import {useLiveData} from "../../../../hooks/useLiveData";
 import {shadedClr} from "../../../../utils/common";
 import { CSSTransition, TransitionGroup } from 'react-transition-group';
 import {Tooltip,Box} from "@mui/material";
+import {CoreBlock} from "../../../../packages/core-sdk/classes/core/CoreBlock";
 
 const NETWORK = process.env.REACT_APP_NETWORK;
 
 function LiveStats(): JSX.Element {
-    const liveData = useSelector((state: RootState) => state.liveData);
+    const { blocks } = useLiveData();
+
+    const coreBlocks = React.useMemo(() => blocks.map((b) => new CoreBlock(b)), [blocks]);
 
     const tc = React.useMemo(() => {
-        return liveData.blocks.length ? (liveData.blocks[0]["txn-counter"] + (NETWORK === "Mainnet" ? 563279 : 0)).toLocaleString() : "-";
-    }, [liveData.blocks]);
+        if (!coreBlocks.length) return "-";
+        const txnCounter = coreBlocks[0].get().txnCounter ?? 0;
+        return (Number(txnCounter) + (NETWORK === "Mainnet" ? 563279 : 0)).toLocaleString();
+    }, [coreBlocks]);
 
     const avg = React.useMemo(() => {
-        const { blocks } = liveData;
-        if (blocks.length < 4) return "-";
-        const [ last ] = blocks;
-        const firstIdx = Math.min(9, blocks.length - 1);
-        const first = blocks[firstIdx];
-        const dt = last.timestamp - first.timestamp
+        if (coreBlocks.length < 4) return "-";
+        const last = coreBlocks[0];
+        const firstIdx = Math.min(9, coreBlocks.length - 1);
+        const first = coreBlocks[firstIdx];
+        const dt = last.getTimestamp() - first.getTimestamp();
         return (dt / (firstIdx)).toLocaleString(undefined, { maximumFractionDigits: 3 })+"s";
-    }, [liveData.blocks]);
+    }, [coreBlocks]);
 
     const [tps, tpsBlocks, tpsSec] = React.useMemo(() => {
-        const { blocks } = liveData;
-        if (blocks.length < 4) return ["-", "-", "-"];
-        const [ last ] = blocks;
-        const firstIdx = Math.min(10, blocks.length - 1);
-        const first = blocks[firstIdx];
-        const second = blocks[firstIdx - 1];
-        const dt = last.timestamp - first.timestamp
-        const dtc = last["txn-counter"] - second["txn-counter"];
+        if (coreBlocks.length < 4) return ["-", "-", "-"];
+        const last = coreBlocks[0];
+        const firstIdx = Math.min(10, coreBlocks.length - 1);
+        const first = coreBlocks[firstIdx];
+        const second = coreBlocks[firstIdx - 1];
+        const dt = last.getTimestamp() - first.getTimestamp();
+        const lastTc = Number(last.get().txnCounter ?? 0);
+        const secondTc = Number(second.get().txnCounter ?? 0);
+        const dtc = lastTc - secondTc;
         return [
             Math.round(dtc / dt).toLocaleString(),
             firstIdx,
             dt
         ];
-    }, [liveData.blocks]);
+    }, [coreBlocks]);
 
     return (<div className={"live-stats-wrapper"}>
         <div className={"live-stats-container"}>

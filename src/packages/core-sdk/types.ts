@@ -53,6 +53,7 @@ export interface A_AssetHolding {
 export interface A_Asset {
     index: number
     params: A_AssetParams
+    deleted?: boolean
 }
 
 export interface A_AssetResult extends A_Asset {

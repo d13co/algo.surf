@@ -1,32 +1,28 @@
-import {Algodv2} from "algosdk";
-import type { Indexer } from "algosdk";
 import {Network} from "../network";
 import {A_Group} from "../types";
 import {BlockClient} from "./blockClient";
+import {CoreBlock} from "../classes/core/CoreBlock";
 
 
 export class GroupClient {
-    client: Algodv2;
-    indexer: Indexer;
     network: Network;
 
     constructor(network: Network) {
         this.network = network;
-        this.client = network.getClient();
-        this.indexer = network.getIndexer();
     }
 
     async get(id: string, blockId: number): Promise<A_Group> {
         const blockClient = new BlockClient(this.network);
-        const {timestamp, transactions} = await blockClient.get(blockId);
+        const blockRaw = await blockClient.get(blockId);
+        const block = new CoreBlock(blockRaw);
+        const allTxns = block.getTransactions();
 
-        const grp: A_Group = {block: blockId, id, timestamp, transactions: []};
-
-        transactions.forEach((txn) => {
-            if (txn.group === id) {
-                grp.transactions.push(txn);
-            }
-        });
+        const grp: A_Group = {
+            block: blockId,
+            id,
+            timestamp: block.getTimestamp(),
+            transactions: allTxns.filter(txn => txn.group === id),
+        };
 
         return grp;
     }

@@ -3,11 +3,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { shadedClr } from "../../../../../../../utils/common";
 import { theme } from "../../../../../../../theme/index";
 import {
-  Button,
-  ButtonGroup,
   Dialog,
   DialogContent,
-  Grid,
 } from "@mui/material";
 import { PROGRAM_ENCODING } from "../../../../../../../packages/core-sdk/constants";
 import { ApplicationClient } from "../../../../../../../packages/core-sdk/clients/applicationClient";
@@ -154,34 +151,28 @@ function ApplicationProgram(props: {
             <div className="word-cloud-body">
               <div className="line">
                 <span>{id ? <>App {id}</> : null}</span>
-                <span>
+                <span className="flex items-center gap-2">
                   <span className="sort-label">Sort</span>
-                  <ButtonGroup
-                    variant="outlined"
-                    size={"small"}
-                    style={{ marginLeft: "0.5rem" }}
-                  >
-                    <Button
-                      variant={
-                        showWordCloud === "freq" ? "contained" : "outlined"
-                      }
+                  <div className="inline-flex rounded border border-border overflow-hidden text-xs">
+                    <button
+                      type="button"
+                      className={`px-2.5 py-1 cursor-pointer ${showWordCloud === "freq" ? "bg-primary text-background" : "bg-transparent text-primary hover:bg-primary/20"}`}
                       onClick={() => {
                         setShowWordCloud("freq");
                       }}
                     >
                       Frequency
-                    </Button>
-                    <Button
-                      variant={
-                        showWordCloud === "alpha" ? "contained" : "outlined"
-                      }
+                    </button>
+                    <button
+                      type="button"
+                      className={`px-2.5 py-1 cursor-pointer border-l border-border ${showWordCloud === "alpha" ? "bg-primary text-background" : "bg-transparent text-primary hover:bg-primary/20"}`}
                       onClick={() => {
                         setShowWordCloud("alpha");
                       }}
                     >
                       Alphanumeric
-                    </Button>
-                  </ButtonGroup>
+                    </button>
+                  </div>
                 </span>
               </div>
               {wordCloud.length ? (
@@ -210,49 +201,38 @@ function ApplicationProgram(props: {
       <div className={"application-program-wrapper"}>
         <div className={"application-program-container"}>
           <div className="key">
-            <span style={{ marginLeft: "14px" }}>{name}</span>
+            <span style={{ marginLeft: "14px", display: "inline-flex", alignItems: "center", gap: "4px" }}>{name}<Copyable value={prg} /></span>
 
-            <div style={{whiteSpace: "nowrap"}}>
-              { wordCloud.length ? <Button
-                size="small"
-                variant="outlined"
+            <div className="whitespace-nowrap flex items-center gap-2.5">
+              { wordCloud.length ? <button
+                type="button"
+                className="px-2.5 py-1 text-xs cursor-pointer rounded border border-border bg-transparent text-primary hover:bg-primary/20"
                 onClick={() => {
                   setShowWordCloud("freq");
                 }}
               >
                 Wordcloud
-              </Button> : null }
-              <ButtonGroup
-                variant="outlined"
-                size={"small"}
-                style={{ marginLeft: 10 }}
-              >
-                <Button
-                  variant={
-                    encoding === PROGRAM_ENCODING.BASE64
-                      ? "contained"
-                      : "outlined"
-                  }
+              </button> : null }
+              <div className="inline-flex rounded border border-border overflow-hidden text-xs">
+                <button
+                  type="button"
+                  className={`px-2.5 py-1 cursor-pointer ${encoding === PROGRAM_ENCODING.BASE64 ? "bg-primary text-background" : "bg-transparent text-primary hover:bg-primary/20"}`}
                   onClick={() => {
                     setTextEncoding(PROGRAM_ENCODING.BASE64);
                   }}
                 >
                   Base 64
-                </Button>
-                <Button
-                  variant={
-                    encoding === PROGRAM_ENCODING.TEAL
-                      ? "contained"
-                      : "outlined"
-                  }
+                </button>
+                <button
+                  type="button"
+                  className={`px-2.5 py-1 cursor-pointer border-l border-border ${encoding === PROGRAM_ENCODING.TEAL ? "bg-primary text-background" : "bg-transparent text-primary hover:bg-primary/20"}`}
                   onClick={() => {
                     setTextEncoding(PROGRAM_ENCODING.TEAL);
                   }}
                 >
                   Teal
-                </Button>
-              </ButtonGroup>
-              <Copyable value={prg} style={{ marginLeft: "10px" }} />
+                </button>
+              </div>
             </div>
           </div>
           <div className="small" style={{ marginTop: 20 }}>

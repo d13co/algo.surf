@@ -4,7 +4,6 @@ import Search from '../Search/Search';
 import {Grid} from "@mui/material";
 import LiveStats from "../LiveStats/LiveStats";
 import LiveBlocks from "../LiveBlocks/LiveBlocks";
-import LiveUpgrade from "../LiveUpgrade/LiveUpgrade";
 import LiveTransactions from "../LiveTransactions/LiveTransactions";
 import {theme} from '../../../../theme/index';
 import useTitle from "../../../Common/UseTitle/UseTitle";
@@ -18,7 +17,6 @@ function Home(): JSX.Element {
 
     return (<div className={"home-wrapper"}>
         <div className={"home-container"}>
-            <LiveUpgrade />
             <div className="home-body">
                 <img src="/logo.png" className="bg-logo" />
                 <div className="tag-line">

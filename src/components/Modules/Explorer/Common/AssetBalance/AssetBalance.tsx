@@ -6,6 +6,7 @@ import {A_Asset} from "../../../../../packages/core-sdk/types";
 import {CoreAsset} from "../../../../../packages/core-sdk/classes/core/CoreAsset";
 import NumberFormat from "react-number-format";
 import LinkToAsset from "../Links/LinkToAsset";
+import {indexerModels} from "algosdk";
 
 
 interface AssetBalanceProps {
@@ -16,30 +17,18 @@ interface AssetBalanceProps {
 }
 
 interface AssetBalanceState{
-    asset: A_Asset
+    asset: indexerModels.Asset | A_Asset
 }
 
 const initialState: AssetBalanceState = {
-    asset: {
-        index: 0,
-        params: {
-            clawback: "",
+    asset: new indexerModels.Asset({
+        index: 0n,
+        params: new indexerModels.AssetParams({
             creator: "",
             decimals: 0,
-            "default-frozen": false,
-            freeze: "",
-            manager: "",
-            name: "",
-            "name-b64": "",
-            reserve: "",
-            total: 0,
-            "unit-name": "",
-            "unit-name-b64": "",
-            url: "",
-            "url-b64": "",
-            "metadata-hash": "",
-        }
-    },
+            total: 0n,
+        }),
+    }),
 };
 
 function AssetBalance({id, balance = 0, by = 'id', assetDef}: AssetBalanceProps): JSX.Element {

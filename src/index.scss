@@ -1,4 +1,3 @@
-@import "~reset-css/sass/reset";
 @import "./assets/colors";
 
 @font-face {
@@ -27,6 +26,7 @@
 
 body {
   font-family: "Poppins";
+  line-height: 1;
 }
 * {
   font-family: "Poppins" !important;

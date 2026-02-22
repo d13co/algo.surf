@@ -1,7 +1,7 @@
-import {Algodv2, encodeAddress} from "algosdk";
+import {Algodv2, indexerModels} from "algosdk";
 import type { Indexer } from "algosdk";
 import {Network} from "../network";
-import {A_Status,A_Block,A_BlockResult} from "../types";
+import {A_Status,A_BlockResult} from "../types";
 import { toA_Block, toA_Status } from "../utils/v3Adapters";
 
 export class BlockClient {
@@ -15,9 +15,9 @@ export class BlockClient {
         this.indexer = network.getIndexer();
     }
 
-    async get(id: number): Promise<A_Block> {
+    async get(id: number): Promise<indexerModels.Block> {
         const response = await this.indexer.lookupBlock(id).do();
-        return toA_Block(response);
+        return response as indexerModels.Block;
     }
 
     async search(id: number): Promise<A_BlockResult> {
@@ -38,28 +38,9 @@ export class BlockClient {
         return toA_Status(response);
     }
 
-    async getBlockProposer(round: number): Promise<string> {
-        const response = await this.indexer.lookupBlock(round).do();
-        const respUnknown: unknown = response;
-        if (typeof respUnknown === 'object' && respUnknown !== null && 'proposer' in respUnknown) {
-            const p = (respUnknown as { proposer?: unknown }).proposer;
-            if (typeof p === 'string') return p;
-            if (p && typeof p === 'object') {
-                if ('publicKey' in p && (p as any).publicKey instanceof Uint8Array) {
-                    return encodeAddress((p as any).publicKey as Uint8Array);
-                }
-                if (typeof (p as any).toString === 'function') {
-                    return (p as any).toString();
-                }
-            }
-            if (p != null) return String(p);
-        }
-        return "";
-    }
-
-    async getBlockHash(round: number): Promise<any> {
+    async getBlockHash(round: number): Promise<string> {
         const response = await this.client.getBlockHash(round).do();
-        return response;
+        return (response as any).blockhash ?? "";
     }
 
 }
