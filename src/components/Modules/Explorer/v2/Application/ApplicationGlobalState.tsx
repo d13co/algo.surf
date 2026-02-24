@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { CoreApplication } from "src/packages/core-sdk/classes/core/CoreApplication";
-import { A_Application } from "src/packages/core-sdk/types";
+import { indexerModels } from "algosdk";
 import { A_GlobalStateDecrypted } from "src/packages/core-sdk/types";
 import {
   useReactTable,
@@ -100,7 +100,7 @@ function StateCard({ row }: { row: Row<A_GlobalStateDecrypted> }) {
 function ApplicationGlobalState({
   appInfo,
 }: {
-  appInfo: A_Application;
+  appInfo: indexerModels.Application;
 }): JSX.Element {
   const globalStorage = useMemo(() => {
     const app = new CoreApplication(appInfo);
@@ -139,7 +139,7 @@ function ApplicationGlobalState({
             <col style={{ width: "30%" }} />
             <col />
           </colgroup>
-          <TableHeader>
+          <TableHeader className="[&_tr]:border-primary">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
@@ -181,12 +181,22 @@ function ApplicationGlobalState({
 
       {/* Pagination */}
       {pageCount > 1 ? (
-        <div className="flex items-center justify-end gap-2 py-4">
+        <div className="flex items-center justify-end gap-2 pt-4 pb-0 md:py-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mr-auto text-muted-foreground"
+            onClick={() => {
+              table.setPageSize(globalStorage.length);
+            }}
+          >
+            Show all
+          </Button>
           <span className="text-sm text-muted-foreground">
             Page {pageIndex + 1} of {pageCount}
           </span>
           <Button
-            variant="outline"
+            variant="muted"
             size="icon"
             className="h-8 w-8"
             onClick={() => table.setPageIndex(0)}
@@ -195,7 +205,7 @@ function ApplicationGlobalState({
             <ChevronsLeft className="h-4 w-4" />
           </Button>
           <Button
-            variant="outline"
+            variant="muted"
             size="icon"
             className="h-8 w-8"
             onClick={() => table.previousPage()}
@@ -204,7 +214,7 @@ function ApplicationGlobalState({
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <Button
-            variant="outline"
+            variant="muted"
             size="icon"
             className="h-8 w-8"
             onClick={() => table.nextPage()}
@@ -213,7 +223,7 @@ function ApplicationGlobalState({
             <ChevronRight className="h-4 w-4" />
           </Button>
           <Button
-            variant="outline"
+            variant="muted"
             size="icon"
             className="h-8 w-8"
             onClick={() => table.setPageIndex(pageCount - 1)}

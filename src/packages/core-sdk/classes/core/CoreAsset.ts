@@ -133,6 +133,10 @@ export class CoreAsset {
         return this.asset.params.creator;
     }
 
+    getCreatedAtRound(): number | undefined {
+        return this.asset.createdAtRound != null ? Number(this.asset.createdAtRound) : undefined;
+    }
+
     getDefaultFrozen(): boolean {
         return this.asset.params.defaultFrozen ?? false;
     }

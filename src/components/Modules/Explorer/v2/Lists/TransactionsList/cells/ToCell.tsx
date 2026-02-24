@@ -1,6 +1,6 @@
 import React from "react";
 import { CellContext } from "@tanstack/react-table";
-import { A_SearchTransaction } from "src/packages/core-sdk/types";
+import { indexerModels } from "algosdk";
 import { CoreTransaction } from "src/packages/core-sdk/classes/core/CoreTransaction";
 import { TXN_TYPES } from "src/packages/core-sdk/constants";
 import LinkToAccount from "../../../Links/LinkToAccount";
@@ -11,7 +11,7 @@ import type { TransactionTableMeta } from "../columns";
 export default function ToCell({
   row,
   table,
-}: CellContext<A_SearchTransaction, unknown>) {
+}: CellContext<indexerModels.Transaction, unknown>) {
   const meta = table.options.meta as TransactionTableMeta;
   const txn = new CoreTransaction(row.original);
   const to = txn.getTo();

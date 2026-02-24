@@ -30,6 +30,8 @@ import {
   ChevronsRight,
   Loader2,
 } from "lucide-react";
+import { SkeletonRows, SkeletonCards } from "src/components/v2/ui/table-skeleton";
+import { useStableHeight } from "src/hooks/useStableHeight";
 
 const columns: ColumnDef<A_SearchAccount, any>[] = [
   {
@@ -123,8 +125,12 @@ function AccountControllerTo(): JSX.Element {
     },
   });
 
-  const { pageIndex } = table.getState().pagination;
+  const { pageIndex, pageSize } = table.getState().pagination;
   const pageCount = table.getPageCount();
+  const currentRowCount = table.getRowModel().rows.length;
+  const padCount = hasNextPage ? pageSize - currentRowCount : 0;
+
+  const { ref: tableRef, style: stableStyle } = useStableHeight(currentRowCount === pageSize);
 
   function onPageChange(newPage: number) {
     table.setPageIndex(newPage);
@@ -136,9 +142,9 @@ function AccountControllerTo(): JSX.Element {
   return (
     <div>
       {/* Desktop table */}
-      <div className="hidden md:block">
+      <div ref={tableRef} style={stableStyle} className="hidden md:block">
         <Table className="table-fixed">
-          <TableHeader>
+          <TableHeader className="[&_tr]:border-primary">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
@@ -156,18 +162,21 @@ function AccountControllerTo(): JSX.Element {
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows.length > 0 ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="max-w-0">
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
+              <>
+                {table.getRowModel().rows.map((row) => (
+                  <TableRow key={row.id}>
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id} className="max-w-0">
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+                {padCount > 0 ? <SkeletonRows rows={padCount} columns={columns.length} animate={isFetchingNextPage} /> : null}
+              </>
             ) : (
               <TableRow>
                 <TableCell
@@ -185,9 +194,12 @@ function AccountControllerTo(): JSX.Element {
       {/* Mobile cards */}
       <div className="md:hidden space-y-2 mt-3">
         {table.getRowModel().rows.length > 0 ? (
-          table.getRowModel().rows.map((row) => (
-            <AccountCard key={row.id} row={row} />
-          ))
+          <>
+            {table.getRowModel().rows.map((row) => (
+              <AccountCard key={row.id} row={row} />
+            ))}
+            {padCount > 0 ? <SkeletonCards rows={padCount} fields={columns.length} animate={isFetchingNextPage} /> : null}
+          </>
         ) : (
           <div className="py-8 text-center text-muted-foreground">
             No accounts
@@ -197,12 +209,12 @@ function AccountControllerTo(): JSX.Element {
 
       {/* Pagination */}
       {pageCount > 1 ? (
-        <div className="flex items-center justify-end gap-2 py-4">
+        <div className="flex items-center justify-end gap-2 pt-4 pb-0 md:py-4">
           <span className="text-sm text-muted-foreground">
             Page {pageIndex + 1} of {pageCount}
           </span>
           <Button
-            variant="outline"
+            variant="muted"
             size="icon"
             className="h-8 w-8"
             onClick={() => onPageChange(0)}
@@ -211,18 +223,16 @@ function AccountControllerTo(): JSX.Element {
             <ChevronsLeft className="h-4 w-4" />
           </Button>
           <Button
-            variant="outline"
+            variant="muted"
             size="icon"
             className="h-8 w-8"
-            onClick={() => {
-              table.previousPage();
-            }}
+            onClick={() => onPageChange(pageIndex - 1)}
             disabled={!table.getCanPreviousPage()}
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <Button
-            variant="outline"
+            variant="muted"
             size="icon"
             className="h-8 w-8"
             onClick={() => onPageChange(pageIndex + 1)}
@@ -231,7 +241,7 @@ function AccountControllerTo(): JSX.Element {
             <ChevronRight className="h-4 w-4" />
           </Button>
           <Button
-            variant="outline"
+            variant="muted"
             size="icon"
             className="h-8 w-8"
             onClick={() => onPageChange(pageCount - 1)}

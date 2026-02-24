@@ -9,6 +9,7 @@ import LinkToApplication from "./LinkToApplication";
 function LinkToAccount({
   address,
   noNFD = false,
+  nfdOnly = false,
   noEscrow = false,
   subPage = "",
   copy = "right",
@@ -17,6 +18,7 @@ function LinkToAccount({
 }: {
   address: string;
   noNFD?: boolean;
+  nfdOnly?: boolean;
   noEscrow?: boolean;
   subPage?: string;
   copy?: "left" | "right" | "none";
@@ -27,7 +29,8 @@ function LinkToAccount({
   const escrowAppId = getEscrowOf(address);
 
   if (typeof escrowAppId === "number" && !noEscrow) {
-    return <LinkToApplication id={escrowAppId} name={"App " + escrowAppId} />;
+    const effectiveStrip = strip || 8;
+    return <LinkToApplication id={escrowAppId} name={"App " + escrowAppId + " " + ellipseString(address, effectiveStrip)} address={address} copy={copy} copySize={copySize} />;
   }
 
   return (
@@ -39,8 +42,8 @@ function LinkToAccount({
         className="truncate"
         href={`/account/${address}/${subPage}`}
       >
-        {nfd && !noNFD ? nfd + " " : null}
-        {strip ? ellipseString(address, strip) : address}
+        {nfd && !noNFD ? nfd + (nfdOnly ? "" : " ") : null}
+        {nfd && nfdOnly ? null : strip ? ellipseString(address, strip) : address}
       </Link>
       {copy === "right" ? (
         <Copyable size={copySize} value={address} />

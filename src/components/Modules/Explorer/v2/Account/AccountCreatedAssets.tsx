@@ -90,8 +90,8 @@ function AccountCreatedAssets(): JSX.Element {
 
   const createdAssetIds = useMemo(
     () =>
-      (accountInfo?.["created-assets"] ?? []).map((a) => a.index),
-    [accountInfo?.["created-assets"]]
+      (accountInfo?.createdAssets ?? []).map((a) => Number(a.index)),
+    [accountInfo?.createdAssets]
   );
 
   const { data: createdAssets, isLoading } = useTinyAssets(createdAssetIds);
@@ -123,7 +123,7 @@ function AccountCreatedAssets(): JSX.Element {
           {/* Desktop table */}
           <div className="hidden md:block">
             <Table className="table-fixed">
-              <TableHeader>
+              <TableHeader className="[&_tr]:border-primary">
                 {table.getHeaderGroups().map((headerGroup) => (
                   <TableRow key={headerGroup.id}>
                     {headerGroup.headers.map((header) => (
@@ -182,12 +182,12 @@ function AccountCreatedAssets(): JSX.Element {
 
           {/* Pagination */}
           {pageCount > 1 ? (
-            <div className="flex items-center justify-end gap-2 py-4">
+            <div className="flex items-center justify-end gap-2 pt-4 pb-0 md:py-4">
               <span className="text-sm text-muted-foreground">
                 Page {pageIndex + 1} of {pageCount}
               </span>
               <Button
-                variant="outline"
+                variant="muted"
                 size="icon"
                 className="h-8 w-8"
                 onClick={() => table.setPageIndex(0)}
@@ -196,7 +196,7 @@ function AccountCreatedAssets(): JSX.Element {
                 <ChevronsLeft className="h-4 w-4" />
               </Button>
               <Button
-                variant="outline"
+                variant="muted"
                 size="icon"
                 className="h-8 w-8"
                 onClick={() => table.previousPage()}
@@ -205,7 +205,7 @@ function AccountCreatedAssets(): JSX.Element {
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <Button
-                variant="outline"
+                variant="muted"
                 size="icon"
                 className="h-8 w-8"
                 onClick={() => table.nextPage()}
@@ -214,7 +214,7 @@ function AccountCreatedAssets(): JSX.Element {
                 <ChevronRight className="h-4 w-4" />
               </Button>
               <Button
-                variant="outline"
+                variant="muted"
                 size="icon"
                 className="h-8 w-8"
                 onClick={() => table.setPageIndex(pageCount - 1)}

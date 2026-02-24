@@ -1,53 +1,52 @@
-import {useDispatch, useSelector} from "react-redux";
-import {RootState} from "../../redux/store";
-import {hideSnack} from '../../redux/common/actions/snackbar';
-import {Alert, AlertColor, Snackbar} from "@mui/material";
-import {theme} from "../../theme";
-import Copyable from "../../components/Common/Copyable/Copyable";
+import React, { useEffect, useState } from "react";
+import { useGlobalUI } from "../../contexts/GlobalUIContext";
+import Copyable from "../../components/v2/Copyable";
 
-function colorFromSeverity(s: AlertColor): string {
+function colorFromSeverity(s: string): string {
     switch(s) {
-        case "error": return theme.palette.error.main;
-        case "warning": return theme.palette.warning.main;
-        default: return theme.palette.primary.main;
+        case "error": return "border-l-red-500";
+        case "warning": return "border-l-warning";
+        default: return "border-l-primary";
     }
 }
 
 function AppSnackbar(): JSX.Element {
-    const snackbar = useSelector((state: RootState) => state.snackbar)
-    const dispatch = useDispatch();
+    const { snackbar, hideSnack } = useGlobalUI();
+    const [visible, setVisible] = useState(false);
 
-    const color = colorFromSeverity(snackbar.severity);
-    const isError = snackbar.severity === "error";
+    useEffect(() => {
+        if (snackbar.show) {
+            setVisible(true);
+            const duration = snackbar.severity === "error" ? 10_000 : 5000;
+            const timer = setTimeout(() => {
+                hideSnack();
+            }, duration);
+            return () => clearTimeout(timer);
+        } else {
+            setVisible(false);
+        }
+    }, [snackbar.show, snackbar.severity, hideSnack]);
 
-    // @ts-ignore
-    return (<Snackbar
-        style={{bottom: 20}}
-        open={snackbar.show}
-        autoHideDuration={isError ? 10_000 : 5000}
-        anchorOrigin={{ vertical: 'bottom',
-        horizontal: 'right' }}
-        onClose={() => {dispatch(hideSnack())}}>
-        <Alert
-            sx={{
-                borderRadius: '10px',
-                paddingTop: '20px',
-                paddingBottom: '20px',
-                minWidth: '400px',
-                borderWidth: '1px',
-                borderStyle: 'solid',
-                borderColor: color,
-                borderLeftWidth: '5px',
-                display: 'flex',
-            }}
-            icon={false}
-            severity={snackbar.severity}
-            onClose={() => {dispatch(hideSnack())}}
-        >
-            <div style={{flexGrow: 1}} dangerouslySetInnerHTML={{__html: snackbar.message}}></div>
-            <Copyable buttonSize="medium" value={snackbar.message} style={{marginRight: "-13px", marginLeft: "13px", marginTop: "-4px" }}/>
-        </Alert>
-    </Snackbar>);
+    if (!visible) return <></>;
+
+    const borderColor = colorFromSeverity(snackbar.severity);
+
+    return (
+        <div className="fixed bottom-5 right-5 z-50">
+            <div className={`rounded-[10px] py-5 px-5 min-w-[400px] max-w-[90vw] border border-border ${borderColor} border-l-[5px] bg-background-card flex items-start gap-3`}>
+                <div className="grow text-sm" dangerouslySetInnerHTML={{__html: snackbar.message}} />
+                <Copyable value={snackbar.message} />
+                <button
+                    type="button"
+                    className="text-muted-foreground hover:text-foreground text-lg leading-none ml-1"
+                    onClick={() => hideSnack()}
+                    aria-label="Close"
+                >
+                    &times;
+                </button>
+            </div>
+        </div>
+    );
 }
 
 export default AppSnackbar;

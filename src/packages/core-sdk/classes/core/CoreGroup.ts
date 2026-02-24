@@ -4,29 +4,57 @@ import dateFormat  from "dateformat";
 import {CoreTransaction} from "./CoreTransaction";
 import humanizeDuration from 'humanize-duration';
 import BaseTxnHolder from "./BaseTxnHolder";
+import { indexerModels } from "algosdk";
+
+type GroupData = {
+    id: string;
+    block: number;
+    timestamp: number;
+    transactions: indexerModels.Transaction[];
+};
 
 export class CoreGroup extends BaseTxnHolder {
-    group: A_Group;
+    private _data: GroupData;
 
-    constructor(group: A_Group) {
+    constructor(group: A_Group | GroupData) {
         super();
-        this.group = group;
+        if (CoreGroup.isLegacy(group)) {
+            this._data = CoreGroup.fromLegacy(group);
+        } else {
+            this._data = group;
+        }
     }
 
-    get(): A_Group {
-        return this.group;
+    private static isLegacy(group: A_Group | GroupData): group is A_Group {
+        const txns = group.transactions;
+        return txns && txns.length > 0 && !(txns[0] instanceof indexerModels.Transaction) && "tx-type" in txns[0];
+    }
+
+    private static fromLegacy(group: A_Group): GroupData {
+        return {
+            id: group.id,
+            block: group.block,
+            timestamp: group.timestamp,
+            transactions: group.transactions.map(
+                (t: A_SearchTransaction) => CoreTransaction.fromLegacy(t)
+            ),
+        };
+    }
+
+    get(): GroupData {
+        return this._data;
     }
 
     getId(): string {
-        return this.group.id;
+        return this._data.id;
     }
 
     getBlock(): number {
-        return this.group.block;
+        return this._data.block;
     }
 
     getTimestamp(): number {
-        return this.group.timestamp;
+        return this._data.timestamp;
     }
 
     getTimestampDisplayValue(format: string = TIMESTAMP_DISPLAY_FORMAT): string {
@@ -41,16 +69,16 @@ export class CoreGroup extends BaseTxnHolder {
     }
 
     getTransactionsCount(): number {
-        this.ensureHasStats(this.group.transactions);
+        this.ensureHasStats(this._data.transactions);
         return this.countStats.total;
     }
 
-    getTransactions(): A_SearchTransaction[] {
-        return this.group.transactions;
+    getTransactions(): indexerModels.Transaction[] {
+        return this._data.transactions;
     }
 
     getTransactionsTypesCount() {
-        this.ensureHasStats(this.group.transactions);
+        this.ensureHasStats(this._data.transactions);
         return this.countStats.txnTypeCounts;
     }
 }

@@ -3,8 +3,6 @@ import { indexerModels } from "algosdk";
 import explorer from "../utils/dappflow";
 import { BlockClient } from "../packages/core-sdk/clients/blockClient";
 import { NodeClient } from "../packages/core-sdk/clients/nodeClient";
-import { A_SearchTransaction } from "../packages/core-sdk/types";
-import { toA_SearchTransaction } from "../packages/core-sdk/utils/v3Adapters";
 
 const BLOCKS_TO_KEEP = 11;
 const TRANSACTIONS_TO_KEEP = 25;
@@ -12,7 +10,7 @@ const TRANSACTIONS_TO_KEEP = 25;
 export interface LiveDataState {
   currentBlock: number;
   blocks: indexerModels.Block[];
-  transactions: A_SearchTransaction[];
+  transactions: indexerModels.Transaction[];
   connectionSuccess: boolean;
 }
 
@@ -38,11 +36,10 @@ function applyBlock(state: LiveDataState, block: indexerModels.Block, latestRoun
   let transactions = state.transactions;
   const blockTxns = block.transactions ?? [];
   if (blockTxns.length) {
-    const newTxns = blockTxns.map(toA_SearchTransaction);
-    if (newTxns.length >= TRANSACTIONS_TO_KEEP) {
-      transactions = newTxns.slice(0, TRANSACTIONS_TO_KEEP);
+    if (blockTxns.length >= TRANSACTIONS_TO_KEEP) {
+      transactions = blockTxns.slice(0, TRANSACTIONS_TO_KEEP);
     } else {
-      transactions = [...newTxns, ...transactions].slice(0, TRANSACTIONS_TO_KEEP);
+      transactions = [...blockTxns, ...transactions].slice(0, TRANSACTIONS_TO_KEEP);
     }
   }
 

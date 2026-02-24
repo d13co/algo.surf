@@ -3,6 +3,13 @@ import type { Indexer } from "algosdk";
 import { A_BoxNames, A_Box } from "../types";
 import { Network } from "../network";
 
+const BOX_PAGE_SIZE = 500;
+
+export interface BoxNamesPage {
+  boxes: A_BoxNames;
+  nextToken?: string;
+}
+
 export class BoxClient {
   client: Algodv2;
   indexer: Indexer;
@@ -14,12 +21,16 @@ export class BoxClient {
     this.indexer = network.getIndexer();
   }
 
-  async getBoxNames(id: number): Promise<A_BoxNames> {
-    const app = await this.client.getApplicationBoxes(id).do();
-    const bufferNames = app.boxes
-      .sort(({ name: a }, { name: b }) => Buffer.compare(a, b))
-      .map(({ name }) => ({ name: Buffer.from(name).toString("base64") }));
-    return bufferNames;
+  async getBoxNamesPage(id: number, nextToken?: string): Promise<BoxNamesPage> {
+    let req = this.indexer.searchForApplicationBoxes(id).limit(BOX_PAGE_SIZE);
+    if (nextToken) {
+      req = req.nextToken(nextToken);
+    }
+    const result = await req.do();
+    const boxes = result.boxes.map(({ name }) => ({
+      name: Buffer.from(name).toString("base64"),
+    }));
+    return { boxes, nextToken: result.nextToken };
   }
 
   async getBox(id: number, name: string): Promise<A_Box> {

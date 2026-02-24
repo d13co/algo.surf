@@ -1,7 +1,5 @@
-import React, { Component, useEffect } from "react";
+import React, { Component } from "react";
 import "./Explorer.scss";
-import { useDispatch } from "react-redux";
-import { loadAddressBook } from "../../../../redux/explorer/actions/addressBook";
 import Header from "../Header/Header";
 import { LiveDataProvider } from "../../../../hooks/useLiveData";
 import { DateFormatProvider } from "../../../../contexts/DateFormatContext";
@@ -32,12 +30,6 @@ class PageErrorBoundary extends Component<
 }
 
 function Explorer({ children }: { children: React.ReactNode }): JSX.Element {
-  const dispatch = useDispatch();
-
-  useEffect(() => {
-    dispatch(loadAddressBook());
-  }, []);
-
   return (
     <DateFormatProvider>
       <LiveDataProvider>

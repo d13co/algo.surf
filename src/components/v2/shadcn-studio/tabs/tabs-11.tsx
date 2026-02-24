@@ -5,7 +5,8 @@ import { cn } from 'src/lib/utils'
 interface Tab {
   name: string
   value: string
-  content: React.ReactNode
+  content?: React.ReactNode
+  onClick?: () => void
 }
 
 interface TabsUnderlineProps {
@@ -15,6 +16,7 @@ interface TabsUnderlineProps {
   onValueChange?: (value: string) => void
   className?: string
   listClassName?: string
+  tabsRef?: React.Ref<HTMLDivElement>
 }
 
 export default function TabsUnderline({
@@ -24,7 +26,10 @@ export default function TabsUnderline({
   onValueChange,
   className,
   listClassName,
+  tabsRef,
 }: TabsUnderlineProps) {
+  const hasContent = tabs.some(tab => tab.content !== undefined)
+
   return (
     <Tabs
       defaultValue={defaultValue ?? tabs[0]?.value}
@@ -32,23 +37,29 @@ export default function TabsUnderline({
       onValueChange={onValueChange}
       className={cn('gap-4', className)}
     >
-      <TabsList className={cn('bg-transparent justify-start rounded-none border-b p-0 overflow-x-auto', listClassName)}>
+      <TabsList
+        ref={tabsRef}
+        className={cn('bg-transparent justify-start rounded-none border-b border-primary p-0 overflow-x-auto', listClassName)}
+      >
         {tabs.map(tab => (
           <TabsTrigger
             key={tab.value}
             value={tab.value}
-            className='bg-transparent data-[state=active]:bg-transparent data-[state=active]:border-primary h-full rounded-none border-0 border-b-2 border-transparent data-[state=active]:shadow-none'
+            onClick={tab.onClick}
+            className='bg-transparent data-[state=active]:bg-transparent data-[state=active]:border-primary h-full rounded-none border-0 border-b-2 border-transparent data-[state=active]:shadow-none data-[state=active]:text-primary pb-2'
           >
             {tab.name}
           </TabsTrigger>
         ))}
       </TabsList>
 
-      {tabs.map(tab => (
-        <TabsContent key={tab.value} value={tab.value}>
-          {tab.content}
-        </TabsContent>
-      ))}
+      {hasContent ? tabs.map(tab => (
+        tab.content !== undefined ? (
+          <TabsContent key={tab.value} value={tab.value}>
+            {tab.content}
+          </TabsContent>
+        ) : null
+      )) : null}
     </Tabs>
   )
 }

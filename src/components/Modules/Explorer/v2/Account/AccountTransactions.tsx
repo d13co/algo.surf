@@ -27,6 +27,7 @@ function AccountTransactions(): JSX.Element {
         reachedLastPage={reachedLastPage}
         loading={isFetchingNextPage}
         initialLoading={isLoading}
+        hasMore={hasNextPage}
         record="account"
         recordId={address}
       />

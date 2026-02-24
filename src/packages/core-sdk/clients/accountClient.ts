@@ -1,12 +1,11 @@
-import {Algodv2} from "algosdk";
+import {Algodv2, modelsv2, indexerModels} from "algosdk";
 import type { Indexer } from "algosdk";
 import {
-    A_AccountInformation,
     A_SearchAccount
 } from "../types";
 import {Network} from "../network";
 import {A_TransactionsResponse} from "./transactionClient";
-import { toA_SearchTransaction, toA_AccountInformation, toA_AccountsResponse } from "../utils/v3Adapters";
+import { toA_AccountsResponse } from "../utils/v3Adapters";
 
 export type A_AccountsResponse = {
     'next-token': string,
@@ -26,13 +25,15 @@ export class AccountClient{
         this.indexer = network.getIndexer();
     }
 
-    async getAccountInformation(address: string): Promise<A_AccountInformation> {
-        const accountInformation = await this.client.accountInformation(address).do();
-        return toA_AccountInformation(accountInformation);
+    async getAccountInformation(address: string): Promise<modelsv2.Account> {
+        return this.client.accountInformation(address).do();
     }
 
-    async getAccounts(token?: string): Promise<A_AccountsResponse> {
+    async getAccounts(token?: string, limit?: number): Promise<A_AccountsResponse> {
         const req = this.indexer.searchAccounts();
+        if (limit) {
+            req.limit(limit);
+        }
         if (token) {
             req.nextToken(token);
         }
@@ -48,8 +49,8 @@ export class AccountClient{
         }
 
         const response = await req.do();
-        const transactions = (response.transactions ?? []).map((t: unknown) => toA_SearchTransaction(t));
-        return { 'next-token': (response['nextToken'] as string) ?? '', transactions } as A_AccountTransactionsResponse;
+        const transactions = (response.transactions ?? []) as indexerModels.Transaction[];
+        return { 'next-token': (response['nextToken'] as string) ?? '', transactions };
     }
 
     async getAuthAddr(address: string, token?: string): Promise<A_AccountsResponse> {

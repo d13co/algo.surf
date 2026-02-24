@@ -24,7 +24,7 @@ import LinkToAsset from "../Links/LinkToAsset";
 import Copyable from "src/components/v2/Copyable";
 import NumberFormat from "react-number-format";
 import {
-  Search,
+  Filter,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
@@ -32,6 +32,7 @@ import {
   Loader2,
   ThermometerSnowflake,
 } from "lucide-react";
+import { Input } from "src/components/v2/ui/input";
 import {
   Tooltip,
   TooltipContent,
@@ -131,7 +132,7 @@ function AccountAssets(): JSX.Element {
   const [searchStatus, setSearchStatus] = useState("");
 
   const optedAssetIds = useMemo(() => {
-    return (accountInfo?.assets ?? []).map((a) => a["asset-id"]);
+    return (accountInfo?.assets ?? []).map((a) => Number(a.assetId));
   }, [accountInfo?.assets]);
 
   const optedAssetAmounts: Map<
@@ -140,7 +141,7 @@ function AccountAssets(): JSX.Element {
   > = useMemo(() => {
     const map = new Map();
     (accountInfo?.assets ?? []).forEach((a) => {
-      map.set(a["asset-id"], { amount: a.amount, "is-frozen": a["is-frozen"] });
+      map.set(Number(a.assetId), { amount: Number(a.amount), "is-frozen": a.isFrozen });
     });
     return map;
   }, [accountInfo?.assets]);
@@ -216,18 +217,15 @@ function AccountAssets(): JSX.Element {
   return (
     <div>
       <div className="flex items-center gap-3 mt-3 mb-2">
-        <label className="inline-flex items-center gap-2 border border-border rounded px-2.5 py-1.5 text-muted-foreground w-[175px] sm:w-[250px] md:w-[350px]">
-          <Search
-            className="shrink-0 ml-2"
-            size={16}
-          />
-          <input
+        <div className="relative w-[175px] sm:w-[250px] md:w-[350px]">
+          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <Input
             type="text"
             onChange={handleChangeSearch}
-            placeholder="Search"
-            className="text-sm bg-transparent focus:outline-none w-full placeholder:text-muted-foreground"
+            placeholder="Filter assets"
+            className="pl-9"
           />
-        </label>
+        </div>
         <div className="text-sm text-muted-foreground">{searchStatus}</div>
       </div>
 
@@ -240,7 +238,7 @@ function AccountAssets(): JSX.Element {
           {/* Desktop table */}
           <div className="hidden md:block">
             <Table className="table-fixed">
-              <TableHeader>
+              <TableHeader className="[&_tr]:border-primary">
                 {table.getHeaderGroups().map((headerGroup) => (
                   <TableRow key={headerGroup.id}>
                     {headerGroup.headers.map((header) => (
@@ -299,12 +297,12 @@ function AccountAssets(): JSX.Element {
 
           {/* Pagination */}
           {pageCount > 1 ? (
-            <div className="flex items-center justify-end gap-2 py-4">
+            <div className="flex items-center justify-end gap-2 pt-4 pb-0 md:py-4">
               <span className="text-sm text-muted-foreground">
                 Page {pageIndex + 1} of {pageCount}
               </span>
               <Button
-                variant="outline"
+                variant="muted"
                 size="icon"
                 className="h-8 w-8"
                 onClick={() => table.setPageIndex(0)}
@@ -313,7 +311,7 @@ function AccountAssets(): JSX.Element {
                 <ChevronsLeft className="h-4 w-4" />
               </Button>
               <Button
-                variant="outline"
+                variant="muted"
                 size="icon"
                 className="h-8 w-8"
                 onClick={() => table.previousPage()}
@@ -322,7 +320,7 @@ function AccountAssets(): JSX.Element {
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <Button
-                variant="outline"
+                variant="muted"
                 size="icon"
                 className="h-8 w-8"
                 onClick={() => table.nextPage()}
@@ -331,7 +329,7 @@ function AccountAssets(): JSX.Element {
                 <ChevronRight className="h-4 w-4" />
               </Button>
               <Button
-                variant="outline"
+                variant="muted"
                 size="icon"
                 className="h-8 w-8"
                 onClick={() => table.setPageIndex(pageCount - 1)}

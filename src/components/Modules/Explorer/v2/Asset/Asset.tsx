@@ -12,19 +12,17 @@ import JsonViewer from "src/components/v2/JsonViewer";
 import CustomError from "../CustomError";
 import MultiFormatViewer from "src/components/v2/MultiFormatViewer";
 import Copyable from "src/components/v2/Copyable";
-import Dym from "../../Records/Dym";
+import Dym from "../Dym";
 import useTitle from "src/components/Common/UseTitle/UseTitle";
 import { ShieldCheck } from "lucide-react";
 import NumberFormatCopy from "src/components/v2/NumberFormatCopy";
 import OpenInMenu from "src/components/v2/OpenInMenu";
+import MultiDateViewer, { DateSwitcher } from "src/components/v2/MultiDateViewer";
 import { useAsset } from "src/hooks/useAsset";
 import { useAssetLabels } from "src/hooks/useAssetLabels";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from "src/components/v2/ui/tabs";
+import { useBlock } from "src/hooks/useBlock";
+import { CoreBlock } from "src/packages/core-sdk/classes/core/CoreBlock";
+import TabsUnderline from "src/components/v2/shadcn-studio/tabs/tabs-11";
 
 function Asset(): JSX.Element {
   const navigate = useNavigate();
@@ -38,6 +36,9 @@ function Asset(): JSX.Element {
   const { data: labels } = useAssetLabels(numId);
 
   const assetInstance = assetInfo ? new CoreAsset(assetInfo) : null;
+  const createdAtRound = assetInstance?.getCreatedAtRound();
+  const { data: createdBlock } = useBlock(createdAtRound ?? 0);
+  const createdBlockTimestamp = createdBlock ? new CoreBlock(createdBlock).getTimestamp() : undefined;
 
   useTitle(`Asset ${id}`);
 
@@ -63,9 +64,13 @@ function Asset(): JSX.Element {
           <CustomError error={error?.message} />
         ) : (
           <div>
-            <div className="flex justify-between items-center text-xl font-bold">
-              <div>Asset overview</div>
-              <div className="flex items-center gap-2.5">
+            <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 text-xl">
+              <div className="group flex items-center gap-2 min-w-0">
+                <span className="shrink-0">Asset</span>
+                <span><span className="select-none">#</span>{id}</span>
+                <Copyable className="opacity-60 group-hover:opacity-100" value={Number(id)} />
+              </div>
+              <div className="flex items-center gap-2.5 shrink-0 ml-auto">
                 <JsonViewer
                   filename={`asset-${id}.json`}
                   obj={assetInstance?.toJSON() ?? {}}
@@ -78,48 +83,45 @@ function Asset(): JSX.Element {
             {isLoading || !assetInstance ? (
               <LoadingTile />
             ) : (
-              <div className="mt-8">
-                <div className="text-lg mb-5 font-normal flex gap-8">
-                  <div>
-                    <div>
-                      <span className="select-none">#</span>
-                      {assetInstance.getIndex()}
-                      <Copyable value={assetInstance.getIndex()} />
-                      {assetInstance.isDeleted() && (
-                        <span className="ml-2 text-sm font-medium text-secondary bg-secondary/10 px-2 py-0.5 rounded">
-                          Deleted
-                        </span>
-                      )}
+              <div className="mt-6">
+                <div className="mb-5">
+                  {assetInstance.isDeleted() && (
+                    <div className="mb-1">
+                      <span className="text-sm font-medium text-secondary bg-secondary/10 px-2 py-0.5 rounded">
+                        Deleted
+                      </span>
                     </div>
-                    <div className="mt-1">
+                  )}
+                  <div className="grid grid-cols-2 md:grid-cols-3 items-center text-sm">
+                    <div>
                       {assetInstance.getUrl() ? (
-                        <>
+                        <span className="group inline-flex items-center gap-1">
                           <a
                             href={assetInstance.getUrl()}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-primary hover:underline text-sm"
+                            className="text-primary hover:underline"
                           >
                             {assetInstance.getUrl()}
                           </a>
                           <Copyable
+                            className="opacity-60 group-hover:opacity-100"
                             size="s"
                             value={assetInstance.getUrl()}
                           />
-                        </>
-                      ) : (
-                        ""
-                      )}
+                        </span>
+                      ) : null}
                     </div>
+                    {pv ? (
+                      <div className="flex items-center gap-1.5 justify-end md:justify-center">
+                        <ShieldCheck
+                          size={18}
+                          style={{ color: "#FFEE55" }}
+                        />
+                        <span style={{ color: "#FFEE55D9" }}>Pera Verified</span>
+                      </div>
+                    ) : null}
                   </div>
-                  {!pv ? null : (
-                    <div className="flex flex-col justify-between items-center gap-2">
-                      <ShieldCheck
-                        style={{ color: "#FFEE55", marginTop: "3px" }}
-                      />
-                      <div className="text-sm text-primary">Pera Verified</div>
-                    </div>
-                  )}
                 </div>
 
                 <div className="mt-6 rounded-lg p-5 pt-2.5 bg-background-card">
@@ -168,7 +170,7 @@ function Asset(): JSX.Element {
                         <div className="text-muted-foreground">
                           Total supply
                         </div>
-                        <div className="mt-2.5">
+                        <div className="mt-2.5 break-all">
                           <NumberFormatCopy
                             value={assetInstance.getTotalSupply()}
                             displayType={"text"}
@@ -222,6 +224,23 @@ function Asset(): JSX.Element {
                         </div>
                       </div>
                     </div>
+
+                    {createdAtRound != null && createdBlockTimestamp != null ? (
+                      <div className="col-span-12 sm:col-span-6 md:col-span-3">
+                        <div className="mt-2.5">
+                          <div className="text-muted-foreground inline-flex items-center gap-1">
+                            Created at <DateSwitcher />
+                          </div>
+                          <div className="mt-2.5">
+                            <MultiDateViewer
+                              timestamp={createdBlockTimestamp}
+                              block={createdAtRound}
+                              variant="value"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
 
@@ -293,23 +312,28 @@ function Asset(): JSX.Element {
                   </div>
                 </div>
 
-                {assetInstance.getResolvedUrl() ? (
+                {assetInstance.getResolvedUrl() && assetInstance.getResolvedUrl() !== assetInstance.getUrl() ? (
                   <div className="mt-6 rounded-lg p-5 pt-2.5 bg-background-card">
                     <div className="grid grid-cols-12 gap-4">
-                      <div className="col-span-12 sm:col-span-6 md:col-span-3">
+                      <div className="col-span-12">
                         <div className="mt-2.5">
                           <div className="text-muted-foreground">
                             Resolved Url
                           </div>
-                          <div className="mt-2.5 text-[13px] break-words overflow-hidden">
+                          <div className="mt-2.5 text-[13px] group inline-flex items-center gap-1 min-w-0 max-w-full">
                             <a
                               href={assetInstance.getResolvedUrl()}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-primary hover:underline"
+                              className="text-primary hover:underline truncate"
                             >
                               {assetInstance.getResolvedUrl()}
                             </a>
+                            <Copyable
+                              className="opacity-60 group-hover:opacity-100 shrink-0"
+                              size="s"
+                              value={assetInstance.getResolvedUrl()}
+                            />
                           </div>
                         </div>
                       </div>
@@ -318,19 +342,12 @@ function Asset(): JSX.Element {
                 ) : null}
 
                 <div className="mt-6">
-                  <Tabs defaultValue="transactions" value="transactions">
-                    <TabsList className="bg-transparent border-b border-border rounded-none w-full justify-start">
-                      <TabsTrigger
-                        value="transactions"
-                        className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none rounded-none text-muted-foreground data-[state=active]:text-foreground"
-                        onClick={() => {
-                          navigate("/asset/" + id + "/transactions");
-                        }}
-                      >
-                        Transactions
-                      </TabsTrigger>
-                    </TabsList>
-                  </Tabs>
+                  <TabsUnderline
+                    value="transactions"
+                    tabs={[
+                      { name: "Transactions", value: "transactions", onClick: () => navigate("/asset/" + id + "/transactions") },
+                    ]}
+                  />
 
                   <Outlet />
                 </div>

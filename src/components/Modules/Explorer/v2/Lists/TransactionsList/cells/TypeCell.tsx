@@ -1,11 +1,11 @@
 import React from "react";
 import { CellContext } from "@tanstack/react-table";
-import { A_SearchTransaction } from "src/packages/core-sdk/types";
+import { indexerModels } from "algosdk";
 import { CoreTransaction } from "src/packages/core-sdk/classes/core/CoreTransaction";
 
 export default function TypeCell({
   row,
-}: CellContext<A_SearchTransaction, unknown>) {
+}: CellContext<indexerModels.Transaction, unknown>) {
   const txn = new CoreTransaction(row.original);
   const type = txn.getTypeDisplayValue();
   const closeTo = txn.getCloseTo();

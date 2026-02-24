@@ -9,7 +9,7 @@ import JsonViewer from "src/components/v2/JsonViewer";
 import CustomError from "../CustomError";
 import Copyable from "src/components/v2/Copyable";
 import NumberFormatCopy from "src/components/v2/NumberFormatCopy";
-import MultiDateViewer from "src/components/v2/MultiDateViewer";
+import MultiDateViewer, { DateSwitcher } from "src/components/v2/MultiDateViewer";
 import LinkToAccount from "../Links/LinkToAccount";
 import LinkToBlock from "../Links/LinkToBlock";
 import LinkToAsset from "../Links/LinkToAsset";
@@ -19,11 +19,7 @@ import {
   BalanceImpact,
   calculateGroupBalanceImpact,
 } from "@d13co/algo-group-balance-impact";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-} from "src/components/v2/ui/tabs";
+import TabsUnderline from "src/components/v2/shadcn-studio/tabs/tabs-11";
 import {
   Tooltip,
   TooltipContent,
@@ -94,17 +90,17 @@ function Group(): JSX.Element {
           <CustomError error={error?.message} />
         ) : (
           <div>
-            <div className="flex justify-between items-center gap-2 text-xl font-bold">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="shrink-0">Transaction Group</span>
-                <span className="text-base font-normal truncate min-w-0 hidden sm:inline">
+            <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 text-xl">
+              <div className="group flex items-center gap-2 min-w-0">
+                <span className="shrink-0">Group</span>
+                <span className="truncate min-w-0 hidden sm:inline">
                   {groupInstance?.getId() ?? id}
                 </span>
                 <span className="hidden sm:inline-flex">
-                  <Copyable value={id!} />
+                  <Copyable className="opacity-60 group-hover:opacity-100" value={id!} />
                 </span>
               </div>
-              <div className="flex items-center gap-2.5 shrink-0">
+              <div className="flex items-center gap-2.5 shrink-0 ml-auto">
                 {groupInstance ? (
                   <JsonViewer
                     filename={`group-${id}.json`}
@@ -118,7 +114,7 @@ function Group(): JSX.Element {
             {isLoading || !groupInstance ? (
               <LoadingTile />
             ) : (
-              <div className="mt-8">
+              <div className="mt-6">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
                   <div className="rounded-lg p-5 pt-2.5 bg-background-card">
                     <div className="grid grid-cols-12 gap-4">
@@ -134,9 +130,11 @@ function Group(): JSX.Element {
 
                       <div className="col-span-12 sm:col-span-6">
                         <div className="mt-2.5">
-                          <div className="text-muted-foreground">Timestamp</div>
+                          <div className="text-muted-foreground inline-flex items-center gap-1">
+                            Timestamp <DateSwitcher />
+                          </div>
                           <div className="mt-2.5">
-                            <MultiDateViewer timestamp={groupInstance.getTimestamp()} switcherSide="right" />
+                            <MultiDateViewer timestamp={groupInstance.getTimestamp()} variant="value" />
                           </div>
                         </div>
                       </div>
@@ -253,19 +251,12 @@ function Group(): JSX.Element {
                 </div>
 
                 <div className="mt-6">
-                  <Tabs defaultValue="transactions" value="transactions">
-                    <TabsList className="bg-transparent border-b border-border rounded-none w-full justify-start">
-                      <TabsTrigger
-                        value="transactions"
-                        className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none rounded-none text-muted-foreground data-[state=active]:text-foreground"
-                        onClick={() => {
-                          navigate(`/group/${id}/${blockId}/transactions`);
-                        }}
-                      >
-                        Transactions
-                      </TabsTrigger>
-                    </TabsList>
-                  </Tabs>
+                  <TabsUnderline
+                    value="transactions"
+                    tabs={[
+                      { name: "Transactions", value: "transactions", onClick: () => navigate(`/group/${id}/${blockId}/transactions`) },
+                    ]}
+                  />
 
                   <Outlet />
                 </div>

@@ -33,6 +33,7 @@ function ApplicationTransactions(): JSX.Element {
         reachedLastPage={reachedLastPage}
         loading={isFetchingNextPage}
         initialLoading={isLoading}
+        hasMore={hasNextPage}
         fields={["type", "id", "age", "from", "to", "fee"]}
       />
     </div>

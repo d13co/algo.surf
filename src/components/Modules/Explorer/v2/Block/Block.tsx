@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useCallback } from "react";
 import { Outlet, useNavigate, useParams } from "react-router-dom";
 import { CoreBlock } from "src/packages/core-sdk/classes/core/CoreBlock";
 import { useBlock, useBlockHash } from "src/hooks/useBlock";
@@ -8,18 +8,14 @@ import LoadingTile from "src/components/v2/LoadingTile";
 import JsonViewer from "src/components/v2/JsonViewer";
 import CustomError from "../CustomError";
 import Copyable from "src/components/v2/Copyable";
-import NumberFormatCopy from "src/components/v2/NumberFormatCopy";
+import NumberFormat from "react-number-format";
 import OpenInMenu from "src/components/v2/OpenInMenu";
-import MultiDateViewer from "src/components/v2/MultiDateViewer";
+import MultiDateViewer, { DateSwitcher } from "src/components/v2/MultiDateViewer";
 import AlgoIcon from "../../AlgoIcon/AlgoIcon";
 import useTitle from "src/components/Common/UseTitle/UseTitle";
 import { microalgosToAlgos } from "algosdk";
 import { ArrowLeftFromLine, ArrowRightFromLine, TriangleAlert, Info } from "lucide-react";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-} from "src/components/v2/ui/tabs";
+import TabsUnderline from "src/components/v2/shadcn-studio/tabs/tabs-11";
 import {
   Tooltip,
   TooltipContent,
@@ -51,6 +47,19 @@ function Block(): JSX.Element {
 
   useTitle(`Block ${id}`);
 
+  const goToPrev = useCallback(() => navigate(`/block/${numId - 1}/transactions`), [navigate, numId]);
+  const goToNext = useCallback(() => navigate(`/block/${numId + 1}/transactions`), [navigate, numId]);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key === "ArrowLeft") goToPrev();
+      else if (e.key === "ArrowRight") goToNext();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [goToPrev, goToNext]);
+
   const txnTypes = blockInstance ? blockInstance.getTransactionsTypesCount() : {};
   const txnTypesList = Object.keys(txnTypes);
   const proposer = blockInstance?.getProposer() ?? "";
@@ -64,24 +73,24 @@ function Block(): JSX.Element {
           <CustomError error={error?.message} />
         ) : (
           <div>
-            <div className="flex justify-between items-center flex-wrap text-xl font-bold">
-              <div className="flex items-center gap-2">
-                <span>Block</span>
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xl">
+              <div className="group flex items-center gap-2 min-w-0">
+                <span className="shrink-0">Block</span>
                 <span>
                   <span className="select-none">#</span>
                   {blockInstance?.getRound() ?? id}
                 </span>
-                <Copyable value={numId} />
+                <Copyable className="opacity-60 group-hover:opacity-100" value={numId} />
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 shrink-0 ml-auto md:ml-0">
                 <a
                   href={`/block/${numId - 1}/transactions`}
                   onClick={(e) => {
                     e.preventDefault();
-                    navigate(`/block/${numId - 1}/transactions`);
+                    goToPrev();
                   }}
                   className="text-primary hover:bg-primary/10 rounded p-1.5"
-                  title="Previous block"
+                  title="Previous block (←)"
                 >
                   <ArrowLeftFromLine size={20} />
                 </a>
@@ -89,15 +98,15 @@ function Block(): JSX.Element {
                   href={`/block/${numId + 1}/transactions`}
                   onClick={(e) => {
                     e.preventDefault();
-                    navigate(`/block/${numId + 1}/transactions`);
+                    goToNext();
                   }}
                   className="text-primary hover:bg-primary/10 rounded p-1.5"
-                  title="Next block"
+                  title="Next block (→)"
                 >
                   <ArrowRightFromLine size={20} />
                 </a>
               </div>
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2.5 shrink-0 ml-auto md:ml-0">
                 <JsonViewer
                   filename={`block-${id}.json`}
                   obj={blockInstance?.toJSON() ?? {}}
@@ -110,7 +119,7 @@ function Block(): JSX.Element {
             {isLoading || !blockInstance ? (
               <LoadingTile />
             ) : (
-              <div className="mt-8">
+              <div className="mt-6">
                 <div className="rounded-lg p-5 pt-2.5 bg-background-card">
                   <div className="grid grid-cols-12 gap-4">
                     <div className="col-span-12 sm:col-span-6">
@@ -144,9 +153,11 @@ function Block(): JSX.Element {
 
                     <div className="col-span-12 sm:col-span-6">
                       <div className="mt-2.5">
-                        <div className="text-muted-foreground">Timestamp</div>
+                        <div className="text-muted-foreground inline-flex items-center gap-1">
+                          Timestamp <DateSwitcher />
+                        </div>
                         <div className="mt-2.5">
-                          <MultiDateViewer timestamp={blockInstance.getTimestamp()} />
+                          <MultiDateViewer timestamp={blockInstance.getTimestamp()} variant="value" />
                         </div>
                       </div>
                     </div>
@@ -169,8 +180,8 @@ function Block(): JSX.Element {
                     <div className="col-span-12 sm:col-span-6">
                       <div className="mt-2.5">
                         <div className="text-muted-foreground">Hash</div>
-                        <div className="mt-2.5 text-[13px] break-all text-muted-foreground">
-                          {blockHash ?? ""}
+                        <div className="mt-2.5 text-[13px] text-foreground flex items-center min-w-0">
+                          <span className="truncate">{blockHash ?? ""}</span>
                           {blockHash ? <Copyable value={blockHash} /> : null}
                         </div>
                       </div>
@@ -183,35 +194,26 @@ function Block(): JSX.Element {
                     <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
                       <div className="mt-2.5">
                         <div className="text-muted-foreground">Block Reward</div>
-                        <div className="mt-2.5 inline-flex items-center gap-1">
+                        <div className="mt-2.5 group inline-flex items-center gap-1">
+                          <Copyable className="opacity-60 group-hover:opacity-100" value={microalgosToAlgos(blockInstance.getProposerPayout())} />
                           <AlgoIcon />
-                          <NumberFormatCopy
-                            value={microalgosToAlgos(blockInstance.getProposerPayout())}
-                            displayType={"text"}
-                            thousandSeparator={true}
-                          />
+                          <NumberFormat value={microalgosToAlgos(blockInstance.getProposerPayout())} displayType="text" thousandSeparator={true} />
                         </div>
                       </div>
                       <div className="mt-2.5">
                         <div className="text-muted-foreground">Block Bonus</div>
-                        <div className="mt-2.5 inline-flex items-center gap-1">
+                        <div className="mt-2.5 group inline-flex items-center gap-1">
+                          <Copyable className="opacity-60 group-hover:opacity-100" value={microalgosToAlgos(bonus)} />
                           <AlgoIcon />
-                          <NumberFormatCopy
-                            value={microalgosToAlgos(bonus)}
-                            displayType={"text"}
-                            thousandSeparator={true}
-                          />
+                          <NumberFormat value={microalgosToAlgos(bonus)} displayType="text" thousandSeparator={true} />
                         </div>
                       </div>
                       <div className="mt-2.5">
                         <div className="text-muted-foreground">Block Fees</div>
-                        <div className="mt-2.5 inline-flex items-center gap-1">
+                        <div className="mt-2.5 group inline-flex items-center gap-1">
+                          <Copyable className="opacity-60 group-hover:opacity-100" value={microalgosToAlgos(blockInstance.getFeesCollected())} />
                           <AlgoIcon />
-                          <NumberFormatCopy
-                            value={microalgosToAlgos(blockInstance.getFeesCollected())}
-                            displayType={"text"}
-                            thousandSeparator={true}
-                          />
+                          <NumberFormat value={microalgosToAlgos(blockInstance.getFeesCollected())} displayType="text" thousandSeparator={true} />
                         </div>
                       </div>
                     </div>
@@ -250,19 +252,12 @@ function Block(): JSX.Element {
                 ) : null}
 
                 <div className="mt-6">
-                  <Tabs defaultValue="transactions" value="transactions">
-                    <TabsList className="bg-transparent border-b border-border rounded-none w-full justify-start">
-                      <TabsTrigger
-                        value="transactions"
-                        className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none rounded-none text-muted-foreground data-[state=active]:text-foreground"
-                        onClick={() => {
-                          navigate("/block/" + id + "/transactions");
-                        }}
-                      >
-                        Transactions
-                      </TabsTrigger>
-                    </TabsList>
-                  </Tabs>
+                  <TabsUnderline
+                    value="transactions"
+                    tabs={[
+                      { name: "Transactions", value: "transactions", onClick: () => navigate("/block/" + id + "/transactions") },
+                    ]}
+                  />
 
                   <Outlet />
                 </div>

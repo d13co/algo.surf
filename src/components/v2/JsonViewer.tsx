@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import ReactJson from "react-json-view";
 import { exportData } from "src/utils/common";
 import { X } from "lucide-react";
@@ -38,8 +38,7 @@ function JsonViewer(props: {
     variant = "outline",
   } = props;
 
-  const [{ show, expand }, setState] = useState(initialState);
-  const expandButtonRef = useRef<HTMLButtonElement>(null);
+  const [{ show, expand, expanding, copied }, setState] = useState({ ...initialState, expanding: false, copied: false });
 
   const toggle = useCallback(() => {
     setState((prev) => ({ ...prev, show: !prev.show }));
@@ -50,23 +49,16 @@ function JsonViewer(props: {
   }, []);
 
   const toggleExpand = useCallback(() => {
-    if (expandButtonRef?.current) {
-      expandButtonRef.current.innerHTML = expand ? "Collapsing" : "Expanding";
-    }
+    setState((prev) => ({ ...prev, expanding: true }));
     setTimeout(() => {
-      setState((prev) => ({ ...prev, expand: !prev.expand }));
+      setState((prev) => ({ ...prev, expand: !prev.expand, expanding: false }));
     }, 5);
-    setTimeout(() => {
-      if (expandButtonRef?.current) {
-        expandButtonRef.current.innerHTML = expand
-          ? "(E)xpand All"
-          : "Collapse";
-      }
-    }, 10);
-  }, [expand]);
+  }, []);
 
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(JSON.stringify(obj));
+    setState((prev) => ({ ...prev, copied: true }));
+    setTimeout(() => setState((prev) => ({ ...prev, copied: false })), 1000);
   }, [obj]);
 
   const handleDownload = useCallback(() => {
@@ -86,25 +78,24 @@ function JsonViewer(props: {
         className={`border-border text-primary hover:bg-primary/10 ${fullWidth ? "w-full" : ""}`}
         onClick={() => setState((prev) => ({ ...prev, show: true }))}
       >
-        <span>View&nbsp;<span className="underline">J</span>SON</span>
+        <span className="whitespace-nowrap">View&nbsp;<span className="underline">J</span>SON</span>
       </Button>
 
       <Dialog open={show} onOpenChange={(open) => !open && handleClose()}>
-        <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col bg-background-muted border-border text-foreground">
+        <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col bg-background-muted text-foreground">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold">{title}</DialogTitle>
+            <DialogTitle className="text-lg font-normal">{title}</DialogTitle>
           </DialogHeader>
 
           <div className="text-[13px] flex flex-col min-h-0">
             <div className="flex justify-between border-b border-primary pb-4 mb-4 shrink-0">
               <Button
-                ref={expandButtonRef}
                 variant="outline"
                 size="sm"
                 className="border-border text-primary hover:bg-primary/10"
                 onClick={toggleExpand}
               >
-                {!expand ? "(E)xpand All" : "Collapse"}
+                {expanding ? (expand ? "Collapsing" : "Expanding") : !expand ? <span><u>E</u>xpand All</span> : "Collapse"}
               </Button>
               <div className="flex gap-2">
                 <Button
@@ -113,7 +104,7 @@ function JsonViewer(props: {
                   className="border-border text-primary hover:bg-primary/10"
                   onClick={handleCopy}
                 >
-                  (C)opy
+                  {copied ? "Copied" : <span><u>C</u>opy</span>}
                 </Button>
                 <Button
                   variant="outline"
@@ -121,7 +112,7 @@ function JsonViewer(props: {
                   className="border-border text-primary hover:bg-primary/10"
                   onClick={handleDownload}
                 >
-                  (D)ownload
+                  <span><u>D</u>ownload</span>
                 </Button>
               </div>
             </div>

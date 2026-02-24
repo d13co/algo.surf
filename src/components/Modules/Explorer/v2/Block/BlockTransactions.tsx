@@ -16,6 +16,7 @@ function BlockTransactions(): JSX.Element {
       <TransactionsList
         transactions={transactions}
         initialLoading={isLoading}
+        hasMore={false}
         fields={["id", "from", "to", "fee", "amount", "type"]}
       />
     </div>

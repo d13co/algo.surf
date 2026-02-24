@@ -2,10 +2,10 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import React from "react";
 import Explorer from "../Modules/Explorer/Explorer/Explorer";
 import Home from "../Modules/Explorer/Home/Home";
-import Accounts from "../Modules/Explorer/Lists/Accounts/Accounts";
-import Transactions from "../Modules/Explorer/Lists/Transactions/Transactions";
+import Accounts from "../Modules/Explorer/v2/Account/Accounts";
+import Transactions from "../Modules/Explorer/v2/Transaction/Transactions";
 import Assets from "../Modules/Explorer/v2/Asset/Assets";
-import Applications from "../Modules/Explorer/Lists/Applications/Applications";
+import Applications from "../Modules/Explorer/v2/Application/Applications";
 import Account from "../Modules/Explorer/v2/Account/Account";
 import AccountAssets from "../Modules/Explorer/v2/Account/AccountAssets";
 import AccountTransactions from "../Modules/Explorer/v2/Account/AccountTransactions";
@@ -20,7 +20,7 @@ import AssetTransactions from "../Modules/Explorer/v2/Asset/AssetTransactions";
 import Application from "../Modules/Explorer/v2/Application/Application";
 import ApplicationTransactions from "../Modules/Explorer/v2/Application/ApplicationTransactions";
 import ApplicationBoxes from "../Modules/Explorer/v2/Application/ApplicationBoxes";
-import Transaction from "../Modules/Explorer/Records/Transaction/Transaction";
+import Transaction from "../Modules/Explorer/v2/Transaction/Transaction";
 import Group from "../Modules/Explorer/v2/Group/Group";
 import GroupTransactions from "../Modules/Explorer/v2/Group/GroupTransactions";
 import Loader from "../Common/Loader/Loader";
@@ -33,6 +33,7 @@ import { queryClient } from "../../db/query-client";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { persister } from "../../db/query-persister";
 import { AbelAssetsProvider } from "../Common/AbelAssetsProvider";
+import { GlobalUIProvider } from "../../contexts/GlobalUIContext";
 
 function AppRouter(): JSX.Element {
   return (
@@ -42,11 +43,12 @@ function AppRouter(): JSX.Element {
           persistOptions={{ persister }}
           client={queryClient}
         >
+          <GlobalUIProvider>
           <AbelAssetsProvider>
-            <div className="app-container">
-              <div className="app-right">
-                <div className="content-wrapper">
-                  <div className="content-container">
+            <div className="flex flex-col items-center justify-start">
+              <div className="w-full max-w-[1280px]">
+                <div className="overflow-auto min-h-svh flex flex-col">
+                  <div className="grow mx-5 mt-2.5 md:mx-[100px] md:mt-5">
                     <Explorer>
                       <Routes>
                         <Route index element={<Home></Home>} />
@@ -189,6 +191,7 @@ function AppRouter(): JSX.Element {
             <Loader></Loader>
             <AppSnackbar></AppSnackbar>
           </AbelAssetsProvider>
+          </GlobalUIProvider>
         </PersistQueryClientProvider>
       </BrowserRouter>
     </div>

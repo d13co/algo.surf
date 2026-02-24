@@ -1,15 +1,30 @@
 import { A_GlobalStateDelta } from "../../types";
-import { encodeAddress } from "algosdk";
-import isUtf8 from "is-utf8";
+import { indexerModels } from "algosdk";
+import { isUtf8 } from "../../../../utils/isUtf8";
 
 export class CoreGlobalState {
-  state: A_GlobalStateDelta;
+  state: indexerModels.EvalDeltaKeyValue;
 
-  constructor(state: A_GlobalStateDelta) {
-    this.state = state;
+  constructor(state: indexerModels.EvalDeltaKeyValue | A_GlobalStateDelta) {
+    if (state instanceof indexerModels.EvalDeltaKeyValue) {
+      this.state = state;
+    } else {
+      this.state = CoreGlobalState.fromLegacy(state);
+    }
   }
 
-  get(): A_GlobalStateDelta {
+  private static fromLegacy(d: A_GlobalStateDelta): indexerModels.EvalDeltaKeyValue {
+    return new indexerModels.EvalDeltaKeyValue({
+      key: d.key,
+      value: new indexerModels.EvalDelta({
+        action: d.value.action,
+        bytes: d.value.bytes,
+        uint: d.value.uint != null ? BigInt(d.value.uint) : undefined,
+      }),
+    });
+  }
+
+  get(): indexerModels.EvalDeltaKeyValue {
     return this.state;
   }
 
@@ -43,7 +58,7 @@ export class CoreGlobalState {
   }
 
   getAction(): number {
-    return this.state.value.action;
+    return Number(this.state.value.action);
   }
 
   getActionDisplayValue() {
@@ -68,6 +83,6 @@ export class CoreGlobalState {
       return this.state.value.bytes;
     }
 
-    return this.state.value.uint.toString();
+    return Number(this.state.value.uint).toString();
   }
 }

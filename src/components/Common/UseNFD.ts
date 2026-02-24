@@ -16,6 +16,7 @@ type NFDRecord = {
 
 const nfd = create({
   fetcher: async (addresses: string[]): Promise<Record<string, NFDRecord>> => {
+    if (addresses.length === 0) return {};
     const params = addresses.map((address) => `address=${address}`).join("&");
     const url = `https://api.nf.domains/nfd/v2/address?${params}&view=thumbnail&limit=1`;
     const response = await fetch(url);
@@ -23,7 +24,10 @@ const nfd = create({
     const data = await response.json();
     const x = Object.fromEntries(
       // @ts-ignore
-      Object.entries(data).map(([k, [v]]) => [k, v])
+      Object.entries(data).map(([k, records]: [string, any[]]) => [
+        k,
+        records.find((r: any) => r.caAlgo?.includes(k)),
+      ])
     );
     return x;
   },

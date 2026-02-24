@@ -1,4 +1,4 @@
-import { A_SearchTransaction } from "../../types";
+import { indexerModels } from "algosdk";
 
 export interface TxnCountStats {
     total: number;
@@ -10,21 +10,21 @@ export interface TxnCountStats {
 export default class BaseTxnHolder {
     countStats: TxnCountStats;
 
-    ensureHasStats(transactions: A_SearchTransaction[]) {
+    ensureHasStats(transactions: indexerModels.Transaction[]) {
         if (!this.countStats) {
             this.countStats = BaseTxnHolder.calculateBlockCountStats(transactions);
         }
     }
 
-    static calculateBlockCountStats(txns: A_SearchTransaction[], countStats?: TxnCountStats): TxnCountStats {
+    static calculateBlockCountStats(txns: indexerModels.Transaction[], countStats?: TxnCountStats): TxnCountStats {
         countStats = countStats ?? { total: 0, txnTypeCounts: {} };
         const { txnTypeCounts: counts } = countStats;
         for(const txn of txns ?? []) {
             countStats.total++;
-            const { "tx-type": txType } = txn;
+            const txType = txn.txType;
             counts[txType] = (counts[txType] ?? 0) + 1;
-            if (txn["inner-txns"]) {
-                BaseTxnHolder.calculateBlockCountStats(txn['inner-txns'], countStats);
+            if (txn.innerTxns) {
+                BaseTxnHolder.calculateBlockCountStats(txn.innerTxns, countStats);
             }
         }
         return countStats;

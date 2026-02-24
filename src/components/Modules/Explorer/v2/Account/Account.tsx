@@ -7,8 +7,7 @@ import {
   useParams,
   useSearchParams,
 } from "react-router-dom";
-import { useSelector } from "react-redux";
-import { RootState } from "src/redux/store";
+import { useAddressBook } from "src/hooks/useAddressBook";
 import { CoreAccount } from "src/packages/core-sdk/classes/core/CoreAccount";
 import {
   useAccount,
@@ -23,20 +22,17 @@ import LoadingTile from "src/components/v2/LoadingTile";
 import JsonViewer from "src/components/v2/JsonViewer";
 import CustomError from "../CustomError";
 import Copyable from "src/components/v2/Copyable";
-import NumberFormatCopy from "src/components/v2/NumberFormatCopy";
+import NumberFormat from "react-number-format";
 import OpenInMenu from "src/components/v2/OpenInMenu";
 import AlgoIcon from "../../AlgoIcon/AlgoIcon";
 import useTitle from "src/components/Common/UseTitle/UseTitle";
 import LinkToAccount from "../Links/LinkToAccount";
 import LinkToApplication from "../Links/LinkToApplication";
-import DymNFD from "../../Records/DymNFD";
+import DymNFD from "../DymNFD";
 import { microalgosToAlgos } from "algosdk";
+import { toPlainJson } from "src/packages/core-sdk/utils/serialize";
 import { network } from "src/packages/core-sdk/constants";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-} from "src/components/v2/ui/tabs";
+import TabsUnderline from "src/components/v2/shadcn-studio/tabs/tabs-11";
 import {
   Tooltip,
   TooltipContent,
@@ -120,7 +116,7 @@ function Account(): JSX.Element {
   const { data: txnData } = useAccountTransactions(address);
   const { data: controllerData, fetchNextPage: fetchNextControllerPage, hasNextPage: hasNextControllerPage } = useControllingAccounts(address);
 
-  const addressBook = useSelector((state: RootState) => state.addressBook);
+  const { data: addressBookData } = useAddressBook();
 
   const [searchParams] = useSearchParams();
   const altNFDQuery = searchParams.get("alt");
@@ -141,8 +137,8 @@ function Account(): JSX.Element {
   }, [nfd, confirmAltNFDAccounts]);
 
   const addressLabel = useMemo(
-    () => addressBook.data[address],
-    [address, addressBook.data]
+    () => addressBookData?.[address!],
+    [address, addressBookData]
   );
 
   const accountInstance = accountInfo
@@ -150,8 +146,8 @@ function Account(): JSX.Element {
     : null;
 
   const assetIdsToLookup = useMemo(() => {
-    if (accountInfo?.["auth-addr"] === tinymanAppEscrow) {
-      return accountInfo.assets.map((a) => a["asset-id"]);
+    if (accountInfo?.authAddr?.toString() === tinymanAppEscrow) {
+      return (accountInfo.assets ?? []).map((a) => Number(a.assetId));
     }
     return [];
   }, [accountInfo]);
@@ -159,7 +155,7 @@ function Account(): JSX.Element {
   const { data: optedAssets } = useTinyAssets(assetIdsToLookup);
 
   const tinymanPool = useMemo(() => {
-    if (!accountInfo || accountInfo["auth-addr"] !== tinymanAppEscrow) {
+    if (!accountInfo || accountInfo.authAddr?.toString() !== tinymanAppEscrow) {
       return false;
     }
     const type = (optedAssets ?? []).find(
@@ -194,23 +190,23 @@ function Account(): JSX.Element {
     );
     const isMultiSig = !!lastSent?.signature?.multisig;
     const isLogicSig = !!lastSent?.signature?.logicsig;
-    const isClosed = accountInfo.amount === 0 && !!lastSent;
+    const isClosed = accountInfo.amount === 0n && !!lastSent;
     return [lastSent, isMultiSig, isLogicSig, isClosed];
   }, [address, accountInfo, transactions]);
 
   const hasOptedAssets = accountInfo?.assets?.length ?? 0;
-  const hasCreatedAssets = accountInfo?.["created-assets"]?.length ?? 0;
+  const hasCreatedAssets = accountInfo?.createdAssets?.length ?? 0;
 
   const createdApplications = useMemo(() => {
     if (!accountInfo) return [];
     return [...new CoreAccount(accountInfo).getCreatedApplications()]
-      .sort((a, b) => b.id - a.id);
+      .sort((a, b) => Number(b.id) - Number(a.id));
   }, [accountInfo]);
 
   const optedApplications = useMemo(() => {
     if (!accountInfo) return [];
     return [...new CoreAccount(accountInfo).getOptedApplications()]
-      .sort((a, b) => b.id - a.id);
+      .sort((a, b) => Number(b.id) - Number(a.id));
   }, [accountInfo]);
 
   const hasCreatedApps = createdApplications.length;
@@ -287,11 +283,15 @@ function Account(): JSX.Element {
               <DymNFD nfd={nfd} accounts={altNFDAccountsToShow} />
             ) : null}
 
-            <div className="flex justify-between items-center text-xl font-bold">
-              <div>Account overview</div>
-              <div className="flex items-center gap-2.5">
+            <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 text-xl">
+              <div className="group flex items-center gap-2 min-w-0">
+                <span className="shrink-0">Account</span>
+                <span className="truncate min-w-0">{address}</span>
+                <Copyable className="opacity-60 group-hover:opacity-100" value={address!} />
+              </div>
+              <div className="flex items-center gap-2.5 shrink-0 ml-auto">
                 <JsonViewer
-                  obj={accountInfo ?? {}}
+                  obj={accountInfo ? toPlainJson(accountInfo) : {}}
                   filename={`account-${address}.json`}
                   title={`Account ${address?.slice(0, 16)}..`}
                 />
@@ -302,7 +302,7 @@ function Account(): JSX.Element {
             {isLoading || !accountInstance ? (
               <LoadingTile />
             ) : (
-              <div className="mt-8">
+              <div className="mt-6">
                 {nfd ? (
                   <div className="mb-1 text-lg" style={{ color: "#f65624" }}>
                     <a
@@ -319,14 +319,7 @@ function Account(): JSX.Element {
                 ) : null}
 
                 <div className="mb-5">
-                  <div className="flex items-center text-lg font-normal">
-                    <span className="break-all max-w-[calc(100vw-20px)] overflow-hidden text-ellipsis">
-                      {accountInfo.address}
-                    </span>
-                    <Copyable value={accountInfo.address} />
-                  </div>
-
-                  <div className="mt-2.5 flex items-center gap-1.5 flex-wrap">
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     {addressLabel ? (
                       <TooltipProvider>
                         <Tooltip>
@@ -380,7 +373,7 @@ function Account(): JSX.Element {
                       <Chip variant="warning">Not Participating</Chip>
                     ) : null}
 
-                    {accountInfo["incentive-eligible"] === true ? (
+                    {accountInfo.incentiveEligible === true ? (
                       <Chip variant="success">Incentives Eligible</Chip>
                     ) : null}
 
@@ -463,13 +456,10 @@ function Account(): JSX.Element {
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div className="mt-2.5">
                       <div className="text-muted-foreground">Balance</div>
-                      <div className="mt-2.5 inline-flex items-center gap-1">
+                      <div className="mt-2.5 group inline-flex items-center gap-1">
+                        <Copyable className="opacity-60 group-hover:opacity-100" value={microalgosToAlgos(accountInstance.getBalance())} />
                         <AlgoIcon />
-                        <NumberFormatCopy
-                          value={microalgosToAlgos(accountInstance.getBalance())}
-                          displayType={"text"}
-                          thousandSeparator={true}
-                        />
+                        <NumberFormat value={microalgosToAlgos(accountInstance.getBalance())} displayType="text" thousandSeparator={true} />
                       </div>
                     </div>
 
@@ -478,13 +468,10 @@ function Account(): JSX.Element {
                         <div className="text-muted-foreground">
                           Minimum balance
                         </div>
-                        <div className="mt-2.5 inline-flex items-center gap-1">
+                        <div className="mt-2.5 group inline-flex items-center gap-1">
+                          <Copyable className="opacity-60 group-hover:opacity-100" value={microalgosToAlgos(accountInstance.getMinBalance())} />
                           <AlgoIcon />
-                          <NumberFormatCopy
-                            value={microalgosToAlgos(accountInstance.getMinBalance())}
-                            displayType={"text"}
-                            thousandSeparator={true}
-                          />
+                          <NumberFormat value={microalgosToAlgos(accountInstance.getMinBalance())} displayType="text" thousandSeparator={true} />
                         </div>
                       </div>
                     ) : null}
@@ -495,7 +482,7 @@ function Account(): JSX.Element {
                           Application Escrow
                         </div>
                         <div className="mt-2.5">
-                          <LinkToApplication id={escrowOf} copy="right" />
+                          <LinkToApplication id={escrowOf} copy="left" />
                         </div>
                       </div>
                     ) : null}
@@ -518,7 +505,7 @@ function Account(): JSX.Element {
                       </div>
                     ) : null}
 
-                    {accountInfo["auth-addr"] ? (
+                    {accountInfo.authAddr ? (
                       <div className="mt-2.5">
                         <div className="text-muted-foreground">
                           Rekeyed to
@@ -527,7 +514,7 @@ function Account(): JSX.Element {
                           <LinkToAccount
                             copySize="m"
                             strip={9}
-                            address={accountInfo["auth-addr"]}
+                            address={accountInfo.authAddr.toString()}
                           />
                         </div>
                       </div>
@@ -550,7 +537,7 @@ function Account(): JSX.Element {
                           Created assets
                         </div>
                         <div className="mt-2.5">
-                          {accountInfo["created-assets"].length}
+                          {accountInfo.createdAssets?.length ?? 0}
                         </div>
                       </div>
                     ) : null}
@@ -579,94 +566,21 @@ function Account(): JSX.Element {
                   </div>
                 </div>
 
-                <div className="mt-6 overflow-hidden" ref={tabsRef}>
-                  <Tabs value={tabValue}>
-                    <TabsList className="flex bg-transparent border-b border-border rounded-none w-full justify-start overflow-x-auto flex-nowrap">
-                      <TabsTrigger
-                        value="transactions"
-                        className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none rounded-none text-muted-foreground data-[state=active]:text-foreground"
-                        onClick={() => navigate("/account/" + address)}
-                      >
-                        Transactions
-                      </TabsTrigger>
-
-                      {hasOptedAssets ? (
-                        <TabsTrigger
-                          value="assets"
-                          className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none rounded-none text-muted-foreground data-[state=active]:text-foreground"
-                          onClick={() =>
-                            navigate("/account/" + address + "/assets")
-                          }
-                        >
-                          Assets
-                        </TabsTrigger>
-                      ) : null}
-
-                      {hasCreatedAssets ? (
-                        <TabsTrigger
-                          value="created-assets"
-                          className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none rounded-none text-muted-foreground data-[state=active]:text-foreground"
-                          onClick={() =>
-                            navigate("/account/" + address + "/created-assets")
-                          }
-                        >
-                          Created assets
-                        </TabsTrigger>
-                      ) : null}
-
-                      {hasCreatedApps ? (
-                        <TabsTrigger
-                          value="created-applications"
-                          className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none rounded-none text-muted-foreground data-[state=active]:text-foreground"
-                          onClick={() =>
-                            navigate(
-                              "/account/" + address + "/created-applications"
-                            )
-                          }
-                        >
-                          Created apps
-                        </TabsTrigger>
-                      ) : null}
-
-                      {hasOptedApps ? (
-                        <TabsTrigger
-                          value="opted-applications"
-                          className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none rounded-none text-muted-foreground data-[state=active]:text-foreground"
-                          onClick={() =>
-                            navigate(
-                              "/account/" + address + "/opted-applications"
-                            )
-                          }
-                        >
-                          Opted applications
-                        </TabsTrigger>
-                      ) : null}
-
-                      {numControlledAccounts ? (
-                        <TabsTrigger
-                          value="controlling-accounts"
-                          className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none rounded-none text-muted-foreground data-[state=active]:text-foreground"
-                          onClick={() =>
-                            navigate("/account/" + address + "/controller")
-                          }
-                        >
-                          Controlling accounts
-                        </TabsTrigger>
-                      ) : null}
-
-                      {hasValidatorData ? (
-                        <TabsTrigger
-                          value="validator"
-                          className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none rounded-none text-muted-foreground data-[state=active]:text-foreground"
-                          onClick={() =>
-                            navigate("/account/" + address + "/validator")
-                          }
-                        >
-                          Validator Data
-                        </TabsTrigger>
-                      ) : null}
-                    </TabsList>
-                  </Tabs>
+                <div className="mt-6 overflow-hidden">
+                  <TabsUnderline
+                    tabsRef={tabsRef}
+                    value={tabValue}
+                    listClassName="flex-nowrap"
+                    tabs={[
+                      { name: "Transactions", value: "transactions", onClick: () => navigate("/account/" + address) },
+                      ...(hasOptedAssets ? [{ name: "Assets", value: "assets", onClick: () => navigate("/account/" + address + "/assets") }] : []),
+                      ...(hasCreatedAssets ? [{ name: "Created assets", value: "created-assets", onClick: () => navigate("/account/" + address + "/created-assets") }] : []),
+                      ...(hasCreatedApps ? [{ name: "Created apps", value: "created-applications", onClick: () => navigate("/account/" + address + "/created-applications") }] : []),
+                      ...(hasOptedApps ? [{ name: "Opted applications", value: "opted-applications", onClick: () => navigate("/account/" + address + "/opted-applications") }] : []),
+                      ...(numControlledAccounts ? [{ name: "Controlling accounts", value: "controlling-accounts", onClick: () => navigate("/account/" + address + "/controller") }] : []),
+                      ...(hasValidatorData ? [{ name: "Validator Data", value: "validator", onClick: () => navigate("/account/" + address + "/validator") }] : []),
+                    ]}
+                  />
 
                   <TabErrorBoundary>
                     <Outlet />

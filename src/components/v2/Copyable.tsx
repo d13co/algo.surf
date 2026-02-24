@@ -16,11 +16,13 @@ export default function Copyable({
   className,
   value,
   style,
+  children,
 }: {
   size?: "s" | "m";
   className?: string;
   value: string | number;
   style?: React.CSSProperties;
+  children?: React.ReactNode;
 }): JSX.Element {
   const [copied, setCopied] = useState(false);
 
@@ -46,17 +48,21 @@ export default function Copyable({
             type="button"
             aria-label="copy"
             className={cn(
-              "inline-flex items-center justify-center cursor-pointer p-[5px] -my-0.5 align-middle shrink-0",
+              "inline-flex items-center cursor-pointer p-[5px] -my-0.5 align-middle",
+              children ? "min-w-0 overflow-hidden gap-1" : "justify-center shrink-0",
               className
             )}
             style={mergedStyle}
             onClick={copy}
           >
-            {copied ? (
-              <ClipboardCheck size="1em" />
-            ) : (
-              <ClipboardCopy size="1em" />
-            )}
+            {children}
+            <span className="shrink-0">
+              {copied ? (
+                <ClipboardCheck size="1em" />
+              ) : (
+                <ClipboardCopy size="1em" />
+              )}
+            </span>
           </button>
         </TooltipTrigger>
         <TooltipContent className="bg-black text-white border-border">

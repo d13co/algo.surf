@@ -1,10 +1,10 @@
-import { Algodv2} from 'algosdk';
+import { Algodv2, indexerModels } from 'algosdk';
 import type { Indexer } from "algosdk";
 import { A_Application, A_ApplicationResult, } from "../types";
 import {Network} from "../network";
 import axios from 'axios';
 import {A_TransactionsResponse} from "./transactionClient";
-import { toA_SearchTransaction, toA_Application, toA_ApplicationsResponse } from "../utils/v3Adapters";
+import { toA_Application, toA_ApplicationsResponse } from "../utils/v3Adapters";
 
 export type CompileResponse = { hash: string; result: string; sourcemap?: string };
 
@@ -25,19 +25,18 @@ export class ApplicationClient{
         this.indexer = network.getIndexer();
     }
 
-    async get(id: number): Promise<A_Application>{
-        const app = await this.client.getApplicationByID(id).do();
-        const result = toA_Application(app);
-        return result;
+    async get(id: number): Promise<indexerModels.Application>{
+        const response = await this.indexer.lookupApplications(id).includeAll().do();
+        return response.application;
     }
 
     async search(id: number): Promise<A_ApplicationResult | null>{
         try {
-            const app = await this.client.getApplicationByID(id).do();
-            const converted = toA_Application(app);
+            const response = await this.indexer.lookupApplications(id).includeAll().do();
+            const converted = toA_Application(response.application);
             return { ...converted, type: "application" } as A_ApplicationResult
         } catch(e) {
-            if ((e as any).response?.status === 404)
+            if ((e as any).response?.status === 404 || (e as any).status === 404)
                 return null
             else
                 throw e;
@@ -61,8 +60,8 @@ export class ApplicationClient{
         }
 
         const response = await req.do();
-        const transactions = (response.transactions ?? []).map((t: unknown) => toA_SearchTransaction(t));
-        return { 'next-token': response['nextToken'] ?? '', transactions } as A_ApplicationTransactionsResponse;
+        const transactions = (response.transactions ?? []) as indexerModels.Transaction[];
+        return { 'next-token': response['nextToken'] ?? '', transactions };
     }
 
     async decompileProgram(program: string) {

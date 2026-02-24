@@ -1,17 +1,12 @@
-import {
-    A_SearchTransaction
-} from "../../types";
 import {TIMESTAMP_DISPLAY_FORMAT} from "../../constants";
 import dateFormat  from "dateformat";
 import humanizeDuration from 'humanize-duration';
 import BaseTxnHolder  from "./BaseTxnHolder";
 import { indexerModels, encodeAddress } from "algosdk";
-import { toA_SearchTransaction } from "../../utils/v3Adapters";
 import { encodingDataToPlain } from "../../utils/serialize";
 
 export class CoreBlock extends BaseTxnHolder {
     block: indexerModels.Block;
-    private _transactions?: A_SearchTransaction[];
 
     constructor(block: indexerModels.Block) {
         super();
@@ -48,13 +43,8 @@ export class CoreBlock extends BaseTxnHolder {
         return duration;
     }
 
-    getTransactions(): A_SearchTransaction[] {
-        if (!this._transactions) {
-            this._transactions = (this.block.transactions ?? []).map(
-                (txn) => toA_SearchTransaction(txn)
-            );
-        }
-        return this._transactions;
+    getTransactions(): indexerModels.Transaction[] {
+        return this.block.transactions ?? [];
     }
 
     getTransactionsCount(): number {

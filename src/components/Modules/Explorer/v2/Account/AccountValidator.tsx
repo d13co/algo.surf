@@ -372,7 +372,7 @@ function AccountValidator(): JSX.Element {
           </div>
 
           <Table>
-            <TableHeader>
+            <TableHeader className="[&_tr]:border-primary">
               <TableRow>
                 <TableHead>
                   {dialog === "blocks"

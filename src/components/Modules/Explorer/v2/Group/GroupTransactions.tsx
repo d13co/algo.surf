@@ -15,6 +15,7 @@ function GroupTransactions(): JSX.Element {
       <TransactionsList
         transactions={transactions}
         initialLoading={isLoading}
+        hasMore={false}
         record="group"
         fields={["id", "from", "to", "fee", "amount", "type"]}
       />

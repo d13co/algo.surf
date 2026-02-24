@@ -1,4 +1,4 @@
-import { Algodv2, indexerModels } from 'algosdk';
+import { Algodv2, indexerModels } from "algosdk";
 import type { Indexer } from "algosdk";
 import {
     A_Asset,
@@ -6,7 +6,7 @@ import {
 } from "../types";
 import {Network} from "../network";
 import {A_TransactionsResponse} from "./transactionClient";
-import { toA_SearchTransaction, toA_Asset, toA_AssetsResponse } from "../utils/v3Adapters";
+import { toA_Asset, toA_AssetsResponse } from "../utils/v3Adapters";
 
 
 export type A_AssetTransactionsResponse = A_TransactionsResponse;
@@ -63,8 +63,8 @@ export class AssetClient{
         }
 
         const response = await req.do();
-        const transactions = (response.transactions ?? []).map((t: unknown) => toA_SearchTransaction(t));
-        return { 'next-token': response['nextToken'] ?? '', transactions } as A_AssetTransactionsResponse;
+        const transactions = (response.transactions ?? []) as indexerModels.Transaction[];
+        return { 'next-token': response['nextToken'] ?? '', transactions };
     }
 
     async searchForAssetsByName(searchText: string): Promise<A_Asset> {

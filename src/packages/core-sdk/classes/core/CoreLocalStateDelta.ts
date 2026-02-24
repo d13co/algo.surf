@@ -1,14 +1,8 @@
-import {
-    A_AppStateDelta
-} from "../../types";
 import {CoreGlobalState} from "./CoreGlobalStateDelta";
 
 
 export class CoreLocalState extends CoreGlobalState{
-    state: A_AppStateDelta;
-
-    constructor(state: A_AppStateDelta) {
+    constructor(state: ConstructorParameters<typeof CoreGlobalState>[0]) {
         super(state);
-        this.state = state;
     }
 }

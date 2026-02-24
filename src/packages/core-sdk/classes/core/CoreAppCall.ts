@@ -2,23 +2,50 @@ import {
     A_ABIMethodArgParams,
     A_SearchTransaction_App_Call_Payload
 } from "../../types";
-import {ABIContract, ABIContractParams, ABIMethodParams, ABIType} from "algosdk";
+import {ABIContract, ABIContractParams, ABIMethodParams, ABIType, indexerModels, bytesToBase64} from "algosdk";
 import algosdk from "algosdk";
 
 
 export class CoreAppCall {
-    payload: A_SearchTransaction_App_Call_Payload;
+    payload: indexerModels.TransactionApplication;
 
-    constructor(payload: A_SearchTransaction_App_Call_Payload) {
-        this.payload = payload;
+    constructor(payload: indexerModels.TransactionApplication | A_SearchTransaction_App_Call_Payload) {
+        if (payload instanceof indexerModels.TransactionApplication) {
+            this.payload = payload;
+        } else {
+            this.payload = CoreAppCall.fromLegacy(payload);
+        }
+    }
+
+    private static fromLegacy(p: A_SearchTransaction_App_Call_Payload): indexerModels.TransactionApplication {
+        return new indexerModels.TransactionApplication({
+            applicationId: BigInt(p["application-id"] ?? 0),
+            accounts: p.accounts,
+            applicationArgs: p["application-args"]?.map(
+                (a: string) => new Uint8Array(Buffer.from(a, 'base64'))
+            ),
+            approvalProgram: p["approval-program"] ? new Uint8Array(Buffer.from(p["approval-program"], 'base64')) : undefined,
+            clearStateProgram: p["clear-state-program"] ? new Uint8Array(Buffer.from(p["clear-state-program"], 'base64')) : undefined,
+            foreignApps: p["foreign-apps"]?.map((n: number) => BigInt(n)),
+            foreignAssets: p["foreign-assets"]?.map((n: number) => BigInt(n)),
+            onCompletion: p["on-completion"],
+            globalStateSchema: p["global-state-schema"] ? new indexerModels.StateSchema({
+                numByteSlice: BigInt(p["global-state-schema"]["num-byte-slice"] ?? 0),
+                numUint: BigInt(p["global-state-schema"]["num-uint"] ?? 0),
+            }) : undefined,
+            localStateSchema: p["local-state-schema"] ? new indexerModels.StateSchema({
+                numByteSlice: BigInt(p["local-state-schema"]["num-byte-slice"] ?? 0),
+                numUint: BigInt(p["local-state-schema"]["num-uint"] ?? 0),
+            }) : undefined,
+        });
     }
 
     getAppCallArguments(): string[] {
-        return this.payload['application-args'];
+        return this.payload.applicationArgs?.map(a => bytesToBase64(a));
     }
 
     isCreate(): boolean {
-        return this.payload["application-id"] ? false : true;
+        return !this.payload.applicationId || this.payload.applicationId === 0n;
     }
 
     getABIDecodedArgs(abi: ABIContractParams): {

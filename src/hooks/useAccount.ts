@@ -77,6 +77,19 @@ export function useEscrowBatch(addresses: string[]) {
   }, [addresses.join(",")]);
 }
 
+export function useAccounts(prefixToken?: string) {
+  return useInfiniteQuery({
+    queryKey: ["accounts", prefixToken],
+    queryFn: ({ pageParam }) =>
+      new AccountClient(explorer.network).getAccounts(
+        pageParam,
+        prefixToken ? 100 : undefined,
+      ),
+    initialPageParam: prefixToken as string | undefined,
+    getNextPageParam: (lastPage) => lastPage["next-token"] || undefined,
+  });
+}
+
 export function useAccountTransactions(address: string) {
   return useInfiniteQuery({
     queryKey: ["account-transactions", address],

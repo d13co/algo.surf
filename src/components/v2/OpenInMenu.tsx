@@ -42,7 +42,7 @@ export default function OpenInMenu({
           size="sm"
           className="border-border text-primary hover:bg-primary/10"
         >
-          <span><span className="underline">O</span>pen In...</span>
+          <span className="whitespace-nowrap"><span className="underline">O</span>pen In...</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="min-w-52 bg-background border-border text-primary">

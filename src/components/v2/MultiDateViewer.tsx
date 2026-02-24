@@ -17,13 +17,15 @@ const niceNames: Record<DateFormat, string> = {
   local: "Local",
   utc: "UTC",
   epoch: "Unix Epoch",
+  block: "Block",
 };
 
 const nextFormat: Record<DateFormat, DateFormat> = {
   relative: "local",
   local: "utc",
   utc: "epoch",
-  epoch: "relative",
+  epoch: "block",
+  block: "relative",
 };
 
 function formatDate(timestamp: number, format: DateFormat): string {
@@ -62,26 +64,68 @@ function formatDateShort(timestamp: number, format: DateFormat): string {
 
 export default function MultiDateViewer({
   timestamp,
+  block,
   switcherSide = "left",
   variant = "default",
 }: {
   timestamp: number;
+  block?: number;
   switcherSide?: "left" | "right";
-  variant?: "default" | "short";
+  variant?: "default" | "short" | "value";
 }): JSX.Element {
   const { format, cycle } = useDateFormat();
-  const next = nextFormat[format];
+  const hasBlock = block != null;
+  const effectiveFormat = format === "block" && !hasBlock ? "relative" : format;
+  const next = hasBlock ? nextFormat[format] : nextFormat[format === "block" ? "relative" : format];
+
+  if (variant === "value") {
+    if (effectiveFormat === "block" && hasBlock) {
+      return (
+        <span className="inline-flex items-center gap-0.5">
+          <span>{block}</span>
+          <Copyable value={block} />
+        </span>
+      );
+    }
+    const displayValue = formatDate(timestamp, effectiveFormat);
+    return (
+      <span className="inline-flex items-center gap-0.5">
+        <span>{effectiveFormat === "epoch" ? `Unix ${displayValue}` : displayValue}</span>
+        <Copyable value={displayValue} />
+      </span>
+    );
+  }
 
   if (variant === "short") {
-    const shortValue = formatDateShort(timestamp, format);
-    const fullValue = formatDate(timestamp, format);
+    if (effectiveFormat === "block") {
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                className="cursor-pointer text-left"
+                onClick={cycle}
+              >
+                {block}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent className="bg-black text-white border-border">
+              Block {block} (click to show {niceNames[next]})
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    }
+    const shortValue = formatDateShort(timestamp, effectiveFormat);
+    const fullValue = formatDate(timestamp, effectiveFormat);
     return (
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
             <button
               type="button"
-              className="cursor-pointer text-left whitespace-nowrap"
+              className="cursor-pointer text-left"
               onClick={cycle}
             >
               {shortValue}
@@ -95,7 +139,39 @@ export default function MultiDateViewer({
     );
   }
 
-  const displayValue = formatDate(timestamp, format);
+  if (effectiveFormat === "block") {
+    const switcher = (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              className="inline-flex items-center justify-center p-[5px] align-middle opacity-60 group-hover:opacity-100 cursor-pointer"
+              onClick={cycle}
+            >
+              <RefreshCw size={16} />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent className="bg-black text-white border-border">
+            Showing {niceNames[effectiveFormat]}. Click to show {niceNames[next]}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+    return (
+      <span className="group gap-0.5 inline-flex items-center">
+        {switcherSide === "left" && switcher}
+        <span>{block}</span>
+        {switcherSide === "right" && switcher}
+        <Copyable
+          className="opacity-60 group-hover:opacity-100"
+          value={block}
+        />
+      </span>
+    );
+  }
+
+  const displayValue = formatDate(timestamp, effectiveFormat);
 
   const switcher = (
     <TooltipProvider>
@@ -110,7 +186,7 @@ export default function MultiDateViewer({
           </button>
         </TooltipTrigger>
         <TooltipContent className="bg-black text-white border-border">
-          Showing {niceNames[format]}. Click to show {niceNames[next]}
+          Showing {niceNames[effectiveFormat]}. Click to show {niceNames[next]}
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
@@ -119,14 +195,37 @@ export default function MultiDateViewer({
   return (
     <span className="group gap-0.5 inline-flex items-center">
       {switcherSide === "left" && switcher}
-      <span>{format === "epoch" ? `Unix ${displayValue}` : displayValue}</span>
+      <span>{effectiveFormat === "epoch" ? `Unix ${displayValue}` : displayValue}</span>
       {switcherSide === "right" && switcher}
-      {format !== "relative" ? (
+      {effectiveFormat !== "relative" ? (
         <Copyable
           className="opacity-60 group-hover:opacity-100"
           value={displayValue}
         />
       ) : null}
     </span>
+  );
+}
+
+export function DateSwitcher() {
+  const { format, cycle } = useDateFormat();
+  const next = nextFormat[format];
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            className="inline-flex items-center justify-center p-[2px] align-middle opacity-60 hover:opacity-100 cursor-pointer"
+            onClick={cycle}
+          >
+            <RefreshCw size={14} />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent className="bg-black text-white border-border">
+          Showing {niceNames[format]}. Click to show {niceNames[next]}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }

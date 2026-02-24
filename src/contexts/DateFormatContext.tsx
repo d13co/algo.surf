@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useState, useCallback } from "react";
 
-export type DateFormat = "relative" | "local" | "utc" | "epoch";
+export type DateFormat = "relative" | "local" | "utc" | "epoch" | "block";
 
 const STORAGE_KEY = "dateFormat";
-const FORMATS: DateFormat[] = ["relative", "local", "utc", "epoch"];
+const FORMATS: DateFormat[] = ["relative", "local", "utc", "epoch", "block"];
 
 function getInitialFormat(): DateFormat {
   const stored = localStorage.getItem(STORAGE_KEY);

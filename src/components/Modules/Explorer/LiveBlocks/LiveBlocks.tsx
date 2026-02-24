@@ -1,58 +1,90 @@
-import './LiveBlocks.scss';
 import React from "react";
 import {useLiveData} from "../../../../hooks/useLiveData";
-import {shadedClr} from "../../../../utils/common";
-import LinkToBlock from "../Common/Links/LinkToBlock";
+import LinkToBlock from "../v2/Links/LinkToBlock";
 import {CoreBlock} from "../../../../packages/core-sdk/classes/core/CoreBlock";
 import { CSSTransition, TransitionGroup } from 'react-transition-group';
-import {Chip,Box} from "@mui/material";
-import TxnTypeChip from "../Common/TxnTypeChip/TxnTypeChip";
 import MultiDateViewer from "../../../v2/MultiDateViewer";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "src/components/v2/ui/tooltip";
+
+const txnTypeMap: Record<string, [string, string]> = {
+    appl: ["app", "application"],
+    axfer: ["asset", "asset transfer"],
+    afrz: ["freeze", "asset freeze"],
+    acfg: ["asset cfg", "asset configuration"],
+    pay: ["algo", "algo payment"],
+    stpf: ["state proof", "state proof"],
+    keyreg: ["keyreg", "key registration"],
+};
+
+function TxnTypePill({ type, count }: { type: string; count: number }) {
+    const [typeToShow, longTypeToShow] = txnTypeMap[type] ?? [type, type];
+    return (
+        <TooltipProvider>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <span className="border border-primary text-primary rounded-full px-2 py-0.5 text-xs cursor-default">
+                        {count} {typeToShow}
+                    </span>
+                </TooltipTrigger>
+                <TooltipContent className="bg-black text-white border-border">
+                    <p>This block has {count} {longTypeToShow} transactions</p>
+                </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
+    );
+}
 
 function LiveBlocks(): JSX.Element {
     const {blocks} = useLiveData();
 
-    return (<div className={"live-blocks-wrapper"}>
-        <div className={"live-blocks-container"}>
-            <div className={"live-blocks-header"}>
-                <Box sx={{ color: 'primary.main'}}>
+    return (
+        <div>
+            <div className="text-left">
+                <div className="text-xl text-primary">
                     Latest Blocks
-                </Box>
+                </div>
+                <div className="mt-5">
+                    <TransitionGroup component="div">
+                        {blocks.map((block) => {
+                            const blockInstance = new CoreBlock(block);
 
-            </div>
-            <div className={"live-blocks-body"}>
-                <TransitionGroup component="div">
-                    {blocks.map((block) => {
-                        const blockInstance = new CoreBlock(block);
-
-                        return <CSSTransition key={blockInstance.getRound()} timeout={700} classNames="item">
-                            <div className="block" key={blockInstance.getRound()} style={{backgroundColor: shadedClr}}>
-                                <div className="round">
-                                    <div className="round-header">
-                                        <LinkToBlock name={<>#{blockInstance.getRound()}</>} id={blockInstance.getRound()}></LinkToBlock>
-                                        <span className="text-right faded">
-                                            {blockInstance.getTransactionsCount()} Transactions
-                                        </span>
-                                    </div>
-                                    <div className="round-header" style={{marginTop: "8px"}}>
-                                        <div className="sub-text" style={{display: "flex", lineHeight: 5, flexWrap: "wrap", gap:"2px"}}>
-                                            {Object.entries(blockInstance.getTransactionsTypesCount()).map(
-                                                ([type, count]) => <TxnTypeChip type={type} count={count} />
-                                            )}
+                            return (
+                                <CSSTransition key={blockInstance.getRound()} timeout={700} classNames="item">
+                                    <div
+                                        className="bg-background-card p-4 my-3 flex justify-between border-l-[6px] border-primary rounded overflow-hidden"
+                                    >
+                                        <div className="w-full">
+                                            <div className="flex justify-between items-center flex-wrap">
+                                                <LinkToBlock id={blockInstance.getRound()} />
+                                                <span className="text-right grow text-muted-foreground">
+                                                    {blockInstance.getTransactionsCount()} Transactions
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between items-center flex-wrap mt-2">
+                                                <div className="mt-4 text-[13px] flex leading-5 flex-wrap gap-0.5">
+                                                    {Object.entries(blockInstance.getTransactionsTypesCount()).map(
+                                                        ([type, count]) => <TxnTypePill key={type} type={type} count={count} />
+                                                    )}
+                                                </div>
+                                                <div className="mt-4 text-[13px] text-muted-foreground text-right ml-0.5">
+                                                    <MultiDateViewer timestamp={blockInstance.getTimestamp()} />
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div className="sub-text faded text-right" style={{marginLeft: "2px"}}>
-                                            <MultiDateViewer timestamp={blockInstance.getTimestamp()} />
-                                        </div>
                                     </div>
-                                </div>
-                            </div>
-                        </CSSTransition>;
-                    })}
-                </TransitionGroup>
-
+                                </CSSTransition>
+                            );
+                        })}
+                    </TransitionGroup>
+                </div>
             </div>
         </div>
-    </div>);
+    );
 }
 
 export default LiveBlocks;

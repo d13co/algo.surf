@@ -1,6 +1,6 @@
 [ ] Localnet: Searched 235 -> went block -> cert.prop undefined
 [v] block greys
-[ ] asset resolved url wrapping mainnet asset 6
+[v] asset resolved url wrapping mainnet asset 6
 [v] record pages padding-top in sections
 [ ] transaction pages -> txn type pill rename Transfer -> Asset Transfer, Payment -> Algo Transfer etc
 [v] multisig subsignatures broken / first txn mainnet
@@ -142,3 +142,6 @@ offlined-aware validator labels in accounts - compare last-roudn with last valid
 [v] openinmenu no close when modifier held on click
 
 KI47DCJ3KZD4TPV456G4TWIAI3VKOAJH2WXTT6X2V6PTGEU3K3ANEEHG7U kraken new?
+
+inner /json viewer /download name
+change account to load via indexer if we can get createdRound and show created At

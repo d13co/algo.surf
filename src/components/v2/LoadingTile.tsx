@@ -20,7 +20,7 @@ function LoadingTile({
         {[...Array(count)].map((_, index) => (
           <div
             key={index}
-            className="h-5 my-2.5 rounded-[20px] bg-primary animate-pulse"
+            className="h-5 my-2.5 rounded-[20px] bg-primary animate-loading-bar"
             style={{
               width: widths[index % widths.length],
               opacity: opacities[index % opacities.length],

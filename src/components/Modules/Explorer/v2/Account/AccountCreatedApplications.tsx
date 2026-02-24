@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { useAccount } from "src/hooks/useAccount";
 import { CoreAccount } from "src/packages/core-sdk/classes/core/CoreAccount";
-import { A_Application } from "src/packages/core-sdk/types";
+import { modelsv2 } from "algosdk";
 import {
   useReactTable,
   getCoreRowModel,
@@ -21,7 +21,6 @@ import {
 } from "src/components/v2/ui/table";
 import { Button } from "src/components/v2/ui/button";
 import LinkToApplication from "../Links/LinkToApplication";
-import LinkToAccount from "../Links/LinkToAccount";
 import {
   ChevronLeft,
   ChevronRight,
@@ -29,35 +28,50 @@ import {
   ChevronsRight,
   Loader2,
 } from "lucide-react";
+import { useApplication } from "src/hooks/useApplication";
+import { useBlock } from "src/hooks/useBlock";
+import { CoreBlock } from "src/packages/core-sdk/classes/core/CoreBlock";
+import MultiDateViewer from "src/components/v2/MultiDateViewer";
+import { AgeHeader } from "../Lists/TransactionsList/cells/AgeCell";
 
-const columns: ColumnDef<A_Application, any>[] = [
+function CreatedAtCell({ appId }: { appId: number }) {
+  const { data: appInfo } = useApplication(appId);
+  const createdAtRound = appInfo?.createdAtRound != null ? Number(appInfo.createdAtRound) : undefined;
+  const { data: blockInfo } = useBlock(createdAtRound ?? 0);
+  const timestamp = blockInfo ? new CoreBlock(blockInfo).getTimestamp() : undefined;
+
+  if (!timestamp || !createdAtRound) return <span className="text-muted">&mdash;</span>;
+
+  return <MultiDateViewer timestamp={timestamp} block={createdAtRound} variant="short" />;
+}
+
+const columns: ColumnDef<modelsv2.Application, any>[] = [
   {
     id: "id",
     header: "Application ID",
     cell: ({ row }) => (
-      <LinkToApplication id={row.original.id} copy="left" />
+      <LinkToApplication id={Number(row.original.id)} copy="left" />
     ),
   },
   {
-    id: "creator",
-    header: "Creator",
-    cell: ({ row }) => (
-      <LinkToAccount
-        copySize="s"
-        copy="left"
-        address={row.original.params.creator}
-        strip={30}
-      />
-    ),
+    id: "created",
+    header: AgeHeader,
+    cell: ({ row }) => <CreatedAtCell appId={Number(row.original.id)} />,
+  },
+  {
+    id: "version",
+    header: "Version",
+    cell: ({ row }) => row.original.params.version ?? 1,
   },
 ];
 
 const columnLabels: Record<string, string> = {
   id: "Application ID",
-  creator: "Creator",
+  created: "Created",
+  version: "Version",
 };
 
-function AppCard({ row }: { row: Row<A_Application> }) {
+function AppCard({ row }: { row: Row<modelsv2.Application> }) {
   const visibleCells = row.getVisibleCells();
   return (
     <div className="rounded-lg border border-muted bg-card p-3 space-y-2 text-sm">
@@ -82,7 +96,7 @@ function AccountCreatedApplications(): JSX.Element {
   const createdApplications = useMemo(() => {
     if (!accountInfo) return [];
     return [...new CoreAccount(accountInfo).getCreatedApplications()]
-      .sort((a, b) => b.id - a.id);
+      .sort((a, b) => Number(b.id) - Number(a.id));
   }, [accountInfo]);
 
   const table = useReactTable({
@@ -110,7 +124,7 @@ function AccountCreatedApplications(): JSX.Element {
           {/* Desktop table */}
           <div className="hidden md:block">
             <Table className="table-fixed">
-              <TableHeader>
+              <TableHeader className="[&_tr]:border-primary">
                 {table.getHeaderGroups().map((headerGroup) => (
                   <TableRow key={headerGroup.id}>
                     {headerGroup.headers.map((header) => (
@@ -169,12 +183,12 @@ function AccountCreatedApplications(): JSX.Element {
 
           {/* Pagination */}
           {pageCount > 1 ? (
-            <div className="flex items-center justify-end gap-2 py-4">
+            <div className="flex items-center justify-end gap-2 pt-4 pb-0 md:py-4">
               <span className="text-sm text-muted-foreground">
                 Page {pageIndex + 1} of {pageCount}
               </span>
               <Button
-                variant="outline"
+                variant="muted"
                 size="icon"
                 className="h-8 w-8"
                 onClick={() => table.setPageIndex(0)}
@@ -183,7 +197,7 @@ function AccountCreatedApplications(): JSX.Element {
                 <ChevronsLeft className="h-4 w-4" />
               </Button>
               <Button
-                variant="outline"
+                variant="muted"
                 size="icon"
                 className="h-8 w-8"
                 onClick={() => table.previousPage()}
@@ -192,7 +206,7 @@ function AccountCreatedApplications(): JSX.Element {
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <Button
-                variant="outline"
+                variant="muted"
                 size="icon"
                 className="h-8 w-8"
                 onClick={() => table.nextPage()}
@@ -201,7 +215,7 @@ function AccountCreatedApplications(): JSX.Element {
                 <ChevronRight className="h-4 w-4" />
               </Button>
               <Button
-                variant="outline"
+                variant="muted"
                 size="icon"
                 className="h-8 w-8"
                 onClick={() => table.setPageIndex(pageCount - 1)}

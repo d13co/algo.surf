@@ -1,54 +1,49 @@
-import {
-    A_AccountInformation, A_Application, A_AppsLocalState, A_Asset, A_AssetHolding
-} from "../../types";
+import { modelsv2 } from "algosdk";
 
 
 export class CoreAccount {
-    account: A_AccountInformation;
+    account: modelsv2.Account;
 
-    constructor(account: A_AccountInformation) {
+    constructor(account: modelsv2.Account) {
         if (!account) {
             throw new Error("Invalid account");
         }
         this.account = account;
     }
 
-    get(): A_AccountInformation{
+    get(): modelsv2.Account{
         return this.account;
     }
 
-    getCreatedAssets(): A_Asset[]{
-        const createdAssets = this.account['created-assets'];
-        return createdAssets;
+    getCreatedAssets(): modelsv2.Asset[]{
+        return this.account.createdAssets ?? [];
     }
 
-    getCreatedApplications(): A_Application[]{
-        const createdApps = this.account['created-apps'];
-        return createdApps;
+    getCreatedApplications(): modelsv2.Application[]{
+        return this.account.createdApps ?? [];
     }
 
-    getOptedApplications(): A_AppsLocalState[]{
-        const optedApps = this.account['apps-local-state'];
-        return optedApps;
+    getOptedApplications(): modelsv2.ApplicationLocalState[]{
+        return this.account.appsLocalState ?? [];
     }
 
     getBalance(): number {
-        return this.account.amount;
+        return Number(this.account.amount);
     }
 
     getMinBalance(): number {
-        return this.account["min-balance"];
+        return Number(this.account.minBalance);
     }
 
-    getHoldingAssets(): A_AssetHolding[]{
-        return this.account['assets'];
+    getHoldingAssets(): modelsv2.AssetHolding[]{
+        return this.account.assets ?? [];
     }
 
     isCreatedAsset(assetId: number): boolean {
         const createdAssets = this.getCreatedAssets();
 
         for (const asset of createdAssets) {
-            if (asset.index === assetId) {
+            if (Number(asset.index) === assetId) {
                 return true;
             }
         }
@@ -56,20 +51,20 @@ export class CoreAccount {
         return false;
     }
 
-    getCreatedAsset(assetId: number): A_Asset {
+    getCreatedAsset(assetId: number): modelsv2.Asset | undefined {
         const createdAssets = this.getCreatedAssets();
 
         for (const asset of createdAssets) {
-            if (asset.index === assetId) {
+            if (Number(asset.index) === assetId) {
                 return asset;
             }
         }
     }
 
-    getHoldingAsset(assetId: number): A_AssetHolding {
+    getHoldingAsset(assetId: number): modelsv2.AssetHolding | undefined {
         const assets = this.getHoldingAssets();
         for (const asset of assets) {
-            if (asset['asset-id'] === assetId) {
+            if (Number(asset.assetId) === assetId) {
                 return asset;
             }
         }
@@ -79,13 +74,13 @@ export class CoreAccount {
         const asset = this.getHoldingAsset(assetId);
 
         if (asset) {
-            return asset.amount;
+            return Number(asset.amount);
         }
 
         return 0;
     }
 
-    getAssetBal(asset: A_Asset): number {
-        return this.balanceOf(asset.index) / Math.pow(10, asset.params.decimals);
+    getAssetBal(asset: modelsv2.Asset): number {
+        return this.balanceOf(Number(asset.index)) / Math.pow(10, asset.params.decimals);
     }
 }

@@ -1,7 +1,6 @@
 @import "reset-css/reset.css" layer(reset);
 @import "tailwindcss" source(none);
-@source "../components/v2";
-@source "../components/Modules/Explorer/v2";
+@source "..";
 
 @theme {
   --color-primary: #12afac;
@@ -24,8 +23,43 @@
   --color-warning: #ff9800;
   --color-nfd: #f65624;
 
+  --breakpoint-sm: 480px;
+  --breakpoint-header: 1000px;
+
   --radius: 10px;
   --radius-lg: 10px;
 
-  --font-sans: "Poppins", sans-serif;
+  --font-sans: "Nunito Sans", sans-serif;
+
+  --animate-loading-bar: loading-bar 2s ease-in-out infinite;
+
+  @keyframes loading-bar {
+    50% {
+      width: 20px;
+    }
+  }
+}
+
+/* Logo pulse animations */
+@keyframes bscale {
+  25% { transform: scaleY(1.1) scaleX(0.2); }
+  67% { filter: brightness(1.5); transform: scaleY(1.2) scaleX(1.35); }
+}
+@keyframes fscale {
+  25% { transform: scaleY(1.1) scaleX(0.2); }
+  67% { filter: brightness(1.5); transform: scaleY(1.2) scaleX(1.35); }
+}
+.pulse, .pulse2 { display: inline-block; transform-origin: center; filter: brightness(1); }
+.pulse  { animation: bscale 333ms forwards cubic-bezier(.55,.06,.68,.19); }
+.pulse2 { animation: fscale 333ms forwards cubic-bezier(.55,.06,.68,.19); }
+
+/* react-transition-group entry animations */
+.item-enter {
+  opacity: 0;
+  transform: scale(0.9);
+}
+.item-enter-active {
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 1000ms, transform 1000ms;
 }

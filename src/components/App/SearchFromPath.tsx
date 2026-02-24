@@ -3,7 +3,6 @@ import { useLocation, useNavigate, } from 'react-router-dom';
 import search, { NotFoundError, ServerError, NotSearchableError } from "../Modules/Explorer/Search/CoreSearch";
 import Loader from "../Common/LoadingTile/LoadingTile";
 import { SearchX, CircleAlert, HeartCrack } from 'lucide-react';
-import { theme } from "../../theme/index";
 import { useAbelAssetsContext } from '../Common/AbelAssetsProvider';
 
 function Frame({ children }): JSX.Element {
@@ -14,7 +13,7 @@ function Frame({ children }): JSX.Element {
 
 function Error({ icon, children }): JSX.Element {
     return <>
-        {icon({ style: { opacity: 0.35 }, size: 256, color: theme.palette.primary.main})}
+        {icon({ style: { opacity: 0.35 }, size: 256, color: '#12afac'})}
         {children}
     </>
 }

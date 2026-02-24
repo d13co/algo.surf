@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAccount } from "src/hooks/useAccount";
 import { CoreAccount } from "src/packages/core-sdk/classes/core/CoreAccount";
-import { A_AppsLocalState } from "src/packages/core-sdk/types";
+import { modelsv2 } from "algosdk";
 import {
   useReactTable,
   getCoreRowModel,
@@ -22,7 +22,7 @@ import {
 import { Button } from "src/components/v2/ui/button";
 import LinkToApplication from "../Links/LinkToApplication";
 import LinkToAccount from "../Links/LinkToAccount";
-import ApplicationLocalState from "../../Records/Application/Sections/ApplicationLocalState/ApplicationLocalState";
+import ApplicationLocalState from "../Application/ApplicationLocalState";
 import {
   Dialog,
   DialogContent,
@@ -46,7 +46,7 @@ function AppCard({
   row,
   address,
 }: {
-  row: Row<A_AppsLocalState>;
+  row: Row<modelsv2.ApplicationLocalState>;
   address: string;
 }) {
   const visibleCells = row.getVisibleCells();
@@ -74,16 +74,16 @@ function AccountOptedApplications(): JSX.Element {
   const optedApplications = useMemo(() => {
     if (!accountInfo) return [];
     return [...new CoreAccount(accountInfo).getOptedApplications()]
-      .sort((a, b) => b.id - a.id);
+      .sort((a, b) => Number(b.id) - Number(a.id));
   }, [accountInfo]);
 
-  const columns: ColumnDef<A_AppsLocalState, any>[] = useMemo(
+  const columns: ColumnDef<modelsv2.ApplicationLocalState, any>[] = useMemo(
     () => [
       {
         id: "id",
         header: "Application ID",
         cell: ({ row }) => (
-          <LinkToApplication id={row.original.id} copy="left" />
+          <LinkToApplication id={Number(row.original.id)} copy="left" />
         ),
       },
       {
@@ -92,12 +92,11 @@ function AccountOptedApplications(): JSX.Element {
         cell: ({ row }) => (
           <div className="text-right">
             <Button
-              variant="outline"
-              size="sm"
-              className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+              variant="muted"
+              className="h-7 px-2.5 text-xs -my-1 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
               onClick={() =>
                 navigate(
-                  `/account/${address}/opted-applications/${row.original.id}`
+                  `/account/${address}/opted-applications/${Number(row.original.id)}`
                 )
               }
             >
@@ -115,8 +114,8 @@ function AccountOptedApplications(): JSX.Element {
   };
 
   const localState = useMemo(() => {
-    return accountInfo?.["apps-local-state"]?.find(
-      ({ id: i }) => i === Number(id)
+    return accountInfo?.appsLocalState?.find(
+      ({ id: i }) => Number(i) === Number(id)
     );
   }, [id, accountInfo]);
 
@@ -146,7 +145,7 @@ function AccountOptedApplications(): JSX.Element {
             {/* Desktop table */}
             <div className="hidden md:block">
               <Table className="table-fixed">
-                <TableHeader>
+                <TableHeader className="[&_tr]:border-primary">
                   {table.getHeaderGroups().map((headerGroup) => (
                     <TableRow key={headerGroup.id}>
                       {headerGroup.headers.map((header) => (
@@ -205,12 +204,12 @@ function AccountOptedApplications(): JSX.Element {
 
             {/* Pagination */}
             {pageCount > 1 ? (
-              <div className="flex items-center justify-end gap-2 py-4">
+              <div className="flex items-center justify-end gap-2 pt-4 pb-0 md:py-4">
                 <span className="text-sm text-muted-foreground">
                   Page {pageIndex + 1} of {pageCount}
                 </span>
                 <Button
-                  variant="outline"
+                  variant="muted"
                   size="icon"
                   className="h-8 w-8"
                   onClick={() => table.setPageIndex(0)}
@@ -219,7 +218,7 @@ function AccountOptedApplications(): JSX.Element {
                   <ChevronsLeft className="h-4 w-4" />
                 </Button>
                 <Button
-                  variant="outline"
+                  variant="muted"
                   size="icon"
                   className="h-8 w-8"
                   onClick={() => table.previousPage()}
@@ -228,7 +227,7 @@ function AccountOptedApplications(): JSX.Element {
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
                 <Button
-                  variant="outline"
+                  variant="muted"
                   size="icon"
                   className="h-8 w-8"
                   onClick={() => table.nextPage()}
@@ -237,7 +236,7 @@ function AccountOptedApplications(): JSX.Element {
                   <ChevronRight className="h-4 w-4" />
                 </Button>
                 <Button
-                  variant="outline"
+                  variant="muted"
                   size="icon"
                   className="h-8 w-8"
                   onClick={() => table.setPageIndex(pageCount - 1)}
@@ -252,7 +251,7 @@ function AccountOptedApplications(): JSX.Element {
       </div>
 
       <Dialog open={!!id} onOpenChange={(open) => !open && handleClose()}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>
               App <LinkToApplication id={Number(id)} /> Local State

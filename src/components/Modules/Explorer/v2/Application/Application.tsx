@@ -14,7 +14,7 @@ import JsonViewer from "src/components/v2/JsonViewer";
 import CustomError from "../CustomError";
 import Copyable from "src/components/v2/Copyable";
 import OpenInMenu from "src/components/v2/OpenInMenu";
-import Dym from "../../Records/Dym";
+import Dym from "../Dym";
 import useTitle from "src/components/Common/UseTitle/UseTitle";
 import { ChevronDown } from "lucide-react";
 import {
@@ -23,13 +23,8 @@ import {
   useApplicationBoxNames,
 } from "src/hooks/useApplication";
 import { usePersistenBooleanState } from "src/utils/usePersistenBooleanState";
-import ApplicationProgram from "../../Records/Application/Sections/ApplicationProgram/ApplicationProgram";
+import ApplicationProgram from "../ApplicationProgram";
 import ApplicationGlobalState from "./ApplicationGlobalState";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-} from "src/components/v2/ui/tabs";
 import TabsUnderline from "src/components/v2/shadcn-studio/tabs/tabs-11";
 
 const isDevNet = process.env.REACT_APP_NETWORK !== "Mainnet";
@@ -58,7 +53,7 @@ function Application(): JSX.Element {
   const { data: appInfo, isLoading, isError, error } = useApplication(numId);
   const { data: hashes } = useApplicationHashes(appInfo);
   const {
-    data: boxNames,
+    data: boxData,
     error: boxError,
   } = useApplicationBoxNames(numId);
 
@@ -79,28 +74,23 @@ function Application(): JSX.Element {
   useEffect(() => {
     if (
       codeTabValue === "global" &&
-      appInfo?.id &&
-      appInfo?.params["clear-state-program"] &&
-      !appInfo?.params["global-state"]
+      applicationInstance &&
+      applicationInstance.getClearProgram() &&
+      !applicationInstance.hasGlobalState()
     ) {
       setCodeTabValue("approval");
     }
-  }, [appInfo?.id, appInfo?.params["clear-state-program"]]);
+  }, [applicationInstance?.getId(), applicationInstance?.getClearProgram()]);
 
   const [approvalSize, clearSize] = useMemo(() => {
-    if (!appInfo) return [0, 0];
-    const approval = Buffer.from(
-      appInfo.params["approval-program"] || "",
-      "base64",
-    );
-    const clear = Buffer.from(
-      appInfo.params["clear-state-program"] || "",
-      "base64",
-    );
-    return [approval.length, clear.length];
-  }, [appInfo]);
+    if (!applicationInstance) return [0, 0];
+    return [
+      Buffer.from(applicationInstance.getApprovalProgram(), "base64").length,
+      Buffer.from(applicationInstance.getClearProgram(), "base64").length,
+    ];
+  }, [applicationInstance]);
 
-  const hasBoxes = (boxNames && boxNames.length > 0) || !!boxError;
+  const hasBoxes = (boxData?.pages?.[0]?.boxes?.length > 0) || !!boxError;
 
   return (
     <div className="mt-5">
@@ -111,12 +101,16 @@ function Application(): JSX.Element {
           <CustomError error={error?.message} />
         ) : (
           <div>
-            <div className="flex justify-between items-center text-xl font-bold">
-              <div>Application overview</div>
-              <div className="flex items-center gap-2.5">
+            <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 text-xl">
+              <div className="group flex items-center gap-2 min-w-0">
+                <span className="shrink-0">Application</span>
+                <span><span className="select-none">#</span>{id}</span>
+                <Copyable className="opacity-60 group-hover:opacity-100" value={Number(id)} />
+              </div>
+              <div className="flex items-center gap-2.5 shrink-0 ml-auto">
                 <JsonViewer
                   filename={`app-${id}.json`}
-                  obj={appInfo ?? {}}
+                  obj={applicationInstance?.toJSON() ?? {}}
                   title={`Application ${id}`}
                 />
                 <OpenInMenu pageType={"application"} id={id} />
@@ -126,13 +120,7 @@ function Application(): JSX.Element {
             {isLoading || !applicationInstance ? (
               <LoadingTile />
             ) : (
-              <div className="mt-8">
-                <div className="text-lg mb-5 font-normal">
-                  <span className="select-none">#</span>
-                  {applicationInstance.getId()}
-                  <Copyable value={applicationInstance.getId()} />
-                </div>
-
+              <div className="mt-6">
                 <div className="rounded-lg p-5 pt-2.5 bg-background-card">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="mt-2.5">
@@ -166,7 +154,7 @@ function Application(): JSX.Element {
                     className="w-full flex items-center justify-between p-5 cursor-pointer text-left"
                     onClick={() => setExpanded(!expanded)}
                   >
-                    <span className="font-medium">Application State</span>
+                    <span className="font-medium">Application Code & State</span>
                     <ChevronDown
                       size={20}
                       className={`transition-transform ${expanded ? "rotate-180" : ""}`}
@@ -239,7 +227,7 @@ function Application(): JSX.Element {
                                     <div className="text-muted-foreground text-sm flex items-center gap-2.5">
                                       Approval {hashAlgo === "sha512_256" ? "SHA512/256" : "SHA256"}
                                     </div>
-                                    <div className="flex items-start text-[13px] text-muted-foreground break-all mt-2.5">
+                                    <div className="flex items-start text-[13px] text-foreground break-all mt-2.5">
                                       <span>{hashes[hashAlgo].approval}</span>
                                       <Copyable value={hashes[hashAlgo].approval} />
                                     </div>
@@ -251,7 +239,7 @@ function Application(): JSX.Element {
                                         </div>
                                         {hashes[hashAlgo].approvalPages.map(
                                           (pageHash, i) => (
-                                            <div key={i} className="flex items-start text-[13px] text-muted-foreground break-all mt-2.5">
+                                            <div key={i} className="flex items-start text-[13px] text-foreground break-all mt-2.5">
                                               <span className="font-bold user-select-none mr-1">
                                                 {i + 1}/
                                               </span>{" "}
@@ -266,7 +254,7 @@ function Application(): JSX.Element {
                                     <div className="text-muted-foreground text-sm flex items-center gap-2.5 mt-6">
                                       Clear State {hashAlgo === "sha512_256" ? "SHA512/256" : "SHA256"}
                                     </div>
-                                    <div className="flex items-start text-[13px] text-muted-foreground break-all mt-2.5">
+                                    <div className="flex items-start text-[13px] text-foreground break-all mt-2.5">
                                       <span>{hashes[hashAlgo].clear}</span>
                                       <Copyable value={hashes[hashAlgo].clear} />
                                     </div>
@@ -287,31 +275,31 @@ function Application(): JSX.Element {
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-5">
                                   <div>
                                     <div className="text-muted-foreground text-sm">Global state byte</div>
-                                    <div className="mt-2.5 text-muted-foreground">{applicationInstance.getGlobalSchemaByte()}</div>
+                                    <div className="mt-2.5 text-foreground">{applicationInstance.getGlobalSchemaByte()}</div>
                                   </div>
                                   <div>
                                     <div className="text-muted-foreground text-sm">Global state uint</div>
-                                    <div className="mt-2.5 text-muted-foreground">{applicationInstance.getGlobalSchemaUint()}</div>
+                                    <div className="mt-2.5 text-foreground">{applicationInstance.getGlobalSchemaUint()}</div>
                                   </div>
                                   <div>
                                     <div className="text-muted-foreground text-sm">Local state byte</div>
-                                    <div className="mt-2.5 text-muted-foreground">{applicationInstance.getLocalSchemaByte()}</div>
+                                    <div className="mt-2.5 text-foreground">{applicationInstance.getLocalSchemaByte()}</div>
                                   </div>
                                   <div>
                                     <div className="text-muted-foreground text-sm">Local state uint</div>
-                                    <div className="mt-2.5 text-muted-foreground">{applicationInstance.getLocalSchemaUint()}</div>
+                                    <div className="mt-2.5 text-foreground">{applicationInstance.getLocalSchemaUint()}</div>
                                   </div>
                                   <div>
                                     <div className="text-muted-foreground text-sm">Approval program size</div>
-                                    <div className="mt-2.5 text-muted-foreground">{approvalSize} bytes</div>
+                                    <div className="mt-2.5 text-foreground">{approvalSize} bytes</div>
                                   </div>
                                   <div>
                                     <div className="text-muted-foreground text-sm">Clear program size</div>
-                                    <div className="mt-2.5 text-muted-foreground">{clearSize} bytes</div>
+                                    <div className="mt-2.5 text-foreground">{clearSize} bytes</div>
                                   </div>
                                   <div>
                                     <div className="text-muted-foreground text-sm">Extra Program Pages</div>
-                                    <div className="mt-2.5 text-muted-foreground">{appInfo.params["extra-program-pages"]}</div>
+                                    <div className="mt-2.5 text-foreground">{applicationInstance.getExtraProgramPages()}</div>
                                   </div>
                                 </div>
                               </div>
@@ -325,30 +313,13 @@ function Application(): JSX.Element {
 
                 {/* Bottom tabs: Transactions / Boxes */}
                 <div className="mt-6">
-                  <Tabs value={tabValue}>
-                    <TabsList className="bg-transparent rounded-none border-b p-0 w-full justify-start">
-                      <TabsTrigger
-                        value="transactions"
-                        className="bg-transparent data-[state=active]:bg-transparent data-[state=active]:border-primary h-full rounded-none border-0 border-b-2 border-transparent data-[state=active]:shadow-none"
-                        onClick={() => {
-                          navigate("/application/" + id + "/transactions");
-                        }}
-                      >
-                        Transactions
-                      </TabsTrigger>
-                      {hasBoxes ? (
-                        <TabsTrigger
-                          value="boxes"
-                          className="bg-transparent data-[state=active]:bg-transparent data-[state=active]:border-primary h-full rounded-none border-0 border-b-2 border-transparent data-[state=active]:shadow-none"
-                          onClick={() => {
-                            navigate("/application/" + id + "/boxes");
-                          }}
-                        >
-                          Boxes
-                        </TabsTrigger>
-                      ) : null}
-                    </TabsList>
-                  </Tabs>
+                  <TabsUnderline
+                    value={tabValue}
+                    tabs={[
+                      { name: "Transactions", value: "transactions", onClick: () => navigate("/application/" + id + "/transactions") },
+                      ...(hasBoxes ? [{ name: "Boxes", value: "boxes", onClick: () => navigate("/application/" + id + "/boxes") }] : []),
+                    ]}
+                  />
 
                   <Outlet />
                 </div>

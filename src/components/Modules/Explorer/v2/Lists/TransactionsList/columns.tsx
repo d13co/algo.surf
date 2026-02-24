@@ -1,8 +1,7 @@
 import { ColumnDef } from "@tanstack/react-table";
-import { A_SearchTransaction } from "src/packages/core-sdk/types";
+import { indexerModels } from "algosdk";
 import TxnIdCell from "./cells/TxnIdCell";
-import BlockCell from "./cells/BlockCell";
-import AgeCell from "./cells/AgeCell";
+import AgeCell, { AgeHeader } from "./cells/AgeCell";
 import FromCell from "./cells/FromCell";
 import ToCell from "./cells/ToCell";
 import AmountCell from "./cells/AmountCell";
@@ -11,7 +10,6 @@ import TypeCell from "./cells/TypeCell";
 
 export type TransactionColumnId =
   | "id"
-  | "block"
   | "age"
   | "from"
   | "to"
@@ -34,20 +32,15 @@ export const columnClassName: Partial<Record<TransactionColumnId, string>> = {
   to: "w-[15%]",
 };
 
-export const columns: ColumnDef<A_SearchTransaction, any>[] = [
+export const columns: ColumnDef<indexerModels.Transaction, any>[] = [
   {
     id: "id",
     header: "Txn ID",
     cell: TxnIdCell,
   },
   {
-    id: "block",
-    header: "Block",
-    cell: BlockCell,
-  },
-  {
     id: "age",
-    header: "Age",
+    header: AgeHeader,
     cell: AgeCell,
   },
   {

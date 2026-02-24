@@ -8,7 +8,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "src/components/v2/ui/tooltip";
-import isUtf8 from "is-utf8";
+import { isUtf8 } from "src/utils/isUtf8";
 
 type View = "utf8" | "base64" | "auto" | "num" | "address";
 

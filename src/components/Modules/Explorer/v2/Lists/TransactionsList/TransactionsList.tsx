@@ -15,7 +15,7 @@ import {
   TableRow,
 } from "src/components/v2/ui/table";
 import { Button } from "src/components/v2/ui/button";
-import { A_SearchTransaction } from "src/packages/core-sdk/types";
+import { indexerModels } from "algosdk";
 import {
   columns,
   columnClassName,
@@ -34,10 +34,11 @@ import {
   ChevronsRight,
   Loader2,
 } from "lucide-react";
+import { SkeletonRows, SkeletonCards } from "src/components/v2/ui/table-skeleton";
+import { useStableHeight } from "src/hooks/useStableHeight";
 
 const ALL_FIELDS: TransactionColumnId[] = [
   "id",
-  "block",
   "age",
   "from",
   "to",
@@ -47,9 +48,10 @@ const ALL_FIELDS: TransactionColumnId[] = [
 ];
 
 interface TransactionsListProps {
-  transactions: A_SearchTransaction[];
+  transactions: indexerModels.Transaction[];
   loading?: boolean;
   initialLoading?: boolean;
+  hasMore?: boolean;
   reachedLastPage?: Function;
   fields?: TransactionColumnId[];
   record?: string;
@@ -61,6 +63,7 @@ function TransactionsList({
   transactions = [],
   loading = false,
   initialLoading = false,
+  hasMore = true,
   reachedLastPage = () => {},
   fields = ALL_FIELDS,
   record = "",
@@ -145,6 +148,7 @@ function TransactionsList({
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    autoResetPageIndex: false,
     state: { columnVisibility, pagination: { pageIndex, pageSize } },
     onPaginationChange: (updater) => {
       const next = typeof updater === "function" ? updater({ pageIndex, pageSize }) : updater;
@@ -154,6 +158,10 @@ function TransactionsList({
   });
 
   const pageCount = table.getPageCount();
+  const currentRowCount = table.getRowModel().rows.length;
+  const padCount = hasMore ? Math.max(0, pageSize - currentRowCount) : 0;
+
+  const { ref: tableRef, style: stableStyle } = useStableHeight(currentRowCount === pageSize);
 
   function handlePageChange(newPage: number) {
     if (newPage === pageCount - 1) {
@@ -163,7 +171,7 @@ function TransactionsList({
   }
 
   const pagination = pageCount > 1 ? (
-    <div className="flex items-center justify-end gap-2 py-4">
+    <div className="flex items-center justify-end gap-2 pt-4 pb-0 md:py-4">
       {loading ? (
         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
       ) : null}
@@ -171,7 +179,7 @@ function TransactionsList({
         Page {pageIndex + 1} of {pageCount}
       </span>
       <Button
-        variant="outline"
+        variant="muted"
         size="icon"
         className="h-8 w-8"
         onClick={() => handlePageChange(0)}
@@ -180,7 +188,7 @@ function TransactionsList({
         <ChevronsLeft className="h-4 w-4" />
       </Button>
       <Button
-        variant="outline"
+        variant="muted"
         size="icon"
         className="h-8 w-8"
         onClick={() => handlePageChange(pageIndex - 1)}
@@ -189,7 +197,7 @@ function TransactionsList({
         <ChevronLeft className="h-4 w-4" />
       </Button>
       <Button
-        variant="outline"
+        variant="muted"
         size="icon"
         className="h-8 w-8"
         onClick={() => handlePageChange(pageIndex + 1)}
@@ -198,7 +206,7 @@ function TransactionsList({
         <ChevronRight className="h-4 w-4" />
       </Button>
       <Button
-        variant="outline"
+        variant="muted"
         size="icon"
         className="h-8 w-8"
         onClick={() => handlePageChange(pageCount - 1)}
@@ -215,9 +223,9 @@ function TransactionsList({
       {pagination}
 
       {/* Desktop table */}
-      <div className="hidden md:block">
+      <div ref={tableRef} style={stableStyle} className="hidden md:block">
         <Table className="table-fixed">
-          <TableHeader>
+          <TableHeader className="[&_tr]:border-primary">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
@@ -238,21 +246,24 @@ function TransactionsList({
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows.length > 0 ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell
-                      key={cell.id}
-                      className={`max-w-0${cell.column.id === "id" ? " pl-2" : ""}`}
-                    >
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
+              <>
+                {table.getRowModel().rows.map((row) => (
+                  <TableRow key={row.id}>
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell
+                        key={cell.id}
+                        className={`max-w-0${cell.column.id === "id" ? " pl-2" : ""}`}
+                      >
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+                {padCount > 0 && loading ? <SkeletonRows rows={padCount} columns={table.getVisibleLeafColumns().length} animate /> : null}
+              </>
             ) : (
               <TableRow>
                 <TableCell
@@ -275,9 +286,12 @@ function TransactionsList({
       {/* Mobile cards */}
       <div className="md:hidden space-y-2 mt-3">
         {table.getRowModel().rows.length > 0 ? (
-          table.getRowModel().rows.map((row) => (
-            <TransactionCard key={row.id} row={row} />
-          ))
+          <>
+            {table.getRowModel().rows.map((row) => (
+              <TransactionCard key={row.id} row={row} />
+            ))}
+            {padCount > 0 && loading ? <SkeletonCards rows={padCount} fields={fields.length} animate /> : null}
+          </>
         ) : (
           <div className="py-8 text-center text-muted-foreground">
             {initialLoading ? (

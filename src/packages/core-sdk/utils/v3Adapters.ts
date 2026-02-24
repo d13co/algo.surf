@@ -12,7 +12,6 @@ import {
   A_GlobalStateDelta,
   A_LocalStateDelta,
   A_Asset,
-  A_AccountInformation,
   A_SearchAccount,
   A_Application,
   A_Status,
@@ -460,88 +459,6 @@ export function toA_Block(input: unknown): A_Block {
     proposer: getString(o, ["proposer"]),
   };
   return block;
-}
-
-export function toA_AccountInformation(input: unknown): A_AccountInformation {
-  const o = isObject(input) ? input : {};
-
-  // Serialize apps-local-state
-  const appsLocalStateRaw = getArray(o, ["apps-local-state", "appsLocalState"]);
-  const appsLocalState = appsLocalStateRaw.map((app): any => {
-    if (!isObject(app)) return app;
-    const schemaRaw = isObject(app.schema) ? app.schema : {};
-    return {
-      id: toNumber(app.id),
-      "key-value":
-        Array.isArray(app["key-value"]) || Array.isArray(app.keyValue)
-          ? serializeValue(app["key-value"] ?? app.keyValue)
-          : [],
-      schema: {
-        "num-byte-slice": getNumber(
-          schemaRaw,
-          ["num-byte-slice", "numByteSlice"],
-          0
-        ),
-        "num-uint": getNumber(schemaRaw, ["num-uint", "numUint"], 0),
-      },
-    };
-  });
-
-  // Serialize created-apps
-  const createdAppsRaw = getArray(o, ["created-apps", "createdApps"]);
-  const createdApps = createdAppsRaw.map((app) => toA_Application(app));
-
-  // Serialize created-assets
-  const createdAssetsRaw = getArray(o, ["created-assets", "createdAssets"]);
-  const createdAssets = createdAssetsRaw.map((asset) => toA_Asset(asset));
-
-  // Serialize assets (asset holdings)
-  const assetsRaw = getArray(o, ["assets"]);
-  const assets = assetsRaw.map((asset): any => {
-    if (!isObject(asset)) return asset;
-    const serialized = serializeValue(asset) as any;
-    return {
-      amount: getNumber(serialized, ["amount"], 0),
-      "asset-id": getNumber(serialized, ["asset-id", "assetId"], 0),
-      creator: getString(serialized, ["creator"], ""),
-      "is-frozen": getBoolean(serialized, ["is-frozen", "isFrozen"], false),
-    };
-  });
-
-  const appsTotalSchemaRaw = isObject(o["apps-total-schema"])
-    ? o["apps-total-schema"]
-    : o["appsTotalSchema"];
-  const appsTotalSchema = isObject(appsTotalSchemaRaw)
-    ? {
-        "num-byte-slice": getNumber(
-          appsTotalSchemaRaw,
-          ["num-byte-slice", "numByteSlice"],
-          0
-        ),
-        "num-uint": getNumber(appsTotalSchemaRaw, ["num-uint", "numUint"], 0),
-      }
-    : { "num-byte-slice": 0, "num-uint": 0 };
-
-  return {
-    address: getString(o, ["address"]),
-    "auth-addr": getString(o, ["auth-addr", "authAddr"]),
-    amount: getNumber(o, ["amount"]),
-    "min-balance": getNumber(o, ["min-balance", "minBalance"]),
-    "amount-without-pending-rewards": getNumber(o, [
-      "amount-without-pending-rewards",
-      "amountWithoutPendingRewards",
-    ]),
-    "apps-local-state": appsLocalState,
-    "apps-total-schema": appsTotalSchema,
-    assets: assets,
-    "created-apps": createdApps,
-    "created-assets": createdAssets,
-    "pending-rewards": getNumber(o, ["pending-rewards", "pendingRewards"]),
-    "reward-base": getNumber(o, ["reward-base", "rewardBase"]),
-    rewards: getNumber(o, ["rewards"]),
-    round: getNumber(o, ["round"]),
-    status: getString(o, ["status"]),
-  };
 }
 
 export function toA_AccountsResponse(input: unknown): {

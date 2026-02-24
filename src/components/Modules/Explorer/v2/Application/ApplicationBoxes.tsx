@@ -1,13 +1,24 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { useParams } from "react-router-dom";
-import BoxesList from "../../../Explorer/Lists/BoxesList/BoxesList";
+import BoxesList from "../BoxesList";
 import { useApplicationBoxNames } from "src/hooks/useApplication";
 
 function ApplicationBoxes(): JSX.Element {
   const { id } = useParams();
   const numId = Number(id);
 
-  const { data: boxNames, error: boxError } = useApplicationBoxNames(numId);
+  const {
+    data,
+    error: boxError,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+  } = useApplicationBoxNames(numId);
+
+  const boxNames = useMemo(
+    () => data?.pages.flatMap((p) => p.boxes) ?? [],
+    [data],
+  );
 
   return (
     <div>
@@ -16,7 +27,12 @@ function ApplicationBoxes(): JSX.Element {
           {(boxError as Error)?.message || "Failed to load box names"}
         </div>
       ) : (
-        <BoxesList boxNames={boxNames ?? []} />
+        <BoxesList
+          boxNames={boxNames}
+          hasMore={!!hasNextPage}
+          loadMore={fetchNextPage}
+          loadingMore={isFetchingNextPage}
+        />
       )}
     </div>
   );

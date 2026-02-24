@@ -39,6 +39,7 @@ function AssetTransactions(): JSX.Element {
             reachedLastPage={reachedLastPage}
             loading={isFetchingNextPage}
             initialLoading={isLoading}
+            hasMore={hasNextPage}
           />
         </div>
       </div>
