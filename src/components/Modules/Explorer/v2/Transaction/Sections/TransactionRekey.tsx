@@ -14,7 +14,7 @@ function TransactionRekey({
   if (!rekeyTo) return null;
 
   return (
-    <div className="mt-6 rounded-lg p-5 bg-background-card">
+    <div id="rekey" className="mt-6 rounded-lg p-5 bg-background-card">
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-12">
           <div className="text-muted-foreground inline-flex items-center gap-1">

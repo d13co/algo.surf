@@ -19,14 +19,14 @@ function AssetTransferTransaction({
     <div className="mt-7">
       <div className="rounded-lg p-5 bg-background-card">
         <div className="grid grid-cols-12 gap-4">
-        <div className="col-span-12 sm:col-span-6">
+        <div className="col-span-12 md:col-span-6">
           <div className="text-muted-foreground">Sender</div>
           <div className="mt-2.5 text-[13px] break-words overflow-hidden">
             <LinkToAccount copySize="m" address={txnInstance.getFrom()} />
           </div>
         </div>
 
-        <div className="col-span-12 sm:col-span-6">
+        <div className="col-span-12 md:col-span-6">
           <div className="text-muted-foreground">Receiver</div>
           <div className="mt-2.5 text-[13px] break-words overflow-hidden">
             <LinkToAccount copySize="m" address={txnInstance.getTo()} />
@@ -48,7 +48,7 @@ function AssetTransferTransaction({
           <div className="mt-2.5 inline-flex items-center gap-1">
             <NumberFormatCopy
               value={assetInstance.getAmountInDecimals(txnInstance.getAmount())}
-              copyPosition="left"
+              copyPosition="right"
               displayType="text"
               thousandSeparator
             />
@@ -57,7 +57,7 @@ function AssetTransferTransaction({
         </div>
 
         {txnInstance.getCloseTo() ? (
-          <div className="col-span-12">
+          <div className="col-span-12 sm:col-span-6">
             <div className="text-muted-foreground">Close account</div>
             <div className="mt-2.5 text-[13px] break-words overflow-hidden">
               <LinkToAccount copySize="m" address={txnInstance.getCloseTo()} />
@@ -73,7 +73,7 @@ function AssetTransferTransaction({
                 value={assetInstance.getAmountInDecimals(
                   txnInstance.getCloseAmount(),
                 )}
-                copyPosition="left"
+                copyPosition="right"
                 displayType="text"
                 thousandSeparator
               />

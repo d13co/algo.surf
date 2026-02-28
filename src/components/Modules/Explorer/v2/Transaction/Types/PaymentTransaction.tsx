@@ -36,7 +36,7 @@ function PaymentTransaction({ transaction }: { transaction: any }): JSX.Element 
     <div className="mt-7">
       <div className="rounded-lg p-5 bg-background-card">
         <div className="grid grid-cols-12 gap-4">
-        <div className="col-span-12 sm:col-span-6">
+        <div className="col-span-12 md:col-span-6">
           <div className="text-muted-foreground">
             Sender{" "}
             {senderLabel ? (
@@ -50,7 +50,7 @@ function PaymentTransaction({ transaction }: { transaction: any }): JSX.Element 
           </div>
         </div>
 
-        <div className="col-span-12 sm:col-span-6">
+        <div className="col-span-12 md:col-span-6">
           <div className="text-muted-foreground">
             Receiver{" "}
             {receiverLabel ? (
@@ -64,12 +64,12 @@ function PaymentTransaction({ transaction }: { transaction: any }): JSX.Element 
           </div>
         </div>
 
-        <div className="col-span-12 sm:col-span-6">
+        <div className="col-span-12">
           <div className="text-muted-foreground">Amount</div>
           <div className="mt-2.5 group inline-flex items-center gap-1">
-            <Copyable className="opacity-60 group-hover:opacity-100" value={microalgosToAlgos(txnInstance.getAmount())} />
             <AlgoIcon />
             <NumberFormat value={microalgosToAlgos(txnInstance.getAmount())} displayType="text" thousandSeparator={true} />
+            <Copyable className="opacity-60 group-hover:opacity-100" value={microalgosToAlgos(txnInstance.getAmount())} />
           </div>
         </div>
 
@@ -93,9 +93,9 @@ function PaymentTransaction({ transaction }: { transaction: any }): JSX.Element 
           <div className="col-span-12 sm:col-span-6">
             <div className="text-muted-foreground">Close amount</div>
             <div className="mt-2.5 group inline-flex items-center gap-1">
-              <Copyable className="opacity-60 group-hover:opacity-100" value={microalgosToAlgos(txnInstance.getCloseAmount())} />
               <AlgoIcon />
               <NumberFormat value={microalgosToAlgos(txnInstance.getCloseAmount())} displayType="text" thousandSeparator={true} />
+              <Copyable className="opacity-60 group-hover:opacity-100" value={microalgosToAlgos(txnInstance.getCloseAmount())} />
             </div>
           </div>
         ) : null}

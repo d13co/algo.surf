@@ -60,18 +60,18 @@ function TransactionAdditionalDetails({
             <div className="col-span-12 sm:col-span-6 lg:col-span-3">
               <div className="text-muted-foreground">Sender rewards</div>
               <div className="mt-2.5 group inline-flex items-center gap-1">
-                <Copyable className="opacity-60 group-hover:opacity-100" value={microalgosToAlgos(txnInstance.getSenderRewards())} />
                 <AlgoIcon />
                 <NumberFormat value={microalgosToAlgos(txnInstance.getSenderRewards())} displayType="text" thousandSeparator={true} />
+                <Copyable className="opacity-60 group-hover:opacity-100" value={microalgosToAlgos(txnInstance.getSenderRewards())} />
               </div>
             </div>
 
             <div className="col-span-12 sm:col-span-6 lg:col-span-3">
               <div className="text-muted-foreground">Receiver rewards</div>
               <div className="mt-2.5 group inline-flex items-center gap-1">
-                <Copyable className="opacity-60 group-hover:opacity-100" value={microalgosToAlgos(txnInstance.getReceiverRewards())} />
                 <AlgoIcon />
                 <NumberFormat value={microalgosToAlgos(txnInstance.getReceiverRewards())} displayType="text" thousandSeparator={true} />
+                <Copyable className="opacity-60 group-hover:opacity-100" value={microalgosToAlgos(txnInstance.getReceiverRewards())} />
               </div>
             </div>
           </div>

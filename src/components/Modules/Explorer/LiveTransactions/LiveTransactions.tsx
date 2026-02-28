@@ -1,11 +1,10 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import {useLiveData} from "../../../../hooks/useLiveData";
 import { CSSTransition, TransitionGroup } from 'react-transition-group';
 import {CoreTransaction} from "../../../../packages/core-sdk/classes/core/CoreTransaction";
-import LinkToTransaction from "../v2/Links/LinkToTransaction";
-import LinkToAccount from "../v2/Links/LinkToAccount";
 import {TXN_TYPES} from "../../../../packages/core-sdk/constants";
-import LinkToApplication from "../v2/Links/LinkToApplication";
+import { ellipseString } from "src/packages/core-sdk/utils";
 
 function LiveTransactions(): JSX.Element {
     const {transactions} = useLiveData();
@@ -27,30 +26,28 @@ function LiveTransactions(): JSX.Element {
 
                             return (
                                 <CSSTransition key={txnInstance.getId()} timeout={700} classNames="item">
-                                    <div className="bg-background-card text-muted-foreground p-4 my-3 flex justify-between border-l-[6px] border-primary rounded overflow-hidden">
-                                        <div className="w-full">
-                                            <div className="flex justify-between items-center">
-                                                <span>{txnInstance.getTypeDisplayValue()}</span>
-                                                <LinkToTransaction strip={8} id={txnInstance.getId()} />
-                                            </div>
-                                            <div className="mt-4 text-[13px] flex justify-between items-center">
-                                                <span>From:</span>
-                                                <LinkToAccount copySize="m" copy="none" strip={8} nfdOnly address={txnInstance.getFrom()} />
-                                            </div>
-                                            {type === TXN_TYPES.PAYMENT || type === TXN_TYPES.ASSET_TRANSFER ? (
-                                                <div className="mt-4 text-[13px] flex justify-between items-center">
-                                                    <span>To:</span>
-                                                    <LinkToAccount copySize="m" copy="none" strip={8} nfdOnly address={to} />
-                                                </div>
-                                            ) : null}
-                                            {type === TXN_TYPES.APP_CALL ? (
-                                                <div className="mt-4 text-[13px] flex justify-between items-center">
-                                                    <span>Application:</span>
-                                                    <LinkToApplication id={appId} />
-                                                </div>
-                                            ) : null}
+                                    <Link to={"/transaction/" + txnInstance.getId()} className="block bg-background-card text-muted-foreground p-4 my-3 border-l-[6px] border-primary rounded overflow-hidden hover:bg-background-card/80">
+                                        <div className="flex justify-between items-center">
+                                            <span>{txnInstance.getTypeDisplayValue()}</span>
+                                            <span className="text-primary font-mono text-sm">{ellipseString(txnInstance.getId(), 8)}</span>
                                         </div>
-                                    </div>
+                                        <div className="mt-4 text-[13px] flex justify-between items-center">
+                                            <span>From:</span>
+                                            <span className="font-mono text-xs">{ellipseString(txnInstance.getFrom(), 8)}</span>
+                                        </div>
+                                        {type === TXN_TYPES.PAYMENT || type === TXN_TYPES.ASSET_TRANSFER ? (
+                                            <div className="mt-4 text-[13px] flex justify-between items-center">
+                                                <span>To:</span>
+                                                <span className="font-mono text-xs">{ellipseString(to, 8)}</span>
+                                            </div>
+                                        ) : null}
+                                        {type === TXN_TYPES.APP_CALL ? (
+                                            <div className="mt-4 text-[13px] flex justify-between items-center">
+                                                <span>Application:</span>
+                                                <span>{appId}</span>
+                                            </div>
+                                        ) : null}
+                                    </Link>
                                 </CSSTransition>
                             );
                         })}

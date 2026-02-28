@@ -24,7 +24,7 @@ function LinkToGroup({
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Link href={href} noStyle className="inline-flex items-center justify-center p-1">
+            <Link href={href} noStyle className="inline-flex items-center justify-center px-0.5 -my-1 align-middle">
               <LinkIcon size={14} />
             </Link>
           </TooltipTrigger>

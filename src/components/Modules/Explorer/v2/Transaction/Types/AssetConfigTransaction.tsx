@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { CoreTransaction } from "src/packages/core-sdk/classes/core/CoreTransaction";
 import { CoreAsset } from "src/packages/core-sdk/classes/core/CoreAsset";
+import { ARC19 } from "src/packages/arc-portal/classes/ARC19/ARC19";
 import { indexerModels } from "algosdk";
 import NumberFormat from "react-number-format";
 import LinkToAccount from "../../Links/LinkToAccount";
@@ -31,7 +32,15 @@ function AssetConfigTransaction({
   const fetchedAsset = asset ? new CoreAsset(asset) : null;
   const assetInstance = fetchedAsset ?? configAsset;
 
+  const arc19Url = useMemo(() => {
+    if (!assetInstance) return null;
+    const arc19 = new ARC19(assetInstance.asset);
+    if (!arc19.hasValidUrl()) return null;
+    return arc19.getMetadataUrl();
+  }, [assetInstance]);
+
   return (
+    <>
     <div className="mt-7">
       <div className="rounded-lg p-5 bg-background-card">
         <div className="grid grid-cols-12 gap-4">
@@ -48,12 +57,6 @@ function AssetConfigTransaction({
             <div className="mt-2.5">
               <LinkToAsset
                 id={txnInstance.getAssetId()}
-                name={
-                  txnInstance.getAssetId().toString() +
-                  (assetInstance?.getName()
-                    ? "(" + assetInstance.getName() + ")"
-                    : "")
-                }
               />
             </div>
           </div>
@@ -123,7 +126,7 @@ function AssetConfigTransaction({
               </div>
             </>
           ) : null}
-          <div className="col-span-12"><hr className="border-muted my-2" /></div>
+          <div className="col-span-12 -mx-5"><hr className="border-background" /></div>
           <div className="col-span-12 sm:col-span-6">
             <div className="text-muted-foreground">Manager account</div>
             <div className="mt-2.5 text-[13px] break-words overflow-hidden">
@@ -170,6 +173,30 @@ function AssetConfigTransaction({
         </div>
       </div>
     </div>
+
+    {arc19Url ? (
+      <div className="mt-7 rounded-lg p-5 bg-background-card">
+        <div className="text-muted-foreground mb-2.5">ARC-19 Resolved URL</div>
+        <div className="text-[13px] min-w-0">
+          <span className="group inline-flex items-center gap-1 max-w-full min-w-0">
+            <a
+              href={arc19Url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline truncate"
+            >
+              {arc19Url}
+            </a>
+            <Copyable
+              className="opacity-60 group-hover:opacity-100 shrink-0"
+              size="s"
+              value={arc19Url}
+            />
+          </span>
+        </div>
+      </div>
+    ) : null}
+    </>
   );
 }
 

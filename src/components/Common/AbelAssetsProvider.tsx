@@ -24,8 +24,17 @@ export const AbelAssetsContext = React.createContext<AbelAssetsContextValue>({
 //   refresh: async () => {},
 });
 
+const LAST_FETCHED_KEY = "abel_assets_last_fetched";
+const ONE_HOUR_MS = 60 * 60 * 1000;
+
 async function loadAllAssetsIntoCache(): Promise<void> {
   try {
+    // Skip if fetched within the last hour
+    const lastFetched = localStorage.getItem(LAST_FETCHED_KEY);
+    if (lastFetched && Date.now() - Number(lastFetched) < ONE_HOUR_MS) {
+      return;
+    }
+
     // Get all known asset IDs from ABEL
     const assetIdsBig = await abel.getAllAssetIDs();
     const assetIds = assetIdsBig.map((id) => Number(id));
@@ -60,6 +69,9 @@ async function loadAllAssetsIntoCache(): Promise<void> {
         }
       }
     }
+
+    // Persist the timestamp of this successful fetch
+    localStorage.setItem(LAST_FETCHED_KEY, String(Date.now()));
   } catch(e) {
     console.error("Abel error:", e)
     // Swallow all errors to keep UI responsive
@@ -78,12 +90,6 @@ export function AbelAssetsProvider({
     deferredRef.current = { resolve };
     return promise;
   });
-
-//   const refresh = React.useCallback(async () => {
-//     setLoading(true);
-//     await loadAllAssetsIntoCache();
-//     setLoading(false);
-//   }, []);
 
   React.useEffect(() => {
     (async () => {

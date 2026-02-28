@@ -192,7 +192,7 @@ function AccountControllerTo(): JSX.Element {
       </div>
 
       {/* Mobile cards */}
-      <div className="md:hidden space-y-2 mt-3">
+      <div className="md:hidden space-y-2">
         {table.getRowModel().rows.length > 0 ? (
           <>
             {table.getRowModel().rows.map((row) => (

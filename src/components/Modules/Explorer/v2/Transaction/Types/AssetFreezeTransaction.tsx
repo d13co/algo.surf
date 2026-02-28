@@ -18,7 +18,7 @@ function AssetFreezeTransaction({
     <div className="mt-7">
       <div className="rounded-lg p-5 bg-background-card">
         <div className="grid grid-cols-12 gap-4">
-          <div className="col-span-12 sm:col-span-6">
+          <div className="col-span-12 md:col-span-6">
             <div className="text-muted-foreground">Sender</div>
             <div className="mt-2.5 text-[13px] break-words overflow-hidden">
               <LinkToAccount copySize="m" address={txnInstance.getFrom()} />
@@ -35,7 +35,7 @@ function AssetFreezeTransaction({
             </div>
           </div>
 
-          <div className="col-span-12 sm:col-span-6">
+          <div className="col-span-12 md:col-span-6">
             <div className="text-muted-foreground">Target account</div>
             <div className="mt-2.5 text-[13px] break-words overflow-hidden">
               <LinkToAccount

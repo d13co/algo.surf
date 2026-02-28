@@ -134,7 +134,7 @@ function Search(props: SearchProps): JSX.Element {
       input: "pl-12 pr-12 h-12 text-base rounded-full bg-[rgba(18,18,18,0.7)]",
     },
     responsive: {
-      wrapper: "mt-2 header:mt-0",
+      wrapper: "-mb-2 header:mb-0",
       icon: "h-5 w-5 header:h-4 header:w-4",
       iconLeft: "left-4 header:left-3",
       iconRight: "right-4 header:right-3",

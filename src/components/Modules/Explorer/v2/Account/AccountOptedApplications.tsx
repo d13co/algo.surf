@@ -29,13 +29,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "src/components/v2/ui/dialog";
-import {
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
-  Loader2,
-} from "lucide-react";
+import { Loader2 } from "lucide-react";
+import TablePagination from "src/components/v2/TablePagination";
 
 const columnLabels: Record<string, string> = {
   id: "Application ID",
@@ -93,7 +88,7 @@ function AccountOptedApplications(): JSX.Element {
           <div className="text-right">
             <Button
               variant="muted"
-              className="h-7 px-2.5 text-xs -my-1 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+              className="h-7 px-2.5 text-xs -my-1 border-primary text-primary hover:bg-primary hover:text-background"
               onClick={() =>
                 navigate(
                   `/account/${address}/opted-applications/${Number(row.original.id)}`
@@ -190,7 +185,7 @@ function AccountOptedApplications(): JSX.Element {
             </div>
 
             {/* Mobile cards */}
-            <div className="md:hidden space-y-2 mt-3">
+            <div className="md:hidden space-y-2">
               {table.getRowModel().rows.length > 0 ? (
                 table.getRowModel().rows.map((row) => (
                   <AppCard key={row.id} row={row} address={address} />
@@ -203,49 +198,16 @@ function AccountOptedApplications(): JSX.Element {
             </div>
 
             {/* Pagination */}
-            {pageCount > 1 ? (
-              <div className="flex items-center justify-end gap-2 pt-4 pb-0 md:py-4">
-                <span className="text-sm text-muted-foreground">
-                  Page {pageIndex + 1} of {pageCount}
-                </span>
-                <Button
-                  variant="muted"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => table.setPageIndex(0)}
-                  disabled={!table.getCanPreviousPage()}
-                >
-                  <ChevronsLeft className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="muted"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => table.previousPage()}
-                  disabled={!table.getCanPreviousPage()}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="muted"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => table.nextPage()}
-                  disabled={!table.getCanNextPage()}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="muted"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => table.setPageIndex(pageCount - 1)}
-                  disabled={!table.getCanNextPage()}
-                >
-                  <ChevronsRight className="h-4 w-4" />
-                </Button>
-              </div>
-            ) : null}
+            <TablePagination
+              pageIndex={pageIndex}
+              pageCount={pageCount}
+              canPreviousPage={table.getCanPreviousPage()}
+              canNextPage={table.getCanNextPage()}
+              onFirst={() => table.setPageIndex(0)}
+              onPrev={() => table.previousPage()}
+              onNext={() => table.nextPage()}
+              onLast={() => table.setPageIndex(pageCount - 1)}
+            />
           </>
         )}
       </div>

@@ -10,6 +10,7 @@ import { shortDuration } from "src/utils/common";
 import LoadingTile from "src/components/v2/LoadingTile";
 import LinkToBlock from "../Links/LinkToBlock";
 import { Button } from "src/components/v2/ui/button";
+import TabsUnderline from "src/components/v2/shadcn-studio/tabs/tabs-11";
 import {
   Dialog,
   DialogContent,
@@ -30,9 +31,10 @@ import {
   Hand as HandIcon,
   ExternalLink,
   TriangleAlert,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
+import TablePagination from "src/components/v2/TablePagination";
+import MultiDateViewer from "src/components/v2/MultiDateViewer";
+import { cx } from "class-variance-authority";
 
 const timeframeSteps = [30_000, 210_000, 900_000];
 const PAGE_SIZE = 16;
@@ -48,14 +50,21 @@ function Row({
   value,
   valueSuffix = null,
   copy = true,
+  className = "",
 }: {
   label: string;
   value: string | number;
   valueSuffix?: React.ReactNode;
   copy?: boolean;
+  className?: string;
 }) {
   return (
-    <div className="flex justify-between items-center min-w-[min(90%,375px)] max-w-[450px] text-muted-foreground">
+    <div
+      className={cx(
+        `flex justify-between items-center w-full text-muted-foreground leading-[1.5]`,
+        className,
+      )}
+    >
       <div>{label}</div>
       <div className="flex items-center gap-1 text-foreground">
         <span>{value}</span>
@@ -68,7 +77,11 @@ function Row({
 
 function AccountValidator(): JSX.Element {
   const { address } = useParams();
-  const { data: validatorData, isLoading: validatorLoading, error: validatorError } = useValidator(address);
+  const {
+    data: validatorData,
+    isLoading: validatorLoading,
+    error: validatorError,
+  } = useValidator(address);
 
   const [timeframe, setTimeframe] = useState<number>(0);
   const [lastRound, setLastRound] = useState(0);
@@ -144,7 +157,7 @@ function AccountValidator(): JSX.Element {
   const goExternalCalendar = () => {
     if (
       window.confirm(
-        "You are about leave algo.surf for a third party site. Press OK to continue."
+        "You are about leave algo.surf for a third party site. Press OK to continue.",
       )
     ) {
       window.location.href = `https://algonoderewards.com/${address}`;
@@ -163,174 +176,127 @@ function AccountValidator(): JSX.Element {
 
   const sortedProposals = useMemo(
     () => [...proposals].sort((a, b) => b.rnd - a.rnd),
-    [proposals]
+    [proposals],
   );
   const sortedSuspensions = useMemo(
     () => [...suspensions].sort((a, b) => b.rnd - a.rnd),
-    [suspensions]
+    [suspensions],
   );
 
   const dialogItems = dialog === "blocks" ? sortedProposals : sortedSuspensions;
   const totalPages = Math.ceil(dialogItems.length / PAGE_SIZE);
-  const pagedProposals = dialog === "blocks"
-    ? sortedProposals.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
-    : [];
-  const pagedSuspensions = dialog === "suspensions"
-    ? sortedSuspensions.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
-    : [];
+  const pagedProposals =
+    dialog === "blocks"
+      ? sortedProposals.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
+      : [];
+  const pagedSuspensions =
+    dialog === "suspensions"
+      ? sortedSuspensions.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
+      : [];
 
   return (
     <>
       <div className="mt-6 px-1">
-        <div className="flex flex-col-reverse md:flex-row">
-          <div className="flex-grow mt-4 flex flex-col gap-4">
-            {hasData ? (
-              <>
-                <div className="flex flex-col gap-1.5">
-                  <Row
-                    label="Block Proposals"
-                    value={numBlocks.toLocaleString()}
-                  />
-                  <Row
-                    label="Rewards"
-                    value={
-                      sumPayouts ? microalgosToAlgosStr(sumPayouts) : "-"
-                    }
-                    valueSuffix={sumPayouts ? <AlgoIcon /> : null}
-                    copy={!!sumPayouts}
-                  />
-                  <Row
-                    label="Suspensions"
-                    value={numSuspensions.toLocaleString()}
-                    valueSuffix={
-                      numSuspensions ? (
-                        <TriangleAlert
-                          className="text-yellow-500"
-                          size={16}
-                        />
-                      ) : null
-                    }
-                    copy={false}
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <Row
-                    label="Avg blocks / day"
-                    value={
-                      startTime > 0
-                        ? (
-                            (numBlocks * 86400) /
-                            (lastNow - startTime)
-                          ).toLocaleString(undefined, {
-                            maximumFractionDigits: 2,
-                          })
-                        : "-"
-                    }
-                    copy={false}
-                  />
-                  <Row
-                    label="Time frame (in blocks)"
-                    value={
-                      timeframe ? timeframe.toLocaleString() : "Lifetime"
-                    }
-                    copy={false}
-                  />
-                  <Row
-                    label="Time frame (duration)"
-                    value={
-                      startTime > 0
-                        ? shortDuration(startTime, lastNow)
-                        : "-"
-                    }
-                    copy={false}
-                  />
-                </div>
-              </>
-            ) : null}
-          </div>
-
-          <div className="flex items-start gap-2 flex-wrap text-sm text-muted-foreground">
-            <span className="mt-1.5">Time frame</span>
-            <div className="flex flex-wrap gap-0">
-              {timeframeSteps.map((step) => (
-                <Button
-                  key={`tf-${step}`}
-                  variant={timeframe === step ? "default" : "outline"}
-                  size="sm"
-                  className="rounded-none first:rounded-l-md last:rounded-r-md border-r-0 last:border-r"
-                  onClick={() => {
-                    setTimeframe(step);
-                    refreshLastRound();
-                  }}
-                >
-                  {step.toLocaleString()}
-                </Button>
-              ))}
-              <Button
-                variant={timeframe === 0 ? "default" : "outline"}
-                size="sm"
-                className="rounded-none border-r-0"
-                onClick={() => {
-                  setTimeframe(0);
+        <div className="flex flex-col items-center gap-6">
+          {/* Time frame switcher */}
+          <div className="w-full max-w-[420px] flex items-center gap-3">
+            <span className="text-sm text-primary shrink-0">
+              Rounds
+            </span>
+            <div className="flex-1 min-w-0">
+              <TabsUnderline
+                value={
+                  timeframe === 0
+                    ? "lifetime"
+                    : timeframeSteps.includes(timeframe)
+                      ? String(timeframe)
+                      : "custom"
+                }
+                onValueChange={(v) => {
+                  if (v === "custom") return;
+                  const next = v === "lifetime" ? 0 : Number(v);
+                  setTimeframe(next);
                   refreshLastRound();
                 }}
-              >
-                Lifetime
-              </Button>
-              <Button
-                variant={
-                  timeframe !== 0 && !timeframeSteps.includes(timeframe)
-                    ? "default"
-                    : "outline"
-                }
-                size="sm"
-                className="rounded-none rounded-r-md"
-                onClick={() => {
-                  const duration = prompt("Enter time frame in blocks");
-                  const numBlocks = parseInt(duration, 10);
-                  if (Number.isFinite(numBlocks)) {
-                    setTimeframe(numBlocks);
-                    refreshLastRound();
-                  }
-                }}
-              >
-                Custom
-              </Button>
+                tabs={[
+                  ...timeframeSteps.map((step) => ({
+                    name: step.toLocaleString(),
+                    value: String(step),
+                  })),
+                  { name: "Lifetime", value: "lifetime" },
+                  {
+                    name: "Custom",
+                    value: "custom",
+                    onClick: () => {
+                      const duration = prompt("Enter time frame in blocks");
+                      const numBlocks = parseInt(duration, 10);
+                      if (Number.isFinite(numBlocks)) {
+                        setTimeframe(numBlocks);
+                        refreshLastRound();
+                      }
+                    },
+                  },
+                ]}
+              />
             </div>
           </div>
-        </div>
 
-        <div className="flex justify-center mt-6">
+          {/* Stats */}
           {hasData ? (
-            <div className="flex items-center gap-2 flex-wrap">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={showBlocksProposed}
-              >
-                <CubeIcon size={16} />
-                Show Proposed Blocks
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={showSuspensions}
-              >
-                <HandIcon size={16} />
-                Show Suspension Events
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={goExternalCalendar}
-              >
-                <CalendarIcon size={16} />
-                Calendar & Graphs
-                <ExternalLink size={14} />
-              </Button>
+            <div className="w-full max-w-[420px] flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <Row
+                  label="Block Proposals"
+                  value={numBlocks.toLocaleString()}
+                />
+                <Row
+                  label="Rewards"
+                  value={sumPayouts ? microalgosToAlgosStr(sumPayouts) : "-"}
+                  valueSuffix={sumPayouts ? <AlgoIcon /> : null}
+                  copy={!!sumPayouts}
+                />
+                <Row
+                  label="Suspensions"
+                  value={numSuspensions.toLocaleString()}
+                  valueSuffix={
+                    numSuspensions ? (
+                      <TriangleAlert className="text-yellow-500" size={16} />
+                    ) : null
+                  }
+                  copy={false}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Row
+                  label="Avg blocks / day"
+                  value={
+                    startTime > 0
+                      ? (
+                          (numBlocks * 86400) /
+                          (lastNow - startTime)
+                        ).toLocaleString(undefined, {
+                          maximumFractionDigits: 2,
+                        })
+                      : "-"
+                  }
+                  copy={false}
+                />
+                <Row
+                  label="Time frame (in blocks)"
+                  value={timeframe ? timeframe.toLocaleString() : "Lifetime"}
+                  copy={false}
+                />
+                <Row
+                  label="Time frame (duration)"
+                  value={
+                    startTime > 0 ? shortDuration(startTime, lastNow) : "-"
+                  }
+                  copy={false}
+                />
+              </div>
             </div>
           ) : validatorLoading ? (
-            <div className="w-full">
+            <div className="w-full max-w-[420px]">
               <LoadingTile
                 style={{ marginTop: "0" }}
                 lineStyle={{ height: "10px", margin: "5px 0" }}
@@ -342,42 +308,81 @@ function AccountValidator(): JSX.Element {
             </div>
           ) : null}
         </div>
+
+        <div className="flex justify-center mt-8">
+          {hasData ? (
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-primary text-primary hover:bg-primary hover:text-background"
+                onClick={showBlocksProposed}
+              >
+                <CubeIcon size={16} />
+                Show Proposed Blocks
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-primary text-primary hover:bg-primary hover:text-background"
+                onClick={showSuspensions}
+              >
+                <HandIcon size={16} />
+                Show Suspension Events
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-primary text-primary hover:bg-primary hover:text-background"
+                onClick={goExternalCalendar}
+              >
+                <CalendarIcon size={16} />
+                Calendar & Graphs
+                <ExternalLink size={14} />
+              </Button>
+            </div>
+          ) : null}
+        </div>
       </div>
 
       <Dialog open={!!dialog} onOpenChange={(open) => !open && closeDialog()}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {dialog === "blocks"
-                ? "Proposed Blocks"
-                : "Suspension Events"}
+              {dialog === "blocks" ? "Proposed Blocks" : "Suspension Events"}
             </DialogTitle>
           </DialogHeader>
 
-          <div className="flex justify-between items-start gap-4 mb-4 flex-wrap">
+          <div className="flex justify-center items-start  mb-1 flex-wrap">
             <Row
               label="Block range"
+              className="max-w-xs"
               value={`${timeframe ? lastRound - timeframe : 0} - ${lastRound}`}
               copy={false}
             />
             <Row
               label="Range duration"
-              value={
-                startTime > 0
-                  ? shortDuration(startTime, lastNow)
-                  : "-"
-              }
+              className="max-w-xs"
+              value={startTime > 0 ? shortDuration(startTime, lastNow) : "-"}
               copy={false}
             />
           </div>
+          <TablePagination
+            pageIndex={page}
+            pageCount={totalPages}
+            canPreviousPage={page > 0}
+            canNextPage={page < totalPages - 1}
+            onFirst={() => setPage(0)}
+            onPrev={() => setPage((p) => p - 1)}
+            onNext={() => setPage((p) => p + 1)}
+            onLast={() => setPage(totalPages - 1)}
+          />
 
           <Table>
             <TableHeader className="[&_tr]:border-primary">
               <TableRow>
                 <TableHead>
-                  {dialog === "blocks"
-                    ? "Block Proposed"
-                    : "Suspension block"}
+                  {dialog === "blocks" ? "Block Proposed" : "Suspension block"}
                 </TableHead>
                 {dialog === "blocks" ? (
                   <>
@@ -404,9 +409,7 @@ function AccountValidator(): JSX.Element {
                       <LinkToBlock id={row.rnd} />
                     </TableCell>
                     <TableCell>
-                      {row.pp
-                        ? new Date(row.rnd).toLocaleString()
-                        : "-"}
+                      <MultiDateViewer timestamp={row.ts} />
                     </TableCell>
                     <TableCell>
                       {row.pp ? (
@@ -431,32 +434,6 @@ function AccountValidator(): JSX.Element {
               )}
             </TableBody>
           </Table>
-
-          {totalPages > 1 ? (
-            <div className="flex items-center justify-between mt-4 text-sm text-muted-foreground">
-              <span>
-                Page {page + 1} of {totalPages}
-              </span>
-              <div className="flex gap-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page === 0}
-                  onClick={() => setPage((p) => p - 1)}
-                >
-                  <ChevronLeft size={16} />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page >= totalPages - 1}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  <ChevronRight size={16} />
-                </Button>
-              </div>
-            </div>
-          ) : null}
         </DialogContent>
       </Dialog>
     </>

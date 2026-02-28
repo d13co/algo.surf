@@ -48,7 +48,7 @@ export default function Copyable({
             type="button"
             aria-label="copy"
             className={cn(
-              "inline-flex items-center cursor-pointer p-[5px] -my-0.5 align-middle",
+              "inline-flex items-center cursor-pointer px-[2px] -my-0.5 align-middle",
               children ? "min-w-0 overflow-hidden gap-1" : "justify-center shrink-0",
               className
             )}

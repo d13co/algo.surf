@@ -2,6 +2,22 @@ import React, { createContext, useContext, useState, useCallback } from "react";
 
 export type DateFormat = "relative" | "local" | "utc" | "epoch" | "block";
 
+export const niceNames: Record<DateFormat, string> = {
+  relative: "Relative",
+  local: "Local",
+  utc: "UTC",
+  epoch: "Unix Epoch",
+  block: "Block",
+};
+
+export const nextFormat: Record<DateFormat, DateFormat> = {
+  relative: "local",
+  local: "utc",
+  utc: "epoch",
+  epoch: "block",
+  block: "relative",
+};
+
 const STORAGE_KEY = "dateFormat";
 const FORMATS: DateFormat[] = ["relative", "local", "utc", "epoch", "block"];
 

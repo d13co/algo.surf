@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import ReactJson from "react-json-view";
 import { exportData } from "src/utils/common";
 import { X } from "lucide-react";
@@ -22,7 +22,7 @@ const initialState: JsonViewerState = {
 };
 
 function JsonViewer(props: {
-  obj?: any;
+  obj?: () => any;
   filename?: string;
   title?: string;
   size?: "sm" | "default";
@@ -30,7 +30,7 @@ function JsonViewer(props: {
   variant?: "outline" | "default";
 }): JSX.Element {
   const {
-    obj = {},
+    obj: getObj = () => ({}),
     filename,
     title = "Raw JSON",
     size = "sm",
@@ -38,11 +38,16 @@ function JsonViewer(props: {
     variant = "outline",
   } = props;
 
+  const dataRef = useRef<any>(null);
+
   const [{ show, expand, expanding, copied }, setState] = useState({ ...initialState, expanding: false, copied: false });
 
   const toggle = useCallback(() => {
-    setState((prev) => ({ ...prev, show: !prev.show }));
-  }, []);
+    setState((prev) => {
+      if (!prev.show) dataRef.current = getObj();
+      return { ...prev, show: !prev.show };
+    });
+  }, [getObj]);
 
   const handleClose = useCallback(() => {
     setState((prev) => ({ ...prev, show: false }));
@@ -56,14 +61,14 @@ function JsonViewer(props: {
   }, []);
 
   const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(JSON.stringify(obj));
+    navigator.clipboard.writeText(JSON.stringify(dataRef.current ?? {}));
     setState((prev) => ({ ...prev, copied: true }));
     setTimeout(() => setState((prev) => ({ ...prev, copied: false })), 1000);
-  }, [obj]);
+  }, []);
 
   const handleDownload = useCallback(() => {
-    exportData(obj, filename);
-  }, [filename, obj]);
+    exportData(dataRef.current ?? {}, filename);
+  }, [filename]);
 
   useHotkeys("j", toggle);
   useHotkeys("e", toggleExpand, { enabled: show });
@@ -76,7 +81,7 @@ function JsonViewer(props: {
         variant={variant}
         size={size}
         className={`border-border text-primary hover:bg-primary/10 ${fullWidth ? "w-full" : ""}`}
-        onClick={() => setState((prev) => ({ ...prev, show: true }))}
+        onClick={() => { dataRef.current = getObj(); setState((prev) => ({ ...prev, show: true })); }}
       >
         <span className="whitespace-nowrap">View&nbsp;<span className="underline">J</span>SON</span>
       </Button>
@@ -120,7 +125,7 @@ function JsonViewer(props: {
             <div className="overflow-y-auto min-h-0">
               <ReactJson
                 key={expand ? "expanded" : "collapsed"}
-                src={obj}
+                src={dataRef.current ?? {}}
                 name={false}
                 displayObjectSize={false}
                 displayDataTypes={false}

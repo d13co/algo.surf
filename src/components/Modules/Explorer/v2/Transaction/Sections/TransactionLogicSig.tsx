@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { CoreTransaction } from "src/packages/core-sdk/classes/core/CoreTransaction";
 import { bytesToBase64 } from "algosdk";
 import { ChevronDown } from "lucide-react";
@@ -19,6 +19,14 @@ function TransactionLogicSig({
     "txn-logicsig-expanded",
     true,
   );
+
+  useEffect(() => {
+    if (window.location.hash === "#logicsig") {
+      setExpanded(true);
+      document.getElementById("logicsig")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, []);
+
   if (!txnInstance.isLogicSig()) return null;
 
   const logicB64 = sig.logicsig?.logic ? bytesToBase64(sig.logicsig.logic) : "";

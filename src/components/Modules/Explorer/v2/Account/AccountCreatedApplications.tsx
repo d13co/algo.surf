@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { useAccount } from "src/hooks/useAccount";
 import { CoreAccount } from "src/packages/core-sdk/classes/core/CoreAccount";
-import { modelsv2 } from "algosdk";
+import { indexerModels, modelsv2 } from "algosdk";
 import {
   useReactTable,
   getCoreRowModel,
@@ -19,27 +19,74 @@ import {
   TableHeader,
   TableRow,
 } from "src/components/v2/ui/table";
-import { Button } from "src/components/v2/ui/button";
 import LinkToApplication from "../Links/LinkToApplication";
-import {
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
-  Loader2,
-} from "lucide-react";
+import { Loader2 } from "lucide-react";
+import TablePagination from "src/components/v2/TablePagination";
 import { useApplication } from "src/hooks/useApplication";
 import { useBlock } from "src/hooks/useBlock";
 import { CoreBlock } from "src/packages/core-sdk/classes/core/CoreBlock";
 import MultiDateViewer from "src/components/v2/MultiDateViewer";
 import { AgeHeader } from "../Lists/TransactionsList/cells/AgeCell";
 
+function findTxnByAppId(
+  block: indexerModels.Block,
+  appId: number,
+): indexerModels.Transaction | undefined {
+  const target = BigInt(appId);
+
+  function matches(txn: indexerModels.Transaction): boolean {
+    return (
+      txn.applicationTransaction?.applicationId === target ||
+      txn.createdApplicationIndex === target
+    );
+  }
+
+  function search(txns: indexerModels.Transaction[] | undefined): indexerModels.Transaction | undefined {
+    if (!txns) return undefined;
+    for (const txn of txns) {
+      if (matches(txn)) return txn;
+      const inner = search(txn.innerTxns);
+      if (inner) return inner;
+    }
+    return undefined;
+  }
+
+  return search(block.transactions);
+}
+
+function NameCell({ appId }: { appId: number }) {
+  const { data: appInfo } = useApplication(appId);
+  const createdAtRound = appInfo?.createdAtRound != null ? Number(appInfo.createdAtRound) : undefined;
+  const { data: blockInfo } = useBlock(createdAtRound ?? 0);
+  
+  const appName = useMemo(() => {
+    if (!appInfo) return null;
+    const creationTxn = findTxnByAppId(blockInfo, appId);
+    if (!creationTxn) return null;
+    const { note } = creationTxn;
+    if (!note) return null;
+    const noteStr = new TextDecoder().decode(note);
+    const prefix = 'ALGOKIT_DEPLOYER:j'
+    if (noteStr.startsWith(prefix)) {
+      try {
+        const parsed = JSON.parse(noteStr.slice(prefix.length));
+        return parsed.name;
+      } catch(e) {
+        return null;
+      }
+    }
+    
+  }, [appId, blockInfo])
+
+  return appName ? <span>{appName}</span> : <span className="text-muted">&mdash;</span>;
+}
+
 function CreatedAtCell({ appId }: { appId: number }) {
   const { data: appInfo } = useApplication(appId);
   const createdAtRound = appInfo?.createdAtRound != null ? Number(appInfo.createdAtRound) : undefined;
   const { data: blockInfo } = useBlock(createdAtRound ?? 0);
   const timestamp = blockInfo ? new CoreBlock(blockInfo).getTimestamp() : undefined;
-
+  
   if (!timestamp || !createdAtRound) return <span className="text-muted">&mdash;</span>;
 
   return <MultiDateViewer timestamp={timestamp} block={createdAtRound} variant="short" />;
@@ -59,6 +106,11 @@ const columns: ColumnDef<modelsv2.Application, any>[] = [
     cell: ({ row }) => <CreatedAtCell appId={Number(row.original.id)} />,
   },
   {
+    id: "name",
+    header: "Name",
+    cell: ({ row }) => <NameCell appId={Number(row.original.id)} />,
+  },
+  {
     id: "version",
     header: "Version",
     cell: ({ row }) => row.original.params.version ?? 1,
@@ -68,6 +120,7 @@ const columns: ColumnDef<modelsv2.Application, any>[] = [
 const columnLabels: Record<string, string> = {
   id: "Application ID",
   created: "Created",
+  name: "Name",
   version: "Version",
 };
 
@@ -169,7 +222,7 @@ function AccountCreatedApplications(): JSX.Element {
           </div>
 
           {/* Mobile cards */}
-          <div className="md:hidden space-y-2 mt-3">
+          <div className="md:hidden space-y-2">
             {table.getRowModel().rows.length > 0 ? (
               table.getRowModel().rows.map((row) => (
                 <AppCard key={row.id} row={row} />
@@ -182,49 +235,16 @@ function AccountCreatedApplications(): JSX.Element {
           </div>
 
           {/* Pagination */}
-          {pageCount > 1 ? (
-            <div className="flex items-center justify-end gap-2 pt-4 pb-0 md:py-4">
-              <span className="text-sm text-muted-foreground">
-                Page {pageIndex + 1} of {pageCount}
-              </span>
-              <Button
-                variant="muted"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => table.setPageIndex(0)}
-                disabled={!table.getCanPreviousPage()}
-              >
-                <ChevronsLeft className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="muted"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => table.previousPage()}
-                disabled={!table.getCanPreviousPage()}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="muted"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => table.nextPage()}
-                disabled={!table.getCanNextPage()}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="muted"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => table.setPageIndex(pageCount - 1)}
-                disabled={!table.getCanNextPage()}
-              >
-                <ChevronsRight className="h-4 w-4" />
-              </Button>
-            </div>
-          ) : null}
+          <TablePagination
+            pageIndex={pageIndex}
+            pageCount={pageCount}
+            canPreviousPage={table.getCanPreviousPage()}
+            canNextPage={table.getCanNextPage()}
+            onFirst={() => table.setPageIndex(0)}
+            onPrev={() => table.previousPage()}
+            onNext={() => table.nextPage()}
+            onLast={() => table.setPageIndex(pageCount - 1)}
+          />
         </>
       )}
     </div>

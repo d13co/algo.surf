@@ -3,7 +3,7 @@ import { CellContext } from "@tanstack/react-table";
 import { indexerModels } from "algosdk";
 import { CoreTransaction } from "src/packages/core-sdk/classes/core/CoreTransaction";
 import MultiDateViewer from "src/components/v2/MultiDateViewer";
-import { useDateFormat } from "src/contexts/DateFormatContext";
+import { useDateFormat, niceNames, nextFormat } from "src/contexts/DateFormatContext";
 import { RefreshCw } from "lucide-react";
 import {
   Tooltip,
@@ -12,25 +12,9 @@ import {
   TooltipTrigger,
 } from "src/components/v2/ui/tooltip";
 
-const niceNames: Record<string, string> = {
-  relative: "Relative",
-  local: "Local",
-  utc: "UTC",
-  epoch: "Unix Epoch",
-  block: "Block",
-};
-
-const nextFormat: Record<string, string> = {
-  relative: "local",
-  local: "utc",
-  utc: "epoch",
-  epoch: "block",
-  block: "relative",
-};
-
 export function AgeHeader() {
   const { format, cycle } = useDateFormat();
-  const label = format === "block" ? "Block" : format === "relative" ? "Age" : "Date";
+  const label = format === "block" ? "Block" : format === "relative" ? "Age" : format === "epoch" ? "Unix" : "Date";
   const next = nextFormat[format];
   return (
     <span className="inline-flex items-center gap-1">
@@ -40,7 +24,7 @@ export function AgeHeader() {
           <TooltipTrigger asChild>
             <button
               type="button"
-              className="inline-flex items-center justify-center cursor-pointer opacity-60 hover:opacity-100"
+              className="inline-flex items-center justify-center -my-1 cursor-pointer opacity-60 hover:opacity-100"
               onClick={cycle}
             >
               <RefreshCw size={12} />

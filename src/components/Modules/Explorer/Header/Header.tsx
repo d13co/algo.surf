@@ -29,7 +29,7 @@ function Header(): JSX.Element {
     }, [location.pathname]);
 
     return (
-        <div className="mb-2 md:mb-8">
+        <div className="mb-5">
             <div className="flex justify-between items-center max-header:flex-col max-header:items-stretch">
                 <nav className="flex items-center -ml-3 overflow-x-auto">
                     {navItems.map((item) => (

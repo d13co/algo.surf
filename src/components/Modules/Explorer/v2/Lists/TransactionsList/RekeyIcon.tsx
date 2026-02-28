@@ -12,7 +12,7 @@ export default function RekeyIcon() {
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <span className="inline-flex items-center text-muted-foreground">
+          <span className="inline-flex items-center -my-1 text-muted-foreground">
             <KeyRound size={14} strokeWidth={1.75} />
           </span>
         </TooltipTrigger>

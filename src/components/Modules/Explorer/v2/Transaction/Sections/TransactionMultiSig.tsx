@@ -29,7 +29,7 @@ function SubSigner({
   );
 
   return (
-    <div className="flex items-center my-3 text-sm">
+    <div className="flex items-center my-3 text-sm min-w-0">
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -78,7 +78,7 @@ function TransactionMultiSig({
 
         <div className="mt-2.5">
           <div className="text-[110%]">Subsignatures</div>
-          <div className="flex flex-col items-start mt-2.5">
+          <div className="flex flex-col mt-2.5">
             {subsigs.map(([addr, signed]: [string, boolean]) => (
               <SubSigner signed={signed} key={addr}>
                 <LinkToAccount copySize="m" address={addr} />

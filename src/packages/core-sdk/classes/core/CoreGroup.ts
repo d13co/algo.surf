@@ -5,6 +5,7 @@ import {CoreTransaction} from "./CoreTransaction";
 import humanizeDuration from 'humanize-duration';
 import BaseTxnHolder from "./BaseTxnHolder";
 import { indexerModels } from "algosdk";
+import { encodingDataToPlain } from "../../utils/serialize";
 
 type GroupData = {
     id: string;
@@ -43,6 +44,19 @@ export class CoreGroup extends BaseTxnHolder {
 
     get(): GroupData {
         return this._data;
+    }
+
+    toJSON(): Record<string, unknown> {
+        return {
+            id: this._data.id,
+            block: this._data.block,
+            timestamp: this._data.timestamp,
+            transactions: this._data.transactions.map(t =>
+                typeof t.toEncodingData === "function"
+                    ? encodingDataToPlain(t.toEncodingData())
+                    : t as unknown as Record<string, unknown>
+            ),
+        };
     }
 
     getId(): string {

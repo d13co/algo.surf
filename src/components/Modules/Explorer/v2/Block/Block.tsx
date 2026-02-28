@@ -5,11 +5,10 @@ import { useBlock, useBlockHash } from "src/hooks/useBlock";
 import LinkToAccount from "../Links/LinkToAccount";
 import LinkToBlock from "../Links/LinkToBlock";
 import LoadingTile from "src/components/v2/LoadingTile";
-import JsonViewer from "src/components/v2/JsonViewer";
 import CustomError from "../CustomError";
 import Copyable from "src/components/v2/Copyable";
 import NumberFormat from "react-number-format";
-import OpenInMenu from "src/components/v2/OpenInMenu";
+import RecordPageHeader from "src/components/v2/RecordPageHeader";
 import MultiDateViewer, { DateSwitcher } from "src/components/v2/MultiDateViewer";
 import AlgoIcon from "../../AlgoIcon/AlgoIcon";
 import useTitle from "src/components/Common/UseTitle/UseTitle";
@@ -73,15 +72,18 @@ function Block(): JSX.Element {
           <CustomError error={error?.message} />
         ) : (
           <div>
-            <div className="flex flex-wrap items-center justify-between gap-2 text-xl">
-              <div className="group flex items-center gap-2 min-w-0">
-                <span className="shrink-0">Block</span>
-                <span>
-                  <span className="select-none">#</span>
-                  {blockInstance?.getRound() ?? id}
-                </span>
-                <Copyable className="opacity-60 group-hover:opacity-100" value={numId} />
-              </div>
+            <RecordPageHeader
+              label="Block"
+              id={<><span className="select-none">#</span>{blockInstance?.getRound() ?? id}</>}
+              copyValue={numId}
+              nowrap={false}
+              jsonViewer={{
+                filename: `block-${id}.json`,
+                obj: () => blockInstance?.toJSON() ?? {},
+                title: `Block ${id}`,
+              }}
+              openIn={{ pageType: "block", id }}
+            >
               <div className="flex items-center gap-1 shrink-0 ml-auto md:ml-0">
                 <a
                   href={`/block/${numId - 1}/transactions`}
@@ -106,15 +108,7 @@ function Block(): JSX.Element {
                   <ArrowRightFromLine size={20} />
                 </a>
               </div>
-              <div className="flex items-center gap-2.5 shrink-0 ml-auto md:ml-0">
-                <JsonViewer
-                  filename={`block-${id}.json`}
-                  obj={blockInstance?.toJSON() ?? {}}
-                  title={`Block ${id}`}
-                />
-                <OpenInMenu pageType={"block"} id={id} />
-              </div>
-            </div>
+            </RecordPageHeader>
 
             {isLoading || !blockInstance ? (
               <LoadingTile />
@@ -195,25 +189,25 @@ function Block(): JSX.Element {
                       <div className="mt-2.5">
                         <div className="text-muted-foreground">Block Reward</div>
                         <div className="mt-2.5 group inline-flex items-center gap-1">
-                          <Copyable className="opacity-60 group-hover:opacity-100" value={microalgosToAlgos(blockInstance.getProposerPayout())} />
                           <AlgoIcon />
                           <NumberFormat value={microalgosToAlgos(blockInstance.getProposerPayout())} displayType="text" thousandSeparator={true} />
+                          <Copyable className="opacity-60 group-hover:opacity-100" value={microalgosToAlgos(blockInstance.getProposerPayout())} />
                         </div>
                       </div>
                       <div className="mt-2.5">
                         <div className="text-muted-foreground">Block Bonus</div>
                         <div className="mt-2.5 group inline-flex items-center gap-1">
-                          <Copyable className="opacity-60 group-hover:opacity-100" value={microalgosToAlgos(bonus)} />
                           <AlgoIcon />
                           <NumberFormat value={microalgosToAlgos(bonus)} displayType="text" thousandSeparator={true} />
+                          <Copyable className="opacity-60 group-hover:opacity-100" value={microalgosToAlgos(bonus)} />
                         </div>
                       </div>
                       <div className="mt-2.5">
                         <div className="text-muted-foreground">Block Fees</div>
                         <div className="mt-2.5 group inline-flex items-center gap-1">
-                          <Copyable className="opacity-60 group-hover:opacity-100" value={microalgosToAlgos(blockInstance.getFeesCollected())} />
                           <AlgoIcon />
                           <NumberFormat value={microalgosToAlgos(blockInstance.getFeesCollected())} displayType="text" thousandSeparator={true} />
+                          <Copyable className="opacity-60 group-hover:opacity-100" value={microalgosToAlgos(blockInstance.getFeesCollected())} />
                         </div>
                       </div>
                     </div>

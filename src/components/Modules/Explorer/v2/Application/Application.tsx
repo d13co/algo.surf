@@ -10,10 +10,9 @@ import {
 import { CoreApplication } from "src/packages/core-sdk/classes/core/CoreApplication";
 import LinkToAccount from "../Links/LinkToAccount";
 import LoadingTile from "src/components/v2/LoadingTile";
-import JsonViewer from "src/components/v2/JsonViewer";
 import CustomError from "../CustomError";
 import Copyable from "src/components/v2/Copyable";
-import OpenInMenu from "src/components/v2/OpenInMenu";
+import RecordPageHeader from "src/components/v2/RecordPageHeader";
 import Dym from "../Dym";
 import useTitle from "src/components/Common/UseTitle/UseTitle";
 import { ChevronDown } from "lucide-react";
@@ -101,21 +100,17 @@ function Application(): JSX.Element {
           <CustomError error={error?.message} />
         ) : (
           <div>
-            <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 text-xl">
-              <div className="group flex items-center gap-2 min-w-0">
-                <span className="shrink-0">Application</span>
-                <span><span className="select-none">#</span>{id}</span>
-                <Copyable className="opacity-60 group-hover:opacity-100" value={Number(id)} />
-              </div>
-              <div className="flex items-center gap-2.5 shrink-0 ml-auto">
-                <JsonViewer
-                  filename={`app-${id}.json`}
-                  obj={applicationInstance?.toJSON() ?? {}}
-                  title={`Application ${id}`}
-                />
-                <OpenInMenu pageType={"application"} id={id} />
-              </div>
-            </div>
+            <RecordPageHeader
+              label="Application"
+              id={<><span className="select-none">#</span>{id}</>}
+              copyValue={Number(id)}
+              jsonViewer={{
+                filename: `app-${id}.json`,
+                obj: () => applicationInstance?.toJSON() ?? {},
+                title: `Application ${id}`,
+              }}
+              openIn={{ pageType: "application", id }}
+            />
 
             {isLoading || !applicationInstance ? (
               <LoadingTile />

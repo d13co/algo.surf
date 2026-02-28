@@ -1,6 +1,6 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import {useLiveData} from "../../../../hooks/useLiveData";
-import LinkToBlock from "../v2/Links/LinkToBlock";
 import {CoreBlock} from "../../../../packages/core-sdk/classes/core/CoreBlock";
 import { CSSTransition, TransitionGroup } from 'react-transition-group';
 import MultiDateViewer from "../../../v2/MultiDateViewer";
@@ -55,12 +55,10 @@ function LiveBlocks(): JSX.Element {
 
                             return (
                                 <CSSTransition key={blockInstance.getRound()} timeout={700} classNames="item">
-                                    <div
-                                        className="bg-background-card p-4 my-3 flex justify-between border-l-[6px] border-primary rounded overflow-hidden"
-                                    >
+                                    <Link to={"/block/" + blockInstance.getRound()} className="block bg-background-card p-4 my-3 border-l-[6px] border-primary rounded overflow-hidden hover:bg-background-card/80">
                                         <div className="w-full">
                                             <div className="flex justify-between items-center flex-wrap">
-                                                <LinkToBlock id={blockInstance.getRound()} />
+                                                <span className="text-primary font-medium">{blockInstance.getRound()}</span>
                                                 <span className="text-right grow text-muted-foreground">
                                                     {blockInstance.getTransactionsCount()} Transactions
                                                 </span>
@@ -72,11 +70,11 @@ function LiveBlocks(): JSX.Element {
                                                     )}
                                                 </div>
                                                 <div className="mt-4 text-[13px] text-muted-foreground text-right ml-0.5">
-                                                    <MultiDateViewer timestamp={blockInstance.getTimestamp()} />
+                                                    <MultiDateViewer timestamp={blockInstance.getTimestamp()} fixedView="relative" noCopy />
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
+                                    </Link>
                                 </CSSTransition>
                             );
                         })}

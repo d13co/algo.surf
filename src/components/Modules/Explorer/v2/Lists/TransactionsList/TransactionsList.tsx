@@ -14,7 +14,6 @@ import {
   TableHeader,
   TableRow,
 } from "src/components/v2/ui/table";
-import { Button } from "src/components/v2/ui/button";
 import { indexerModels } from "algosdk";
 import {
   columns,
@@ -27,13 +26,8 @@ import { CoreTransaction } from "src/packages/core-sdk/classes/core/CoreTransact
 import { TXN_TYPES } from "src/packages/core-sdk/constants";
 import { useEscrowBatch } from "src/hooks/useAccount";
 import TransactionCard from "./TransactionCard";
-import {
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
-  Loader2,
-} from "lucide-react";
+import { Loader2 } from "lucide-react";
+import ListToolbar from "src/components/v2/ListToolbar";
 import { SkeletonRows, SkeletonCards } from "src/components/v2/ui/table-skeleton";
 import { useStableHeight } from "src/hooks/useStableHeight";
 
@@ -170,52 +164,20 @@ function TransactionsList({
     table.setPageIndex(newPage);
   }
 
-  const pagination = pageCount > 1 ? (
-    <div className="flex items-center justify-end gap-2 pt-4 pb-0 md:py-4">
-      {loading ? (
-        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-      ) : null}
-      <span className="text-sm text-muted-foreground">
-        Page {pageIndex + 1} of {pageCount}
-      </span>
-      <Button
-        variant="muted"
-        size="icon"
-        className="h-8 w-8"
-        onClick={() => handlePageChange(0)}
-        disabled={!table.getCanPreviousPage()}
-      >
-        <ChevronsLeft className="h-4 w-4" />
-      </Button>
-      <Button
-        variant="muted"
-        size="icon"
-        className="h-8 w-8"
-        onClick={() => handlePageChange(pageIndex - 1)}
-        disabled={!table.getCanPreviousPage()}
-      >
-        <ChevronLeft className="h-4 w-4" />
-      </Button>
-      <Button
-        variant="muted"
-        size="icon"
-        className="h-8 w-8"
-        onClick={() => handlePageChange(pageIndex + 1)}
-        disabled={!table.getCanNextPage()}
-      >
-        <ChevronRight className="h-4 w-4" />
-      </Button>
-      <Button
-        variant="muted"
-        size="icon"
-        className="h-8 w-8"
-        onClick={() => handlePageChange(pageCount - 1)}
-        disabled={!table.getCanNextPage()}
-      >
-        <ChevronsRight className="h-4 w-4" />
-      </Button>
-    </div>
-  ) : null;
+  const pagination = (
+    <ListToolbar
+      pageIndex={pageIndex}
+      pageCount={pageCount}
+      canPreviousPage={table.getCanPreviousPage()}
+      canNextPage={table.getCanNextPage()}
+      onFirst={() => handlePageChange(0)}
+      onPrev={() => handlePageChange(pageIndex - 1)}
+      onNext={() => handlePageChange(pageIndex + 1)}
+      onLast={() => handlePageChange(pageCount - 1)}
+      loading={loading}
+      className="mt-3"
+    />
+  );
 
   return (
     <div>
@@ -284,7 +246,7 @@ function TransactionsList({
       </div>
 
       {/* Mobile cards */}
-      <div className="md:hidden space-y-2 mt-3">
+      <div className="md:hidden space-y-2">
         {table.getRowModel().rows.length > 0 ? (
           <>
             {table.getRowModel().rows.map((row) => (
@@ -302,6 +264,21 @@ function TransactionsList({
             ) : "No transactions"}
           </div>
         )}
+      </div>
+
+      {/* Bottom pagination (mobile only) */}
+      <div className="md:hidden">
+        <ListToolbar
+          pageIndex={pageIndex}
+          pageCount={pageCount}
+          canPreviousPage={table.getCanPreviousPage()}
+          canNextPage={table.getCanNextPage()}
+          onFirst={() => handlePageChange(0)}
+          onPrev={() => handlePageChange(pageIndex - 1)}
+          onNext={() => handlePageChange(pageIndex + 1)}
+          onLast={() => handlePageChange(pageCount - 1)}
+          loading={loading}
+        />
       </div>
 
     </div>

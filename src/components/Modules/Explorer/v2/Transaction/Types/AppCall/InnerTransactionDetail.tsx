@@ -29,7 +29,7 @@ function InnerTransactionDetail({
           {txnInstance.getTypeDisplayValue()}
         </span>
         <JsonViewer
-          obj={txnInstance.toJSON()}
+          obj={() => txnInstance.toJSON()}
           title="Inner transaction"
           filename="inner-txn.json"
           size="sm"

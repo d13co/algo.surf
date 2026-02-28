@@ -21,7 +21,7 @@ export default function DymNFD({ nfd, accounts }: DymProps): JSX.Element {
         <div className="mb-4 text-nfd">{nfd} has multiple verified addresses.</div>
         <div className="mb-1 text-muted-foreground">You may be looking for:</div>
         {accounts.map((account, i) => (
-          <div className="truncate" key={`acc${i}`}>
+          <div className="truncate py-0.5" key={`acc${i}`}>
             <LinkToAccount noNFD address={account} />
           </div>
         ))}

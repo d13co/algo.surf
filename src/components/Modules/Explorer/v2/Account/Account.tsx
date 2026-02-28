@@ -19,11 +19,10 @@ import { useValidator } from "src/hooks/useValidator";
 import { useReverseNFD, useReverseNFDs } from "src/components/Common/UseNFD";
 import { useTinyAssets } from "src/components/Common/UseTinyAsset";
 import LoadingTile from "src/components/v2/LoadingTile";
-import JsonViewer from "src/components/v2/JsonViewer";
 import CustomError from "../CustomError";
 import Copyable from "src/components/v2/Copyable";
 import NumberFormat from "react-number-format";
-import OpenInMenu from "src/components/v2/OpenInMenu";
+import RecordPageHeader from "src/components/v2/RecordPageHeader";
 import AlgoIcon from "../../AlgoIcon/AlgoIcon";
 import useTitle from "src/components/Common/UseTitle/UseTitle";
 import LinkToAccount from "../Links/LinkToAccount";
@@ -39,6 +38,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "src/components/v2/ui/tooltip";
+import { Chip, BadgesRow } from "src/components/v2/Chips";
 
 const isMainnet = network === "Mainnet";
 const tinymanAppEscrow =
@@ -71,32 +71,6 @@ class TabErrorBoundary extends Component<
 
 function plural(num: number): string {
   return num !== 1 ? "s" : "";
-}
-
-function Chip({
-  children,
-  className = "",
-  onClick,
-  variant = "success",
-}: {
-  children: React.ReactNode;
-  className?: string;
-  onClick?: (e: React.MouseEvent) => void;
-  variant?: "success" | "warning" | "tinyman";
-}) {
-  const colors = {
-    success: "border-primary text-primary",
-    warning: "border-yellow-500 text-yellow-500",
-    tinyman: "bg-[#f1fe68] text-[#0e0b1c] border-transparent",
-  };
-  return (
-    <span
-      className={`inline-flex items-center text-xs border rounded px-2.5 py-0.5 ${colors[variant]} ${onClick ? "cursor-pointer" : "cursor-default"} ${className}`}
-      onClick={onClick}
-    >
-      {children}
-    </span>
-  );
 }
 
 function Account(): JSX.Element {
@@ -283,183 +257,184 @@ function Account(): JSX.Element {
               <DymNFD nfd={nfd} accounts={altNFDAccountsToShow} />
             ) : null}
 
-            <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 text-xl">
-              <div className="group flex items-center gap-2 min-w-0">
-                <span className="shrink-0">Account</span>
-                <span className="truncate min-w-0">{address}</span>
-                <Copyable className="opacity-60 group-hover:opacity-100" value={address!} />
-              </div>
-              <div className="flex items-center gap-2.5 shrink-0 ml-auto">
-                <JsonViewer
-                  obj={accountInfo ? toPlainJson(accountInfo) : {}}
-                  filename={`account-${address}.json`}
-                  title={`Account ${address?.slice(0, 16)}..`}
-                />
-                <OpenInMenu pageType="account" id={address} />
-              </div>
-            </div>
+            <RecordPageHeader
+              label="Account"
+              id={address}
+              copyValue={address!}
+              truncate
+              jsonViewer={{
+                obj: () => accountInfo ? toPlainJson(accountInfo) : {},
+                filename: `account-${address}.json`,
+                title: `Account ${address?.slice(0, 16)}..`,
+              }}
+              openIn={{ pageType: "account", id: address }}
+            />
 
             {isLoading || !accountInstance ? (
               <LoadingTile />
             ) : (
-              <div className="mt-6">
-                {nfd ? (
-                  <div className="mb-1 text-lg" style={{ color: "#f65624" }}>
-                    <a
-                      href={`https://app.nf.domains/name/${nfd}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:underline"
-                      style={{ color: "#f65624", textDecorationStyle: "dotted" }}
-                    >
-                      {nfd}
-                    </a>
-                    <Copyable style={{ color: "#f65624" }} value={nfd} />
-                  </div>
-                ) : null}
+              <div>
+                <BadgesRow>
+                  {nfd ? (
+                    <span className="inline-flex items-center gap-1 text-lg" style={{ color: "#f65624" }}>
+                      <a
+                        href={`https://app.nf.domains/name/${nfd}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:underline"
+                        style={{ color: "#f65624", textDecorationStyle: "dotted" }}
+                      >
+                        {nfd}
+                      </a>
+                      <Copyable style={{ color: "#f65624" }} value={nfd} />
+                    </span>
+                  ) : null}
+                  {addressLabel ? (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Chip variant="success">{addressLabel}</Chip>
+                        </TooltipTrigger>
+                        <TooltipContent className="bg-black text-white border-border">
+                          <p>This account is labelled in the algo.surf address book as: {addressLabel}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ) : null}
 
-                <div className="mb-5">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    {addressLabel ? (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Chip variant="success">{addressLabel}</Chip>
-                          </TooltipTrigger>
-                          <TooltipContent className="bg-black text-white border-border">
-                            <p>This account is labelled in the algo.surf address book as: {addressLabel}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    ) : null}
-
-                    {tinymanPool ? (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Chip variant="tinyman">
+                  {tinymanPool ? (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <a
+                            href={`https://app.tinyman.org/pool/${address}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="no-underline"
+                          >
+                            <Chip variant="tinyman" onClick={() => {}}>
                               Tinyman 2 &middot; {tinymanPool}
+                            </Chip>
+                          </a>
+                        </TooltipTrigger>
+                        <TooltipContent className="bg-black text-white border-border">
+                          <p>This account is the Tinyman 2 liquidity pool for {tinymanPool}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ) : null}
+
+                  {accountInfo.status === "Online" ? (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <a
+                            href="#"
+                            onClick={scrollToValidator}
+                            className="no-underline"
+                          >
+                            <Chip variant="success" onClick={scrollToValidator}>
+                              Validator
+                            </Chip>
+                          </a>
+                        </TooltipTrigger>
+                        <TooltipContent className="bg-black text-white border-border">
+                          <p>Click to view validator information.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ) : null}
+
+                  {accountInfo.status === "Not Participating" ? (
+                    <Chip variant="warning">Not Participating</Chip>
+                  ) : null}
+
+                  {accountInfo.incentiveEligible === true ? (
+                    <Chip variant="success">Incentives Eligible</Chip>
+                  ) : null}
+
+                  {escrowOf ? (
+                    <a
+                      href={`/application/${escrowOf}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        navigate(`/application/${escrowOf}`);
+                      }}
+                    >
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Chip variant="success" onClick={() => {}}>
+                              App Escrow
                             </Chip>
                           </TooltipTrigger>
                           <TooltipContent className="bg-black text-white border-border">
-                            <p>This account is the Tinyman 2 liquidity pool for {tinymanPool}</p>
+                            <p>This is an application escrow account. Click to view parent application.</p>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
-                    ) : null}
+                    </a>
+                  ) : null}
 
-                    {accountInfo.status === "Online" ? (
+                  {isMultiSig && lastSent ? (
+                    <a
+                      href={`/transaction/${lastSent.id}#multisig`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        navigate(`/transaction/${lastSent.id}#multisig`);
+                      }}
+                    >
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <a
-                              href="#"
-                              onClick={scrollToValidator}
-                              className="no-underline"
-                            >
-                              <Chip variant="success" onClick={scrollToValidator}>
-                                Validator
-                              </Chip>
-                            </a>
+                            <Chip variant="success" onClick={() => {}}>
+                              MultiSig
+                            </Chip>
                           </TooltipTrigger>
                           <TooltipContent className="bg-black text-white border-border">
-                            <p>Click to view validator information.</p>
+                            <p>This is a multi-signature account. Click to view configuration.</p>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
-                    ) : null}
+                    </a>
+                  ) : null}
 
-                    {accountInfo.status === "Not Participating" ? (
-                      <Chip variant="warning">Not Participating</Chip>
-                    ) : null}
+                  {isLogicSig && lastSent ? (
+                    <a
+                      href={`/transaction/${lastSent.id}#logicsig`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        navigate(`/transaction/${lastSent.id}#logicsig`);
+                      }}
+                    >
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Chip variant="success" onClick={() => {}}>
+                              LogicSig
+                            </Chip>
+                          </TooltipTrigger>
+                          <TooltipContent className="bg-black text-white border-border">
+                            <p>This account is controlled by a stateless smart contract (logic sig). Click to view program source.</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </a>
+                  ) : null}
 
-                    {accountInfo.incentiveEligible === true ? (
-                      <Chip variant="success">Incentives Eligible</Chip>
-                    ) : null}
-
-                    {escrowOf ? (
-                      <a
-                        href={`/application/${escrowOf}`}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          navigate(`/application/${escrowOf}`);
-                        }}
-                      >
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Chip variant="success" onClick={() => {}}>
-                                App Escrow
-                              </Chip>
-                            </TooltipTrigger>
-                            <TooltipContent className="bg-black text-white border-border">
-                              <p>This is an application escrow account. Click to view parent application.</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </a>
-                    ) : null}
-
-                    {isMultiSig && lastSent ? (
-                      <a
-                        href={`/transaction/${lastSent.id}#multisig`}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          navigate(`/transaction/${lastSent.id}#multisig`);
-                        }}
-                      >
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Chip variant="success" onClick={() => {}}>
-                                MultiSig
-                              </Chip>
-                            </TooltipTrigger>
-                            <TooltipContent className="bg-black text-white border-border">
-                              <p>This is a multi-signature account. Click to view configuration.</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </a>
-                    ) : null}
-
-                    {isLogicSig && lastSent ? (
-                      <a
-                        href={`/transaction/${lastSent.id}#logicsig`}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          navigate(`/transaction/${lastSent.id}#logicsig`);
-                        }}
-                      >
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Chip variant="success" onClick={() => {}}>
-                                LogicSig
-                              </Chip>
-                            </TooltipTrigger>
-                            <TooltipContent className="bg-black text-white border-border">
-                              <p>This account is controlled by a stateless smart contract (logic sig). Click to view program source.</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </a>
-                    ) : null}
-
-                    {isClosed ? (
-                      <Chip variant="warning">Closed</Chip>
-                    ) : null}
-                  </div>
-                </div>
+                  {isClosed ? (
+                    <Chip variant="warning">Closed</Chip>
+                  ) : null}
+                </BadgesRow>
 
                 <div className="rounded-lg p-5 pt-2.5 bg-background-card">
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div className="mt-2.5">
                       <div className="text-muted-foreground">Balance</div>
                       <div className="mt-2.5 group inline-flex items-center gap-1">
-                        <Copyable className="opacity-60 group-hover:opacity-100" value={microalgosToAlgos(accountInstance.getBalance())} />
                         <AlgoIcon />
                         <NumberFormat value={microalgosToAlgos(accountInstance.getBalance())} displayType="text" thousandSeparator={true} />
+                        <Copyable className="opacity-60 group-hover:opacity-100" value={microalgosToAlgos(accountInstance.getBalance())} />
                       </div>
                     </div>
 
@@ -469,9 +444,9 @@ function Account(): JSX.Element {
                           Minimum balance
                         </div>
                         <div className="mt-2.5 group inline-flex items-center gap-1">
-                          <Copyable className="opacity-60 group-hover:opacity-100" value={microalgosToAlgos(accountInstance.getMinBalance())} />
                           <AlgoIcon />
                           <NumberFormat value={microalgosToAlgos(accountInstance.getMinBalance())} displayType="text" thousandSeparator={true} />
+                          <Copyable className="opacity-60 group-hover:opacity-100" value={microalgosToAlgos(accountInstance.getMinBalance())} />
                         </div>
                       </div>
                     ) : null}

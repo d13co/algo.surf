@@ -76,7 +76,7 @@ function TransactionNote({
           </div>
         </div>
       </div>
-      <div className="mt-5 text-[13px] break-words">
+      <div className="mt-5 text-[13px] break-words leading-5">
         {textEncoding === TEXT_ENCODING.JSON ? (
           <span className="whitespace-pre">
             {txnInstance.getNote(textEncoding)}

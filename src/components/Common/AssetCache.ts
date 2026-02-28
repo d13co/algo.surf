@@ -192,7 +192,6 @@ export const AssetCache = {
             const value = cursor.value as AssetRow;
             const field =
               (indexName === "name" ? value.name : value.unitName) || "";
-            debugger;
             if (!seen.has(value.index) && field.toLowerCase().includes(term)) {
               seen.add(value.index);
               results.push(value);

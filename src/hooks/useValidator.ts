@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { network } from "src/packages/core-sdk/constants";
 
-export type ProposalData = Array<{ rnd: number; pp: number }>;
+export type ProposalData = Array<{ rnd: number; pp: number; ts: number }>;
 
 export interface ValidatorResult {
   address: string;

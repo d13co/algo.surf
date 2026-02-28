@@ -5,9 +5,7 @@ import { CoreGroup } from "src/packages/core-sdk/classes/core/CoreGroup";
 import { useGroup } from "src/hooks/useGroup";
 import { useTinyAssets } from "src/components/Common/UseTinyAsset";
 import LoadingTile from "src/components/v2/LoadingTile";
-import JsonViewer from "src/components/v2/JsonViewer";
 import CustomError from "../CustomError";
-import Copyable from "src/components/v2/Copyable";
 import NumberFormatCopy from "src/components/v2/NumberFormatCopy";
 import MultiDateViewer, { DateSwitcher } from "src/components/v2/MultiDateViewer";
 import LinkToAccount from "../Links/LinkToAccount";
@@ -16,7 +14,6 @@ import LinkToAsset from "../Links/LinkToAsset";
 import useTitle from "src/components/Common/UseTitle/UseTitle";
 import explorer from "src/utils/dappflow";
 import {
-  BalanceImpact,
   calculateGroupBalanceImpact,
 } from "@d13co/algo-group-balance-impact";
 import TabsUnderline from "src/components/v2/shadcn-studio/tabs/tabs-11";
@@ -26,6 +23,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "src/components/v2/ui/tooltip";
+import RecordPageHeader from "src/components/v2/RecordPageHeader";
 
 const txnTypeMap: Record<string, [string, string]> = {
   appl: ["app", "application"],
@@ -84,32 +82,23 @@ function Group(): JSX.Element {
   const txnTypesList = Object.keys(txnTypes);
 
   return (
-    <div className="mt-5">
+    <div className="mt-6">
       <div>
         {isError ? (
           <CustomError error={error?.message} />
         ) : (
           <div>
-            <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 text-xl">
-              <div className="group flex items-center gap-2 min-w-0">
-                <span className="shrink-0">Group</span>
-                <span className="truncate min-w-0 hidden sm:inline">
-                  {groupInstance?.getId() ?? id}
-                </span>
-                <span className="hidden sm:inline-flex">
-                  <Copyable className="opacity-60 group-hover:opacity-100" value={id!} />
-                </span>
-              </div>
-              <div className="flex items-center gap-2.5 shrink-0 ml-auto">
-                {groupInstance ? (
-                  <JsonViewer
-                    filename={`group-${id}.json`}
-                    obj={groupInstance.get()}
-                    title={`Group ${id}`}
-                  />
-                ) : null}
-              </div>
-            </div>
+            <RecordPageHeader
+              label="Group"
+              id={groupInstance?.getId() ?? id!}
+              copyValue={id!}
+              truncate
+              jsonViewer={{
+                filename: `group-${id}.json`,
+                obj: () => groupInstance?.toJSON() ?? {},
+                title: `Group ${id}`,
+              }}
+            />
 
             {isLoading || !groupInstance ? (
               <LoadingTile />
@@ -117,18 +106,17 @@ function Group(): JSX.Element {
               <div className="mt-6">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
                   <div className="rounded-lg p-5 pt-2.5 bg-background-card">
-                    <div className="grid grid-cols-12 gap-4">
-                      <div className="col-span-12 sm:col-span-6 hidden sm:block">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div>
                         <div className="mt-2.5">
-                          <div className="text-muted-foreground">Group ID</div>
-                          <div className="mt-2.5 text-[13px] break-all">
-                            {groupInstance.getId()}
-                            <Copyable value={groupInstance.getId()} />
+                          <div className="text-muted-foreground">Block</div>
+                          <div className="mt-2.5">
+                            <LinkToBlock id={groupInstance.getBlock()} />
                           </div>
                         </div>
                       </div>
 
-                      <div className="col-span-12 sm:col-span-6">
+                      <div className="sm:col-span-2">
                         <div className="mt-2.5">
                           <div className="text-muted-foreground inline-flex items-center gap-1">
                             Timestamp <DateSwitcher />
@@ -139,7 +127,7 @@ function Group(): JSX.Element {
                         </div>
                       </div>
 
-                      <div className="col-span-12 sm:col-span-6">
+                      <div className="sm:col-span-3">
                         <div className="mt-2.5">
                           <div className="text-muted-foreground">
                             Total transactions: {groupInstance.getTransactionsCount()}
@@ -165,15 +153,6 @@ function Group(): JSX.Element {
                               })}
                             </div>
                           ) : null}
-                        </div>
-                      </div>
-
-                      <div className="col-span-12 sm:col-span-6">
-                        <div className="mt-2.5">
-                          <div className="text-muted-foreground">Block</div>
-                          <div className="mt-2.5">
-                            <LinkToBlock id={groupInstance.getBlock()} />
-                          </div>
                         </div>
                       </div>
                     </div>

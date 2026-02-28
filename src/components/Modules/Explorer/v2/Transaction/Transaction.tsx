@@ -5,10 +5,9 @@ import { TXN_TYPES } from "src/packages/core-sdk/constants";
 import { useTransaction, useTransactionAsset } from "src/hooks/useTransaction";
 import { microalgosToAlgos } from "src/utils/common";
 import LoadingTile from "src/components/v2/LoadingTile";
-import JsonViewer from "src/components/v2/JsonViewer";
 import CustomError from "../CustomError";
 import Copyable from "src/components/v2/Copyable";
-import OpenInMenu from "src/components/v2/OpenInMenu";
+import RecordPageHeader from "src/components/v2/RecordPageHeader";
 import AlgoIcon from "../../AlgoIcon/AlgoIcon";
 import useTitle from "src/components/Common/UseTitle/UseTitle";
 import LinkToBlock from "../Links/LinkToBlock";
@@ -27,22 +26,7 @@ import TransactionNote from "./Sections/TransactionNote";
 import TransactionMultiSig from "./Sections/TransactionMultiSig";
 import TransactionLogicSig from "./Sections/TransactionLogicSig";
 import TransactionAdditionalDetails from "./Sections/TransactionAdditionalDetails";
-
-function Chip({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <span
-      className={`inline-flex items-center text-xs border rounded px-2.5 py-0.5 border-yellow-500 text-yellow-500 cursor-default ${className}`}
-    >
-      {children}
-    </span>
-  );
-}
+import { Chip, BadgesRow } from "src/components/v2/Chips";
 
 function Transaction(): JSX.Element {
   const params = useParams();
@@ -84,39 +68,38 @@ function Transaction(): JSX.Element {
           <CustomError error={error?.message} />
         ) : (
           <div>
-            <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 text-xl">
-              <div className="group flex items-center gap-2 min-w-0">
-                <span className="shrink-0">Transaction</span>
-                <span className="truncate min-w-0">{id}</span>
-                <Copyable className="opacity-60 group-hover:opacity-100" value={id!} />
-              </div>
-              <div className="flex items-center gap-2.5 shrink-0 ml-auto">
-                <JsonViewer
-                  filename={`txn-${id}.json`}
-                  obj={txnInstance?.toJSON() ?? txnObj ?? {}}
-                  title={`Transaction ${id?.slice(0, 24)}..`}
-                />
-                <OpenInMenu pageType="transaction" id={id} />
-              </div>
-            </div>
+            <RecordPageHeader
+              label="Transaction"
+              id={id}
+              copyValue={id!}
+              truncate
+              jsonViewer={{
+                filename: `txn-${id}.json`,
+                obj: () => txnInstance?.toJSON() ?? txnObj ?? {},
+                title: `Transaction ${id?.slice(0, 24)}..`,
+              }}
+              openIn={{ pageType: "transaction", id }}
+            />
 
             {isLoading || !txnInstance ? (
               <LoadingTile />
             ) : (
-              <div className="mt-6">
-                <div className="mb-5">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <Chip>{txnInstance.getTypeDisplayValue()}</Chip>
-                    {txnInstance.getType() === "keyreg" &&
-                    !txnInstance.getKeyRegPayload()
-                      ?.selectionParticipationKey ? (
-                      <Chip>Register offline</Chip>
-                    ) : null}
-                    {txnInstance.isMultiSig() ? <Chip>MultiSig</Chip> : null}
-                    {txnInstance.isLogicSig() ? <Chip>LogicSig</Chip> : null}
-                    {txnInstance.getRekeyTo() ? <Chip>Rekey</Chip> : null}
-                  </div>
-                </div>
+              <div>
+                <BadgesRow className="mb-5">
+                  <Chip>{txnInstance.getTypeDisplayValue()}</Chip>
+                  {txnInstance.getType() === "keyreg" &&
+                  !txnInstance.getKeyRegPayload()
+                    ?.selectionParticipationKey ? (
+                    <Chip>Register offline</Chip>
+                  ) : null}
+                  {txnInstance.isMultiSig() ? (
+                    <Chip onClick={() => document.getElementById("multisig")?.scrollIntoView({ behavior: "smooth", block: "start" })}>MultiSig</Chip>
+                  ) : null}
+                  {txnInstance.isLogicSig() ? (
+                    <Chip onClick={() => document.getElementById("logicsig")?.scrollIntoView({ behavior: "smooth", block: "start" })}>LogicSig</Chip>
+                  ) : null}
+                  {txnInstance.getRekeyTo() ? <Chip onClick={() => document.getElementById("rekey")?.scrollIntoView({ behavior: "smooth", block: "start" })}>Rekey</Chip> : null}
+                </BadgesRow>
 
                 <div className="rounded-lg p-5 pt-2.5 bg-background-card">
                   <div className="grid grid-cols-12 gap-4">

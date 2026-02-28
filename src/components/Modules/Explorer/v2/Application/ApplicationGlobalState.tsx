@@ -123,8 +123,8 @@ function ApplicationGlobalState({
 
   if (!globalStorage || globalStorage.length === 0) {
     return (
-      <div className="text-muted-foreground pl-3">
-        Application does not have any global state set.
+      <div className="text-muted-foreground p-4 pb-0">
+        This application does not have any global state set.
       </div>
     );
   }
@@ -173,7 +173,7 @@ function ApplicationGlobalState({
       </div>
 
       {/* Mobile cards */}
-      <div className="md:hidden space-y-2 mt-3">
+      <div className="md:hidden space-y-2">
         {table.getRowModel().rows.map((row) => (
           <StateCard key={row.id} row={row} />
         ))}

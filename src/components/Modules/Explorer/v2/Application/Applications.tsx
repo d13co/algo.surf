@@ -17,17 +17,11 @@ import {
   TableHeader,
   TableRow,
 } from "src/components/v2/ui/table";
-import { Button } from "src/components/v2/ui/button";
 import LinkToApplication from "../Links/LinkToApplication";
 import LinkToAccount from "../Links/LinkToAccount";
 import { CoreApplication } from "src/packages/core-sdk/classes/core/CoreApplication";
-import {
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
-  Loader2,
-} from "lucide-react";
+import { Loader2 } from "lucide-react";
+import ListToolbar from "src/components/v2/ListToolbar";
 import useTitle from "src/components/Common/UseTitle/UseTitle";
 import { SkeletonRows, SkeletonCards } from "src/components/v2/ui/table-skeleton";
 import { useStableHeight } from "src/hooks/useStableHeight";
@@ -146,52 +140,17 @@ function Applications(): JSX.Element {
   return (
     <div>
       {/* Pagination */}
-      {pageCount > 1 ? (
-        <div className="flex items-center justify-end gap-2 pt-4 pb-0 md:py-4">
-          {isFetchingNextPage ? (
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-          ) : null}
-          <span className="text-sm text-muted-foreground">
-            Page {pageIndex + 1} of {pageCount}
-          </span>
-          <Button
-            variant="muted"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => onPageChange(0)}
-            disabled={!table.getCanPreviousPage()}
-          >
-            <ChevronsLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="muted"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => onPageChange(pageIndex - 1)}
-            disabled={!table.getCanPreviousPage()}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="muted"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => onPageChange(pageIndex + 1)}
-            disabled={!table.getCanNextPage()}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="muted"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => onPageChange(pageCount - 1)}
-            disabled={!table.getCanNextPage()}
-          >
-            <ChevronsRight className="h-4 w-4" />
-          </Button>
-        </div>
-      ) : null}
+      <ListToolbar
+        pageIndex={pageIndex}
+        pageCount={pageCount}
+        canPreviousPage={table.getCanPreviousPage()}
+        canNextPage={table.getCanNextPage()}
+        onFirst={() => onPageChange(0)}
+        onPrev={() => onPageChange(pageIndex - 1)}
+        onNext={() => onPageChange(pageIndex + 1)}
+        onLast={() => onPageChange(pageCount - 1)}
+        loading={isFetchingNextPage}
+      />
 
       {/* Desktop table */}
       <div ref={tableRef} style={stableStyle} className="hidden md:block">
@@ -247,7 +206,7 @@ function Applications(): JSX.Element {
       </div>
 
       {/* Mobile cards */}
-      <div className="md:hidden space-y-2 mt-3">
+      <div className="md:hidden space-y-2">
         {table.getRowModel().rows.length > 0 ? (
           <>
             {table.getRowModel().rows.map((row) => (

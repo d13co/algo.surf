@@ -8,7 +8,6 @@ import {
 import { CoreAsset } from "src/packages/core-sdk/classes/core/CoreAsset";
 import LinkToAccount from "../Links/LinkToAccount";
 import LoadingTile from "src/components/v2/LoadingTile";
-import JsonViewer from "src/components/v2/JsonViewer";
 import CustomError from "../CustomError";
 import MultiFormatViewer from "src/components/v2/MultiFormatViewer";
 import Copyable from "src/components/v2/Copyable";
@@ -16,13 +15,16 @@ import Dym from "../Dym";
 import useTitle from "src/components/Common/UseTitle/UseTitle";
 import { ShieldCheck } from "lucide-react";
 import NumberFormatCopy from "src/components/v2/NumberFormatCopy";
-import OpenInMenu from "src/components/v2/OpenInMenu";
-import MultiDateViewer, { DateSwitcher } from "src/components/v2/MultiDateViewer";
+import RecordPageHeader from "src/components/v2/RecordPageHeader";
+import MultiDateViewer, {
+  DateSwitcher,
+} from "src/components/v2/MultiDateViewer";
 import { useAsset } from "src/hooks/useAsset";
 import { useAssetLabels } from "src/hooks/useAssetLabels";
 import { useBlock } from "src/hooks/useBlock";
 import { CoreBlock } from "src/packages/core-sdk/classes/core/CoreBlock";
 import TabsUnderline from "src/components/v2/shadcn-studio/tabs/tabs-11";
+import { Chip, BadgesRow } from "src/components/v2/Chips";
 
 function Asset(): JSX.Element {
   const navigate = useNavigate();
@@ -38,7 +40,9 @@ function Asset(): JSX.Element {
   const assetInstance = assetInfo ? new CoreAsset(assetInfo) : null;
   const createdAtRound = assetInstance?.getCreatedAtRound();
   const { data: createdBlock } = useBlock(createdAtRound ?? 0);
-  const createdBlockTimestamp = createdBlock ? new CoreBlock(createdBlock).getTimestamp() : undefined;
+  const createdBlockTimestamp = createdBlock
+    ? new CoreBlock(createdBlock).getTimestamp()
+    : undefined;
 
   useTitle(`Asset ${id}`);
 
@@ -64,67 +68,58 @@ function Asset(): JSX.Element {
           <CustomError error={error?.message} />
         ) : (
           <div>
-            <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 text-xl">
-              <div className="group flex items-center gap-2 min-w-0">
-                <span className="shrink-0">Asset</span>
-                <span><span className="select-none">#</span>{id}</span>
-                <Copyable className="opacity-60 group-hover:opacity-100" value={Number(id)} />
-              </div>
-              <div className="flex items-center gap-2.5 shrink-0 ml-auto">
-                <JsonViewer
-                  filename={`asset-${id}.json`}
-                  obj={assetInstance?.toJSON() ?? {}}
-                  title={`Asset ${id}`}
-                />
-                <OpenInMenu pageType={"asset"} id={id} />
-              </div>
-            </div>
+            <RecordPageHeader
+              label="Asset"
+              id={
+                <>
+                  <span className="select-none">#</span>
+                  {id}
+                </>
+              }
+              copyValue={Number(id)}
+              jsonViewer={{
+                filename: `asset-${id}.json`,
+                obj: () => assetInstance?.toJSON() ?? {},
+                title: `Asset ${id}`,
+              }}
+              openIn={{ pageType: "asset", id }}
+            />
 
             {isLoading || !assetInstance ? (
               <LoadingTile />
             ) : (
-              <div className="mt-6">
-                <div className="mb-5">
-                  {assetInstance.isDeleted() && (
-                    <div className="mb-1">
-                      <span className="text-sm font-medium text-secondary bg-secondary/10 px-2 py-0.5 rounded">
-                        Deleted
-                      </span>
-                    </div>
-                  )}
-                  <div className="grid grid-cols-2 md:grid-cols-3 items-center text-sm">
-                    <div>
-                      {assetInstance.getUrl() ? (
-                        <span className="group inline-flex items-center gap-1">
-                          <a
-                            href={assetInstance.getUrl()}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-primary hover:underline"
-                          >
-                            {assetInstance.getUrl()}
-                          </a>
-                          <Copyable
-                            className="opacity-60 group-hover:opacity-100"
-                            size="s"
-                            value={assetInstance.getUrl()}
-                          />
-                        </span>
-                      ) : null}
-                    </div>
-                    {pv ? (
-                      <div className="flex items-center gap-1.5 justify-end md:justify-center">
-                        <ShieldCheck
-                          size={18}
-                          style={{ color: "#FFEE55" }}
-                        />
-                        <span style={{ color: "#FFEE55D9" }}>Pera Verified</span>
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
+              <div>
+                <BadgesRow>
+                  {assetInstance.isDeleted() ? <Chip>Deleted</Chip> : null}
+                  {assetInstance.getUrl() ? (
+                    <span className="group inline-flex items-center gap-1">
+                      <a
+                        href={assetInstance.getUrl()}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        {assetInstance.getUrl()}
+                      </a>
+                      <Copyable
+                        className="opacity-60 group-hover:opacity-100"
+                        size="s"
+                        value={assetInstance.getUrl()}
+                      />
+                    </span>
+                  ) : null}
+                  {pv ? (
+                    <span
+                      className="inline-flex items-center gap-1"
+                      style={{ color: "#FFEE55D9" }}
+                    >
+                      <ShieldCheck size={18} style={{ color: "#FFEE55" }} />
+                      Pera Verified
+                    </span>
+                  ) : null}
+                </BadgesRow>
 
-                <div className="mt-6 rounded-lg p-5 pt-2.5 bg-background-card">
+                <div className="rounded-lg p-5 pt-2.5 bg-background-card">
                   <div className="grid grid-cols-12 gap-4">
                     <div className="col-span-12 sm:col-span-6 md:col-span-3">
                       <div className="mt-2.5">
@@ -312,7 +307,8 @@ function Asset(): JSX.Element {
                   </div>
                 </div>
 
-                {assetInstance.getResolvedUrl() && assetInstance.getResolvedUrl() !== assetInstance.getUrl() ? (
+                {assetInstance.getResolvedUrl() &&
+                assetInstance.getResolvedUrl() !== assetInstance.getUrl() ? (
                   <div className="mt-6 rounded-lg p-5 pt-2.5 bg-background-card">
                     <div className="grid grid-cols-12 gap-4">
                       <div className="col-span-12">
@@ -345,7 +341,12 @@ function Asset(): JSX.Element {
                   <TabsUnderline
                     value="transactions"
                     tabs={[
-                      { name: "Transactions", value: "transactions", onClick: () => navigate("/asset/" + id + "/transactions") },
+                      {
+                        name: "Transactions",
+                        value: "transactions",
+                        onClick: () =>
+                          navigate("/asset/" + id + "/transactions"),
+                      },
                     ]}
                   />
 

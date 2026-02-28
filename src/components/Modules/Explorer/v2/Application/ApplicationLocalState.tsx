@@ -193,7 +193,7 @@ function ApplicationLocalState({
       </div>
 
       {/* Mobile cards */}
-      <div className="md:hidden space-y-2 mt-3">
+      <div className="md:hidden space-y-2">
         {table.getRowModel().rows.map((row) => (
           <StateCard key={row.id} row={row} />
         ))}
