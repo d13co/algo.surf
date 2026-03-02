@@ -32,9 +32,11 @@ function getInitialFormat(): DateFormat {
 const DateFormatContext = createContext<{
   format: DateFormat;
   cycle: () => void;
+  setFormat: (f: DateFormat) => void;
 }>({
   format: "relative",
   cycle: () => {},
+  setFormat: () => {},
 });
 
 export function DateFormatProvider({ children }: { children: React.ReactNode }) {
@@ -48,8 +50,13 @@ export function DateFormatProvider({ children }: { children: React.ReactNode }) 
     });
   }, []);
 
+  const updateFormat = useCallback((f: DateFormat) => {
+    setFormat(f);
+    localStorage.setItem(STORAGE_KEY, f);
+  }, []);
+
   return (
-    <DateFormatContext.Provider value={{ format, cycle }}>
+    <DateFormatContext.Provider value={{ format, cycle, setFormat: updateFormat }}>
       {children}
     </DateFormatContext.Provider>
   );
