@@ -5,26 +5,16 @@ import {
   useReactTable,
   getCoreRowModel,
   getPaginationRowModel,
-  flexRender,
   ColumnDef,
-  Row,
 } from "@tanstack/react-table";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "src/components/v2/ui/table";
 import LinkToApplication from "../Links/LinkToApplication";
 import LinkToAccount from "../Links/LinkToAccount";
 import { CoreApplication } from "src/packages/core-sdk/classes/core/CoreApplication";
 import { Loader2 } from "lucide-react";
 import ListToolbar from "src/components/v2/ListToolbar";
 import useTitle from "src/components/Common/UseTitle/UseTitle";
-import { SkeletonRows, SkeletonCards } from "src/components/v2/ui/table-skeleton";
 import { useStableHeight } from "src/hooks/useStableHeight";
+import { DataTable } from "src/components/v2/DataTable";
 
 const columns: ColumnDef<A_Application, any>[] = [
   {
@@ -70,24 +60,6 @@ const columnLabels: Record<string, string> = {
   escrow: "Application Escrow",
   creator: "Creator",
 };
-
-function ApplicationCard({ row }: { row: Row<A_Application> }) {
-  const visibleCells = row.getVisibleCells();
-  return (
-    <div className="rounded-lg border border-muted bg-card p-3 space-y-2 text-sm">
-      {visibleCells.map((cell) => (
-        <div key={cell.id} className="flex justify-between gap-2">
-          <span className="text-muted-foreground shrink-0">
-            {columnLabels[cell.column.id] || cell.column.id}
-          </span>
-          <span className="text-right min-w-0 overflow-hidden max-w-[80%]">
-            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 function Applications(): JSX.Element {
   useTitle("Applications");
@@ -139,7 +111,6 @@ function Applications(): JSX.Element {
 
   return (
     <div>
-      {/* Pagination */}
       <ListToolbar
         pageIndex={pageIndex}
         pageCount={pageCount}
@@ -152,74 +123,16 @@ function Applications(): JSX.Element {
         loading={isFetchingNextPage}
       />
 
-      {/* Desktop table */}
-      <div ref={tableRef} style={stableStyle} className="hidden md:block">
-        <Table className="table-fixed">
-          <TableHeader className="[&_tr]:border-primary">
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead
-                    key={header.id}
-                    style={(header.column.columnDef.meta as any)?.width ? { width: (header.column.columnDef.meta as any).width } : undefined}
-                  >
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext(),
-                        )}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows.length > 0 ? (
-              <>
-                {table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id}>
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="max-w-0">
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext(),
-                        )}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))}
-                {padCount > 0 ? <SkeletonRows rows={padCount} columns={columns.length} animate={isFetchingNextPage} /> : null}
-              </>
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center text-muted-foreground"
-                >
-                  No applications
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      {/* Mobile cards */}
-      <div className="md:hidden space-y-2">
-        {table.getRowModel().rows.length > 0 ? (
-          <>
-            {table.getRowModel().rows.map((row) => (
-              <ApplicationCard key={row.id} row={row} />
-            ))}
-            {padCount > 0 ? <SkeletonCards rows={padCount} fields={columns.length} animate={isFetchingNextPage} /> : null}
-          </>
-        ) : (
-          <div className="py-8 text-center text-muted-foreground">
-            No applications
-          </div>
-        )}
-      </div>
+      <DataTable
+        table={table}
+        columns={columns}
+        columnLabels={columnLabels}
+        emptyLabel="No applications"
+        padCount={padCount}
+        isFetchingNextPage={isFetchingNextPage}
+        tableRef={tableRef}
+        tableStyle={stableStyle}
+      />
     </div>
   );
 }

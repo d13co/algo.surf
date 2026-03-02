@@ -17,6 +17,7 @@ interface TablePaginationProps {
   onNext: () => void;
   onLast: () => void;
   loading?: boolean;
+  onShowAll?: () => void;
   className?: string;
 }
 
@@ -30,12 +31,23 @@ export default function TablePagination({
   onNext,
   onLast,
   loading,
+  onShowAll,
   className = "flex items-center justify-end gap-2",
 }: TablePaginationProps) {
   if (pageCount <= 1) return null;
 
   return (
     <div className={className}>
+      {onShowAll ? (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="mr-auto text-muted-foreground"
+          onClick={onShowAll}
+        >
+          Show all
+        </Button>
+      ) : null}
       {loading ? (
         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
       ) : null}

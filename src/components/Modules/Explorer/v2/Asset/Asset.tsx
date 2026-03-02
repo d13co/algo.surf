@@ -1,8 +1,6 @@
-import { useMemo } from "react";
 import {
   Outlet,
   useNavigate,
-  useSearchParams,
   useParams,
 } from "react-router-dom";
 import { CoreAsset } from "src/packages/core-sdk/classes/core/CoreAsset";
@@ -29,8 +27,6 @@ import { Chip, BadgesRow } from "src/components/v2/Chips";
 function Asset(): JSX.Element {
   const navigate = useNavigate();
   const params = useParams();
-  const [searchParams] = useSearchParams();
-
   const { id } = params;
   const numId = Number(id);
 
@@ -49,20 +45,10 @@ function Asset(): JSX.Element {
   const b64Name = assetInstance ? !assetInstance.getName() : false;
   const pv = labels?.includes("pv") ?? false;
 
-  const dym = searchParams.get("dym");
-  const [dymString, dymLink] = useMemo(() => {
-    if (dym) {
-      const blockNum = dym.split(":")[1];
-      return [`Block ${blockNum}`, `/block/${blockNum}`];
-    } else {
-      return [];
-    }
-  }, [dym]);
-
   return (
     <div className="mt-5">
       <div>
-        {dym ? <Dym text={dymString} link={dymLink} /> : null}
+        <Dym />
 
         {isError ? (
           <CustomError error={error?.message} />

@@ -2,17 +2,20 @@ import { useCallback } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { X } from "lucide-react";
 
-interface DymProps {
-  text: string;
-  link: string;
-}
+export default function Dym(): JSX.Element | null {
+  const [searchParams, setSearchParams] = useSearchParams();
 
-export default function Dym({ text, link }: DymProps): JSX.Element {
-  const [_, setSearchParams] = useSearchParams();
+  const dym = searchParams.get("dym");
 
   const dismiss = useCallback(() => {
     setSearchParams({});
   }, [setSearchParams]);
+
+  if (!dym) return null;
+
+  const blockNum = dym.split(":")[1];
+  const text = `Block ${blockNum}`;
+  const link = `/block/${blockNum}`;
 
   return (
     <div className="flex justify-between items-center p-5 rounded-[10px] mb-5 font-bold italic border-l-2 border-l-yellow-500 bg-yellow-500/10">

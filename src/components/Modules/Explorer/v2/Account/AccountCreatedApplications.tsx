@@ -7,18 +7,8 @@ import {
   useReactTable,
   getCoreRowModel,
   getPaginationRowModel,
-  flexRender,
   ColumnDef,
-  Row,
 } from "@tanstack/react-table";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "src/components/v2/ui/table";
 import LinkToApplication from "../Links/LinkToApplication";
 import { Loader2 } from "lucide-react";
 import TablePagination from "src/components/v2/TablePagination";
@@ -27,6 +17,7 @@ import { useBlock } from "src/hooks/useBlock";
 import { CoreBlock } from "src/packages/core-sdk/classes/core/CoreBlock";
 import MultiDateViewer from "src/components/v2/MultiDateViewer";
 import { AgeHeader } from "../Lists/TransactionsList/cells/AgeCell";
+import { DataTable } from "src/components/v2/DataTable";
 
 function findTxnByAppId(
   block: indexerModels.Block,
@@ -58,7 +49,7 @@ function NameCell({ appId }: { appId: number }) {
   const { data: appInfo } = useApplication(appId);
   const createdAtRound = appInfo?.createdAtRound != null ? Number(appInfo.createdAtRound) : undefined;
   const { data: blockInfo } = useBlock(createdAtRound ?? 0);
-  
+
   const appName = useMemo(() => {
     if (!appInfo) return null;
     const creationTxn = findTxnByAppId(blockInfo, appId);
@@ -75,7 +66,7 @@ function NameCell({ appId }: { appId: number }) {
         return null;
       }
     }
-    
+
   }, [appId, blockInfo])
 
   return appName ? <span>{appName}</span> : <span className="text-muted">&mdash;</span>;
@@ -86,7 +77,7 @@ function CreatedAtCell({ appId }: { appId: number }) {
   const createdAtRound = appInfo?.createdAtRound != null ? Number(appInfo.createdAtRound) : undefined;
   const { data: blockInfo } = useBlock(createdAtRound ?? 0);
   const timestamp = blockInfo ? new CoreBlock(blockInfo).getTimestamp() : undefined;
-  
+
   if (!timestamp || !createdAtRound) return <span className="text-muted">&mdash;</span>;
 
   return <MultiDateViewer timestamp={timestamp} block={createdAtRound} variant="short" />;
@@ -124,24 +115,6 @@ const columnLabels: Record<string, string> = {
   version: "Version",
 };
 
-function AppCard({ row }: { row: Row<modelsv2.Application> }) {
-  const visibleCells = row.getVisibleCells();
-  return (
-    <div className="rounded-lg border border-muted bg-card p-3 space-y-2 text-sm">
-      {visibleCells.map((cell) => (
-        <div key={cell.id} className="flex justify-between gap-2">
-          <span className="text-muted-foreground shrink-0">
-            {columnLabels[cell.column.id] || cell.column.id}
-          </span>
-          <span className="text-right min-w-0 overflow-hidden max-w-[80%]">
-            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function AccountCreatedApplications(): JSX.Element {
   const { address } = useParams();
   const { data: accountInfo, isLoading } = useAccount(address);
@@ -174,67 +147,12 @@ function AccountCreatedApplications(): JSX.Element {
         </div>
       ) : (
         <>
-          {/* Desktop table */}
-          <div className="hidden md:block">
-            <Table className="table-fixed">
-              <TableHeader className="[&_tr]:border-primary">
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <TableHead key={header.id}>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {table.getRowModel().rows.length > 0 ? (
-                  table.getRowModel().rows.map((row) => (
-                    <TableRow key={row.id}>
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id} className="max-w-0">
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
-                          )}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={columns.length}
-                      className="h-24 text-center text-muted-foreground"
-                    >
-                      No applications
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-
-          {/* Mobile cards */}
-          <div className="md:hidden space-y-2">
-            {table.getRowModel().rows.length > 0 ? (
-              table.getRowModel().rows.map((row) => (
-                <AppCard key={row.id} row={row} />
-              ))
-            ) : (
-              <div className="py-8 text-center text-muted-foreground">
-                No applications
-              </div>
-            )}
-          </div>
-
-          {/* Pagination */}
+          <DataTable
+            table={table}
+            columns={columns}
+            columnLabels={columnLabels}
+            emptyLabel="No applications"
+          />
           <TablePagination
             pageIndex={pageIndex}
             pageCount={pageCount}

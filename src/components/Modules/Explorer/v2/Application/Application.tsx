@@ -4,7 +4,6 @@ import {
   Outlet,
   useLocation,
   useNavigate,
-  useSearchParams,
   useParams,
 } from "react-router-dom";
 import { CoreApplication } from "src/packages/core-sdk/classes/core/CoreApplication";
@@ -31,7 +30,6 @@ const isDevNet = process.env.REACT_APP_NETWORK !== "Mainnet";
 function Application(): JSX.Element {
   const navigate = useNavigate();
   const params = useParams();
-  const [searchParams] = useSearchParams();
   const { id } = params;
   const numId = Number(id);
 
@@ -60,16 +58,6 @@ function Application(): JSX.Element {
 
   useTitle(`App ${id}`);
 
-  const dym = searchParams.get("dym");
-  const [dymString, dymLink] = useMemo(() => {
-    if (dym) {
-      const blockNum = dym.split(":")[1];
-      return [`Block ${blockNum}`, `/block/${blockNum}`];
-    } else {
-      return [];
-    }
-  }, [dym]);
-
   useEffect(() => {
     if (
       codeTabValue === "global" &&
@@ -94,7 +82,7 @@ function Application(): JSX.Element {
   return (
     <div className="mt-5">
       <div>
-        {dym ? <Dym text={dymString} link={dymLink} /> : null}
+        <Dym />
 
         {isError ? (
           <CustomError error={error?.message} />

@@ -28,7 +28,7 @@ import useTitle from "src/components/Common/UseTitle/UseTitle";
 import LinkToAccount from "../Links/LinkToAccount";
 import LinkToApplication from "../Links/LinkToApplication";
 import DymNFD from "../DymNFD";
-import { microalgosToAlgos } from "algosdk";
+import { microalgosToAlgos } from "src/utils/common";
 import { toPlainJson } from "src/packages/core-sdk/utils/serialize";
 import { network } from "src/packages/core-sdk/constants";
 import TabsUnderline from "src/components/v2/shadcn-studio/tabs/tabs-11";

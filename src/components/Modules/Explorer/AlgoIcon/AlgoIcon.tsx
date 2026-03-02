@@ -1,4 +1,3 @@
-import './AlgoIcon.scss';
 import algoLogo from '../../../../assets/images/algo-logo.png';
 
 function AlgoIcon(props): JSX.Element {
@@ -8,7 +7,7 @@ function AlgoIcon(props): JSX.Element {
     width = 15;
   }
   return (
-      <img src={algoLogo} className="algo-icon" alt="algo-icon" style={{width: width + 'px'}}/>
+      <img src={algoLogo} className="inline align-baseline select-none" alt="algo-icon" style={{width: width + 'px'}}/>
   );
 }
 

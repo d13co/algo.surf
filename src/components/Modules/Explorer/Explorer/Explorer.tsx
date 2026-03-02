@@ -1,5 +1,4 @@
 import React, { Component } from "react";
-import "./Explorer.scss";
 import Header from "../Header/Header";
 import { LiveDataProvider } from "../../../../hooks/useLiveData";
 import { DateFormatProvider } from "../../../../contexts/DateFormatContext";

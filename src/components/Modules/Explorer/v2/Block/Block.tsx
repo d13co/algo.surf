@@ -12,7 +12,7 @@ import RecordPageHeader from "src/components/v2/RecordPageHeader";
 import MultiDateViewer, { DateSwitcher } from "src/components/v2/MultiDateViewer";
 import AlgoIcon from "../../AlgoIcon/AlgoIcon";
 import useTitle from "src/components/Common/UseTitle/UseTitle";
-import { microalgosToAlgos } from "algosdk";
+import { microalgosToAlgos } from "src/utils/common";
 import { ArrowLeftFromLine, ArrowRightFromLine, TriangleAlert, Info } from "lucide-react";
 import TabsUnderline from "src/components/v2/shadcn-studio/tabs/tabs-11";
 import {

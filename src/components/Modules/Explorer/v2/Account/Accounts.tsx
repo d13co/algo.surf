@@ -6,18 +6,8 @@ import {
   useReactTable,
   getCoreRowModel,
   getPaginationRowModel,
-  flexRender,
   ColumnDef,
-  Row,
 } from "@tanstack/react-table";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "src/components/v2/ui/table";
 import { Button } from "src/components/v2/ui/button";
 import { Input } from "src/components/v2/ui/input";
 import LinkToAccount from "../Links/LinkToAccount";
@@ -27,10 +17,10 @@ import { Filter, Loader2, X } from "lucide-react";
 import ListToolbar from "src/components/v2/ListToolbar";
 import { useSearchParams } from "react-router-dom";
 import useTitle from "src/components/Common/UseTitle/UseTitle";
-import { SkeletonRows, SkeletonCards } from "src/components/v2/ui/table-skeleton";
 import { useStableHeight } from "src/hooks/useStableHeight";
 import { useDebounce } from "src/hooks/useDebounce";
 import { isValidBase32Prefix, completeAddress } from "src/utils/completeAddress";
+import { DataTable } from "src/components/v2/DataTable";
 
 const columns: ColumnDef<A_SearchAccount, any>[] = [
   {
@@ -84,24 +74,6 @@ const columnLabels: Record<string, string> = {
   "created-apps": "Created apps",
 };
 
-function AccountCard({ row }: { row: Row<A_SearchAccount> }) {
-  const visibleCells = row.getVisibleCells();
-  return (
-    <div className="rounded-lg border border-muted bg-card p-3 space-y-2 text-sm">
-      {visibleCells.map((cell) => (
-        <div key={cell.id} className="flex justify-between gap-2">
-          <span className="text-muted-foreground shrink-0">
-            {columnLabels[cell.column.id] || cell.column.id}
-          </span>
-          <span className="text-right min-w-0 overflow-hidden max-w-[80%]">
-            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function Accounts(): JSX.Element {
   useTitle("Accounts");
 
@@ -136,8 +108,6 @@ function Accounts(): JSX.Element {
     useAccounts(prefixToken);
 
   // Filter to only accounts whose address starts with the searched prefix.
-  // The indexer returns accounts *from* a cursor onward, which includes
-  // addresses past the prefix range — we trim those here.
   const accounts = useMemo(() => {
     const all = data?.pages.flatMap((p) => p.accounts) ?? [];
     if (!debouncedPrefix) return all;
@@ -248,73 +218,16 @@ function Accounts(): JSX.Element {
           <span>Loading accounts...</span>
         </div>
       ) : (
-        <>
-          {/* Desktop table */}
-          <div ref={tableRef} style={stableStyle} className="hidden md:block">
-            <Table className="table-fixed">
-              <TableHeader className="[&_tr]:border-primary">
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <TableHead key={header.id}>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext(),
-                            )}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {table.getRowModel().rows.length > 0 ? (
-                  <>
-                    {table.getRowModel().rows.map((row) => (
-                      <TableRow key={row.id}>
-                        {row.getVisibleCells().map((cell) => (
-                          <TableCell key={cell.id} className="max-w-0">
-                            {flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext(),
-                            )}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    ))}
-                    {padCount > 0 ? <SkeletonRows rows={padCount} columns={columns.length} animate={isFetchingNextPage} /> : null}
-                  </>
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={columns.length}
-                      className="h-24 text-center text-muted-foreground"
-                    >
-                      No accounts
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-
-          {/* Mobile cards */}
-          <div className="md:hidden space-y-2">
-            {table.getRowModel().rows.length > 0 ? (
-              <>
-                {table.getRowModel().rows.map((row) => (
-                  <AccountCard key={row.id} row={row} />
-                ))}
-                {padCount > 0 ? <SkeletonCards rows={padCount} fields={columns.length} animate={isFetchingNextPage} /> : null}
-              </>
-            ) : (
-              <div className="py-8 text-center text-muted-foreground">
-                No accounts
-              </div>
-            )}
-          </div>
-        </>
+        <DataTable
+          table={table}
+          columns={columns}
+          columnLabels={columnLabels}
+          emptyLabel="No accounts"
+          padCount={padCount}
+          isFetchingNextPage={isFetchingNextPage}
+          tableRef={tableRef}
+          tableStyle={stableStyle}
+        />
       )}
     </div>
   );

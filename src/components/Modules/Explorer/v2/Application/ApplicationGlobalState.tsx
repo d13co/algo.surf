@@ -8,7 +8,6 @@ import {
   getPaginationRowModel,
   flexRender,
   ColumnDef,
-  Row,
 } from "@tanstack/react-table";
 import {
   Table,
@@ -18,15 +17,9 @@ import {
   TableHeader,
   TableRow,
 } from "src/components/v2/ui/table";
-import { Button } from "src/components/v2/ui/button";
 import MultiFormatViewer from "src/components/v2/MultiFormatViewer";
 import NumberFormatCopy from "src/components/v2/NumberFormatCopy";
-import {
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
-} from "lucide-react";
+import TablePagination from "src/components/v2/TablePagination";
 
 const columns: ColumnDef<A_GlobalStateDecrypted, any>[] = [
   {
@@ -79,24 +72,6 @@ const columnLabels: Record<string, string> = {
   value: "Value",
 };
 
-function StateCard({ row }: { row: Row<A_GlobalStateDecrypted> }) {
-  const visibleCells = row.getVisibleCells();
-  return (
-    <div className="rounded-lg border border-muted bg-card p-3 space-y-2 text-sm">
-      {visibleCells.map((cell) => (
-        <div key={cell.id} className="flex justify-between gap-2">
-          <span className="text-muted-foreground shrink-0">
-            {columnLabels[cell.column.id] || cell.column.id}
-          </span>
-          <span className="text-right min-w-0 overflow-hidden max-w-[80%]">
-            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function ApplicationGlobalState({
   appInfo,
 }: {
@@ -146,10 +121,7 @@ function ApplicationGlobalState({
                   <TableHead key={header.id}>
                     {header.isPlaceholder
                       ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
+                      : flexRender(header.column.columnDef.header, header.getContext())}
                   </TableHead>
                 ))}
               </TableRow>
@@ -160,10 +132,7 @@ function ApplicationGlobalState({
               <TableRow key={row.id}>
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id}>
-                    {flexRender(
-                      cell.column.columnDef.cell,
-                      cell.getContext()
-                    )}
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>
                 ))}
               </TableRow>
@@ -175,64 +144,33 @@ function ApplicationGlobalState({
       {/* Mobile cards */}
       <div className="md:hidden space-y-2">
         {table.getRowModel().rows.map((row) => (
-          <StateCard key={row.id} row={row} />
+          <div key={row.id} className="rounded-lg border border-muted bg-card p-3 space-y-2 text-sm">
+            {row.getVisibleCells().map((cell) => (
+              <div key={cell.id} className="flex justify-between gap-2">
+                <span className="text-muted-foreground shrink-0">
+                  {columnLabels[cell.column.id] || cell.column.id}
+                </span>
+                <span className="text-right min-w-0 overflow-hidden max-w-[80%]">
+                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                </span>
+              </div>
+            ))}
+          </div>
         ))}
       </div>
 
-      {/* Pagination */}
-      {pageCount > 1 ? (
-        <div className="flex items-center justify-end gap-2 pt-4 pb-0 md:py-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="mr-auto text-muted-foreground"
-            onClick={() => {
-              table.setPageSize(globalStorage.length);
-            }}
-          >
-            Show all
-          </Button>
-          <span className="text-sm text-muted-foreground">
-            Page {pageIndex + 1} of {pageCount}
-          </span>
-          <Button
-            variant="muted"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => table.setPageIndex(0)}
-            disabled={!table.getCanPreviousPage()}
-          >
-            <ChevronsLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="muted"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="muted"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="muted"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => table.setPageIndex(pageCount - 1)}
-            disabled={!table.getCanNextPage()}
-          >
-            <ChevronsRight className="h-4 w-4" />
-          </Button>
-        </div>
-      ) : null}
+      <TablePagination
+        pageIndex={pageIndex}
+        pageCount={pageCount}
+        canPreviousPage={table.getCanPreviousPage()}
+        canNextPage={table.getCanNextPage()}
+        onFirst={() => table.setPageIndex(0)}
+        onPrev={() => table.previousPage()}
+        onNext={() => table.nextPage()}
+        onLast={() => table.setPageIndex(pageCount - 1)}
+        onShowAll={() => table.setPageSize(globalStorage.length)}
+        className="flex items-center justify-end gap-2 pt-4 pb-0 md:py-4"
+      />
     </div>
   );
 }

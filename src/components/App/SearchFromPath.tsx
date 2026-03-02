@@ -1,7 +1,7 @@
 import React from 'react';
 import { useLocation, useNavigate, } from 'react-router-dom';
 import search, { NotFoundError, ServerError, NotSearchableError } from "../Modules/Explorer/Search/CoreSearch";
-import Loader from "../Common/LoadingTile/LoadingTile";
+import Loader from "src/components/v2/LoadingTile";
 import { SearchX, CircleAlert, HeartCrack } from 'lucide-react';
 import { useAbelAssetsContext } from '../Common/AbelAssetsProvider';
 

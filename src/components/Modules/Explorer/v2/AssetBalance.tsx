@@ -1,11 +1,8 @@
-import { useEffect, useState } from "react";
-import { AssetClient } from "src/packages/core-sdk/clients/assetClient";
-import dappflow from "src/utils/dappflow";
-import { A_Asset } from "src/packages/core-sdk/types";
 import { CoreAsset } from "src/packages/core-sdk/classes/core/CoreAsset";
 import NumberFormat from "react-number-format";
 import LinkToAsset from "./Links/LinkToAsset";
-import { indexerModels } from "algosdk";
+import { A_Asset } from "src/packages/core-sdk/types";
+import { useAsset } from "src/hooks/useAsset";
 
 interface AssetBalanceProps {
   id: number;
@@ -14,53 +11,29 @@ interface AssetBalanceProps {
   assetDef?: A_Asset;
 }
 
-interface AssetBalanceState {
-  asset: indexerModels.Asset | A_Asset;
-}
-
-const initialState: AssetBalanceState = {
-  asset: new indexerModels.Asset({
-    index: 0n,
-    params: new indexerModels.AssetParams({
-      creator: "",
-      decimals: 0,
-      total: 0n,
-    }),
-  }),
-};
-
 function AssetBalance({
   id,
   balance = 0,
   by = "id",
   assetDef,
 }: AssetBalanceProps): JSX.Element {
-  const [{ asset }, setState] = useState(initialState);
+  const { data: fetchedAsset } = useAsset(by === "id" ? id : 0);
+  const asset = by === "asset" ? assetDef : fetchedAsset;
 
-  async function getAssetDetails() {
-    if (by === "id") {
-      const assetClient = new AssetClient(dappflow.network);
-      const asset = await assetClient.get(id);
-      setState((prevState) => ({ ...prevState, asset }));
-    } else if (by === "asset") {
-      setState((prevState) => ({ ...prevState, asset: assetDef }));
-    }
-  }
+  if (!asset) return null;
 
-  useEffect(() => {
-    getAssetDetails();
-  }, []);
+  const coreAsset = new CoreAsset(asset);
 
   return (
     <div className="inline-flex items-center gap-1 flex-wrap">
       <NumberFormat
-        value={new CoreAsset(asset).getAmountInDecimals(balance)}
+        value={coreAsset.getAmountInDecimals(balance)}
         displayType="text"
         thousandSeparator
       />
       <LinkToAsset
-        id={new CoreAsset(asset).getIndex()}
-        name={new CoreAsset(asset).getUnitName()}
+        id={coreAsset.getIndex()}
+        name={coreAsset.getUnitName()}
       />
     </div>
   );
