@@ -9,7 +9,7 @@ import NumberFormat from "react-number-format";
 export default function FeeCell({
   row,
 }: CellContext<indexerModels.Transaction, unknown>) {
-  const fee = new CoreTransaction(row.original).getFee();
+  const fee = React.useMemo(() => new CoreTransaction(row.original).getFee(), [row.original]);
   return (
     <span className="inline-flex items-center gap-1">
       <AlgoIcon width={10} />

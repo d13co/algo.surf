@@ -48,7 +48,7 @@
   },
   "scripts": {
     "start": "vite",
-    "dev": "vite",
+    "dev": "npm run dev:mainnet",
     "dev:mainnet": "REACT_APP_NETWORK=Mainnet vite",
     "dev:testnet": "REACT_APP_NETWORK=Testnet vite",
     "dev:betanet": "REACT_APP_NETWORK=Betanet vite",

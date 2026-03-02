@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import { CoreTransaction } from "src/packages/core-sdk/classes/core/CoreTransaction";
 import { TXN_TYPES } from "src/packages/core-sdk/constants";
@@ -41,7 +41,10 @@ function Transaction(): JSX.Element {
   } = useTransaction(id);
   const { data: asset } = useTransactionAsset(txnObj);
 
-  const txnInstance = txnObj ? new CoreTransaction(txnObj) : null;
+  const txnInstance = useMemo(
+    () => txnObj ? new CoreTransaction(txnObj) : null,
+    [txnObj]
+  );
 
   useTitle(`Txn ${id}`);
 

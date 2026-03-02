@@ -14,7 +14,7 @@ export default function AmountCell({
   table,
 }: CellContext<indexerModels.Transaction, unknown>) {
   const meta = table.options.meta as TransactionTableMeta;
-  const txn = new CoreTransaction(row.original);
+  const txn = React.useMemo(() => new CoreTransaction(row.original), [row.original]);
   const amount = txn.getAmount();
   const closeTo = !!txn.getCloseTo();
   const closeAmount = txn.getCloseAmount();

@@ -6,7 +6,7 @@ import { CoreTransaction } from "src/packages/core-sdk/classes/core/CoreTransact
 export default function TypeCell({
   row,
 }: CellContext<indexerModels.Transaction, unknown>) {
-  const txn = new CoreTransaction(row.original);
+  const txn = React.useMemo(() => new CoreTransaction(row.original), [row.original]);
   const type = txn.getTypeDisplayValue();
   const closeTo = txn.getCloseTo();
 

@@ -95,33 +95,28 @@ function TransactionsList({
     return vis;
   }, [fields, transactions, pageIndex]);
 
-  // Collect all addresses from transactions and batch-prefetch escrow lookups
-  const allAddresses = useMemo(() => {
+  // Single pass: collect addresses + compute group positions
+  const { allAddresses, groupPositions } = useMemo(() => {
     const addrs = new Set<string>();
-    for (const t of transactions) {
-      const txn = new CoreTransaction(t);
+    const positions = new Map<number, GroupPosition>();
+    const groups = transactions.map((t) => new CoreTransaction(t).getGroup());
+
+    for (let i = 0; i < transactions.length; i++) {
+      const txn = new CoreTransaction(transactions[i]);
       const from = txn.getFrom();
       const to = txn.getTo();
       const closeTo = txn.getCloseTo();
       if (from) addrs.add(from);
       if (to) addrs.add(to);
       if (closeTo) addrs.add(closeTo);
-    }
-    return Array.from(addrs);
-  }, [transactions]);
 
-  useEscrowBatch(allAddresses);
-
-  const groupPositions = useMemo(() => {
-    const positions = new Map<number, GroupPosition>();
-    for (let i = 0; i < transactions.length; i++) {
-      const group = new CoreTransaction(transactions[i]).getGroup();
+      const group = groups[i];
       if (!group || record === "group") {
         positions.set(i, "none");
         continue;
       }
-      const prevGroup = i > 0 ? new CoreTransaction(transactions[i - 1]).getGroup() : null;
-      const nextGroup = i < transactions.length - 1 ? new CoreTransaction(transactions[i + 1]).getGroup() : null;
+      const prevGroup = groups[i - 1] ?? null;
+      const nextGroup = groups[i + 1] ?? null;
       const matchPrev = prevGroup === group;
       const matchNext = nextGroup === group;
       if (matchPrev && matchNext) positions.set(i, "middle");
@@ -129,8 +124,11 @@ function TransactionsList({
       else if (matchNext) positions.set(i, "first");
       else positions.set(i, "only");
     }
-    return positions;
+
+    return { allAddresses: Array.from(addrs), groupPositions: positions };
   }, [transactions, record]);
+
+  useEscrowBatch(allAddresses);
 
   const meta: TransactionTableMeta = useMemo(
     () => ({ record, recordId, recordDef, groupPositions }),

@@ -13,7 +13,7 @@ export default function TxnIdCell({
   table,
 }: CellContext<indexerModels.Transaction, unknown>) {
   const meta = table.options.meta as TransactionTableMeta;
-  const txn = new CoreTransaction(row.original);
+  const txn = React.useMemo(() => new CoreTransaction(row.original), [row.original]);
   const txnId = txn.getId();
   const groupId = txn.getGroup();
   const rekey = !!txn.getRekeyTo();

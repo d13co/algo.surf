@@ -13,7 +13,7 @@ export default function ToCell({
   table,
 }: CellContext<indexerModels.Transaction, unknown>) {
   const meta = table.options.meta as TransactionTableMeta;
-  const txn = new CoreTransaction(row.original);
+  const txn = React.useMemo(() => new CoreTransaction(row.original), [row.original]);
   const to = txn.getTo();
   const closeTo = txn.getCloseTo();
   const type = txn.getType();

@@ -23,53 +23,17 @@ Also fixed: `persistOptions={{ persister }}` (new object every render) extracted
 
 | File | Issue |
 |------|-------|
-| `Transaction.tsx:44` | `const txnInstance = txnObj ? new CoreTransaction(txnObj) : null` — not memoized |
-| `AssetBalance.tsx:57–63` | Three separate `new CoreAsset(asset)` calls in one render |
-| `Account.tsx:118–120` | `new CoreAccount(accountInfo)` — not memoized, while two more are created inside `useMemo` |
-| `LiveBlocks.tsx:54` | `new CoreBlock(block)` inside `.map()` in render, not in `useMemo` |
-| `BlockTransactions.tsx:12` | `new CoreBlock(blockInfo).getTransactions()` — inline, not memoized |
-| Table cell components (`AmountCell`, `FeeCell`, `TypeCell`, etc.) | `new CoreTransaction(row.original)` on every render |
+| ~~`Transaction.tsx:44`~~ | ✅ FIXED — `txnInstance` wrapped in `useMemo([txnObj])` |
+| ~~`AssetBalance.tsx:57–63`~~ | ✅ FIXED — refactored to use `useAsset` hook (React Query), single `coreAsset` instance, returns `null` before asset loads |
+| ~~`Account.tsx:118–120`~~ | ✅ FIXED — memoized via `useMemo([accountInfo])`; `createdApplications` and `optedApplications` now reuse the same instance |
+| ~~`LiveBlocks.tsx:54`~~ | ✅ FIXED — `blocks.map(b => new CoreBlock(b))` hoisted into `useMemo([blocks])` |
+| ~~`BlockTransactions.tsx:12`~~ | ✅ FIXED — `new CoreBlock(blockInfo).getTransactions()` wrapped in `useMemo([blockInfo])` |
+| ~~Table cell components~~ | ✅ FIXED — all 7 cells (`AmountCell`, `FeeCell`, `TypeCell`, `FromCell`, `ToCell`, `TxnIdCell`, `AgeCell`, `BlockCell`) use `React.useMemo(() => new CoreTransaction(row.original), [row.original])` |
 
-**Fix examples:**
-```tsx
-// Transaction.tsx
-const txnInstance = useMemo(
-  () => txnObj ? new CoreTransaction(txnObj) : null,
-  [txnObj]
-);
+### 3. ✅ FIXED — Repeated `CoreTransaction` instantiation in `groupPositions` loop + multiple iterations (`js-cache-property-access`, `js-combine-iterations`)
+**File:** `TransactionsList.tsx`
 
-// AssetBalance.tsx — create once, use 3 times
-const coreAsset = useMemo(() => new CoreAsset(asset), [asset]);
-```
-
-### 3. Repeated `CoreTransaction` instantiation in `groupPositions` loop (`js-cache-property-access`)
-**File:** `TransactionsList.tsx:115–133`
-
-In the `groupPositions` useMemo, each transaction is wrapped in `new CoreTransaction()` up to 3 times (once as current, once as prevGroup of the next iteration, once as nextGroup of the prior iteration).
-
-```tsx
-// Current: O(3n) CoreTransaction instantiations
-const group = new CoreTransaction(transactions[i]).getGroup();
-const prevGroup = i > 0 ? new CoreTransaction(transactions[i - 1]).getGroup() : null;
-const nextGroup = i < transactions.length - 1 ? new CoreTransaction(transactions[i + 1]).getGroup() : null;
-
-// Fix: pre-compute group IDs once, O(n)
-const groups = transactions.map((t) => new CoreTransaction(t).getGroup());
-// then use groups[i], groups[i-1], groups[i+1]
-```
-
----
-
-## MEDIUM
-
-### 4. Multiple iterations over `transactions` in `TransactionsList.tsx` (`js-combine-iterations`)
-
-Three separate `useMemo` blocks each iterate `transactions`:
-- `columnVisibility` — iterates the page slice, calling `new CoreTransaction(t).getType()` per item
-- `allAddresses` — iterates all transactions
-- `groupPositions` — iterates all transactions
-
-The `allAddresses` and `groupPositions` passes could be combined into a single loop.
+`allAddresses` and `groupPositions` were two separate `useMemo` blocks each iterating all transactions. Combined into a single pass. `groupPositions` now pre-computes group IDs in one `O(n)` map, eliminating the previous `O(3n)` pattern where each element was wrapped up to 3 times.
 
 ### 5. `NameCell` / `CreatedAtCell` waterfall in `AccountCreatedApplications.tsx`
 

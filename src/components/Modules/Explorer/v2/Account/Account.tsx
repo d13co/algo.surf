@@ -115,9 +115,10 @@ function Account(): JSX.Element {
     [address, addressBookData]
   );
 
-  const accountInstance = accountInfo
-    ? new CoreAccount(accountInfo)
-    : null;
+  const accountInstance = useMemo(
+    () => accountInfo ? new CoreAccount(accountInfo) : null,
+    [accountInfo]
+  );
 
   const assetIdsToLookup = useMemo(() => {
     if (accountInfo?.authAddr?.toString() === tinymanAppEscrow) {
@@ -172,16 +173,16 @@ function Account(): JSX.Element {
   const hasCreatedAssets = accountInfo?.createdAssets?.length ?? 0;
 
   const createdApplications = useMemo(() => {
-    if (!accountInfo) return [];
-    return [...new CoreAccount(accountInfo).getCreatedApplications()]
+    if (!accountInstance) return [];
+    return [...accountInstance.getCreatedApplications()]
       .sort((a, b) => Number(b.id) - Number(a.id));
-  }, [accountInfo]);
+  }, [accountInstance]);
 
   const optedApplications = useMemo(() => {
-    if (!accountInfo) return [];
-    return [...new CoreAccount(accountInfo).getOptedApplications()]
+    if (!accountInstance) return [];
+    return [...accountInstance.getOptedApplications()]
       .sort((a, b) => Number(b.id) - Number(a.id));
-  }, [accountInfo]);
+  }, [accountInstance]);
 
   const hasCreatedApps = createdApplications.length;
   const hasOptedApps = optedApplications.length;

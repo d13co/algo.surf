@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { useParams } from "react-router-dom";
 import TransactionsList from "../Lists/TransactionsList/TransactionsList";
 import { useBlock } from "src/hooks/useBlock";
@@ -9,7 +9,10 @@ function BlockTransactions(): JSX.Element {
   const numId = Number(id);
 
   const { data: blockInfo, isLoading } = useBlock(numId);
-  const transactions = blockInfo ? new CoreBlock(blockInfo).getTransactions() : [];
+  const transactions = useMemo(
+    () => blockInfo ? new CoreBlock(blockInfo).getTransactions() : [],
+    [blockInfo]
+  );
 
   return (
     <div>

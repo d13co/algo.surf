@@ -41,6 +41,10 @@ function TxnTypePill({ type, count }: { type: string; count: number }) {
 
 function LiveBlocks(): JSX.Element {
     const {blocks} = useLiveData();
+    const blockInstances = React.useMemo(
+        () => blocks.map((block) => new CoreBlock(block)),
+        [blocks]
+    );
 
     return (
         <div>
@@ -50,8 +54,7 @@ function LiveBlocks(): JSX.Element {
                 </div>
                 <div className="mt-5">
                     <TransitionGroup component="div">
-                        {blocks.map((block) => {
-                            const blockInstance = new CoreBlock(block);
+                        {blockInstances.map((blockInstance) => {
 
                             return (
                                 <CSSTransition key={blockInstance.getRound()} timeout={700} classNames="item">

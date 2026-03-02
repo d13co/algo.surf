@@ -11,7 +11,7 @@ export default function FromCell({
   table,
 }: CellContext<indexerModels.Transaction, unknown>) {
   const meta = table.options.meta as TransactionTableMeta;
-  const txn = new CoreTransaction(row.original);
+  const txn = React.useMemo(() => new CoreTransaction(row.original), [row.original]);
   const from = txn.getFrom();
   const showLink = !(meta.record === "account" && meta.recordId === from);
   const isHeartbeat = txn.getType() === "hb";
