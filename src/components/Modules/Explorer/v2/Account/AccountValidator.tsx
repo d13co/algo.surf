@@ -135,10 +135,7 @@ function AccountValidator(): JSX.Element {
     };
   }, [validatorData, timeframe, lastRound]);
 
-  const hasData =
-    (numBlocks || sumPayouts || numSuspensions) &&
-    !validatorLoading &&
-    !validatorError;
+  const hasData = !!validatorData && !validatorLoading && !validatorError;
 
   async function refreshLastRound() {
     setStartTime(0);
@@ -317,6 +314,7 @@ function AccountValidator(): JSX.Element {
                 size="sm"
                 className="border-primary text-primary hover:bg-primary hover:text-background"
                 onClick={showBlocksProposed}
+                disabled={!numBlocks}
               >
                 <CubeIcon size={16} />
                 Show Proposed Blocks
@@ -326,6 +324,7 @@ function AccountValidator(): JSX.Element {
                 size="sm"
                 className="border-primary text-primary hover:bg-primary hover:text-background"
                 onClick={showSuspensions}
+                disabled={!numSuspensions}
               >
                 <HandIcon size={16} />
                 Show Suspension Events

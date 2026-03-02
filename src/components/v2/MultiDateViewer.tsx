@@ -13,7 +13,9 @@ import {
 } from "src/components/v2/ui/tooltip";
 
 function formatDate(timestamp: number, format: DateFormat): string {
+  if (!timestamp) return "-";
   const date = new Date(timestamp * 1000);
+  if (isNaN(date.getTime())) return "-";
   switch (format) {
     case "relative": {
       // @ts-ignore
@@ -30,7 +32,9 @@ function formatDate(timestamp: number, format: DateFormat): string {
 }
 
 function formatDateShort(timestamp: number, format: DateFormat): string {
+  if (!timestamp) return "-";
   const date = new Date(timestamp * 1000);
+  if (isNaN(date.getTime())) return "-";
   switch (format) {
     case "relative": {
       // @ts-ignore
