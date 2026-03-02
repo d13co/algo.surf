@@ -185,7 +185,7 @@ function TransactionsList({
       {pagination}
 
       {/* Desktop table */}
-      <div ref={tableRef} style={stableStyle} className="hidden md:block">
+      <div ref={tableRef} style={stableStyle} className="hidden md:block [&_button[aria-label=copy]]:hidden lg:[&_button[aria-label=copy]]:inline-flex">
         <Table className="table-fixed">
           <TableHeader className="[&_tr]:border-primary">
             {table.getHeaderGroups().map((headerGroup) => (
@@ -267,7 +267,7 @@ function TransactionsList({
       </div>
 
       {/* Bottom pagination (mobile only) */}
-      <div className="md:hidden">
+      <div className="md:hidden mt-4">
         <ListToolbar
           pageIndex={pageIndex}
           pageCount={pageCount}

@@ -12,23 +12,28 @@ function arrayBufferToHex(ab: ArrayBuffer): string {
 }
 
 async function getProgramHashes(approvalB64: string, clearB64: string) {
+  const subtle = globalThis.crypto?.subtle;
+  if (!subtle) {
+    throw new Error("Web Crypto API unavailable (requires HTTPS or localhost)");
+  }
+
   const approvalProgram = Buffer.from(approvalB64, "base64");
   const approvalProgramPages = chunk(Array.from(approvalProgram), 4096);
   const clearProgram = Buffer.from(clearB64, "base64");
 
   const approvalPagesSha256 = await Promise.all(
     approvalProgramPages.map((page) =>
-      crypto.subtle.digest("SHA-256", Buffer.from(page) as any),
+      subtle.digest("SHA-256", new Uint8Array(page)),
     ),
   );
 
   const sha256 = {
     approval: arrayBufferToHex(
-      await crypto.subtle.digest("SHA-256", approvalProgram as any),
+      await subtle.digest("SHA-256", new Uint8Array(approvalProgram)),
     ),
     approvalPages: approvalPagesSha256.map((page) => arrayBufferToHex(page)),
     clear: arrayBufferToHex(
-      await crypto.subtle.digest("SHA-256", clearProgram as any),
+      await subtle.digest("SHA-256", new Uint8Array(clearProgram)),
     ),
   };
 

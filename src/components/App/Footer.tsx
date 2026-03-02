@@ -1,4 +1,4 @@
-import { Github, Twitter } from 'lucide-react';
+import { Github, Twitter, ChevronsUpDown, Check } from 'lucide-react';
 import { network, Networks } from "../../packages/core-sdk/constants";
 import {
     Tooltip,
@@ -6,6 +6,12 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "src/components/v2/ui/tooltip";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "src/components/v2/ui/dropdown-menu";
 
 const map: Record<Networks, string> = {
     "Mainnet": "https://algo.surf",
@@ -60,42 +66,44 @@ function Footer(): JSX.Element {
                 </TooltipProvider>
             </div>
             <div>
-                <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <span>
-                                <NetworksComponent />
-                            </span>
-                        </TooltipTrigger>
-                        <TooltipContent className="bg-black text-white border-border">
-                            <p>Switch network</p>
-                        </TooltipContent>
-                    </Tooltip>
-                </TooltipProvider>
+                <NetworkSwitcher />
             </div>
         </div>
     );
 }
 
-function NetworksComponent() {
-    return <>{
-        networkMap.sort(([a], [b]) => a === network ? -1 : b === network ? 1 : 0)
-        .map(([name, url], i, a) => {
-            const current = name === network;
-            const last = i === a.length - 1;
-            return (
-                <span key={`net-${name}`}>
-                    <a
-                        href={url}
-                        className={current ? "no-underline text-white" : "text-primary hover:underline"}
-                    >
-                        {name}
-                    </a>
-                    {!last ? <>{' '}&middot;{' '}</> : null}
-                </span>
-            );
-        })
-    }</>;
+function NetworkSwitcher() {
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <button
+                    type="button"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-primary text-primary px-2.5 py-1 text-sm font-medium hover:bg-primary/10 focus:outline-none"
+                >
+                    {network}
+                    <ChevronsUpDown size={13} className="opacity-60" />
+                </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-background-card border-border text-foreground">
+                {networkMap.map(([name, url]) => {
+                    const current = name === network;
+                    return (
+                        <DropdownMenuItem key={name} asChild>
+                            {/* TODO: figure out graceful network transition that maintains current page state
+                                (e.g. stay on /account/:address when switching networks) */}
+                            <a
+                                href={url}
+                                className="flex items-center gap-2 cursor-pointer"
+                            >
+                                <Check size={13} className={current ? "opacity-100" : "opacity-0"} />
+                                {name}
+                            </a>
+                        </DropdownMenuItem>
+                    );
+                })}
+            </DropdownMenuContent>
+        </DropdownMenu>
+    );
 }
 
 export default Footer;

@@ -8,6 +8,17 @@ import {
 } from "src/components/v2/ui/tooltip";
 import { cn } from "src/lib/utils";
 
+function fallbackCopy(text: string) {
+  const el = document.createElement("textarea");
+  el.value = text;
+  el.style.cssText = "position:fixed;top:-9999px;left:-9999px;opacity:0";
+  document.body.appendChild(el);
+  el.focus();
+  el.select();
+  try { document.execCommand("copy"); } catch {}
+  document.body.removeChild(el);
+}
+
 const copyTitle = "Click to copy";
 const checkmarkTitle = "Copied";
 
@@ -27,7 +38,12 @@ export default function Copyable({
   const [copied, setCopied] = useState(false);
 
   const copy = useCallback(() => {
-    navigator.clipboard.writeText(String(value));
+    const text = String(value);
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+    } else {
+      fallbackCopy(text);
+    }
     setCopied(true);
     setTimeout(() => setCopied(false), 2_000);
   }, [value]);

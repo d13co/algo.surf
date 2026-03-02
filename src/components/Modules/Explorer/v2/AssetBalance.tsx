@@ -52,7 +52,7 @@ function AssetBalance({
   }, []);
 
   return (
-    <div className="inline-flex items-center gap-1">
+    <div className="inline-flex items-center gap-1 flex-wrap">
       <NumberFormat
         value={new CoreAsset(asset).getAmountInDecimals(balance)}
         displayType="text"

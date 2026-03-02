@@ -50,7 +50,7 @@ function Application(): JSX.Element {
   );
 
   const { data: appInfo, isLoading, isError, error } = useApplication(numId);
-  const { data: hashes } = useApplicationHashes(appInfo);
+  const { data: hashes, isLoading: hashesLoading, isError: hashesError } = useApplicationHashes(appInfo);
   const {
     data: boxData,
     error: boxError,
@@ -217,7 +217,16 @@ function Application(): JSX.Element {
                                     </button>
                                   </div>
                                 </div>
-                                {hashes ? (
+                                {hashesError ? (
+                                  <div className="text-destructive text-sm">
+                                    Failed to compute hashes. Your browser may not support the Web Crypto API on this connection.
+                                  </div>
+                                ) : hashesLoading || !hashes ? (
+                                  <div className="text-muted-foreground flex items-center gap-2">
+                                    <svg className="animate-spin h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg>
+                                    Computing hashes...
+                                  </div>
+                                ) : (
                                   <>
                                     <div className="text-muted-foreground text-sm flex items-center gap-2.5">
                                       Approval {hashAlgo === "sha512_256" ? "SHA512/256" : "SHA256"}
@@ -254,10 +263,6 @@ function Application(): JSX.Element {
                                       <Copyable value={hashes[hashAlgo].clear} />
                                     </div>
                                   </>
-                                ) : (
-                                  <div className="text-muted-foreground">
-                                    Computing hashes...
-                                  </div>
                                 )}
                               </div>
                             ),

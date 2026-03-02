@@ -1,46 +1,49 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import Explorer from "../Modules/Explorer/Explorer/Explorer";
-import Home from "../Modules/Explorer/Home/Home";
-import Accounts from "../Modules/Explorer/v2/Account/Accounts";
-import Transactions from "../Modules/Explorer/v2/Transaction/Transactions";
-import Assets from "../Modules/Explorer/v2/Asset/Assets";
-import Applications from "../Modules/Explorer/v2/Application/Applications";
-import Account from "../Modules/Explorer/v2/Account/Account";
-import AccountAssets from "../Modules/Explorer/v2/Account/AccountAssets";
-import AccountTransactions from "../Modules/Explorer/v2/Account/AccountTransactions";
-import AccountCreatedAssets from "../Modules/Explorer/v2/Account/AccountCreatedAssets";
-import AccountCreatedApplications from "../Modules/Explorer/v2/Account/AccountCreatedApplications";
-import AccountOptedApplications from "../Modules/Explorer/v2/Account/AccountOptedApplications";
-import AccountControllerTo from "../Modules/Explorer/v2/Account/AccountControllerTo";
-import Block from "../Modules/Explorer/v2/Block/Block";
-import BlockTransactions from "../Modules/Explorer/v2/Block/BlockTransactions";
-import Asset from "../Modules/Explorer/v2/Asset/Asset";
-import AssetTransactions from "../Modules/Explorer/v2/Asset/AssetTransactions";
-import Application from "../Modules/Explorer/v2/Application/Application";
-import ApplicationTransactions from "../Modules/Explorer/v2/Application/ApplicationTransactions";
-import ApplicationBoxes from "../Modules/Explorer/v2/Application/ApplicationBoxes";
-import Transaction from "../Modules/Explorer/v2/Transaction/Transaction";
-import Group from "../Modules/Explorer/v2/Group/Group";
-import GroupTransactions from "../Modules/Explorer/v2/Group/GroupTransactions";
 import Loader from "../Common/Loader/Loader";
 import AppSnackbar from "./AppSnackbar";
 import Footer from "./Footer";
-import StripExplorerFromPath from "./StripExplorerFromPath";
-import SearchFromPath from "./SearchFromPath";
-import AccountValidator from "../Modules/Explorer/v2/Account/AccountValidator";
 import { queryClient } from "../../db/query-client";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { persister } from "../../db/query-persister";
 import { AbelAssetsProvider } from "../Common/AbelAssetsProvider";
 import { GlobalUIProvider } from "../../contexts/GlobalUIContext";
 
+const Home = lazy(() => import("../Modules/Explorer/Home/Home"));
+const Accounts = lazy(() => import("../Modules/Explorer/v2/Account/Accounts"));
+const Transactions = lazy(() => import("../Modules/Explorer/v2/Transaction/Transactions"));
+const Assets = lazy(() => import("../Modules/Explorer/v2/Asset/Assets"));
+const Applications = lazy(() => import("../Modules/Explorer/v2/Application/Applications"));
+const Account = lazy(() => import("../Modules/Explorer/v2/Account/Account"));
+const AccountAssets = lazy(() => import("../Modules/Explorer/v2/Account/AccountAssets"));
+const AccountTransactions = lazy(() => import("../Modules/Explorer/v2/Account/AccountTransactions"));
+const AccountCreatedAssets = lazy(() => import("../Modules/Explorer/v2/Account/AccountCreatedAssets"));
+const AccountCreatedApplications = lazy(() => import("../Modules/Explorer/v2/Account/AccountCreatedApplications"));
+const AccountOptedApplications = lazy(() => import("../Modules/Explorer/v2/Account/AccountOptedApplications"));
+const AccountControllerTo = lazy(() => import("../Modules/Explorer/v2/Account/AccountControllerTo"));
+const AccountValidator = lazy(() => import("../Modules/Explorer/v2/Account/AccountValidator"));
+const Block = lazy(() => import("../Modules/Explorer/v2/Block/Block"));
+const BlockTransactions = lazy(() => import("../Modules/Explorer/v2/Block/BlockTransactions"));
+const Asset = lazy(() => import("../Modules/Explorer/v2/Asset/Asset"));
+const AssetTransactions = lazy(() => import("../Modules/Explorer/v2/Asset/AssetTransactions"));
+const Application = lazy(() => import("../Modules/Explorer/v2/Application/Application"));
+const ApplicationTransactions = lazy(() => import("../Modules/Explorer/v2/Application/ApplicationTransactions"));
+const ApplicationBoxes = lazy(() => import("../Modules/Explorer/v2/Application/ApplicationBoxes"));
+const Transaction = lazy(() => import("../Modules/Explorer/v2/Transaction/Transaction"));
+const Group = lazy(() => import("../Modules/Explorer/v2/Group/Group"));
+const GroupTransactions = lazy(() => import("../Modules/Explorer/v2/Group/GroupTransactions"));
+const StripExplorerFromPath = lazy(() => import("./StripExplorerFromPath"));
+const SearchFromPath = lazy(() => import("./SearchFromPath"));
+
+const PERSIST_OPTIONS = { persister };
+
 function AppRouter(): JSX.Element {
   return (
     <div>
       <BrowserRouter>
         <PersistQueryClientProvider
-          persistOptions={{ persister }}
+          persistOptions={PERSIST_OPTIONS}
           client={queryClient}
         >
           <GlobalUIProvider>
@@ -50,6 +53,7 @@ function AppRouter(): JSX.Element {
                 <div className="overflow-auto min-h-svh flex flex-col">
                   <div className="grow mx-5 mt-2.5 md:mx-[100px] md:mt-5">
                     <Explorer>
+                      <Suspense fallback={null}>
                       <Routes>
                         <Route index element={<Home></Home>} />
                         <Route
@@ -182,6 +186,7 @@ function AppRouter(): JSX.Element {
                         />
                         <Route path="*" element={<SearchFromPath />} />
                       </Routes>
+                      </Suspense>
                     </Explorer>
                   </div>
                   <Footer />

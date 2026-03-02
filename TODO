@@ -143,7 +143,7 @@ offlined-aware validator labels in accounts - compare last-roudn with last valid
 
 KI47DCJ3KZD4TPV456G4TWIAI3VKOAJH2WXTT6X2V6PTGEU3K3ANEEHG7U kraken new?
 
-inner /json viewer /download name
-change account to load via indexer if we can get createdRound and show created At
+[ ] inner /json viewer /download name
+[v] change account to load via indexer if we can get createdRound and show created At
 
 app escrow lookups should cover inner txn sender/receivers, e.g. http://localhost:5173/transaction/44P623ZRRYXEXWCJOCJQXKLWWYE6NKM4P6WQI2FAGY6JQXIHXQLA
