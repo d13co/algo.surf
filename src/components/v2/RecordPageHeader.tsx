@@ -38,7 +38,7 @@ export default function RecordPageHeader({
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key !== "c") return;
+      if (e.key !== "c" || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
       const active = document.activeElement as HTMLElement | null;
       const tag = active?.tagName ?? "";
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
@@ -54,7 +54,7 @@ export default function RecordPageHeader({
       <div className="group flex items-center gap-2 min-w-0">
         <span className="shrink-0">{label}</span>
         <span className={truncate ? "truncate min-w-0" : ""}>{id}</span>
-        <span ref={copyRef}>
+        <span ref={copyRef} className="-translate-y-[1px]">
           <Copyable className="opacity-60 group-hover:opacity-100" value={copyValue} />
         </span>
       </div>
