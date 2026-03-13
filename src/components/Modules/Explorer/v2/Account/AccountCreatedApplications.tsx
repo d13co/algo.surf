@@ -51,7 +51,7 @@ function NameCell({ appId }: { appId: number }) {
   const { data: blockInfo } = useBlock(createdAtRound ?? 0);
 
   const appName = useMemo(() => {
-    if (!appInfo) return null;
+    if (!appInfo || !blockInfo) return null;
     const creationTxn = findTxnByAppId(blockInfo, appId);
     if (!creationTxn) return null;
     const { note } = creationTxn;

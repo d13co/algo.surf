@@ -57,8 +57,8 @@ importers:
         specifier: ^0.10.1
         version: 0.10.1
       abel-ghost-sdk:
-        specifier: 0.0.4
-        version: 0.0.4(@algorandfoundation/algokit-utils@9.2.0(algosdk@3.5.2))(algosdk@3.5.2)
+        specifier: 0.0.7
+        version: 0.0.7(@algorandfoundation/algokit-utils@9.2.0(algosdk@3.5.2))(algosdk@3.5.2)
       algosdk:
         specifier: ^3.5.2
         version: 3.5.2
@@ -1216,8 +1216,8 @@ packages:
   '@yornaath/batshit@0.10.1':
     resolution: {integrity: sha512-WGZ1WNoiVN6CLf28O73+6SCf+2lUn4U7TLGM9f4zOad0pn9mdoXIq8cwu3Kpf7N2OTYgWGK4eQPTflwFlduDGA==}
 
-  abel-ghost-sdk@0.0.4:
-    resolution: {integrity: sha512-9LuLd8V6jJxyXbVe40ijK/aDK2Jwr5rGb81ILBuVudf5U2P2uWIskQAAlv8JsAWu6s3KmzMVHRZ837VFxpaVgQ==}
+  abel-ghost-sdk@0.0.7:
+    resolution: {integrity: sha512-1lmdR+PjetbYI0N3onxvTA3yUvE6Qa7WJoB+l4Y94gYQWekZcKwEnG9GnwnG+nkXWGfTh2cJRHk1MYPxg3F1OQ==}
     peerDependencies:
       '@algorandfoundation/algokit-utils': ^9.2.0
       algosdk: ^3.5.2
@@ -3396,7 +3396,7 @@ snapshots:
     dependencies:
       '@yornaath/batshit-devtools': 1.7.1
 
-  abel-ghost-sdk@0.0.4(@algorandfoundation/algokit-utils@9.2.0(algosdk@3.5.2))(algosdk@3.5.2):
+  abel-ghost-sdk@0.0.7(@algorandfoundation/algokit-utils@9.2.0(algosdk@3.5.2))(algosdk@3.5.2):
     dependencies:
       '@algorandfoundation/algokit-utils': 9.2.0(algosdk@3.5.2)
       algosdk: 3.5.2
