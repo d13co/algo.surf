@@ -4,7 +4,7 @@ import type { TsTcWatcherBlockCallback, BlockRoundTimeAndTc } from "@d13co/algo-
 import type { modelsv2, Transaction } from "algosdk";
 
 const BLOCKS_TO_KEEP = 11;
-const TRANSACTIONS_TO_KEEP = 25;
+const TRANSACTIONS_TO_KEEP = BLOCKS_TO_KEEP;
 
 type Block = modelsv2.BlockResponse["block"];
 type SignedTxnInBlock = Block["payset"][number];

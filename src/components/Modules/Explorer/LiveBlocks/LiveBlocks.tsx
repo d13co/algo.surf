@@ -62,13 +62,13 @@ function countTxnTypes(payset: Block["payset"]) {
     return { total, counts };
 }
 
-function BlockItem({ block }: { block: Block }) {
+function BlockItem({ block, ...transitionProps }: { block: Block } & Record<string, unknown>) {
     const nodeRef = useRef<HTMLAnchorElement>(null);
     const round = Number(block.header.round);
     const { total, counts } = countTxnTypes(block.payset);
 
     return (
-        <CSSTransition key={round} timeout={700} classNames="item" nodeRef={nodeRef}>
+        <CSSTransition {...transitionProps} key={round} timeout={700} classNames="item" nodeRef={nodeRef}>
             <Link ref={nodeRef} to={"/block/" + round} className="block bg-background-card p-4 my-3 border-l-[6px] border-primary rounded overflow-hidden hover:bg-background-card/80">
                 <div className="w-full">
                     <div className="flex justify-between items-center flex-wrap">

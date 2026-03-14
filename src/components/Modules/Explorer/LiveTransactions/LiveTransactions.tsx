@@ -53,7 +53,7 @@ function getAppId(txn: Transaction): number {
     return 0;
 }
 
-function TransactionItem({ stib }: { stib: SignedTxnInBlock }) {
+function TransactionItem({ stib, ...transitionProps }: { stib: SignedTxnInBlock } & Record<string, unknown>) {
     const nodeRef = useRef<HTMLAnchorElement>(null);
     const txn = stib.signedTxn.signedTxn.txn;
     const txId = txn.txID();
@@ -62,7 +62,7 @@ function TransactionItem({ stib }: { stib: SignedTxnInBlock }) {
     const appId = getAppId(txn);
 
     return (
-        <CSSTransition timeout={700} classNames="item" nodeRef={nodeRef}>
+        <CSSTransition {...transitionProps} timeout={700} classNames="item" nodeRef={nodeRef}>
             <Link ref={nodeRef} to={"/transaction/" + txId} className="block bg-background-card text-muted-foreground p-4 my-3 border-l-[6px] border-primary rounded overflow-hidden hover:bg-background-card/80">
                 <div className="flex justify-between items-center">
                     <span>{getTypeDisplayValue(txn)}</span>
