@@ -1,6 +1,10 @@
 import React from "react";
-import {useLiveData} from "../../../../hooks/useLiveData";
-import {CoreBlock} from "../../../../packages/core-sdk/classes/core/CoreBlock";
+import {
+    useTransactionsPerSecond,
+    useAverageRoundTime,
+    useTransactionCount,
+    useBlockData,
+} from "@d13co/algo-metrics-react";
 import {
     Tooltip,
     TooltipContent,
@@ -11,47 +15,29 @@ import {
 const NETWORK = process.env.REACT_APP_NETWORK;
 
 function LiveStats(): JSX.Element {
-    const { blocks } = useLiveData();
+    const tpsValue = useTransactionsPerSecond();
+    const avgRoundTime = useAverageRoundTime();
+    const txnCount = useTransactionCount();
+    const blockData = useBlockData();
 
-    const coreBlocks = React.useMemo(() => blocks.map((b) => new CoreBlock(b)), [blocks]);
+    const blockCount = blockData?.length ?? 0;
 
-    const tc = React.useMemo(() => {
-        if (!coreBlocks.length) return "-";
-        const txnCounter = coreBlocks[0].get().txnCounter ?? 0;
-        return (Number(txnCounter) + (NETWORK === "Mainnet" ? 563279 : 0)).toLocaleString();
-    }, [coreBlocks]);
+    const tps = tpsValue != null ? tpsValue.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : "-";
+    const avg = avgRoundTime != null
+        ? avgRoundTime.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + "s"
+        : "-";
+    const tc = txnCount != null ? Number(txnCount).toLocaleString() : "-";
 
-    const avg = React.useMemo(() => {
-        if (coreBlocks.length < 4) return "-";
-        const last = coreBlocks[0];
-        const firstIdx = Math.min(9, coreBlocks.length - 1);
-        const first = coreBlocks[firstIdx];
-        const dt = last.getTimestamp() - first.getTimestamp();
-        return (dt / (firstIdx)).toLocaleString(undefined, { maximumFractionDigits: 3 })+"s";
-    }, [coreBlocks]);
-
-    const [tps, tpsBlocks, tpsSec] = React.useMemo(() => {
-        if (coreBlocks.length < 4) return ["-", "-", "-"];
-        const last = coreBlocks[0];
-        const firstIdx = Math.min(10, coreBlocks.length - 1);
-        const first = coreBlocks[firstIdx];
-        const second = coreBlocks[firstIdx - 1];
-        const dt = last.getTimestamp() - first.getTimestamp();
-        const lastTc = Number(last.get().txnCounter ?? 0);
-        const secondTc = Number(second.get().txnCounter ?? 0);
-        const dtc = lastTc - secondTc;
-        return [
-            Math.round(dtc / dt).toLocaleString(),
-            firstIdx,
-            dt
-        ];
-    }, [coreBlocks]);
+    const loading = blockCount < 4;
+    const intervalMinutes = avgRoundTime != null && blockCount > 1
+        ? Math.round((avgRoundTime * blockCount) / 60)
+        : null;
 
     return (
         <div>
             <div className="text-left mb-1">
                 <div className="text-xl text-primary">
-                    Latest Stats
+                    Stats
                 </div>
                 <div className="mt-4 max-md:flex max-md:flex-col max-md:items-center">
                     <TooltipProvider>
@@ -63,7 +49,7 @@ function LiveStats(): JSX.Element {
                                 </div>
                             </TooltipTrigger>
                             <TooltipContent side="top" className="bg-black text-white border-border">
-                                <p>{tpsBlocks === "-" ? "Loading" : `TPS over the last ${tpsBlocks} blocks (${tpsSec} seconds)`}</p>
+                                <p>{loading ? "Loading" : `TPS over the last ${blockCount} blocks (~${intervalMinutes} minutes)`}</p>
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
@@ -77,7 +63,7 @@ function LiveStats(): JSX.Element {
                                 </div>
                             </TooltipTrigger>
                             <TooltipContent side="top" className="bg-black text-white border-border">
-                                <p>{tpsBlocks === "-" ? "Loading" : `Average block time over the last ${tpsBlocks} blocks`}</p>
+                                <p>{loading ? "Loading" : `Average block time over the last ${blockCount} blocks (~${intervalMinutes} minutes)`}</p>
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>

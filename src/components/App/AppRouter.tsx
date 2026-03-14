@@ -9,6 +9,7 @@ import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client
 import { persister } from "../../db/query-persister";
 import { AbelAssetsProvider } from "../Common/AbelAssetsProvider";
 import { GlobalUIProvider } from "../../contexts/GlobalUIContext";
+import LoadingTile from "../v2/LoadingTile";
 
 const Home = lazy(() => import("../Modules/Explorer/Home/Home"));
 const Accounts = lazy(() => import("../Modules/Explorer/v2/Account/Accounts"));
@@ -53,7 +54,7 @@ function AppRouter(): JSX.Element {
                 <div className="overflow-auto min-h-svh flex flex-col">
                   <div className="grow mx-5 mt-2.5 md:mx-[100px] md:mt-5">
                     <Explorer>
-                      <Suspense fallback={null}>
+                      <Suspense fallback={<LoadingTile />}>
                       <Routes>
                         <Route index element={<Home></Home>} />
                         <Route

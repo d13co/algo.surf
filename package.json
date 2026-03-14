@@ -5,6 +5,8 @@
   "dependencies": {
     "@algorandfoundation/algokit-utils": "9.2.0",
     "@d13co/algo-group-balance-impact": "^0.0.1",
+    "@d13co/algo-metrics-react": "^1.1.0",
+    "@d13co/algo-metrics-sdk": "^1.1.0",
     "@d13co/escreg-sdk": "^0.0.2",
     "@d13co/open-in": "^0.1.0",
     "@radix-ui/react-dialog": "^1.1.15",

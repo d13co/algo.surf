@@ -32,6 +32,7 @@ export default defineConfig(({ mode }) => {
       alias: {
         src: path.resolve(__dirname, "src"),
       },
+      dedupe: ["algosdk", "@algorandfoundation/algokit-utils"],
     },
     css: {
       preprocessorOptions: {
