@@ -156,7 +156,7 @@ function AppRouter(): JSX.Element {
                             }
                           />
                           <Route
-                            path="boxes"
+                            path="boxes/*"
                             element={<ApplicationBoxes></ApplicationBoxes>}
                           />
                           <Route
@@ -164,6 +164,10 @@ function AppRouter(): JSX.Element {
                             element={<Navigate to="transactions" replace />}
                           />
                         </Route>
+                        <Route
+                          path="/transaction/:id/inner/*"
+                          element={<Transaction></Transaction>}
+                        ></Route>
                         <Route
                           path="/transaction/:id"
                           element={<Transaction></Transaction>}

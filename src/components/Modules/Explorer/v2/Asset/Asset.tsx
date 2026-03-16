@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import {
   Outlet,
   useNavigate,
@@ -336,7 +337,9 @@ function Asset(): JSX.Element {
                     ]}
                   />
 
-                  <Outlet />
+                  <Suspense fallback={<LoadingTile />}>
+                    <Outlet />
+                  </Suspense>
                 </div>
               </div>
             )}

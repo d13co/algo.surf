@@ -174,7 +174,7 @@ function Search(props: SearchProps): JSX.Element {
         <button
           type="button"
           className={`absolute ${sizeClasses.iconRight} top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground`}
-          onClick={() => clearState()}
+          onClick={() => { clearState(); inputRef.current?.focus(); }}
           title="Clear"
         >
           <X className={sizeClasses.icon} />

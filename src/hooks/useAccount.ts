@@ -53,8 +53,19 @@ export function getEscrowOf(address: string): number | null | undefined {
  * Populates the module-level escrow cache and triggers a single
  * re-render of the calling component when done.
  */
-export function useEscrowBatch(addresses: string[]) {
+export function useEscrowBatch(
+  addresses: string[],
+  knownEscrows?: Map<string, number>,
+) {
   const [, bump] = useState(0);
+
+  if (knownEscrows) {
+    for (const [addr, appId] of knownEscrows) {
+      if (!escrowCache.has(addr)) {
+        escrowCache.set(addr, appId);
+      }
+    }
+  }
 
   useEffect(() => {
     const uncached = addresses.filter(

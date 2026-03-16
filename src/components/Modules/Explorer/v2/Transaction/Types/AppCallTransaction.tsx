@@ -20,8 +20,10 @@ import AppCallTxnInnerTxns from "./AppCall/AppCallTxnInnerTxns";
 
 function AppCallTransaction({
   transaction,
+  hideInnerTxns = false,
 }: {
   transaction: any;
+  hideInnerTxns?: boolean;
 }): JSX.Element {
   const txnInstance = new CoreTransaction(transaction);
   const appCallPayload = txnInstance.getAppCallPayload();
@@ -225,7 +227,7 @@ function AppCallTransaction({
         />
       ) : null}
 
-      {txnInstance.hasInnerTransactions() ? (
+      {txnInstance.hasInnerTransactions() && !hideInnerTxns ? (
         <AppCallTxnInnerTxns transaction={transaction} />
       ) : null}
 

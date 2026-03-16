@@ -16,11 +16,18 @@ import TransactionAdditionalDetails from "../../Sections/TransactionAdditionalDe
 function InnerTransactionDetail({
   txn,
   asset,
+  innerPath,
+  txnId,
 }: {
   txn: any;
   asset?: any;
+  innerPath?: string;
+  txnId?: string;
 }): JSX.Element {
   const txnInstance = new CoreTransaction(txn);
+  const pathLabel = innerPath ? innerPath.replace(/\//g, "-") : "";
+  const title = innerPath ? `Inner transaction ${innerPath}` : "Inner transaction";
+  const filename = txnId && pathLabel ? `${txnId}-inner-${pathLabel}.json` : "inner-txn.json";
 
   return (
     <div>
@@ -30,8 +37,8 @@ function InnerTransactionDetail({
         </span>
         <JsonViewer
           obj={() => txnInstance.toJSON()}
-          title="Inner transaction"
-          filename="inner-txn.json"
+          title={title}
+          filename={filename}
           size="sm"
         />
       </div>
@@ -77,7 +84,7 @@ function InnerTransactionDetail({
         <KeyRegTransaction transaction={txn} />
       ) : null}
       {txnInstance.getType() === TXN_TYPES.APP_CALL ? (
-        <AppCallTransaction transaction={txn} />
+        <AppCallTransaction transaction={txn} hideInnerTxns />
       ) : null}
 
       <TransactionRekey transaction={txn} />

@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useRef } from "react";
-import ReactJson from "react-json-view";
+import React, { Suspense, useState, useCallback, useRef } from "react";
+const ReactJson = React.lazy(() => import("react-json-view"));
 import { exportData } from "src/utils/common";
 import { X } from "lucide-react";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -123,18 +123,20 @@ function JsonViewer(props: {
             </div>
 
             <div className="overflow-y-auto min-h-0">
-              <ReactJson
-                key={expand ? "expanded" : "collapsed"}
-                src={dataRef.current ?? {}}
-                name={false}
-                displayObjectSize={false}
-                displayDataTypes={false}
-                enableClipboard={false}
-                iconStyle="triangle"
-                groupArraysAfterLength={expand ? 0 : 100}
-                collapsed={expand ? 99 : 1}
-                theme="apathy"
-              />
+              <Suspense fallback={<div className="p-4 text-muted-foreground">Loading...</div>}>
+                <ReactJson
+                  key={expand ? "expanded" : "collapsed"}
+                  src={dataRef.current ?? {}}
+                  name={false}
+                  displayObjectSize={false}
+                  displayDataTypes={false}
+                  enableClipboard={false}
+                  iconStyle="triangle"
+                  groupArraysAfterLength={expand ? 0 : 100}
+                  collapsed={expand ? 99 : 1}
+                  theme="apathy"
+                />
+              </Suspense>
             </div>
           </div>
         </DialogContent>

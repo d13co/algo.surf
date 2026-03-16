@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { Suspense, useMemo } from "react";
 import { Outlet, useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { CoreGroup } from "src/packages/core-sdk/classes/core/CoreGroup";
@@ -237,7 +237,9 @@ function Group(): JSX.Element {
                     ]}
                   />
 
-                  <Outlet />
+                  <Suspense fallback={<LoadingTile />}>
+                    <Outlet />
+                  </Suspense>
                 </div>
               </div>
             )}

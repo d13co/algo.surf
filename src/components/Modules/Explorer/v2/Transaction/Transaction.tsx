@@ -27,6 +27,7 @@ import TransactionMultiSig from "./Sections/TransactionMultiSig";
 import TransactionLogicSig from "./Sections/TransactionLogicSig";
 import TransactionAdditionalDetails from "./Sections/TransactionAdditionalDetails";
 import { Chip, BadgesRow } from "src/components/v2/Chips";
+import { countInnerTxns } from "./Types/AppCall/AppCallTxnInnerTxns";
 
 function Transaction(): JSX.Element {
   const params = useParams();
@@ -44,6 +45,11 @@ function Transaction(): JSX.Element {
   const txnInstance = useMemo(
     () => txnObj ? new CoreTransaction(txnObj) : null,
     [txnObj]
+  );
+
+  const innerTxnCount = useMemo(
+    () => txnInstance?.hasInnerTransactions() ? countInnerTxns(txnInstance) : 0,
+    [txnInstance]
   );
 
   useTitle(`Txn ${id}`);
@@ -102,6 +108,9 @@ function Transaction(): JSX.Element {
                     <Chip onClick={() => document.getElementById("logicsig")?.scrollIntoView({ behavior: "smooth", block: "start" })}>LogicSig</Chip>
                   ) : null}
                   {txnInstance.getRekeyTo() ? <Chip onClick={() => document.getElementById("rekey")?.scrollIntoView({ behavior: "smooth", block: "start" })}>Rekey</Chip> : null}
+                  {innerTxnCount > 0 ? (
+                    <Chip onClick={() => document.getElementById("inner-txns")?.scrollIntoView({ behavior: "smooth", block: "start" })}>Inner Txns ({innerTxnCount})</Chip>
+                  ) : null}
                 </BadgesRow>
 
                 <div className="rounded-lg p-5 pt-2.5 bg-background-card">

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { useAccount } from "src/hooks/useAccount";
 import { useTinyAssets } from "src/components/Common/UseTinyAsset";
@@ -12,9 +12,9 @@ import {
 import LinkToAsset from "../Links/LinkToAsset";
 import Copyable from "src/components/v2/Copyable";
 import NumberFormat from "react-number-format";
-import { Filter, Loader2, ThermometerSnowflake } from "lucide-react";
-import TablePagination from "src/components/v2/TablePagination";
-import { Input } from "src/components/v2/ui/input";
+import { Loader2, ThermometerSnowflake } from "lucide-react";
+import ListToolbar from "src/components/v2/ListToolbar";
+import FilterInput from "src/components/v2/FilterInput";
 import {
   Tooltip,
   TooltipContent,
@@ -22,6 +22,7 @@ import {
   TooltipTrigger,
 } from "src/components/v2/ui/tooltip";
 import { DataTable } from "src/components/v2/DataTable";
+import { useFilteredAssets } from "src/hooks/useFilteredAssets";
 
 const columns: ColumnDef<A_AssetHoldingTiny, any>[] = [
   {
@@ -92,10 +93,6 @@ function AccountAssets(): JSX.Element {
   const { address } = useParams();
   const { data: accountInfo } = useAccount(address);
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
-  const [searchStatus, setSearchStatus] = useState("");
-
   const optedAssetIds = useMemo(() => {
     return (accountInfo?.assets ?? []).map((a) => Number(a.assetId));
   }, [accountInfo?.assets]);
@@ -113,60 +110,22 @@ function AccountAssets(): JSX.Element {
 
   const { data: optedAssets, isLoading } = useTinyAssets(optedAssetIds);
 
-  const handleChangeSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(event.target.value);
-  };
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchTerm(searchTerm);
-    }, 100);
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
-
-  const filteredAssetHoldings: A_AssetHoldingTiny[] = useMemo(() => {
+  const assetHoldings: A_AssetHoldingTiny[] = useMemo(() => {
     if (!optedAssets) return [];
+    return optedAssets.map((a) => {
+      const holding = optedAssetAmounts.get(a.index);
+      return {
+        ...a,
+        amount: holding ? holding.amount : 0,
+        frozen: holding ? holding["is-frozen"] : false,
+      };
+    });
+  }, [optedAssets, optedAssetAmounts]);
 
-    const search = debouncedSearchTerm.toLocaleLowerCase();
-
-    if (!debouncedSearchTerm.trim().length) {
-      setSearchStatus(`${optedAssets.length} assets`);
-      return optedAssets.map((a) => {
-        const holding = optedAssetAmounts.get(a.index);
-        return {
-          ...a,
-          amount: holding ? holding.amount : 0,
-          frozen: holding ? holding["is-frozen"] : false,
-        };
-      });
-    }
-
-    const matching = optedAssets
-      .filter((a) => {
-        const { name, "unit-name": unitName } = a.params;
-        return (
-          name?.toLocaleLowerCase()?.includes(search) ||
-          unitName?.toLocaleLowerCase()?.includes(search)
-        );
-      })
-      .map((a) => {
-        const holding = optedAssetAmounts.get(a.index);
-        return {
-          ...a,
-          amount: holding ? holding.amount : 0,
-          frozen: holding ? holding["is-frozen"] : false,
-        };
-      });
-
-    if (matching.length === 0)
-      setSearchStatus(`No assets matching "${debouncedSearchTerm}"`);
-    else setSearchStatus(`Showing ${matching.length} of ${optedAssets.length}`);
-
-    return matching;
-  }, [debouncedSearchTerm, optedAssets, optedAssetAmounts]);
+  const { searchTerm, setSearchTerm, filtered, searchStatus } = useFilteredAssets(assetHoldings);
 
   const table = useReactTable({
-    data: filteredAssetHoldings,
+    data: filtered,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -181,42 +140,40 @@ function AccountAssets(): JSX.Element {
 
   return (
     <div>
-      <div className="flex items-center gap-3 mt-3 mb-2">
-        <div className="relative w-[175px] sm:w-[250px] md:w-[350px]">
-          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-          <Input
-            type="text"
-            onChange={handleChangeSearch}
+      <ListToolbar
+        className="mt-3"
+        pageIndex={pageIndex}
+        pageCount={pageCount}
+        canPreviousPage={table.getCanPreviousPage()}
+        canNextPage={table.getCanNextPage()}
+        onFirst={() => table.setPageIndex(0)}
+        onPrev={() => table.previousPage()}
+        onNext={() => table.nextPage()}
+        onLast={() => table.setPageIndex(pageCount - 1)}
+        loading={isLoading}
+      >
+        <div className="flex items-center gap-3">
+          <FilterInput
+            value={searchTerm}
+            onChange={setSearchTerm}
             placeholder="Filter assets"
-            className="pl-9"
+            className="w-[175px]"
           />
+          <div className="text-sm text-muted-foreground whitespace-nowrap">{searchStatus}</div>
         </div>
-        <div className="text-sm text-muted-foreground">{searchStatus}</div>
-      </div>
+      </ListToolbar>
 
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <>
-          <DataTable
-            table={table}
-            columns={columns}
-            columnLabels={columnLabels}
-            emptyLabel="No assets"
-          />
-          <TablePagination
-            pageIndex={pageIndex}
-            pageCount={pageCount}
-            canPreviousPage={table.getCanPreviousPage()}
-            canNextPage={table.getCanNextPage()}
-            onFirst={() => table.setPageIndex(0)}
-            onPrev={() => table.previousPage()}
-            onNext={() => table.nextPage()}
-            onLast={() => table.setPageIndex(pageCount - 1)}
-          />
-        </>
+        <DataTable
+          table={table}
+          columns={columns}
+          columnLabels={columnLabels}
+          emptyLabel="No assets"
+        />
       )}
     </div>
   );

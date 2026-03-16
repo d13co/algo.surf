@@ -16,12 +16,9 @@ interface MultiFormatViewerProps {
   view?: View;
   value: string;
   includeNum?: true | "auto";
-  style?: Record<string, any>;
   outerStyle?: Record<string, any>;
   side?: "left" | "right";
 }
-
-const defaultStyle = { marginLeft: "6px", marginRight: "6px" };
 
 const niceNames: Record<string, string> = {
   utf8: "Text (UTF-8)",
@@ -70,7 +67,6 @@ export default function MultiFormatViewer(
     side = "right",
     view: defaultView = "auto",
     includeNum = false,
-    style = defaultStyle,
     outerStyle,
   } = props;
 
@@ -119,7 +115,9 @@ export default function MultiFormatViewer(
   useEffect(() => {
     if (view === "address") {
       const buffer = Buffer.from(value, "base64");
-      if (buffer.length === 32) {
+      if (buffer.length < 32) {
+        setDisplayValue(value);
+      } else if (buffer.length === 32) {
         setDisplayValue(encodeAddress(new Uint8Array(buffer)));
       } else {
         const addrStart = buffer.length - 32;
@@ -145,21 +143,15 @@ export default function MultiFormatViewer(
   if (!value) return null;
 
   const rside = side === "right";
-  const rightStyle = style;
-  const leftStyle = {
-    marginLeft: rside ? "8px" : "-4px",
-    marginRight: "-4px",
-  };
 
   return (
-    <div className="group whitespace-normal" style={outerStyle}>
+    <div className="group inline-flex items-center gap-0.5 whitespace-normal" style={outerStyle}>
       {rside ? (
         <span style={{ wordBreak: "break-all" }}>{displayValue}</span>
       ) : null}
       {!rside ? (
         <Copyable
           className="opacity-60 group-hover:opacity-100"
-          style={leftStyle}
           value={displayValue}
         />
       ) : null}
@@ -168,9 +160,8 @@ export default function MultiFormatViewer(
           <TooltipTrigger asChild>
             <button
               type="button"
-              className="inline-flex items-center justify-center p-[5px] align-middle opacity-60 group-hover:opacity-100 cursor-pointer"
+              className="inline-flex items-center justify-center p-[3px] align-middle opacity-60 group-hover:opacity-100 cursor-pointer"
               onClick={() => setView(nextView as View)}
-              style={!rside ? rightStyle : leftStyle}
             >
               {view === "utf8" ? (
                 <Type size={16} />
@@ -191,7 +182,6 @@ export default function MultiFormatViewer(
       {rside ? (
         <Copyable
           className="opacity-60 group-hover:opacity-100"
-          style={rightStyle}
           value={displayValue}
         />
       ) : null}

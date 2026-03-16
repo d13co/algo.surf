@@ -8,12 +8,11 @@ import {
   getPaginationRowModel,
   ColumnDef,
 } from "@tanstack/react-table";
-import { Button } from "src/components/v2/ui/button";
-import { Input } from "src/components/v2/ui/input";
+import FilterInput from "src/components/v2/FilterInput";
 import LinkToAccount from "../Links/LinkToAccount";
 import AlgoIcon from "../../AlgoIcon/AlgoIcon";
 import NumberFormat from "react-number-format";
-import { Filter, Loader2, X } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import ListToolbar from "src/components/v2/ListToolbar";
 import { useSearchParams } from "react-router-dom";
 import useTitle from "src/components/Common/UseTitle/UseTitle";
@@ -181,35 +180,17 @@ function Accounts(): JSX.Element {
         onLast={() => onPageChange(pageCount - 1)}
         loading={isFetchingNextPage}
       >
-        {/* Filter by address prefix */}
-        <div className="relative sm:max-w-[420px] w-full">
-          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-          <Input
-            type="text"
-            placeholder="Filter by address"
-            className="pl-9 pr-16 rounded-full"
-            value={prefix}
-            onChange={(e) => {
-              const cleaned = e.target.value.toUpperCase().replace(/[^A-Z2-7]/g, "");
-              setPrefix(cleaned.slice(0, 52));
-            }}
-          />
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-            {isDebouncing && (
-              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-            )}
-            {prefix && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 rounded-full"
-                onClick={() => { setPrefix(""); flushPrefix(""); }}
-              >
-                <X className="h-3.5 w-3.5" />
-              </Button>
-            )}
-          </div>
-        </div>
+        <FilterInput
+          value={prefix}
+          onChange={(v) => {
+            const cleaned = v.toUpperCase().replace(/[^A-Z2-7]/g, "");
+            setPrefix(cleaned.slice(0, 52));
+          }}
+          onClear={() => flushPrefix("")}
+          placeholder="Filter by address"
+          inputClassName="pl-9 pr-16 rounded-full"
+          loading={isDebouncing}
+        />
       </ListToolbar>
 
       {loading ? (

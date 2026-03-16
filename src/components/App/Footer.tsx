@@ -1,4 +1,4 @@
-import { Github, Twitter, ChevronsUpDown, Check } from 'lucide-react';
+import { Github, Twitter, ChevronsUpDown, Check, Heart } from 'lucide-react';
 import { network, Networks } from "../../packages/core-sdk/constants";
 import {
     Tooltip,
@@ -25,7 +25,7 @@ const networkMap = Object.entries(map) as [keyof typeof map, string][];
 
 function Footer(): JSX.Element {
     return (
-        <div className="flex justify-between items-center text-[85%] mt-6 opacity-60 hover:opacity-100 transition-opacity px-2.5 md:px-[100px] py-2.5">
+        <div className="grid grid-cols-3 items-center text-[85%] mt-6 opacity-60 hover:opacity-100 transition-opacity px-2.5 md:px-[100px] py-2.5">
             <div className="flex items-center">
                 algo.surf
                 <TooltipProvider>
@@ -52,20 +52,24 @@ function Footer(): JSX.Element {
                         </TooltipContent>
                     </Tooltip>
                 </TooltipProvider>
-                <TooltipProvider>
+            </div>
+            <div className="flex items-center justify-center">
+                <TooltipProvider delayDuration={0}>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <a href="https://bsky.app/profile/algo.surf" className="ml-1.5 inline-flex items-center">
-                                <img src="/bluesky.svg" className="ml-0.5 h-3.5" />
+                            <a href="https://nodely.io" className="inline-flex items-center gap-1.5">
+                                <Heart size={16} color="white" strokeWidth={1.75} fill="white" />
+                                <img src="/nodely-icon.svg" className="h-4" />
                             </a>
                         </TooltipTrigger>
                         <TooltipContent className="bg-black text-white border-border">
-                            <p>Profile on BlueSky</p>
+                            <p>Made with love</p>
+                            <p>Made possible by Nodely</p>
                         </TooltipContent>
                     </Tooltip>
                 </TooltipProvider>
             </div>
-            <div>
+            <div className="flex justify-end">
                 <NetworkSwitcher />
             </div>
         </div>

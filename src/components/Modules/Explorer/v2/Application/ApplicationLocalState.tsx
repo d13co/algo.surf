@@ -170,7 +170,7 @@ function ApplicationLocalState({
                 <span className="text-muted-foreground shrink-0">
                   {columnLabels[cell.column.id] || cell.column.id}
                 </span>
-                <span className="text-right min-w-0 overflow-hidden max-w-[80%]">
+                <span className="text-right min-w-0 overflow-hidden">
                   {flexRender(cell.column.columnDef.cell, cell.getContext())}
                 </span>
               </div>

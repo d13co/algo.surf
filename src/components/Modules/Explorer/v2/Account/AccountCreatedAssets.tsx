@@ -12,8 +12,10 @@ import {
 import LinkToAsset from "../Links/LinkToAsset";
 import Copyable from "src/components/v2/Copyable";
 import { Loader2 } from "lucide-react";
-import TablePagination from "src/components/v2/TablePagination";
+import ListToolbar from "src/components/v2/ListToolbar";
+import FilterInput from "src/components/v2/FilterInput";
 import { DataTable } from "src/components/v2/DataTable";
+import { useFilteredAssets } from "src/hooks/useFilteredAssets";
 
 const columns: ColumnDef<A_AssetTiny, any>[] = [
   {
@@ -63,10 +65,10 @@ function AccountCreatedAssets(): JSX.Element {
 
   const { data: createdAssets, isLoading } = useTinyAssets(createdAssetIds);
 
-  const data = useMemo(() => createdAssets ?? [], [createdAssets]);
+  const { searchTerm, setSearchTerm, filtered, searchStatus } = useFilteredAssets(createdAssets);
 
   const table = useReactTable({
-    data,
+    data: filtered,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -81,29 +83,39 @@ function AccountCreatedAssets(): JSX.Element {
 
   return (
     <div>
+      <ListToolbar
+        className="mt-3"
+        pageIndex={pageIndex}
+        pageCount={pageCount}
+        canPreviousPage={table.getCanPreviousPage()}
+        canNextPage={table.getCanNextPage()}
+        onFirst={() => table.setPageIndex(0)}
+        onPrev={() => table.previousPage()}
+        onNext={() => table.nextPage()}
+        onLast={() => table.setPageIndex(pageCount - 1)}
+        loading={isLoading}
+      >
+        <div className="flex items-center gap-3">
+          <FilterInput
+            value={searchTerm}
+            onChange={setSearchTerm}
+            placeholder="Filter assets"
+            className="w-[175px]"
+          />
+          <div className="text-sm text-muted-foreground whitespace-nowrap">{searchStatus}</div>
+        </div>
+      </ListToolbar>
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <>
-          <DataTable
-            table={table}
-            columns={columns}
-            columnLabels={columnLabels}
-            emptyLabel="No assets"
-          />
-          <TablePagination
-            pageIndex={pageIndex}
-            pageCount={pageCount}
-            canPreviousPage={table.getCanPreviousPage()}
-            canNextPage={table.getCanNextPage()}
-            onFirst={() => table.setPageIndex(0)}
-            onPrev={() => table.previousPage()}
-            onNext={() => table.nextPage()}
-            onLast={() => table.setPageIndex(pageCount - 1)}
-          />
-        </>
+        <DataTable
+          table={table}
+          columns={columns}
+          columnLabels={columnLabels}
+          emptyLabel="No assets"
+        />
       )}
     </div>
   );

@@ -1,7 +1,7 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { CoreTransaction } from "src/packages/core-sdk/classes/core/CoreTransaction";
 import { toPlainJson } from "src/packages/core-sdk/utils/serialize";
-import ReactJson from "react-json-view";
+const ReactJson = React.lazy(() => import("react-json-view"));
 import LinkToAccount from "../../Links/LinkToAccount";
 
 function StateProofTransaction({
@@ -32,16 +32,18 @@ function StateProofTransaction({
           <div className="col-span-12">
             <div className="text-muted-foreground">Message</div>
             <div className="mt-2.5 rounded-lg overflow-hidden">
-              <ReactJson
-                theme="apathy"
-                style={{ width: "100%", borderRadius: "7px" }}
-                src={toPlainJson(stateProofPayload.message)}
-                name={false}
-                displayObjectSize={false}
-                displayDataTypes={false}
-                enableClipboard={false}
-                iconStyle="square"
-              />
+              <Suspense fallback={<div className="p-4 text-muted-foreground">Loading...</div>}>
+                <ReactJson
+                  theme="apathy"
+                  style={{ width: "100%", borderRadius: "7px" }}
+                  src={toPlainJson(stateProofPayload.message)}
+                  name={false}
+                  displayObjectSize={false}
+                  displayDataTypes={false}
+                  enableClipboard={false}
+                  iconStyle="square"
+                />
+              </Suspense>
             </div>
           </div>
         </div>
@@ -52,17 +54,19 @@ function StateProofTransaction({
           <div className="col-span-12">
             <div className="text-muted-foreground">Proof</div>
             <div className="mt-2.5 rounded-lg overflow-hidden">
-              <ReactJson
-                theme="apathy"
-                style={{ width: "100%", borderRadius: "7px" }}
-                src={toPlainJson(stateProofPayload.stateProof) as any}
-                name={false}
-                collapsed={2}
-                displayObjectSize={false}
-                displayDataTypes={false}
-                enableClipboard={false}
-                iconStyle="square"
-              />
+              <Suspense fallback={<div className="p-4 text-muted-foreground">Loading...</div>}>
+                <ReactJson
+                  theme="apathy"
+                  style={{ width: "100%", borderRadius: "7px" }}
+                  src={toPlainJson(stateProofPayload.stateProof) as any}
+                  name={false}
+                  collapsed={2}
+                  displayObjectSize={false}
+                  displayDataTypes={false}
+                  enableClipboard={false}
+                  iconStyle="square"
+                />
+              </Suspense>
             </div>
           </div>
         </div>

@@ -1,9 +1,13 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useHotkeys } from "react-hotkeys-hook";
 import { CoreTransaction } from "src/packages/core-sdk/classes/core/CoreTransaction";
 import { TXN_TYPES } from "src/packages/core-sdk/constants";
 import { AssetClient } from "src/packages/core-sdk/clients/assetClient";
 import explorer from "src/utils/dappflow";
-import { ChevronRight, ChevronDown, ArrowRight, Minus } from "lucide-react";
+import { getApplicationAddress, encodeAddress } from "algosdk";
+import { useEscrowBatch } from "src/hooks/useAccount";
+import { ChevronRight, ChevronDown, ArrowRight, ArrowLeftFromLine, ArrowRightFromLine, Minus } from "lucide-react";
 import LinkToAccount from "src/components/Modules/Explorer/v2/Links/LinkToAccount";
 import LinkToApplication from "src/components/Modules/Explorer/v2/Links/LinkToApplication";
 import {
@@ -14,7 +18,64 @@ import {
 } from "src/components/v2/ui/dialog";
 import InnerTransactionDetail from "./InnerTransactionDetail";
 
-function countInnerTxns(txnInstance: CoreTransaction): number {
+function appIdToAddress(appId: number): string {
+  const addr = getApplicationAddress(appId);
+  if (addr && typeof addr === "object") {
+    if ("publicKey" in addr) {
+      return encodeAddress(addr.publicKey as Uint8Array);
+    }
+    if (typeof (addr as any).toString === "function") {
+      return (addr as any).toString();
+    }
+  }
+  return addr as unknown as string;
+}
+
+function collectInnerTxnData(
+  txns: any[],
+  addresses: Set<string>,
+  escrows: Map<string, number>,
+) {
+  for (const txn of txns) {
+    const inst = new CoreTransaction(txn);
+    const from = inst.getFrom();
+    const to = inst.getTo();
+    if (from) addresses.add(from);
+    if (to) addresses.add(to);
+    const type = inst.getType();
+    if (type === TXN_TYPES.APP_CALL) {
+      const appId = inst.getAppId();
+      if (appId) {
+        const escrowAddr = appIdToAddress(appId);
+        escrows.set(escrowAddr, appId);
+        addresses.add(escrowAddr);
+      }
+    }
+    if (inst.hasInnerTransactions()) {
+      collectInnerTxnData(inst.getInnerTransactions(), addresses, escrows);
+    }
+  }
+}
+
+interface FlatEntry {
+  path: string;
+  txn: any;
+}
+
+function flattenInnerPaths(txns: any[], prefix: string = ""): FlatEntry[] {
+  const result: FlatEntry[] = [];
+  for (let i = 0; i < txns.length; i++) {
+    const path = prefix ? `${prefix}/${i + 1}` : String(i + 1);
+    result.push({ path, txn: txns[i] });
+    const inst = new CoreTransaction(txns[i]);
+    if (inst.hasInnerTransactions()) {
+      result.push(...flattenInnerPaths(inst.getInnerTransactions(), path));
+    }
+  }
+  return result;
+}
+
+export function countInnerTxns(txnInstance: CoreTransaction): number {
   const inner = txnInstance.getInnerTransactions();
   if (!inner?.length) return 0;
   let count = inner.length;
@@ -33,9 +94,9 @@ function InnerTxnNode({
   txn: any;
   level: number;
   path: string;
-  onView: (txn: any) => void;
+  onView: (path: string) => void;
 }) {
-  const [expanded, setExpanded] = useState(level < 2);
+  const [expanded, setExpanded] = useState(true);
   const txnInstance = new CoreTransaction(txn);
   const type = txnInstance.getType();
   const children = txnInstance.hasInnerTransactions()
@@ -71,7 +132,7 @@ function InnerTxnNode({
         <button
           type="button"
           className="text-xs px-2 py-0.5 rounded border border-primary text-primary cursor-pointer hover:bg-primary/20 shrink-0"
-          onClick={() => onView(txn)}
+          onClick={() => onView(path)}
         >
           View
         </button>
@@ -81,6 +142,7 @@ function InnerTxnNode({
             address={txnInstance.getFrom()}
             strip={20}
             copy="none"
+            shortEscrow
           />
         </span>
 
@@ -96,6 +158,7 @@ function InnerTxnNode({
               address={txnInstance.getTo()}
               strip={20}
               copy="none"
+              shortEscrow
             />
           ) : null}
           {type === TXN_TYPES.APP_CALL ? (
@@ -111,10 +174,10 @@ function InnerTxnNode({
         <div className="ml-6 pl-4 border-l border-dashed border-muted/40">
           {children.map((child, i) => (
             <InnerTxnNode
-              key={`${path}-${i}`}
+              key={`${path}/${i + 1}`}
               txn={child}
               level={level + 1}
-              path={`${path}-${i}`}
+              path={`${path}/${i + 1}`}
               onView={onView}
             />
           ))}
@@ -129,36 +192,77 @@ function AppCallTxnInnerTxns({
 }: {
   transaction: any;
 }): JSX.Element {
+  const navigate = useNavigate();
+  const params = useParams();
+  const txnId = params.id;
+  const innerPath = params["*"] || "";
+
   const txnInstance = new CoreTransaction(transaction);
   const innerTxns = txnInstance.getInnerTransactions();
+
   const count = useMemo(
     () => countInnerTxns(txnInstance),
     [transaction],
   );
 
-  const [dialogState, setDialogState] = useState<{
-    open: boolean;
-    txn?: any;
-    asset?: any;
-  }>({ open: false });
+  const flatList = useMemo(
+    () => flattenInnerPaths(innerTxns),
+    [transaction],
+  );
 
-  const handleView = async (txn: any) => {
-    const inner = new CoreTransaction(txn);
-    if (inner.getType() === TXN_TYPES.ASSET_TRANSFER) {
-      try {
-        const assetClient = new AssetClient(explorer.network);
-        const asset = await assetClient.get(inner.getAssetId());
-        setDialogState({ open: true, txn, asset });
-        return;
-      } catch {
-        // fall through — show without asset
-      }
+  const { allAddresses, knownEscrows } = useMemo(() => {
+    const addresses = new Set<string>();
+    const escrows = new Map<string, number>();
+    collectInnerTxnData(innerTxns, addresses, escrows);
+    return { allAddresses: Array.from(addresses), knownEscrows: escrows };
+  }, [transaction]);
+
+  useEscrowBatch(allAddresses, knownEscrows);
+
+  // Find current inner txn from URL
+  const currentIndex = innerPath ? flatList.findIndex((e) => e.path === innerPath) : -1;
+  const currentEntry = currentIndex >= 0 ? flatList[currentIndex] : null;
+  const dialogOpen = !!currentEntry;
+
+  const [asset, setAsset] = useState<any>(undefined);
+
+  // Fetch asset info when viewing an asset transfer inner txn
+  useEffect(() => {
+    if (!currentEntry) {
+      setAsset(undefined);
+      return;
     }
-    setDialogState({ open: true, txn });
+    const inst = new CoreTransaction(currentEntry.txn);
+    if (inst.getType() === TXN_TYPES.ASSET_TRANSFER) {
+      const assetClient = new AssetClient(explorer.network);
+      assetClient.get(inst.getAssetId()).then(setAsset).catch(() => setAsset(undefined));
+    } else {
+      setAsset(undefined);
+    }
+  }, [currentEntry?.path]);
+
+  const hasPrev = currentIndex > 0;
+  const hasNext = currentIndex >= 0 && currentIndex < flatList.length - 1;
+
+  const goToPrev = () => {
+    if (hasPrev) navigate(`/transaction/${txnId}/inner/${flatList[currentIndex - 1].path}`, { replace: true });
+  };
+  const goToNext = () => {
+    if (hasNext) navigate(`/transaction/${txnId}/inner/${flatList[currentIndex + 1].path}`, { replace: true });
+  };
+  const closeDialog = () => {
+    navigate(`/transaction/${txnId}`, { replace: true });
   };
 
+  const handleView = (path: string) => {
+    navigate(`/transaction/${txnId}/inner/${path}`, { replace: true });
+  };
+
+  useHotkeys("left", goToPrev, { enabled: dialogOpen && hasPrev }, [currentIndex, flatList, txnId]);
+  useHotkeys("right", goToNext, { enabled: dialogOpen && hasNext }, [currentIndex, flatList, txnId]);
+
   return (
-    <div className="mt-6">
+    <div className="mt-6" id="inner-txns">
       <h3 className="text-sm font-medium text-muted-foreground mb-3">
         Inner transactions ({count})
       </h3>
@@ -168,10 +272,10 @@ function AppCallTxnInnerTxns({
         <div className="ml-6 pl-4 border-l border-dashed border-muted/40">
           {innerTxns.map((txn, i) => (
             <InnerTxnNode
-              key={String(i)}
+              key={String(i + 1)}
               txn={txn}
               level={1}
-              path={String(i)}
+              path={String(i + 1)}
               onView={handleView}
             />
           ))}
@@ -179,19 +283,47 @@ function AppCallTxnInnerTxns({
       </div>
 
       <Dialog
-        open={dialogState.open}
+        open={dialogOpen}
         onOpenChange={(open) => {
-          if (!open) setDialogState({ open: false });
+          if (!open) closeDialog();
         }}
       >
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Inner transaction</DialogTitle>
+            <div className="flex items-center gap-2">
+              <a
+                href={hasPrev ? `/transaction/${txnId}/inner/${flatList[currentIndex - 1]?.path}` : undefined}
+                onClick={(e) => {
+                  e.preventDefault();
+                  goToPrev();
+                }}
+                className={`rounded p-1.5 ${hasPrev ? "text-primary hover:bg-primary/10 cursor-pointer" : "text-muted-foreground/30 pointer-events-none"}`}
+                title="Previous inner txn (←)"
+              >
+                <ArrowLeftFromLine size={18} />
+              </a>
+              <DialogTitle>
+                Inner transaction {currentEntry?.path.replace(/\//g, " / ")} ({currentIndex + 1} of {flatList.length})
+              </DialogTitle>
+              <a
+                href={hasNext ? `/transaction/${txnId}/inner/${flatList[currentIndex + 1]?.path}` : undefined}
+                onClick={(e) => {
+                  e.preventDefault();
+                  goToNext();
+                }}
+                className={`rounded p-1.5 ${hasNext ? "text-primary hover:bg-primary/10 cursor-pointer" : "text-muted-foreground/30 pointer-events-none"}`}
+                title="Next inner txn (→)"
+              >
+                <ArrowRightFromLine size={18} />
+              </a>
+            </div>
           </DialogHeader>
-          {dialogState.txn ? (
+          {currentEntry ? (
             <InnerTransactionDetail
-              txn={dialogState.txn}
-              asset={dialogState.asset}
+              txn={currentEntry.txn}
+              asset={asset}
+              innerPath={currentEntry.path}
+              txnId={txnId}
             />
           ) : null}
         </DialogContent>

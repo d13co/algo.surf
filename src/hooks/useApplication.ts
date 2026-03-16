@@ -92,6 +92,14 @@ export function useApplicationBoxNames(id: number) {
   });
 }
 
+export function useApplicationBox(id: number, name: string | undefined) {
+  return useQuery({
+    queryKey: ["application-box", id, name],
+    queryFn: () => new BoxClient(explorer.network).getBox(id, name!),
+    enabled: !!id && !!name,
+  });
+}
+
 export function useApplicationHashes(appInfo: indexerModels.Application | undefined) {
   const app = appInfo ? new CoreApplication(appInfo) : null;
   const approvalProgram = app?.getApprovalProgram() ?? "";

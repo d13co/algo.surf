@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useState } from "react";
+import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
 
 interface LoaderState {
   count: number;
@@ -49,10 +49,13 @@ export function GlobalUIProvider({ children }: { children: React.ReactNode }) {
     [],
   );
 
+  const value = useMemo(
+    () => ({ loader, showLoader, hideLoader, snackbar, showSnack, hideSnack }),
+    [loader, showLoader, hideLoader, snackbar, showSnack, hideSnack],
+  );
+
   return (
-    <GlobalUIContext.Provider
-      value={{ loader, showLoader, hideLoader, snackbar, showSnack, hideSnack }}
-    >
+    <GlobalUIContext.Provider value={value}>
       {children}
     </GlobalUIContext.Provider>
   );

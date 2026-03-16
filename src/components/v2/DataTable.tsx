@@ -93,16 +93,22 @@ export function DataTable<T>({
           <>
             {rows.map((row) => (
               <div key={row.id} className="rounded-lg border border-muted bg-card p-3 space-y-2 text-sm">
-                {row.getVisibleCells().map((cell) => (
-                  <div key={cell.id} className={cellRowClass}>
-                    <span className="text-muted-foreground shrink-0">
-                      {columnLabels[cell.column.id] || cell.column.id}
-                    </span>
-                    <span className="text-right min-w-0 overflow-hidden max-w-[80%]">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </span>
-                  </div>
-                ))}
+                {row.getVisibleCells().map((cell) => {
+                  const label = columnLabels[cell.column.id] || cell.column.id;
+                  const hasLabel = !!columnLabels[cell.column.id];
+                  return (
+                    <div key={cell.id} className={cellRowClass}>
+                      {hasLabel ? (
+                        <span className="text-muted-foreground shrink-0">
+                          {label}
+                        </span>
+                      ) : null}
+                      <span className={hasLabel ? "text-right min-w-0" : "ml-auto"}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             ))}
             {padCount > 0 ? (

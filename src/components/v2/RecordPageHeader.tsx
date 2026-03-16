@@ -1,4 +1,5 @@
-import React, { useEffect, useRef } from "react";
+import React, { useRef } from "react";
+import { useHotkeys } from "react-hotkeys-hook";
 import Copyable from "src/components/v2/Copyable";
 import JsonViewer from "src/components/v2/JsonViewer";
 import OpenInMenu from "src/components/v2/OpenInMenu";
@@ -36,18 +37,10 @@ export default function RecordPageHeader({
 }: RecordPageHeaderProps): JSX.Element {
   const copyRef = useRef<HTMLSpanElement>(null);
 
-  useEffect(() => {
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key !== "c" || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
-      const active = document.activeElement as HTMLElement | null;
-      const tag = active?.tagName ?? "";
-      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
-      if (active?.isContentEditable) return;
-      copyRef.current?.querySelector("button")?.click();
-    }
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  useHotkeys("c", (e) => {
+    if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+    copyRef.current?.querySelector("button")?.click();
+  });
 
   return (
     <div className={`flex flex-wrap ${nowrap ? "sm:flex-nowrap " : ""}items-center justify-between gap-2 text-xl`}>

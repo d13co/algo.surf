@@ -1,26 +1,17 @@
-import React, { useMemo, useState } from "react";
+import React, { Suspense, useMemo, useState } from "react";
 import { PROGRAM_ENCODING } from "src/packages/core-sdk/constants";
 import { ApplicationClient } from "src/packages/core-sdk/clients/applicationClient";
 import explorer from "src/utils/dappflow";
-import { CodeBlock, tomorrowNightBright } from "react-code-blocks";
-import { X, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+
+const LazyTealViewer = React.lazy(() => import("./TealViewer"));
+
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "src/components/v2/ui/dialog";
-
-const codeTheme = {
-  ...tomorrowNightBright,
-  backgroundColor: "#121212",
-  literalColor: "#12afac",
-  builtInColor: "#12afac",
-  typeColor: "#12afac",
-  metaColor: "#4dc9c6",
-  numberColor: "#4dc9c6",
-  commentColor: "#064a49",
-};
 
 interface WordCount {
   word: string;
@@ -66,7 +57,7 @@ function ApplicationProgram(props: {
     }
   }
 
-  const wordCloud: WordCount[] = useMemo(() => {
+  const wordCounts = useMemo(() => {
     if (!prg) return [];
     const words: Record<string, number> = {};
     for (const [, word] of prg.matchAll(/\/\/ "([^"]+)"/g)) {
@@ -75,13 +66,15 @@ function ApplicationProgram(props: {
     for (const [, word] of prg.matchAll(/\/\/ addr ([A-Z2-7]{58})/g)) {
       words[word] = (words[word] ?? 0) + 1;
     }
-    return Object.entries(words)
-      .sort(([wa, ca], [wb, cb]) => {
-        if (showWordCloud !== "freq" || ca === cb) return wa.localeCompare(wb);
-        return ca < cb ? 1 : -1;
-      })
-      .map(([word, count]) => ({ word, count }));
-  }, [showWordCloud, prg]);
+    return Object.entries(words).map(([word, count]) => ({ word, count }));
+  }, [prg]);
+
+  const wordCloud: WordCount[] = useMemo(() => {
+    return [...wordCounts].sort((a, b) => {
+      if (showWordCloud !== "freq" || a.count === b.count) return a.word.localeCompare(b.word);
+      return b.count - a.count;
+    });
+  }, [showWordCloud, wordCounts]);
 
   React.useEffect(() => {
     if (showWordCloud && encoding !== PROGRAM_ENCODING.TEAL) {
@@ -206,12 +199,9 @@ function ApplicationProgram(props: {
           </>
         ) : (
           <div className="rounded-lg bg-background overflow-hidden">
-            <CodeBlock
-              text={prg}
-              theme={codeTheme}
-              language="swift"
-              showLineNumbers={false}
-            />
+            <Suspense fallback={<div className="p-4 text-muted-foreground">Loading...</div>}>
+              <LazyTealViewer text={prg} />
+            </Suspense>
           </div>
         )}
       </div>
@@ -219,4 +209,4 @@ function ApplicationProgram(props: {
   );
 }
 
-export default ApplicationProgram;
+export default React.memo(ApplicationProgram);

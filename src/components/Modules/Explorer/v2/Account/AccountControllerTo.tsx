@@ -14,7 +14,7 @@ import AlgoIcon from "../../AlgoIcon/AlgoIcon";
 import NumberFormat from "react-number-format";
 import { Loader2 } from "lucide-react";
 import { useStableHeight } from "src/hooks/useStableHeight";
-import TablePagination from "src/components/v2/TablePagination";
+import ListToolbar from "src/components/v2/ListToolbar";
 import { DataTable } from "src/components/v2/DataTable";
 
 const columns: ColumnDef<A_SearchAccount, any>[] = [
@@ -115,6 +115,18 @@ function AccountControllerTo(): JSX.Element {
 
   return (
     <div>
+      <ListToolbar
+        className="mt-3"
+        pageIndex={pageIndex}
+        pageCount={pageCount}
+        canPreviousPage={table.getCanPreviousPage()}
+        canNextPage={table.getCanNextPage()}
+        onFirst={() => onPageChange(0)}
+        onPrev={() => onPageChange(pageIndex - 1)}
+        onNext={() => onPageChange(pageIndex + 1)}
+        onLast={() => onPageChange(pageCount - 1)}
+        loading={isFetchingNextPage}
+      />
       <DataTable
         table={table}
         columns={columns}
@@ -124,18 +136,6 @@ function AccountControllerTo(): JSX.Element {
         isFetchingNextPage={isFetchingNextPage}
         tableRef={tableRef}
         tableStyle={stableStyle}
-      />
-
-      <TablePagination
-        pageIndex={pageIndex}
-        pageCount={pageCount}
-        canPreviousPage={table.getCanPreviousPage()}
-        canNextPage={table.getCanNextPage()}
-        onFirst={() => onPageChange(0)}
-        onPrev={() => onPageChange(pageIndex - 1)}
-        onNext={() => onPageChange(pageIndex + 1)}
-        onLast={() => onPageChange(pageCount - 1)}
-        className="flex items-center justify-end gap-2 pt-4 pb-0 md:py-4"
       />
     </div>
   );

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import React, { useMemo } from "react";
 import { CoreApplication } from "src/packages/core-sdk/classes/core/CoreApplication";
 import { indexerModels } from "algosdk";
 import { A_GlobalStateDecrypted } from "src/packages/core-sdk/types";
@@ -175,4 +175,4 @@ function ApplicationGlobalState({
   );
 }
 
-export default ApplicationGlobalState;
+export default React.memo(ApplicationGlobalState);

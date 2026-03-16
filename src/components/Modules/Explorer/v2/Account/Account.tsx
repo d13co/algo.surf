@@ -1,4 +1,4 @@
-import React, { Component, useRef, useCallback, useMemo } from "react";
+import React, { Component, Suspense, useRef, useCallback, useMemo } from "react";
 import {
   matchPath,
   Outlet,
@@ -559,7 +559,9 @@ function Account(): JSX.Element {
                   />
 
                   <TabErrorBoundary>
-                    <Outlet />
+                    <Suspense fallback={<LoadingTile />}>
+                      <Outlet />
+                    </Suspense>
                   </TabErrorBoundary>
                 </div>
               </div>

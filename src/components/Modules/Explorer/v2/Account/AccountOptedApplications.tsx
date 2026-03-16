@@ -20,12 +20,14 @@ import {
   DialogTitle,
 } from "src/components/v2/ui/dialog";
 import { Loader2 } from "lucide-react";
-import TablePagination from "src/components/v2/TablePagination";
+import ListToolbar from "src/components/v2/ListToolbar";
+import FilterInput from "src/components/v2/FilterInput";
 import { DataTable } from "src/components/v2/DataTable";
+import { useFilteredApplications } from "src/hooks/useFilteredApplications";
 
 const columnLabels: Record<string, string> = {
   id: "Application ID",
-  state: "",
+  state: "State",
 };
 
 function AccountOptedApplications(): JSX.Element {
@@ -38,6 +40,8 @@ function AccountOptedApplications(): JSX.Element {
     return [...new CoreAccount(accountInfo).getOptedApplications()]
       .sort((a, b) => Number(b.id) - Number(a.id));
   }, [accountInfo]);
+
+  const { searchTerm, setSearchTerm, filtered, searchStatus } = useFilteredApplications(optedApplications);
 
   const columns: ColumnDef<modelsv2.ApplicationLocalState, any>[] = useMemo(
     () => [
@@ -82,7 +86,7 @@ function AccountOptedApplications(): JSX.Element {
   }, [id, accountInfo]);
 
   const table = useReactTable({
-    data: optedApplications,
+    data: filtered,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -98,47 +102,58 @@ function AccountOptedApplications(): JSX.Element {
   return (
     <>
       <div>
+        <ListToolbar
+          className="mt-3"
+          pageIndex={pageIndex}
+          pageCount={pageCount}
+          canPreviousPage={table.getCanPreviousPage()}
+          canNextPage={table.getCanNextPage()}
+          onFirst={() => table.setPageIndex(0)}
+          onPrev={() => table.previousPage()}
+          onNext={() => table.nextPage()}
+          onLast={() => table.setPageIndex(pageCount - 1)}
+          loading={isLoading}
+        >
+          <div className="flex items-center gap-3">
+            <FilterInput
+              value={searchTerm}
+              onChange={setSearchTerm}
+              placeholder="Filter applications"
+              className="w-[195px]"
+            />
+            <div className="text-sm text-muted-foreground whitespace-nowrap">{searchStatus}</div>
+          </div>
+        </ListToolbar>
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <>
-            <DataTable
-              table={table}
-              columns={columns}
-              columnLabels={columnLabels}
-              emptyLabel="No applications"
-              mobileCellItemsCenter
-            />
-            <TablePagination
-              pageIndex={pageIndex}
-              pageCount={pageCount}
-              canPreviousPage={table.getCanPreviousPage()}
-              canNextPage={table.getCanNextPage()}
-              onFirst={() => table.setPageIndex(0)}
-              onPrev={() => table.previousPage()}
-              onNext={() => table.nextPage()}
-              onLast={() => table.setPageIndex(pageCount - 1)}
-            />
-          </>
+          <DataTable
+            table={table}
+            columns={columns}
+            columnLabels={columnLabels}
+            emptyLabel="No applications"
+            mobileCellItemsCenter
+          />
         )}
       </div>
 
       <Dialog open={!!id} onOpenChange={(open) => !open && handleClose()}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
-          <DialogHeader>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto overflow-x-hidden" onOpenAutoFocus={(e) => e.preventDefault()}>
+          <DialogHeader className="text-left">
             <DialogTitle>
               App <LinkToApplication id={Number(id)} /> Local State
             </DialogTitle>
           </DialogHeader>
           <div>
-            <div className="mb-3 text-sm">
+            <div className="mb-3 text-sm truncate">
               Account:{" "}
               <LinkToAccount
                 address={address}
                 copy="none"
                 copySize="m"
+                strip={20}
               />
             </div>
             <ApplicationLocalState state={localState} />

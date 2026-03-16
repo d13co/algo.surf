@@ -11,6 +11,7 @@ function LinkToAccount({
   noNFD = false,
   nfdOnly = false,
   noEscrow = false,
+  shortEscrow = false,
   subPage = "",
   copy = "right",
   copySize = "m",
@@ -20,6 +21,7 @@ function LinkToAccount({
   noNFD?: boolean;
   nfdOnly?: boolean;
   noEscrow?: boolean;
+  shortEscrow?: boolean;
   subPage?: string;
   copy?: "left" | "right" | "none";
   copySize?: "m" | "s";
@@ -29,8 +31,10 @@ function LinkToAccount({
   const escrowAppId = getEscrowOf(address);
 
   if (typeof escrowAppId === "number" && !noEscrow) {
-    const effectiveStrip = strip || 8;
-    return <LinkToApplication id={escrowAppId} name={"App " + escrowAppId + " " + ellipseString(address, effectiveStrip)} address={address} copy={copy} copySize={copySize} />;
+    const name = shortEscrow
+      ? "App " + escrowAppId
+      : "App " + escrowAppId + " " + ellipseString(address, strip || 8);
+    return <LinkToApplication id={escrowAppId} name={name} address={address} copy={copy} copySize={copySize} />;
   }
 
   return (

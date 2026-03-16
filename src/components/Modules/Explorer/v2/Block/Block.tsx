@@ -1,5 +1,6 @@
-import React, { useEffect, useCallback } from "react";
+import React, { Suspense } from "react";
 import { Outlet, useNavigate, useParams } from "react-router-dom";
+import { useHotkeys } from "react-hotkeys-hook";
 import { CoreBlock } from "src/packages/core-sdk/classes/core/CoreBlock";
 import { useBlock, useBlockHash } from "src/hooks/useBlock";
 import LinkToAccount from "../Links/LinkToAccount";
@@ -46,18 +47,11 @@ function Block(): JSX.Element {
 
   useTitle(`Block ${id}`);
 
-  const goToPrev = useCallback(() => navigate(`/block/${numId - 1}/transactions`), [navigate, numId]);
-  const goToNext = useCallback(() => navigate(`/block/${numId + 1}/transactions`), [navigate, numId]);
+  const goToPrev = () => navigate(`/block/${numId - 1}/transactions`);
+  const goToNext = () => navigate(`/block/${numId + 1}/transactions`);
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      if (e.key === "ArrowLeft") goToPrev();
-      else if (e.key === "ArrowRight") goToNext();
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [goToPrev, goToNext]);
+  useHotkeys("left", goToPrev, [numId]);
+  useHotkeys("right", goToNext, [numId]);
 
   const txnTypes = blockInstance ? blockInstance.getTransactionsTypesCount() : {};
   const txnTypesList = Object.keys(txnTypes);
@@ -253,7 +247,9 @@ function Block(): JSX.Element {
                     ]}
                   />
 
-                  <Outlet />
+                  <Suspense fallback={<LoadingTile />}>
+                    <Outlet />
+                  </Suspense>
                 </div>
               </div>
             )}

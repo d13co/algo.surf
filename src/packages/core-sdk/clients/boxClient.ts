@@ -21,8 +21,8 @@ export class BoxClient {
     this.indexer = network.getIndexer();
   }
 
-  async getBoxNamesPage(id: number, nextToken?: string): Promise<BoxNamesPage> {
-    let req = this.indexer.searchForApplicationBoxes(id).limit(BOX_PAGE_SIZE);
+  async getBoxNamesPage(id: number, nextToken?: string, limit = BOX_PAGE_SIZE): Promise<BoxNamesPage> {
+    let req = this.indexer.searchForApplicationBoxes(id).limit(limit);
     if (nextToken) {
       req = req.nextToken(nextToken);
     }

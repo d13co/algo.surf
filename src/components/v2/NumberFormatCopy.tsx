@@ -22,18 +22,14 @@ export default function NumberFormatCopy({
   const copyable = (
     <Copyable
       className={dimmable ? "opacity-60 group-hover:opacity-100" : undefined}
-      style={{
-        marginLeft: copyPosition === "left" ? "-4px" : undefined,
-        marginRight: copyPosition === "right" ? "-4px" : undefined,
-        ...copyStyle,
-      }}
+      style={copyStyle}
       size={copySize}
       value={value as string | number}
     />
   );
 
   return (
-    <span className={dimmable ? "group inline-flex items-center" : "inline-flex items-center"}>
+    <span className={dimmable ? "group inline-flex items-center gap-0.5" : "inline-flex items-center gap-0.5"}>
       {copyPosition === "left" && copyable}
       {showSign && Number(value) > 0 ? "+" : ""}
       <NumberFormat value={value} {...numberFormatProps} />

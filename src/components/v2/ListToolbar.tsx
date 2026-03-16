@@ -29,10 +29,10 @@ export default function ListToolbar({
   onLast,
   loading,
 }: ListToolbarProps) {
-  if (!children && pageCount <= 1) return null;
+  if (!children && pageCount <= 1) return <div className="mb-4 md:mb-0"></div>;
 
   return (
-    <div className={cx("flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3", className)}>
+    <div className={cx("flex flex-wrap items-center justify-between gap-2 mb-3", className)}>
       {children}
       <TablePagination
         className="flex items-center justify-end gap-2 ml-auto"

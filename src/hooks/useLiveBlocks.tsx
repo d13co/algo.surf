@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { useAlgoMetricsContext } from "@d13co/algo-metrics-react";
 import type { TsTcWatcherBlockCallback, BlockRoundTimeAndTc } from "@d13co/algo-metrics-sdk";
 import type { modelsv2, Transaction } from "algosdk";
@@ -22,6 +23,12 @@ function patchBlockTxns(block: Block): void {
   }
 }
 
+function deriveTransactions(blocks: Block[]): SignedTxnInBlock[] {
+  return blocks
+    .flatMap((b) => b.payset ?? [])
+    .slice(0, TRANSACTIONS_TO_KEEP);
+}
+
 export interface LiveBlocksState {
   currentBlock: bigint;
   blocks: Block[];
@@ -39,10 +46,15 @@ const LiveBlocksContext = createContext<LiveBlocksState>(initialState);
 export function LiveBlocksProvider({ children }: { children: React.ReactNode }) {
   const { sdk } = useAlgoMetricsContext();
   const [state, setState] = useState<LiveBlocksState>(initialState);
+  const stateRef = useRef(state);
+  stateRef.current = state;
 
+  const { pathname } = useLocation();
+  const isHome = pathname === "/";
+
+  // Initial fetch: runs once when sdk is ready
   useEffect(() => {
     const algod = sdk.algorand.client.algod;
-    // Fetch the latest block(s) immediately so the UI isn't empty while waiting for the websocket
     algod.status().do().then(async (status) => {
       const lastRound = Number(status.lastRound);
       const numToFetch = IS_LOCALNET ? BLOCKS_TO_KEEP : 1;
@@ -60,18 +72,69 @@ export function LiveBlocksProvider({ children }: { children: React.ReactNode }) 
       }
       setState((prev) => {
         if (prev.blocks.length > 0) return prev;
-        const transactions = blocks
-          .flatMap((b) => b.payset ?? [])
-          .slice(0, TRANSACTIONS_TO_KEEP);
         return {
           currentBlock: blocks[0].header.round,
           blocks,
-          transactions,
+          transactions: deriveTransactions(blocks),
         };
       });
     }).catch(() => {
       // Ignore — the watcher will populate data shortly
     });
+  }, [sdk]);
+
+  // Watcher: register only when on the home page
+  useEffect(() => {
+    if (!isHome) return;
+
+    const algod = sdk.algorand.client.algod;
+
+    // Backfill any blocks we missed while away
+    const prev = stateRef.current;
+    if (prev.blocks.length > 0) {
+      algod.status().do().then(async (status) => {
+        const latestRound = Number(status.lastRound);
+        const ourLatest = Number(prev.currentBlock);
+        const gap = latestRound - ourLatest;
+
+        if (gap <= 0) return; // already current
+
+        if (gap > BLOCKS_TO_KEEP) {
+          // Too stale — reset with just the latest block
+          const resp = await algod.block(latestRound).do();
+          const block = (resp as modelsv2.BlockResponse).block;
+          patchBlockTxns(block);
+          setState({
+            currentBlock: block.header.round,
+            blocks: [block],
+            transactions: deriveTransactions([block]),
+          });
+        } else {
+          // Fetch only the missing blocks
+          const responses = await Promise.all(
+            Array.from({ length: gap }, (_, i) =>
+              algod.block(ourLatest + 1 + i).do()
+            )
+          );
+          const newBlocks = responses
+            .map((r) => (r as modelsv2.BlockResponse).block)
+            .reverse();
+          for (const block of newBlocks) {
+            patchBlockTxns(block);
+          }
+          setState((cur) => {
+            const merged = [...newBlocks, ...cur.blocks].slice(0, BLOCKS_TO_KEEP);
+            return {
+              currentBlock: merged[0].header.round,
+              blocks: merged,
+              transactions: deriveTransactions(merged),
+            };
+          });
+        }
+      }).catch(() => {
+        // Ignore — the watcher will populate data shortly
+      });
+    }
 
     const callback: TsTcWatcherBlockCallback = (
       _data: BlockRoundTimeAndTc[],
@@ -109,7 +172,7 @@ export function LiveBlocksProvider({ children }: { children: React.ReactNode }) 
     return () => {
       sdk.unregister(callback);
     };
-  }, [sdk]);
+  }, [sdk, isHome]);
 
   return (
     <LiveBlocksContext.Provider value={state}>{children}</LiveBlocksContext.Provider>

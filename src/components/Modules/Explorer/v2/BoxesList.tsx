@@ -1,56 +1,81 @@
-import React from "react";
+import React, { useMemo } from "react";
 import {
   useReactTable,
   getCoreRowModel,
   getPaginationRowModel,
-  flexRender,
   ColumnDef,
 } from "@tanstack/react-table";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "src/components/v2/ui/table";
 import { Button } from "src/components/v2/ui/button";
 import { A_BoxName, A_BoxNames } from "src/packages/core-sdk/types";
 import MultiFormatViewer from "src/components/v2/MultiFormatViewer";
-import {
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
-  Loader2,
-} from "lucide-react";
+import { Loader2, X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { DataTable } from "src/components/v2/DataTable";
+import ListToolbar from "src/components/v2/ListToolbar";
 
 const PAGE_SIZE = 10;
 
-const columns: ColumnDef<A_BoxName, any>[] = [
-  {
-    id: "name",
-    header: "Box name",
-    cell: ({ row }) => (
-      <MultiFormatViewer view="auto" includeNum="auto" value={row.original.name} />
-    ),
-  },
-];
+const columnLabels: Record<string, string> = {
+  name: "Box name",
+  view: "",
+};
 
 interface BoxListProps {
+  appId: number;
   boxNames: A_BoxNames;
   hasMore?: boolean;
   loadMore?: () => void;
   loadingMore?: boolean;
+  children?: React.ReactNode;
+  searchLoading?: boolean;
+  searchProgress?: string;
+  onCancelSearch?: () => void;
 }
 
 function BoxList({
+  appId,
   boxNames = [],
   hasMore = false,
   loadMore,
   loadingMore = false,
+  children,
+  searchLoading = false,
+  searchProgress,
+  onCancelSearch,
 }: BoxListProps): JSX.Element {
-  const [pageIndex, setPageIndex] = React.useState(0);
+  const navigate = useNavigate();
+
+  const columns: ColumnDef<A_BoxName, any>[] = useMemo(
+    () => [
+      {
+        id: "name",
+        header: "Box name",
+        cell: ({ row }) => (
+          <MultiFormatViewer view="auto" includeNum="auto" value={row.original.name} />
+        ),
+      },
+      {
+        id: "view",
+        header: "",
+        cell: ({ row }) => (
+          <div className="text-right">
+            <Button
+              variant="muted"
+              className="h-7 px-2.5 text-xs -my-1 border-primary text-primary hover:bg-primary hover:text-background"
+              onClick={() =>
+                navigate(
+                  `/application/${appId}/boxes/${encodeURIComponent(row.original.name)}`
+                )
+              }
+            >
+              View
+            </Button>
+          </div>
+        ),
+      },
+    ],
+    [appId, navigate],
+  );
 
   const table = useReactTable({
     data: boxNames,
@@ -59,127 +84,61 @@ function BoxList({
     getPaginationRowModel: getPaginationRowModel(),
     getRowId: (row) => row.name,
     autoResetPageIndex: false,
-    state: { pagination: { pageIndex, pageSize: PAGE_SIZE } },
-    onPaginationChange: (updater) => {
-      const next = typeof updater === "function" ? updater({ pageIndex, pageSize: PAGE_SIZE }) : updater;
-      setPageIndex(next.pageIndex);
+    initialState: {
+      pagination: { pageSize: PAGE_SIZE },
     },
   });
 
+  const { pageIndex } = table.getState().pagination;
   const pageCount = table.getPageCount();
 
-  // Auto-fetch more when approaching the last loaded page
-  function handlePageChange(newPage: number) {
+  function onPageChange(newPage: number) {
     if (hasMore && loadMore && newPage >= pageCount - 2) {
       loadMore();
     }
-    setPageIndex(newPage);
+    table.setPageIndex(newPage);
   }
 
   return (
     <div>
-      <Table className="table-fixed">
-        <TableHeader className="[&_tr]:border-primary">
-          {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id}>
-              {headerGroup.headers.map((header) => (
-                <TableHead key={header.id}>
-                  {header.isPlaceholder
-                    ? null
-                    : flexRender(
-                        header.column.columnDef.header,
-                        header.getContext()
-                      )}
-                </TableHead>
-              ))}
-            </TableRow>
-          ))}
-        </TableHeader>
-        <TableBody>
-          {table.getRowModel().rows.length > 0 ? (
-            table.getRowModel().rows.map((row) => (
-              <TableRow key={row.id}>
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id} className="max-w-0 overflow-hidden text-ellipsis">
-                    {flexRender(
-                      cell.column.columnDef.cell,
-                      cell.getContext()
-                    )}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))
-          ) : (
-            <TableRow>
-              <TableCell
-                colSpan={columns.length}
-                className="h-24 text-center text-muted-foreground"
-              >
-                No boxes
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
-
-      {pageCount > 1 || hasMore ? (
-        <div className="flex items-center justify-end gap-2 pt-4">
-          {loadingMore ? (
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-          ) : null}
-          <span className="text-sm text-muted-foreground">
-            Page {pageIndex + 1} of {pageCount}{hasMore ? "+" : ""}
-          </span>
-          <Button
-            variant="muted"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => handlePageChange(0)}
-            disabled={!table.getCanPreviousPage()}
-          >
-            <ChevronsLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="muted"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => handlePageChange(pageIndex - 1)}
-            disabled={!table.getCanPreviousPage()}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="muted"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => handlePageChange(pageIndex + 1)}
-            disabled={!table.getCanNextPage() && !hasMore}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-          {hasMore && loadMore ? (
+      <ListToolbar
+        className="mt-3"
+        pageIndex={pageIndex}
+        pageCount={pageCount}
+        canPreviousPage={table.getCanPreviousPage()}
+        canNextPage={table.getCanNextPage() || hasMore}
+        onFirst={() => onPageChange(0)}
+        onPrev={() => onPageChange(pageIndex - 1)}
+        onNext={() => onPageChange(pageIndex + 1)}
+        onLast={() => onPageChange(pageCount - 1)}
+        loading={loadingMore}
+      >
+        {children}
+      </ListToolbar>
+      {searchLoading && (
+        <div className="flex items-center justify-center gap-2 py-3 text-muted-foreground text-sm">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>{searchProgress || "Searching..."}</span>
+          {onCancelSearch && (
             <Button
-              variant="muted"
-              size="sm"
-              className="h-8 text-xs"
-              onClick={() => loadMore()}
-              disabled={loadingMore}
-            >
-              Load more
-            </Button>
-          ) : (
-            <Button
-              variant="muted"
+              variant="ghost"
               size="icon"
-              className="h-8 w-8"
-              onClick={() => handlePageChange(pageCount - 1)}
-              disabled={!table.getCanNextPage()}
+              className="h-6 w-6 rounded-full"
+              onClick={onCancelSearch}
+              title="Cancel search"
             >
-              <ChevronsRight className="h-4 w-4" />
+              <X className="h-3.5 w-3.5" />
             </Button>
           )}
         </div>
-      ) : null}
+      )}
+      <DataTable
+        table={table}
+        columns={columns}
+        columnLabels={columnLabels}
+        emptyLabel={searchLoading ? "Searching..." : "No boxes"}
+        mobileCellItemsCenter
+      />
     </div>
   );
 }

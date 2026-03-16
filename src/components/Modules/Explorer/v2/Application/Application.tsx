@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react";
+import React, { Suspense, useEffect, useMemo } from "react";
 import {
   matchPath,
   Outlet,
@@ -54,7 +54,10 @@ function Application(): JSX.Element {
     error: boxError,
   } = useApplicationBoxNames(numId);
 
-  const applicationInstance = appInfo ? new CoreApplication(appInfo) : null;
+  const applicationInstance = useMemo(
+    () => (appInfo ? new CoreApplication(appInfo) : null),
+    [appInfo],
+  );
 
   useTitle(`App ${id}`);
 
@@ -309,7 +312,9 @@ function Application(): JSX.Element {
                     ]}
                   />
 
-                  <Outlet />
+                  <Suspense fallback={<LoadingTile />}>
+                    <Outlet />
+                  </Suspense>
                 </div>
               </div>
             )}
