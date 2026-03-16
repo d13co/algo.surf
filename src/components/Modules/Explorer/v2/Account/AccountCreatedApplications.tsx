@@ -185,7 +185,7 @@ function AccountCreatedApplications(): JSX.Element {
             placeholder="Filter applications"
             className="w-[195px]"
           />
-          <div className="text-sm text-muted-foreground whitespace-nowrap">{searchStatus}</div>
+          <div className="text-sm text-muted-foreground whitespace-nowrap">{isLoading ? "Loading" : searchStatus}</div>
         </div>
       </ListToolbar>
       {isLoading ? (

@@ -102,7 +102,7 @@ function AccountCreatedAssets(): JSX.Element {
             placeholder="Filter assets"
             className="w-[175px]"
           />
-          <div className="text-sm text-muted-foreground whitespace-nowrap">{searchStatus}</div>
+          <div className="text-sm text-muted-foreground whitespace-nowrap">{isLoading ? "Loading" : searchStatus}</div>
         </div>
       </ListToolbar>
       {isLoading ? (

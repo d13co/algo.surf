@@ -154,3 +154,9 @@ app escrow lookups should cover inner txn sender/receivers, e.g. http://localhos
 
 - box search numbers?
 - box search multiple filters?
+- box key prefix decode is lost
+
+- [ ] revisit cache ages
+- [ ] offline mode
+  - [ ] cached view warning
+  - [ ] "save" button?

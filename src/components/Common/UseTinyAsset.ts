@@ -1,5 +1,5 @@
 import { UseQueryResult, useQuery } from "@tanstack/react-query";
-import { queryClient } from "../../db/query-client";
+import { queryClient, ONE_MONTH } from "../../db/query-client";
 import { abel, abelTinyToAssetTiny } from "../../packages/abel/abel";
 import { A_AssetTiny } from "../../packages/core-sdk/types";
 import AssetCache from "./AssetCache";
@@ -29,6 +29,7 @@ export function useTinyAsset(
       return tiny ?? null;
     },
     staleTime: Infinity,
+    gcTime: ONE_MONTH,
   });
 }
 
@@ -90,5 +91,6 @@ export function useTinyAssets(
       }
     },
     staleTime: Infinity,
+    gcTime: ONE_MONTH,
   });
 }

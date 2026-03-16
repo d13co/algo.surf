@@ -398,11 +398,15 @@ export class CoreTransaction {
         return this.txn.note ? bytesToBase64(this.txn.note) : "";
     }
 
+    private getNoteText(): string {
+        if (!this.txn.note) return "";
+        return new TextDecoder().decode(this.txn.note);
+    }
+
     getNoteJSON(): string {
         try {
-            const noteB64 = this.getNoteBase64();
-            if (!noteB64) return undefined;
-            const text = atob(noteB64);
+            const text = this.getNoteText();
+            if (!text) return undefined;
             const parsed = JSON.parse(text);
             return JSON.stringify(parsed, null, 4);
         } catch(e) {
@@ -420,7 +424,7 @@ export class CoreTransaction {
             return noteB64;
         }
         if(encoding === TEXT_ENCODING.TEXT) {
-            return atob(noteB64);
+            return this.getNoteText();
         }
         if(encoding === TEXT_ENCODING.HEX) {
             return base64ToHex(noteB64);
@@ -466,9 +470,9 @@ export class CoreTransaction {
         if (this.isMultiSig()) {
             const subSigs = sig.multisig.subsignature;
             subSigs?.forEach((subSig) => {
-                const pk = subSig.publicKey;
+                if (!subSig.publicKey) return;
                 const signed = !!subSig.signature;
-                addresses.push([encodeAddress(pk), signed]);
+                addresses.push([encodeAddress(subSig.publicKey), signed]);
             });
         }
         return addresses;

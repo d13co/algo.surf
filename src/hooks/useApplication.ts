@@ -3,6 +3,7 @@ import { ApplicationClient } from "src/packages/core-sdk/clients/applicationClie
 import { BoxClient } from "src/packages/core-sdk/clients/boxClient";
 import { CoreApplication } from "src/packages/core-sdk/classes/core/CoreApplication";
 import explorer from "src/utils/dappflow";
+import { ONE_WEEK } from "src/db/query-client";
 import { indexerModels } from "algosdk";
 import sha512 from "js-sha512";
 import chunk from "lodash/chunk.js";
@@ -53,6 +54,7 @@ export function useApplication(id: number) {
     queryKey: ["application", id],
     queryFn: () => new ApplicationClient(explorer.network).get(id),
     enabled: !!id,
+    gcTime: ONE_WEEK,
   });
 }
 
