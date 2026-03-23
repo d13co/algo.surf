@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from "react";
+import React, { useMemo, useCallback, useEffect } from "react";
 import { RefreshCw } from "lucide-react";
 import humanizeDuration from "humanize-duration";
 import dateFormat from "dateformat";
@@ -108,6 +108,12 @@ export default function MultiDateViewer({
   const { format: contextFormat, cycle: contextCycle, setFormat } = useDateFormat();
   const format = fixedView ?? contextFormat;
   const hasBlock = block != null;
+
+  useEffect(() => {
+    if (!fixedView && format === "block" && !hasBlock) {
+      setFormat(nextFormat["block"]);
+    }
+  }, [format, hasBlock, fixedView, setFormat]);
 
   const effectiveFormat = useMemo(
     () => format === "block" && !hasBlock ? "relative" : format,
