@@ -44,7 +44,7 @@ function Home(): JSX.Element {
                         <span className="text-muted-foreground">Algo</span> Surf{' '}
                         <span className="text-primary">{network}</span>
                     </div>
-                    <div className="mt-6 mb-[200px] max-md:ml-[18px]">
+                    <div className="mt-6 mb-[200px]">
                         <Search autoFocus={true} size="lg" />
                     </div>
                     <div className="mt-15 flex">
