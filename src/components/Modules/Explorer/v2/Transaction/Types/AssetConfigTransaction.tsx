@@ -7,6 +7,7 @@ import NumberFormat from "react-number-format";
 import LinkToAccount from "../../Links/LinkToAccount";
 import LinkToAsset from "../../Links/LinkToAsset";
 import Copyable from "src/components/v2/Copyable";
+import XChainOwnerField from "../Sections/XChainOwner";
 
 function AssetConfigTransaction({
   transaction,
@@ -51,6 +52,8 @@ function AssetConfigTransaction({
               <LinkToAccount copySize="m" address={txnInstance.getFrom()} />
             </div>
           </div>
+
+          <XChainOwnerField transaction={transaction} className="col-span-12 md:col-span-4" />
 
           <div className="col-span-12 sm:col-span-6 md:col-span-4">
             <div className="text-muted-foreground">Asset ID</div>

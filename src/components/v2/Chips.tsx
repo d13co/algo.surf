@@ -10,19 +10,17 @@ const variantClasses: Record<ChipVariant, string> = {
   tinyman:  "bg-[#f1fe68] text-[#0e0b1c] border-transparent",
 };
 
-export function Chip({
-  children,
-  className,
-  onClick,
-  variant = "default",
-}: {
-  children: React.ReactNode;
-  className?: string;
-  onClick?: (e: React.MouseEvent) => void;
+type ChipProps = React.HTMLAttributes<HTMLSpanElement> & {
   variant?: ChipVariant;
-}) {
+};
+
+export const Chip = React.forwardRef<HTMLSpanElement, ChipProps>(function Chip(
+  { children, className, onClick, variant = "default", ...rest },
+  ref,
+) {
   return (
     <span
+      ref={ref}
       className={cn(
         "inline-flex items-center text-xs border rounded px-2.5 py-0.5",
         variantClasses[variant],
@@ -30,11 +28,12 @@ export function Chip({
         className,
       )}
       onClick={onClick}
+      {...rest}
     >
       {children}
     </span>
   );
-}
+});
 
 export function BadgesRow({
   children,

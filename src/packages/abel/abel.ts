@@ -16,7 +16,7 @@ const algodConfig = {
   token,
 };
 
-const algorand = AlgorandClient.fromConfig({ algodConfig });
+export const algorand = AlgorandClient.fromConfig({ algodConfig });
 algorand.setSuggestedParamsCacheTimeout(20000);
 algorand.getSuggestedParams();
 

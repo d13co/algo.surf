@@ -27,7 +27,9 @@ import AlgoIcon from "../../AlgoIcon/AlgoIcon";
 import useTitle from "src/components/Common/UseTitle/UseTitle";
 import LinkToAccount from "../Links/LinkToAccount";
 import LinkToApplication from "../Links/LinkToApplication";
+import LinkToBlockscan from "../Links/LinkToBlockscan";
 import DymNFD from "../DymNFD";
+import XChainBadge from "../XChainBadge";
 import { microalgosToAlgos } from "src/utils/common";
 import { toPlainJson } from "src/packages/core-sdk/utils/serialize";
 import { network } from "src/packages/core-sdk/constants";
@@ -39,6 +41,8 @@ import {
   TooltipTrigger,
 } from "src/components/v2/ui/tooltip";
 import { Chip, BadgesRow } from "src/components/v2/Chips";
+import { AlgoXEvmSdk } from "algo-x-evm-sdk";
+import { CircleHelp } from "lucide-react";
 
 const isMainnet = network === "Mainnet";
 const tinymanAppEscrow =
@@ -158,15 +162,16 @@ function Account(): JSX.Element {
     [txnData]
   );
 
-  const [lastSent, isMultiSig, isLogicSig, isClosed] = useMemo(() => {
-    if (!accountInfo) return [undefined, false, false, false];
+  const [lastSent, isMultiSig, isLogicSig, isClosed, isXEVM] = useMemo(() => {
+    if (!accountInfo) return [undefined, false, false, false, null] as const;
     const lastSent = transactions.find(
       ({ sender }) => sender === address
     );
     const isMultiSig = !!lastSent?.signature?.multisig;
     const isLogicSig = !!lastSent?.signature?.logicsig;
     const isClosed = accountInfo.amount === 0n && !!lastSent;
-    return [lastSent, isMultiSig, isLogicSig, isClosed];
+    const isXEVM = isLogicSig ? AlgoXEvmSdk.getEvmAddressFromProgram(lastSent!.signature!.logicsig!.logic) : null;
+    return [lastSent, isMultiSig, isLogicSig, isClosed, isXEVM] as const;
   }, [address, accountInfo, transactions]);
 
   const hasOptedAssets = accountInfo?.assets?.length ?? 0;
@@ -423,6 +428,8 @@ function Account(): JSX.Element {
                     </a>
                   ) : null}
 
+                  {isXEVM ? <XChainBadge /> : null}
+
                   {isClosed ? (
                     <Chip variant="warning">Closed</Chip>
                   ) : null}
@@ -492,6 +499,25 @@ function Account(): JSX.Element {
                             strip={9}
                             address={accountInfo.authAddr.toString()}
                           />
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {isXEVM ? (
+                      <div className="mt-2.5">
+                        <div className="text-muted-foreground inline-flex items-center gap-1">
+                          xChain EVM owner
+                          <a
+                            href="https://xchain.algorand.tech/docs/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center hover:text-foreground"
+                          >
+                            <CircleHelp className="h-3.5 w-3.5" />
+                          </a>
+                        </div>
+                        <div className="mt-2.5 text-[13px] break-words overflow-hidden">
+                          <LinkToBlockscan address={isXEVM} />
                         </div>
                       </div>
                     ) : null}

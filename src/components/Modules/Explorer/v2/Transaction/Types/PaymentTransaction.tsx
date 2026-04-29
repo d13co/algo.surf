@@ -6,6 +6,7 @@ import NumberFormat from "react-number-format";
 import Copyable from "src/components/v2/Copyable";
 import AlgoIcon from "../../../AlgoIcon/AlgoIcon";
 import LinkToAccount from "../../Links/LinkToAccount";
+import XChainOwnerField from "../Sections/XChainOwner";
 
 function PaymentTransaction({ transaction }: { transaction: any }): JSX.Element {
   const txnInstance = new CoreTransaction(transaction);
@@ -49,6 +50,8 @@ function PaymentTransaction({ transaction }: { transaction: any }): JSX.Element 
             <LinkToAccount copySize="m" address={txnInstance.getFrom()} />
           </div>
         </div>
+
+        <XChainOwnerField transaction={transaction} />
 
         <div className="col-span-12 md:col-span-6">
           <div className="text-muted-foreground">

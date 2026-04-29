@@ -3,6 +3,7 @@ import { CoreTransaction } from "src/packages/core-sdk/classes/core/CoreTransact
 import { bytesToBase64 } from "algosdk";
 import LinkToAccount from "../../Links/LinkToAccount";
 import LinkToBlock from "../../Links/LinkToBlock";
+import XChainOwnerField from "../Sections/XChainOwner";
 
 function KeyRegTransaction({
   transaction,
@@ -22,6 +23,8 @@ function KeyRegTransaction({
             <LinkToAccount copySize="m" address={txnInstance.getFrom()} />
           </div>
         </div>
+
+        <XChainOwnerField transaction={transaction} className="col-span-12" />
 
         {keyRegPayload?.voteParticipationKey ? (
           <div className="col-span-12">

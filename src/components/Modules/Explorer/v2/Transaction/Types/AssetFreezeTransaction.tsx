@@ -3,6 +3,7 @@ import { CoreTransaction } from "src/packages/core-sdk/classes/core/CoreTransact
 import { CoreAsset } from "src/packages/core-sdk/classes/core/CoreAsset";
 import LinkToAccount from "../../Links/LinkToAccount";
 import LinkToAsset from "../../Links/LinkToAsset";
+import XChainOwnerField from "../Sections/XChainOwner";
 
 function AssetFreezeTransaction({
   transaction,
@@ -24,6 +25,8 @@ function AssetFreezeTransaction({
               <LinkToAccount copySize="m" address={txnInstance.getFrom()} />
             </div>
           </div>
+
+          <XChainOwnerField transaction={transaction} />
 
           <div className="col-span-12 sm:col-span-6">
             <div className="text-muted-foreground">Asset</div>

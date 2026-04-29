@@ -4,6 +4,7 @@ import { CoreAsset } from "src/packages/core-sdk/classes/core/CoreAsset";
 import NumberFormatCopy from "src/components/v2/NumberFormatCopy";
 import LinkToAccount from "../../Links/LinkToAccount";
 import LinkToAsset from "../../Links/LinkToAsset";
+import XChainOwnerField from "../Sections/XChainOwner";
 
 function AssetTransferTransaction({
   transaction,
@@ -25,6 +26,8 @@ function AssetTransferTransaction({
             <LinkToAccount copySize="m" address={txnInstance.getFrom()} />
           </div>
         </div>
+
+        <XChainOwnerField transaction={transaction} />
 
         <div className="col-span-12 md:col-span-6">
           <div className="text-muted-foreground">Receiver</div>

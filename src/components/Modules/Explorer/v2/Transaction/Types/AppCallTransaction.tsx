@@ -8,6 +8,7 @@ import { usePersistenBooleanState } from "src/utils/usePersistenBooleanState";
 import LinkToAccount from "../../Links/LinkToAccount";
 import LinkToApplication from "../../Links/LinkToApplication";
 import ApplicationProgram from "../../ApplicationProgram";
+import XChainOwnerField from "../Sections/XChainOwner";
 import TabsUnderline from "src/components/v2/shadcn-studio/tabs/tabs-11";
 import AppCallTxnArguments from "./AppCall/AppCallTxnArguments";
 import AppCallTxnForeignAssets from "./AppCall/AppCallTxnForeignAssets";
@@ -78,6 +79,8 @@ function AppCallTransaction({
               <LinkToAccount copySize="m" address={txnInstance.getFrom()} />
             </div>
           </div>
+
+          <XChainOwnerField transaction={transaction} className="col-span-12" />
           </div>
         </div>
       </div>
