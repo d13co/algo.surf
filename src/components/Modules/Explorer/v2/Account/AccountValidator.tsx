@@ -196,12 +196,13 @@ function AccountValidator(): JSX.Element {
       <div className="mt-6 px-1">
         <div className="flex flex-col items-center gap-6">
           {/* Time frame switcher */}
-          <div className="w-full max-w-[420px] flex items-center gap-3">
-            <span className="text-sm text-primary shrink-0">
+          <div className="w-full max-w-[480px] flex items-center gap-3">
+            <span className="text-sm text-primary">
               Rounds
             </span>
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 overflow-hidden">
               <TabsUnderline
+                listClassName="flex-nowrap md:justify-end"
                 value={
                   timeframe === 0
                     ? "lifetime"
@@ -240,7 +241,7 @@ function AccountValidator(): JSX.Element {
 
           {/* Stats */}
           {hasData ? (
-            <div className="w-full max-w-[420px] flex flex-col gap-4">
+            <div className="w-full max-w-[480px] flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
                 <Row
                   label="Block Proposals"
@@ -293,7 +294,7 @@ function AccountValidator(): JSX.Element {
               </div>
             </div>
           ) : validatorLoading ? (
-            <div className="w-full max-w-[420px]">
+            <div className="w-full max-w-[480px]">
               <LoadingTile
                 style={{ marginTop: "0" }}
                 lineStyle={{ height: "10px", margin: "5px 0" }}
