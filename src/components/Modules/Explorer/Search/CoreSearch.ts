@@ -33,7 +33,7 @@ async function searchNFD(query: string): Promise<string[]> {
     if (response.status === 404)
         throw new Error(`${query} was not found`)
     const data = await response.json();
-    const results = new Set([data.depositAccount, ...data.caAlgo])
+    const results = new Set([data.depositAccount, ...(data.caAlgo ?? [])])
     return [...results.values()]
   } catch (e) {
     throw new NotFoundError(`Error looking up NFD: ${(e as Error).message}`);
