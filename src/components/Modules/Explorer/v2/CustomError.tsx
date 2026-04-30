@@ -2,6 +2,13 @@ import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "src/components/v2/ui/button";
 import { Alert, AlertDescription } from "src/components/v2/ui/alert";
+import {
+  getOtherNetworkNodeConfigs,
+  networkToDomainMap,
+} from "src/utils/nodeConfig";
+import { network, Networks } from "src/packages/core-sdk/constants";
+import { TransactionClient } from "src/packages/core-sdk/clients/transactionClient";
+import { Network } from "src/packages/core-sdk/network";
 
 const isLocalnet = process.env.REACT_APP_NETWORK === "Localnet";
 const TOTAL_RETRIES = 5;
@@ -15,7 +22,15 @@ function getRetries(hash: string): number {
   return 0;
 }
 
-function CustomError({ error }: { error?: string }): JSX.Element {
+function CustomError({
+  error,
+  type,
+  id,
+}: {
+  error?: string;
+  type?: string;
+  id?: string;
+}): JSX.Element {
   const location = useLocation();
   const navigate = useNavigate();
   const [retry, setRetry] = useState(0);
@@ -40,18 +55,77 @@ function CustomError({ error }: { error?: string }): JSX.Element {
     return () => clearTimeout(tmot);
   }, [location.hash]);
 
+  const [otherNetworks, setOtherNetworks] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (type !== "transaction" || !id) {
+      setOtherNetworks([]);
+      return;
+    }
+    const otherNetworkConfigs = getOtherNetworkNodeConfigs();
+    (async () => {
+      let results = await Promise.all(
+        otherNetworkConfigs.entries().map(async ([network, config]) => {
+          try {
+            const networkClient = new Network(config);
+            const client = new TransactionClient(networkClient);
+            await client.get(id);
+            console.log("Found in", network);
+            return network;
+          } catch (e) {
+            return null;
+          }
+        }),
+      );
+      results = results.filter(
+        (network): network is Networks => network !== null,
+      );
+      if (results.length > 0) {
+        setOtherNetworks(results);
+      } else {
+        setOtherNetworks([]);
+      }
+    })();
+  }, [type, id]);
+
   return (
     <div className="mt-36 mb-8">
       <div className="grid grid-cols-12 gap-4">
-        <div className="col-span-12 sm:col-span-12 md:col-span-7 lg:col-span-6">
+        <div className="col-span-12">
           <h4 className="text-2xl font-bold text-foreground">
             Something went wrong
           </h4>
           <Alert className="mt-5 bg-background-card border-none text-foreground rounded-lg">
-            <AlertDescription>
-              The resource you are looking for is not available.
+            <AlertDescription className="line-clamp-3 break-all">
+              {error ? (
+                error
+              ) : (
+                <>The resource you are looking for is not available.</>
+              )}
             </AlertDescription>
           </Alert>
+          {otherNetworks.length > 0 ? (
+            <div className="mt-5 p-5 rounded-[10px] font-bold italic border-l-2 border-l-yellow-500 bg-yellow-500/10">
+              You are on Algo Surf {network}, but this transaction exists on{" "}
+              {otherNetworks.map((otherNetwork, index) => (
+                <span key={otherNetwork}>
+                  <a
+                    href={`${networkToDomainMap[otherNetwork as Networks]}${location.pathname}${location.search}`}
+                    className="text-yellow-500 hover:underline"
+                  >
+                    {otherNetwork}
+                  </a>
+                  {index < otherNetworks.length - 1
+                    ? index === otherNetworks.length - 2
+                      ? " and "
+                      : ", "
+                    : ""}
+                </span>
+              ))}
+              .
+            </div>
+          ) : null}
+
           {isLocalnet ? (
             <Alert className="mt-5 bg-background-card border-none text-foreground rounded-lg">
               <AlertDescription>
@@ -69,7 +143,7 @@ function CustomError({ error }: { error?: string }): JSX.Element {
             <Button
               variant="outline"
               className="border-border text-primary hover:bg-primary/10"
-              onClick={() => navigate("/explorer")}
+              onClick={() => navigate("/")}
             >
               Home
             </Button>

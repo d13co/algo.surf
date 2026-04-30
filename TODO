@@ -164,7 +164,13 @@ app escrow lookups should cover inner txn sender/receivers, e.g. http://localhos
 - [ ] searching for .algo without verified address fails - marcvl.algo
   - fall back to owner?
 
-- akitaALGO escrow very slow/hanging load: R4K5LJIXPOPG6Q2AFZXFO7GLHYNBILME7LSTBNHEXO3QYFPZ52YCZFEQKI
+- [x] akitaALGO escrow very slow/hanging load: R4K5LJIXPOPG6Q2AFZXFO7GLHYNBILME7LSTBNHEXO3QYFPZ52YCZFEQKI
+  - ? could not repro
 
+- [v] axfer+close out styling regressed, http://localhost:5173/account/4HQX3HXXPBRX2VFPQO7UA7O45IHJ57U7XZMJ7NP4TQNRK6VRYV6TZFQNKI - see TINY optout
 
-- axfer+close out styling regressed, http://localhost:5173/account/4HQX3HXXPBRX2VFPQO7UA7O45IHJ57U7XZMJ7NP4TQNRK6VRYV6TZFQNKI - see TINY optout
+- [v] card view separate amount from close amount
+
+- [ ] asset transfer with long asset names (eg tinyman LP assets) breaks transaction page view 
+
+- [v] search not found transactions across other networks

@@ -12,16 +12,9 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "src/components/v2/ui/dropdown-menu";
+import { networkToDomainMap } from 'src/utils/nodeConfig';
 
-const map: Record<Networks, string> = {
-    "Mainnet": "https://algo.surf",
-    "Testnet": "https://testnet.algo.surf",
-    "Localnet": "https://localnet.algo.surf",
-    "Betanet": "https://betanet.algo.surf",
-    "Fnet": "https://fnet.algo.surf",
-}
-
-const networkMap = Object.entries(map) as [keyof typeof map, string][];
+const networkMap = Object.entries(networkToDomainMap) as [keyof typeof networkToDomainMap, string][];
 
 function Footer(): JSX.Element {
     return (

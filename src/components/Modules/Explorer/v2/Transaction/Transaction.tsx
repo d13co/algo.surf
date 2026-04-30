@@ -78,7 +78,7 @@ function Transaction(): JSX.Element {
     <div className="mt-5">
       <div>
         {isError ? (
-          <CustomError error={error?.message} />
+          <CustomError type="transaction" id={id} error={error?.message} />
         ) : (
           <div>
             <RecordPageHeader

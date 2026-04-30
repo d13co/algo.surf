@@ -1,9 +1,9 @@
-import { network } from "../packages/core-sdk/constants";
+import { network as defaultNetwork, Networks } from "../packages/core-sdk/constants";
 import {KMDConnectionParams, NodeConnectionParams} from "../packages/core-sdk/types";
 
 export const supportSettings = true;
 
-export function getNodeConfig(): NodeConnectionParams {
+export function getNodeConfig(network = defaultNetwork): NodeConnectionParams {
     const availableNodes = getNodes();
 
     let defaultNode = availableNodes[1];
@@ -28,6 +28,18 @@ export function getNodeConfig(): NodeConnectionParams {
             token: localStorage.getItem('indexerToken') || defaultNode.indexer.token,
         }
     }
+}
+
+export function getOtherNetworkNodeConfigs(network = defaultNetwork): Map<keyof typeof Networks, NodeConnectionParams> {
+    const otherNodes: Map<keyof typeof Networks, NodeConnectionParams> = new Map();
+    for(const network of Object.keys(Networks)) {
+        if(network.toLocaleLowerCase() === defaultNetwork.toLocaleLowerCase()) {
+            continue;
+        }
+        const nodeConfig = getNodeConfig(network as Networks);
+        otherNodes.set(network as keyof typeof Networks, nodeConfig);
+    }
+    return otherNodes;
 }
 
 export function getKMDConfig(): KMDConnectionParams {
@@ -117,4 +129,12 @@ export function getNodes(): NodeConnectionParams[] {
             }
         },
     ];
+}
+
+export const networkToDomainMap: Record<Networks, string> = {
+    "Mainnet": "https://algo.surf",
+    "Testnet": "https://testnet.algo.surf",
+    "Localnet": "https://localnet.algo.surf",
+    "Betanet": "https://betanet.algo.surf",
+    "Fnet": "https://fnet.algo.surf",
 }
