@@ -36,32 +36,41 @@ function CustomError({
   const [retry, setRetry] = useState(0);
   const [countdown, setCountdown] = useState(2);
 
+  const [otherNetworks, setOtherNetworks] = useState<string[]>([]);
+  const [checkingOtherNetworks, setCheckingOtherNetworks] = useState(
+    type === "transaction" && !!id,
+  );
+
   useEffect(() => {
-    let tmot: ReturnType<typeof setTimeout>;
-    if (isLocalnet) {
+    let countdownTmot: ReturnType<typeof setTimeout>;
+    let reloadTmot: ReturnType<typeof setTimeout>;
+    if (isLocalnet && !checkingOtherNetworks && otherNetworks.length === 0) {
       const retry = getRetries(location.hash);
       setRetry(retry);
       if (retry < TOTAL_RETRIES) {
         const newLocation = new URL(window.location.href);
         newLocation.hash = `#retry=${retry + 1}`;
-        setTimeout(() => setCountdown(1), 1_000);
-        tmot = setTimeout(() => {
+        countdownTmot = setTimeout(() => setCountdown(1), 1_000);
+        reloadTmot = setTimeout(() => {
           setCountdown(0);
           window.history.replaceState(null, null, newLocation.toString());
           window.location.reload();
         }, 2_000);
       }
     }
-    return () => clearTimeout(tmot);
-  }, [location.hash]);
-
-  const [otherNetworks, setOtherNetworks] = useState<string[]>([]);
+    return () => {
+      clearTimeout(countdownTmot);
+      clearTimeout(reloadTmot);
+    };
+  }, [location.hash, checkingOtherNetworks, otherNetworks.length]);
 
   useEffect(() => {
     if (type !== "transaction" || !id) {
       setOtherNetworks([]);
+      setCheckingOtherNetworks(false);
       return;
     }
+    setCheckingOtherNetworks(true);
     const otherNetworkConfigs = getOtherNetworkNodeConfigs();
     (async () => {
       let results = await Promise.all(
@@ -80,11 +89,8 @@ function CustomError({
       results = results.filter(
         (network): network is Networks => network !== null,
       );
-      if (results.length > 0) {
-        setOtherNetworks(results);
-      } else {
-        setOtherNetworks([]);
-      }
+      setOtherNetworks(results);
+      setCheckingOtherNetworks(false);
     })();
   }, [type, id]);
 
@@ -126,7 +132,7 @@ function CustomError({
             </div>
           ) : null}
 
-          {isLocalnet ? (
+          {isLocalnet && !checkingOtherNetworks && otherNetworks.length === 0 ? (
             <Alert className="mt-5 bg-background-card border-none text-foreground rounded-lg">
               <AlertDescription>
                 Localnet retry {retry} / {TOTAL_RETRIES} &middot;{" "}
@@ -139,13 +145,25 @@ function CustomError({
             </Alert>
           ) : null}
 
-          <div className="mt-5">
+          <div className="mt-5 flex gap-2">
             <Button
               variant="outline"
               className="border-border text-primary hover:bg-primary/10"
               onClick={() => navigate("/")}
             >
               Home
+            </Button>
+            <Button
+              variant="outline"
+              className="border-border text-primary hover:bg-primary/10"
+              onClick={() => {
+                const url = new URL(window.location.href);
+                url.hash = "";
+                window.history.replaceState(null, null, url.toString());
+                window.location.reload();
+              }}
+            >
+              Reload
             </Button>
           </div>
         </div>
