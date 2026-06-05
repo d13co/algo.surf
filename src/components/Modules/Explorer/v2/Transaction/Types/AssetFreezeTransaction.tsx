@@ -28,9 +28,9 @@ function AssetFreezeTransaction({
 
           <XChainOwnerField transaction={transaction} />
 
-          <div className="col-span-12 sm:col-span-6">
+          <div className="col-span-12 sm:col-span-6 min-w-0">
             <div className="text-muted-foreground">Asset</div>
-            <div className="mt-2.5">
+            <div className="mt-2.5 min-w-0">
               <LinkToAsset
                 id={txnInstance.getAssetId()}
                 name={assetInstance.getTransactionLabel()}

@@ -20,8 +20,7 @@
 [v] account txn list OUT/ IN label no contrast, fix
 [v] resource not found: dont redirect. offer to switch network?
   - was a mistake
-[ ] Tinyman v2 account kills the frog: XSKED5VKZZCSYNDWXZJI65JM2HP7HZFJWCOBIMOONKHTK5UVKENBNVDEYM
-  - we are thrashing /accounts on nodely. needs cache and throttling
+[v] Tinyman v2 account kills the frog: XSKED5VKZZCSYNDWXZJI65JM2HP7HZFJWCOBIMOONKHTK5UVKENBNVDEYM
 
 [v] Index pages do not update the title - Accounts / Txns /Assets
 [v] transaction pages need rekey pill, label / fields
@@ -161,8 +160,8 @@ app escrow lookups should cover inner txn sender/receivers, e.g. http://localhos
   - [ ] cached view warning
   - [ ] "save" button?
 
-- [ ] searching for .algo without verified address fails - marcvl.algo
-  - fall back to owner?
+- [v] searching for .algo without verified address fails - marcvl.algo
+  - [ ] reverse lookup not working in account page in this scenario
 
 - [x] akitaALGO escrow very slow/hanging load: R4K5LJIXPOPG6Q2AFZXFO7GLHYNBILME7LSTBNHEXO3QYFPZ52YCZFEQKI
   - ? could not repro
@@ -171,9 +170,12 @@ app escrow lookups should cover inner txn sender/receivers, e.g. http://localhos
 
 - [v] card view separate amount from close amount
 
-- [ ] asset transfer with long asset names (eg tinyman LP assets) breaks transaction page view 
+- [v] asset transfer with long asset names (eg tinyman LP assets) breaks transaction page view 
 
 - [v] search not found transactions across other networks
 
-- [ ] app / invalid version, no approval https://algo.surf/application/3539080058/transactions
+- [v] app / invalid version, no approval https://algo.surf/application/3539080058/transactions
+  - [v] support deleted apps 3539080058
+- [v] support deleted assets 3158744266
+
 [ ] address book labels in short address views

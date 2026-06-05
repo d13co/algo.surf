@@ -57,7 +57,7 @@ function Asset(): JSX.Element {
         ) : (
           <div>
             {assetInstance?.isDeleted() ? (
-              <DeletedNotice>This asset has been deleted.</DeletedNotice>
+              <DeletedNotice>This asset has been deleted</DeletedNotice>
             ) : null}
 
             <RecordPageHeader

@@ -93,7 +93,7 @@ function Application(): JSX.Element {
         ) : (
           <div>
             {applicationInstance?.isDeleted() ? (
-              <DeletedNotice>This application has been deleted. Showing historical data</DeletedNotice>
+              <DeletedNotice>This application has been deleted</DeletedNotice>
             ) : null}
 
             <RecordPageHeader
