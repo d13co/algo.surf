@@ -13,6 +13,7 @@ import CustomError from "../CustomError";
 import Copyable from "src/components/v2/Copyable";
 import RecordPageHeader from "src/components/v2/RecordPageHeader";
 import Dym from "../Dym";
+import DeletedNotice from "../DeletedNotice";
 import useTitle from "src/components/Common/UseTitle/UseTitle";
 import { ChevronDown } from "lucide-react";
 import {
@@ -91,6 +92,10 @@ function Application(): JSX.Element {
           <CustomError error={error?.message} />
         ) : (
           <div>
+            {applicationInstance?.isDeleted() ? (
+              <DeletedNotice>This application has been deleted. Showing historical data</DeletedNotice>
+            ) : null}
+
             <RecordPageHeader
               label="Application"
               id={<><span className="select-none">#</span>{id}</>}
@@ -133,7 +138,9 @@ function Application(): JSX.Element {
                   </div>
                 </div>
 
-                {/* Application State — collapsible */}
+                {/* Application State — collapsible. A deleted app's code and
+                    state are wiped from the indexer, so hide the panel. */}
+                {applicationInstance.isDeleted() ? null : (
                 <div className="mt-6 rounded-lg bg-background-card overflow-hidden">
                   <button
                     type="button"
@@ -301,6 +308,7 @@ function Application(): JSX.Element {
                     </div>
                   ) : null}
                 </div>
+                )}
 
                 {/* Bottom tabs: Transactions / Boxes */}
                 <div className="mt-6">

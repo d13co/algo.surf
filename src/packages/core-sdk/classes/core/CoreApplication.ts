@@ -104,6 +104,10 @@ export class CoreApplication {
         return Number(this.application.id);
     }
 
+    isDeleted(): boolean {
+        return this.application.deleted === true;
+    }
+
     getCreator(): string {
         const creator = this.application.params.creator;
         if (!creator) return '';
