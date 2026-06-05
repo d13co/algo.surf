@@ -11,6 +11,7 @@ import CustomError from "../CustomError";
 import MultiFormatViewer from "src/components/v2/MultiFormatViewer";
 import Copyable from "src/components/v2/Copyable";
 import Dym from "../Dym";
+import DeletedNotice from "../DeletedNotice";
 import useTitle from "src/components/Common/UseTitle/UseTitle";
 import { ShieldCheck } from "lucide-react";
 import NumberFormatCopy from "src/components/v2/NumberFormatCopy";
@@ -23,7 +24,7 @@ import { useAssetLabels } from "src/hooks/useAssetLabels";
 import { useBlock } from "src/hooks/useBlock";
 import { CoreBlock } from "src/packages/core-sdk/classes/core/CoreBlock";
 import TabsUnderline from "src/components/v2/shadcn-studio/tabs/tabs-11";
-import { Chip, BadgesRow } from "src/components/v2/Chips";
+import { BadgesRow } from "src/components/v2/Chips";
 
 function Asset(): JSX.Element {
   const navigate = useNavigate();
@@ -55,6 +56,10 @@ function Asset(): JSX.Element {
           <CustomError error={error?.message} />
         ) : (
           <div>
+            {assetInstance?.isDeleted() ? (
+              <DeletedNotice>This asset has been deleted.</DeletedNotice>
+            ) : null}
+
             <RecordPageHeader
               label="Asset"
               id={
@@ -77,7 +82,6 @@ function Asset(): JSX.Element {
             ) : (
               <div>
                 <BadgesRow>
-                  {assetInstance.isDeleted() ? <Chip>Deleted</Chip> : null}
                   {assetInstance.getUrl() ? (
                     <span className="group inline-flex items-center gap-1">
                       <a

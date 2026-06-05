@@ -174,3 +174,6 @@ app escrow lookups should cover inner txn sender/receivers, e.g. http://localhos
 - [ ] asset transfer with long asset names (eg tinyman LP assets) breaks transaction page view 
 
 - [v] search not found transactions across other networks
+
+- [ ] app / invalid version, no approval https://algo.surf/application/3539080058/transactions
+[ ] address book labels in short address views

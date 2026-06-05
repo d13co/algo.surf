@@ -18,7 +18,7 @@ export default function DymNFD({ nfd, accounts }: DymProps): JSX.Element {
   return (
     <div className="flex justify-between items-center p-5 rounded-[10px] mb-5 font-bold border-l-2 border-l-nfd bg-yellow-500/10">
       <div className="flex flex-col min-w-0">
-        <div className="mb-4 text-nfd">{nfd} has multiple verified addresses.</div>
+        <div className="mb-4 text-nfd">{nfd} has multiple verified addresses</div>
         <div className="mb-1 text-muted-foreground">You may be looking for:</div>
         {accounts.map((account, i) => (
           <div className="truncate py-0.5" key={`acc${i}`}>

@@ -41,7 +41,7 @@ function AssetTransferTransaction({
           <div className="mt-2.5">
             <LinkToAsset
               id={txnInstance.getAssetId()}
-              name={txnInstance.getAssetId() + "(" + assetInstance.getName() + ")"}
+              name={assetInstance.getTransactionLabel()}
             />
           </div>
         </div>

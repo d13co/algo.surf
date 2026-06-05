@@ -101,6 +101,16 @@ export class CoreAsset {
         return this.asset.params.name ?? "";
     }
 
+    // Inline label used when referencing the asset from a transaction. Deleted
+    // assets are flagged since their id no longer resolves to live info.
+    getTransactionLabel(): string {
+        const name = this.getName();
+        if (this.isDeleted()) {
+            return `(deleted)${name}`;
+        }
+        return `${this.getIndex()}(${name})`;
+    }
+
     getNameB64(): string {
         return this.asset.params.nameB64 ? bytesToBase64(this.asset.params.nameB64) : "";
     }

@@ -25,8 +25,10 @@ export function useTransactionAsset(txn: indexerModels.Transaction | undefined) 
     assetId > 0;
 
   return useQuery({
+    // Same key as useAsset() so deleted-asset info (back-filled from the
+    // creation txn) is shared across the /asset/ route and transaction views.
     queryKey: ["asset", assetId],
-    queryFn: () => new AssetClient(explorer.network).get(assetId),
+    queryFn: () => new AssetClient(explorer.network).getWithCreationFallback(assetId),
     enabled: needsAsset,
     gcTime: ONE_WEEK,
   });

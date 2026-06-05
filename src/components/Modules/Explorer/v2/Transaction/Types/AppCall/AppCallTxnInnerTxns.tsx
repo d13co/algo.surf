@@ -235,7 +235,7 @@ function AppCallTxnInnerTxns({
     const inst = new CoreTransaction(currentEntry.txn);
     if (inst.getType() === TXN_TYPES.ASSET_TRANSFER) {
       const assetClient = new AssetClient(explorer.network);
-      assetClient.get(inst.getAssetId()).then(setAsset).catch(() => setAsset(undefined));
+      assetClient.getWithCreationFallback(inst.getAssetId()).then(setAsset).catch(() => setAsset(undefined));
     } else {
       setAsset(undefined);
     }
