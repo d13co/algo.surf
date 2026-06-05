@@ -7,6 +7,8 @@ import {Network} from "../network";
 import {A_TransactionsResponse} from "./transactionClient";
 import { toA_AccountsResponse } from "../utils/v3Adapters";
 
+export const ACCOUNTS_PAGE_SIZE = 100;
+
 export type A_AccountsResponse = {
     'next-token': string,
     accounts: A_SearchAccount[]
@@ -29,11 +31,8 @@ export class AccountClient{
         return this.client.accountInformation(address).do();
     }
 
-    async getAccounts(token?: string, limit?: number): Promise<A_AccountsResponse> {
-        const req = this.indexer.searchAccounts();
-        if (limit) {
-            req.limit(limit);
-        }
+    async getAccounts(token?: string, limit: number = ACCOUNTS_PAGE_SIZE): Promise<A_AccountsResponse> {
+        const req = this.indexer.searchAccounts().limit(limit);
         if (token) {
             req.nextToken(token);
         }

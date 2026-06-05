@@ -1,5 +1,5 @@
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
-import { ApplicationClient } from "src/packages/core-sdk/clients/applicationClient";
+import { ApplicationClient, APPLICATIONS_PAGE_SIZE } from "src/packages/core-sdk/clients/applicationClient";
 import { BoxClient } from "src/packages/core-sdk/clients/boxClient";
 import { CoreApplication } from "src/packages/core-sdk/classes/core/CoreApplication";
 import explorer from "src/utils/dappflow";
@@ -64,7 +64,12 @@ export function useApplications() {
     queryFn: ({ pageParam }) =>
       new ApplicationClient(explorer.network).getApplications(pageParam),
     initialPageParam: undefined as string | undefined,
-    getNextPageParam: (lastPage) => lastPage["next-token"] || undefined,
+    // The indexer can return a next-token even on the final (short) page, so
+    // only treat it as a real next page when the page came back full.
+    getNextPageParam: (lastPage) =>
+      lastPage.applications.length >= APPLICATIONS_PAGE_SIZE
+        ? lastPage["next-token"] || undefined
+        : undefined,
   });
 }
 

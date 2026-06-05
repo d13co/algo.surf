@@ -8,6 +8,8 @@ import { toA_Application, toA_ApplicationsResponse } from "../utils/v3Adapters";
 
 export type CompileResponse = { hash: string; result: string; sourcemap?: string };
 
+export const APPLICATIONS_PAGE_SIZE = 100;
+
 export type A_ApplicationTransactionsResponse = A_TransactionsResponse;
 export type A_ApplicationsResponse = {
     'next-token': string,
@@ -44,7 +46,7 @@ export class ApplicationClient{
     }
 
     async getApplications(token?: string): Promise<A_ApplicationsResponse> {
-        const req = this.indexer.searchForApplications();
+        const req = this.indexer.searchForApplications().limit(APPLICATIONS_PAGE_SIZE);
         if (token) {
             req.nextToken(token);
         }

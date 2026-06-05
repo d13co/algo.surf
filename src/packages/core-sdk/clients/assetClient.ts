@@ -84,6 +84,8 @@ function mergeAssetParams(
 
 export type A_AssetTransactionsResponse = A_TransactionsResponse;
 
+export const ASSETS_PAGE_SIZE = 100;
+
 export type A_AssetsResponse = {
     'next-token': string,
     assets: A_Asset[]
@@ -180,7 +182,7 @@ export class AssetClient{
 
     async getAssets(token?: string): Promise<A_AssetsResponse> {
 
-        const req = this.indexer.searchForAssets();
+        const req = this.indexer.searchForAssets().limit(ASSETS_PAGE_SIZE);
         if (token) {
             req.nextToken(token);
         }

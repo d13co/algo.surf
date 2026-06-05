@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
-import { AccountClient } from "src/packages/core-sdk/clients/accountClient";
+import { AccountClient, ACCOUNTS_PAGE_SIZE } from "src/packages/core-sdk/clients/accountClient";
 import explorer from "src/utils/dappflow";
 import { ONE_WEEK, ONE_MONTH } from "src/db/query-client";
 import { EscregSDK } from "@d13co/escreg-sdk";
@@ -96,10 +96,15 @@ export function useAccounts(prefixToken?: string) {
     queryFn: ({ pageParam }) =>
       new AccountClient(explorer.network).getAccounts(
         pageParam,
-        prefixToken ? 100 : undefined,
+        ACCOUNTS_PAGE_SIZE,
       ),
     initialPageParam: prefixToken as string | undefined,
-    getNextPageParam: (lastPage) => lastPage["next-token"] || undefined,
+    // The indexer can return a next-token even on the final (short) page, so
+    // only treat it as a real next page when the page came back full.
+    getNextPageParam: (lastPage) =>
+      lastPage.accounts.length >= ACCOUNTS_PAGE_SIZE
+        ? lastPage["next-token"] || undefined
+        : undefined,
   });
 }
 
