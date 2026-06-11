@@ -1,0 +1,9 @@
+# Fingerprinted build assets (hashed filenames) — safe to cache forever.
+# Repeat visitors serve these straight from disk with no revalidation round trip,
+# which removes the per-load conditional request Pages does by default
+# (Cache-Control: public, max-age=0, must-revalidate).
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# index.html and other non-hashed files keep the Pages default (revalidate),
+# so a new deploy is picked up immediately and never points at stale asset hashes.
