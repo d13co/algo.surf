@@ -9,6 +9,7 @@ function LinkToApplication({
   copy = "",
   copySize = "m",
   address,
+  title,
   strip = 0,
 }: {
   id: number;
@@ -16,6 +17,7 @@ function LinkToApplication({
   copy?: string;
   copySize?: "m" | "s";
   address?: string;
+  title?: string;
   strip?: number;
 }): JSX.Element {
   const label = name || String(id);
@@ -23,7 +25,7 @@ function LinkToApplication({
   return (
     <span className="inline-flex items-center min-w-0 max-w-full">
       {copy === "left" ? <Copyable size={copySize} value={copyValue}/> : null}
-      <Link className="truncate" href={"/application/" + id}>
+      <Link className="truncate" href={"/application/" + id} title={title}>
         {label}
       </Link>
       {copy === "right" ? <Copyable size={copySize} value={copyValue}/> : null}

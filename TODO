@@ -179,3 +179,9 @@ app escrow lookups should cover inner txn sender/receivers, e.g. http://localhos
 - [v] support deleted assets 3158744266
 
 [ ] address book labels in short address views
+
+[ ] ID arc54 burns and give them a red badge https://algo.surf/transaction/OBSBLPLCXH2N5QKXSMBY7H4CT43ZDNJIKUHVKZBKTWGMEAVBJXOQ
+[ ] in account txn views, show inner pay and axfer app calls with the current account as the sender or recipient. in application txn views, do the same for the escrow address, and in asset txn views, do the same for axfers with the asset in question. limit the max number of inners shown to 2, and add wording distinguishing between "more inners" and "more inners with payment to this account"
+[ ] ID arc59 deposits, withdrawals
+
+[ ] Move date switcher button to the left (stabilize position)
