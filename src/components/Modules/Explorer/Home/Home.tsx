@@ -1,6 +1,7 @@
 import React, { Component } from "react";
 import Search from '../Search/Search';
 import LiveStats from "../LiveStats/LiveStats";
+import LiveUpgrade from "../LiveUpgrade/LiveUpgrade";
 import LiveBlocks from "../LiveBlocks/LiveBlocks";
 import LiveTransactions from "../LiveTransactions/LiveTransactions";
 import useTitle from "../../../Common/UseTitle/UseTitle";
@@ -49,6 +50,13 @@ function Home(): JSX.Element {
                     </div>
                     <div className="mt-15 flex">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+                            {/* Full-width row above the panels. empty:hidden collapses it when
+                                there's no upgrade — PanelErrorBoundary renders children with no
+                                wrapper, so this div is genuinely empty then and grid drops it
+                                instead of leaving a phantom row and a stray gap. */}
+                            <div className="md:col-span-3 empty:hidden">
+                                <PanelErrorBoundary><LiveUpgrade /></PanelErrorBoundary>
+                            </div>
                             <PanelErrorBoundary><LiveStats /></PanelErrorBoundary>
                             <PanelErrorBoundary><LiveBlocks /></PanelErrorBoundary>
                             <PanelErrorBoundary><LiveTransactions /></PanelErrorBoundary>

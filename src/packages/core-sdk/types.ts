@@ -359,6 +359,34 @@ export interface A_BlockResult extends A_Block {
     type: "block"
 }
 
+// Normalised consensus upgrade state from a block header. Both sources carry the same information
+// under the same names but with different types — the indexer has nextProtocolApprovals as number
+// while the round fields are bigint, and algod returns bigint throughout — so callers normalise to
+// these plain shapes and everything downstream stays in number.
+export type A_UpgradeState = {
+    currentProtocol: string
+    /** Empty string when no upgrade is in flight. */
+    nextProtocol: string
+    nextProtocolApprovals: number
+    /**
+     * Exclusive deadline for the vote: yes votes count only on rounds *before* this one, so the last
+     * votable round is nextProtocolVoteBefore - 1. This round itself resolves the vote — a tally
+     * below the threshold clears the whole upgrade state here. Zero when no vote is running.
+     */
+    nextProtocolVoteBefore: number
+    /** Round the upgrade takes effect (the switch happens on this round). Zero when nothing is pending. */
+    nextProtocolSwitchOn: number
+};
+
+export type A_UpgradeVote = {
+    /** This block's proposer voted yes. */
+    upgradeApprove: boolean
+    /** Rounds between vote close and switch. Only set on the proposing block. */
+    upgradeDelay: number
+    /** Protocol being proposed. Only set on the proposing block. */
+    upgradePropose: string
+};
+
 export type AlgodConnectionParams = {
     url: string,
     port: string,

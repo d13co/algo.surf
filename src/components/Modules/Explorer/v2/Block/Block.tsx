@@ -16,6 +16,7 @@ import useTitle from "src/components/Common/UseTitle/UseTitle";
 import { microalgosToAlgos } from "src/utils/common";
 import { ArrowLeftFromLine, ArrowRightFromLine, TriangleAlert, Info } from "lucide-react";
 import TabsUnderline from "src/components/v2/shadcn-studio/tabs/tabs-11";
+import BlockUpgradeCard from "./BlockUpgradeCard";
 import {
   Tooltip,
   TooltipContent,
@@ -238,6 +239,8 @@ function Block(): JSX.Element {
                     </div>
                   </div>
                 ) : null}
+
+                <BlockUpgradeCard block={blockInstance} />
 
                 <div className="mt-6">
                   <TabsUnderline

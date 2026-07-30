@@ -1,4 +1,5 @@
 import {TIMESTAMP_DISPLAY_FORMAT} from "../../constants";
+import {A_UpgradeState, A_UpgradeVote} from "../../types";
 import dateFormat  from "dateformat";
 import humanizeDuration from 'humanize-duration';
 import BaseTxnHolder  from "./BaseTxnHolder";
@@ -82,5 +83,32 @@ export class CoreBlock extends BaseTxnHolder {
         const pu = this.block.participationUpdates;
         if (!pu) return [];
         return pu.absentParticipationAccounts ?? [];
+    }
+
+    getUpgradeState(): A_UpgradeState {
+        const us = this.block.upgradeState;
+        return {
+            currentProtocol: us?.currentProtocol ?? "",
+            nextProtocol: us?.nextProtocol ?? "",
+            nextProtocolApprovals: Number(us?.nextProtocolApprovals ?? 0),
+            nextProtocolVoteBefore: Number(us?.nextProtocolVoteBefore ?? 0),
+            nextProtocolSwitchOn: Number(us?.nextProtocolSwitchOn ?? 0),
+        };
+    }
+
+    getUpgradeVote(): A_UpgradeVote {
+        const uv = this.block.upgradeVote;
+        return {
+            upgradeApprove: uv?.upgradeApprove === true,
+            upgradeDelay: Number(uv?.upgradeDelay ?? 0),
+            upgradePropose: uv?.upgradePropose ?? "",
+        };
+    }
+
+    /** True when this block is part of an upgrade: a pending target, or a proposal, or a yes vote. */
+    hasUpgradeActivity(): boolean {
+        const { nextProtocol } = this.getUpgradeState();
+        const { upgradePropose, upgradeApprove } = this.getUpgradeVote();
+        return !!nextProtocol || !!upgradePropose || upgradeApprove;
     }
 }

@@ -58,6 +58,7 @@
     "dev:localnet": "REACT_APP_NETWORK=Localnet vite",
     "dev:fnet": "REACT_APP_NETWORK=Fnet vite",
     "build": "vite build",
+    "gen:consensus": "node scripts/gen-consensus-versions.mjs",
     "preview": "REACT_APP_NETWORK=Mainnet vite preview"
   },
   "browserslist": {

@@ -7,3 +7,9 @@
 
 # index.html and other non-hashed files keep the Pages default (revalidate),
 # so a new deploy is picked up immediately and never points at stale asset hashes.
+
+# Consensus version name table (same-origin, one copy per deployment). Not fingerprinted, so it
+# would otherwise pay a conditional request on every page load. It only changes when go-algorand
+# ships a new protocol, and a stale copy degrades to a truncated commit hash rather than breaking.
+/consensus-versions.json
+  Cache-Control: public, max-age=3600, stale-while-revalidate=86400

@@ -185,3 +185,12 @@ app escrow lookups should cover inner txn sender/receivers, e.g. http://localhos
 [ ] ID arc59 deposits, withdrawals
 
 [ ] Move date switcher button to the left (stabilize position)
+
+[ ] move rekey in txn list to the right of the group icon. group icon should always be the second icon from the left
+
+localnet optimizations
+[ ] detect dev mode via genesis
+    [ ] detect restart? via lastRound rewind or genesis?
+    [ ] does waitforblock retry after timeout?
+[ ] show clock drift in Stats
+[ ] toast error: copy button misaligned with x

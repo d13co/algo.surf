@@ -1,0 +1,399 @@
+{
+  "schema": 1,
+  "generatedAt": "2026-07-30T08:19:53Z",
+  "source": {
+    "repo": "algorand/go-algorand",
+    "ref": "master",
+    "commit": "88fe542f3a2b6cbe898497cd3321f7bd20a7429b"
+  },
+  "current": "https://github.com/algorandfoundation/specs/tree/268b63433a907455d439995bf916f6b296018f4f",
+  "versions": {
+    "v7": {
+      "name": "v7",
+      "goConst": "ConsensusV7",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Increases MaxBalLookback to 320 in preparation for the twin seeds change."
+    },
+    "v8": {
+      "name": "v8",
+      "goConst": "ConsensusV8",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Uses the new parameters and seed derivation policy from the agreement protocol's security analysis."
+    },
+    "v9": {
+      "name": "v9",
+      "goConst": "ConsensusV9",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Increases min balance to 100,000 microAlgos."
+    },
+    "v10": {
+      "name": "v10",
+      "goConst": "ConsensusV10",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Introduces fast partition recovery."
+    },
+    "v11": {
+      "name": "v11",
+      "goConst": "ConsensusV11",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Introduces efficient encoding of SignedTxn using SignedTxnInBlock."
+    },
+    "v12": {
+      "name": "v12",
+      "goConst": "ConsensusV12",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Increases the maximum length of a version string."
+    },
+    "https://github.com/algorand/spec/tree/0c8a9dc44d7368cc266d5407b79fb3311f4fc795": {
+      "name": "v13",
+      "goConst": "ConsensusV13",
+      "spec": "https://github.com/algorand/spec/tree/0c8a9dc44d7368cc266d5407b79fb3311f4fc795",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Makes the consensus version a meaningful string."
+    },
+    "https://github.com/algorand/spec/tree/2526b6ae062b4fe5e163e06e41e1d9b9219135a9": {
+      "name": "v14",
+      "goConst": "ConsensusV14",
+      "spec": "https://github.com/algorand/spec/tree/2526b6ae062b4fe5e163e06e41e1d9b9219135a9",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Adds tracking of closing amounts in ApplyData, and enables genesis hash in transactions."
+    },
+    "https://github.com/algorand/spec/tree/a26ed78ed8f834e2b9ccb6eb7d3ee9f629a6e622": {
+      "name": "v15",
+      "goConst": "ConsensusV15",
+      "spec": "https://github.com/algorand/spec/tree/a26ed78ed8f834e2b9ccb6eb7d3ee9f629a6e622",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Adds tracking of reward distributions in ApplyData."
+    },
+    "https://github.com/algorand/spec/tree/22726c9dcd12d9cddce4a8bd7e8ccaa707f74101": {
+      "name": "v16",
+      "goConst": "ConsensusV16",
+      "spec": "https://github.com/algorand/spec/tree/22726c9dcd12d9cddce4a8bd7e8ccaa707f74101",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Fixes domain separation in Credentials and requires GenesisHash."
+    },
+    "https://github.com/algorandfoundation/specs/tree/5615adc36bad610c7f165fa2967f4ecfa75125f0": {
+      "name": "v17",
+      "goConst": "ConsensusV17",
+      "spec": "https://github.com/algorandfoundation/specs/tree/5615adc36bad610c7f165fa2967f4ecfa75125f0",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Points to 'final' spec commit for 2019 june release"
+    },
+    "https://github.com/algorandfoundation/specs/tree/6c6bd668be0ab14098e51b37e806c509f7b7e31f": {
+      "name": "v18",
+      "avm": 1,
+      "goConst": "ConsensusV18",
+      "spec": "https://github.com/algorandfoundation/specs/tree/6c6bd668be0ab14098e51b37e806c509f7b7e31f",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Points to reward calculation spec commit"
+    },
+    "https://github.com/algorandfoundation/specs/tree/0e196e82bfd6e327994bec373c4cc81bc878ef5c": {
+      "name": "v19",
+      "avm": 1,
+      "goConst": "ConsensusV19",
+      "spec": "https://github.com/algorandfoundation/specs/tree/0e196e82bfd6e327994bec373c4cc81bc878ef5c",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Points to 'final' spec commit for 2019 nov release"
+    },
+    "https://github.com/algorandfoundation/specs/tree/4a9db6a25595c6fd097cf9cc137cc83027787eaa": {
+      "name": "v20",
+      "avm": 1,
+      "goConst": "ConsensusV20",
+      "spec": "https://github.com/algorandfoundation/specs/tree/4a9db6a25595c6fd097cf9cc137cc83027787eaa",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Points to adding the decimals field to assets"
+    },
+    "https://github.com/algorandfoundation/specs/tree/8096e2df2da75c3339986317f9abe69d4fa86b4b": {
+      "name": "v21",
+      "avm": 1,
+      "goConst": "ConsensusV21",
+      "spec": "https://github.com/algorandfoundation/specs/tree/8096e2df2da75c3339986317f9abe69d4fa86b4b",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Fixes a bug in credential.lowestOutput"
+    },
+    "https://github.com/algorandfoundation/specs/tree/57016b942f6d97e6d4c0688b373bb0a2fc85a1a2": {
+      "name": "v22",
+      "avm": 1,
+      "goConst": "ConsensusV22",
+      "spec": "https://github.com/algorandfoundation/specs/tree/57016b942f6d97e6d4c0688b373bb0a2fc85a1a2",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Allows tuning the upgrade delay."
+    },
+    "https://github.com/algorandfoundation/specs/tree/e5f565421d720c6f75cdd186f7098495caf9101f": {
+      "name": "v23",
+      "avm": 1,
+      "goConst": "ConsensusV23",
+      "spec": "https://github.com/algorandfoundation/specs/tree/e5f565421d720c6f75cdd186f7098495caf9101f",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Fixes lease behavior."
+    },
+    "https://github.com/algorandfoundation/specs/tree/3a83c4c743f8b17adfd73944b4319c25722a6782": {
+      "name": "v24",
+      "avm": 2,
+      "goConst": "ConsensusV24",
+      "spec": "https://github.com/algorandfoundation/specs/tree/3a83c4c743f8b17adfd73944b4319c25722a6782",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Include the applications, rekeying and AVM v2"
+    },
+    "https://github.com/algorandfoundation/specs/tree/bea19289bf41217d2c0af30522fa222ef1366466": {
+      "name": "v25",
+      "avm": 2,
+      "goConst": "ConsensusV25",
+      "spec": "https://github.com/algorandfoundation/specs/tree/bea19289bf41217d2c0af30522fa222ef1366466",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Adds support for AssetCloseAmount in the ApplyData"
+    },
+    "https://github.com/algorandfoundation/specs/tree/ac2255d586c4474d4ebcf3809acccb59b7ef34ff": {
+      "name": "v26",
+      "avm": 3,
+      "goConst": "ConsensusV26",
+      "spec": "https://github.com/algorandfoundation/specs/tree/ac2255d586c4474d4ebcf3809acccb59b7ef34ff",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Adds support for TEAL 3, initial rewards calculation and merkle tree hash commitments"
+    },
+    "https://github.com/algorandfoundation/specs/tree/d050b3cade6d5c664df8bd729bf219f179812595": {
+      "name": "v27",
+      "avm": 3,
+      "goConst": "ConsensusV27",
+      "spec": "https://github.com/algorandfoundation/specs/tree/d050b3cade6d5c664df8bd729bf219f179812595",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Updates ApplyDelta.EvalDelta.LocalDeltas format"
+    },
+    "https://github.com/algorandfoundation/specs/tree/65b4ab3266c52c56a0fa7d591754887d68faad0a": {
+      "name": "v28",
+      "avm": 4,
+      "goConst": "ConsensusV28",
+      "spec": "https://github.com/algorandfoundation/specs/tree/65b4ab3266c52c56a0fa7d591754887d68faad0a",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Introduces new TEAL features, larger program size, fee pooling and longer asset max URL"
+    },
+    "https://github.com/algorandfoundation/specs/tree/abc54f79f9ad679d2d22f0fb9909fb005c16f8a1": {
+      "name": "v29",
+      "avm": 4,
+      "goConst": "ConsensusV29",
+      "spec": "https://github.com/algorandfoundation/specs/tree/abc54f79f9ad679d2d22f0fb9909fb005c16f8a1",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Fixes application update by using ExtraProgramPages in size calculations"
+    },
+    "https://github.com/algorandfoundation/specs/tree/bc36005dbd776e6d1eaf0c560619bb183215645c": {
+      "name": "v30",
+      "avm": 5,
+      "goConst": "ConsensusV30",
+      "spec": "https://github.com/algorandfoundation/specs/tree/bc36005dbd776e6d1eaf0c560619bb183215645c",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Introduces AVM 1.0 and TEAL 5, increases the app opt in limit to 50, and allows costs to be pooled in grouped stateful transactions."
+    },
+    "https://github.com/algorandfoundation/specs/tree/85e6db1fdbdef00aa232c75199e10dc5fe9498f6": {
+      "name": "v31",
+      "avm": 6,
+      "goConst": "ConsensusV31",
+      "spec": "https://github.com/algorandfoundation/specs/tree/85e6db1fdbdef00aa232c75199e10dc5fe9498f6",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Enables the batch verification for ed25519 signatures, Fix reward calculation issue, introduces the ability to force an expired participation offline, enables TEAL 6 ( AVM 1.1 ) and add support for creating state proof keys."
+    },
+    "https://github.com/algorandfoundation/specs/tree/d5ac876d7ede07367dbaa26e149aa42589aac1f7": {
+      "name": "v32",
+      "avm": 6,
+      "goConst": "ConsensusV32",
+      "spec": "https://github.com/algorandfoundation/specs/tree/d5ac876d7ede07367dbaa26e149aa42589aac1f7",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Enables the unlimited assets."
+    },
+    "https://github.com/algorandfoundation/specs/tree/830a4e673148498cc7230a0d1ba1ed0a5471acc6": {
+      "name": "v33",
+      "avm": 6,
+      "goConst": "ConsensusV33",
+      "spec": "https://github.com/algorandfoundation/specs/tree/830a4e673148498cc7230a0d1ba1ed0a5471acc6",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Enables large blocks, the deeper block history for TEAL and catchpoint generation round after lowering in-memory deltas size (320 -> 4)."
+    },
+    "https://github.com/algorandfoundation/specs/tree/2dd5435993f6f6d65691140f592ebca5ef19ffbd": {
+      "name": "v34",
+      "avm": 7,
+      "goConst": "ConsensusV34",
+      "spec": "https://github.com/algorandfoundation/specs/tree/2dd5435993f6f6d65691140f592ebca5ef19ffbd",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Enables the TEAL v7 opcodes, stateproofs, shorter lambda to 1.7s."
+    },
+    "https://github.com/algorandfoundation/specs/tree/433d8e9a7274b6fca703d91213e05c7e6a589e69": {
+      "name": "v35",
+      "avm": 7,
+      "goConst": "ConsensusV35",
+      "spec": "https://github.com/algorandfoundation/specs/tree/433d8e9a7274b6fca703d91213e05c7e6a589e69",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Updates the calculation of total stake in state proofs."
+    },
+    "https://github.com/algorandfoundation/specs/tree/44fa607d6051730f5264526bf3c108d51f0eadb6": {
+      "name": "v36",
+      "avm": 8,
+      "goConst": "ConsensusV36",
+      "spec": "https://github.com/algorandfoundation/specs/tree/44fa607d6051730f5264526bf3c108d51f0eadb6",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Adds box storage in TEAL v8"
+    },
+    "https://github.com/algorandfoundation/specs/tree/1ac4dd1f85470e1fb36c8a65520e1313d7dfed5e": {
+      "name": "v37",
+      "avm": 8,
+      "goConst": "ConsensusV37",
+      "spec": "https://github.com/algorandfoundation/specs/tree/1ac4dd1f85470e1fb36c8a65520e1313d7dfed5e",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Is a technical upgrade and released in the same time as ConsensusV38. It is needed to allow nodes to build up a necessary state to support state proofs related options in ConsensusV38"
+    },
+    "https://github.com/algorandfoundation/specs/tree/abd3d4823c6f77349fc04c3af7b1e99fe4df699f": {
+      "name": "v38",
+      "avm": 9,
+      "goConst": "ConsensusV38",
+      "spec": "https://github.com/algorandfoundation/specs/tree/abd3d4823c6f77349fc04c3af7b1e99fe4df699f",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Enables state proof verification using a special tracker, TEAL v9 resources sharing, pre-check ECDSA curve and extra features, and shortens the lambda to 1.5s."
+    },
+    "https://github.com/algorandfoundation/specs/tree/925a46433742afb0b51bb939354bd907fa88bf95": {
+      "name": "v39",
+      "avm": 10,
+      "goConst": "ConsensusV39",
+      "spec": "https://github.com/algorandfoundation/specs/tree/925a46433742afb0b51bb939354bd907fa88bf95",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Enables dynamic filter timeouts, a deadline timeout of 4 seconds, TEAL v10 logicSig opcode budget pooling along with elliptic curve ops on some pairing friendly curves."
+    },
+    "https://github.com/algorandfoundation/specs/tree/236dcc18c9c507d794813ab768e467ea42d1b4d9": {
+      "name": "v40",
+      "avm": 11,
+      "goConst": "ConsensusV40",
+      "spec": "https://github.com/algorandfoundation/specs/tree/236dcc18c9c507d794813ab768e467ea42d1b4d9",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Enables consensus incentives and TEAL v11 featuring the mimc opcode"
+    },
+    "https://github.com/algorandfoundation/specs/tree/953304de35264fc3ef91bcd05c123242015eeaed": {
+      "name": "v41",
+      "avm": 12,
+      "goConst": "ConsensusV41",
+      "spec": "https://github.com/algorandfoundation/specs/tree/953304de35264fc3ef91bcd05c123242015eeaed",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Enables txn access, Sha512BlockHash, AppVersioning and TEAL v12 including the falcon verify opcode"
+    },
+    "https://github.com/algorandfoundation/specs/tree/268b63433a907455d439995bf916f6b296018f4f": {
+      "name": "v42",
+      "avm": 13,
+      "goConst": "ConsensusV42",
+      "spec": "https://github.com/algorandfoundation/specs/tree/268b63433a907455d439995bf916f6b296018f4f",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Enables app size updates, Falcon1024 post-quantum signatures, load tracking, a per-byte transaction surcharge, and TEAL v13."
+    },
+    "future": {
+      "name": "vFuture",
+      "avm": 14,
+      "goConst": "ConsensusFuture",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Is a protocol that should not appear in any production network, but is used to test features before they are released."
+    },
+    "alpha1": {
+      "name": "alpha1",
+      "avm": 6,
+      "goConst": "ConsensusVAlpha1",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Is the first consensus protocol for AlphaNet, which is the same as v32, but with a 2-second filter timeout and 5M block size."
+    },
+    "alpha2": {
+      "name": "alpha2",
+      "avm": 6,
+      "goConst": "ConsensusVAlpha2",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Is the second consensus protocol for AlphaNet, which increases the filter timeout to 3.5 seconds and uses 5MiB blocks."
+    },
+    "alpha3": {
+      "name": "alpha3",
+      "avm": 6,
+      "goConst": "ConsensusVAlpha3",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Uses the same parameters as ConsensusV33."
+    },
+    "alpha4": {
+      "name": "alpha4",
+      "avm": 7,
+      "goConst": "ConsensusVAlpha4",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Uses the same parameters as ConsensusV34."
+    },
+    "alpha5": {
+      "name": "alpha5",
+      "avm": 8,
+      "goConst": "ConsensusVAlpha5",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Uses the same parameters as ConsensusV36."
+    },
+    "fnet1": {
+      "name": "fnet1",
+      "avm": 11,
+      "goConst": "ConsensusVFnet1",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Is the genesis protocol for AF's FNet, based on ConsensusV39 with incentives (payouts/challenges) and TEAL v11 enabled."
+    },
+    "fnet2": {
+      "name": "fnet2",
+      "avm": 11,
+      "goConst": "ConsensusVFnet2",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Guards against a block-opcode change the fnet1 client did not support; same parameters as fnet1."
+    },
+    "fnet3": {
+      "name": "fnet3",
+      "avm": 11,
+      "goConst": "ConsensusVFnet3",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Disables challenges; without heartbeats, participating accounts were being evicted."
+    },
+    "fnet4": {
+      "name": "fnet4",
+      "avm": 11,
+      "goConst": "ConsensusVFnet4",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Re-enables challenges and brings heartbeats; upgrades to ConsensusV40."
+    }
+  }
+}
