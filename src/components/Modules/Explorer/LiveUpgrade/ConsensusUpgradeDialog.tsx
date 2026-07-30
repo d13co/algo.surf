@@ -104,7 +104,13 @@ export default function ConsensusUpgradeDialog({
 
                     {upgrade.nextProtocolVoteBefore > 0 ? (
                         <Row label="Voting closes">
-                            <LinkToBlock id={upgrade.nextProtocolVoteBefore} />
+                            {/* Only a link once the vote has closed. While voting, this round has
+                                not been produced yet, so the block page would 404. */}
+                            {upgrade.phase === "voting" ? (
+                                <span>round {upgrade.nextProtocolVoteBefore.toLocaleString()}</span>
+                            ) : (
+                                <LinkToBlock id={upgrade.nextProtocolVoteBefore} />
+                            )}
                             <span className="text-muted-foreground ml-2">
                                 {upgrade.phase === "voting" ? "(open)" : "(closed)"}
                             </span>
@@ -113,7 +119,9 @@ export default function ConsensusUpgradeDialog({
 
                     {upgrade.nextProtocolSwitchOn > 0 ? (
                         <Row label="Switches on">
-                            <LinkToBlock id={upgrade.nextProtocolSwitchOn} />
+                            {/* Never a link: the switch round is always in the future here — the
+                                hook returns null once the chain reaches it — so it would 404. */}
+                            round {upgrade.nextProtocolSwitchOn.toLocaleString()}
                         </Row>
                     ) : null}
 
@@ -128,9 +136,15 @@ export default function ConsensusUpgradeDialog({
                         <UpgradeEta targetEpoch={upgrade.targetEpoch} />
                         <div className="mt-1 text-muted-foreground text-xs">
                             {/* fixedView="local": MultiDateViewer's relative mode always appends
-                                "ago", which reads wrong for a future timestamp. */}
+                                "ago", which reads wrong for a future timestamp.
+
+                                Rounded to the minute so the display's seconds are a fixed :00.
+                                TIMESTAMP_DISPLAY_FORMAT renders seconds, and this estimate is
+                                roundsRemaining × a live average round time — the seconds digit
+                                jittered on every block, implying a precision the projection
+                                doesn't have. */}
                             <MultiDateViewer
-                                timestamp={Math.round(upgrade.targetEpoch)}
+                                timestamp={Math.round(upgrade.targetEpoch / 60) * 60}
                                 variant="value"
                                 fixedView="local"
                             />
