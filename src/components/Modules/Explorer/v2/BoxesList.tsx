@@ -30,6 +30,7 @@ interface BoxListProps {
   searchLoading?: boolean;
   searchProgress?: string;
   onCancelSearch?: () => void;
+  emptySuggestion?: React.ReactNode;
 }
 
 function BoxList({
@@ -42,6 +43,7 @@ function BoxList({
   searchLoading = false,
   searchProgress,
   onCancelSearch,
+  emptySuggestion,
 }: BoxListProps): JSX.Element {
   const navigate = useNavigate();
 
@@ -136,7 +138,16 @@ function BoxList({
         table={table}
         columns={columns}
         columnLabels={columnLabels}
-        emptyLabel={searchLoading ? "Searching..." : "No boxes"}
+        emptyLabel={
+          searchLoading ? (
+            "Searching..."
+          ) : (
+            <>
+              No boxes
+              {emptySuggestion ? <>. {emptySuggestion}</> : null}
+            </>
+          )
+        }
         mobileCellItemsCenter
       />
     </div>

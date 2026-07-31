@@ -14,7 +14,7 @@ interface DataTableProps<T> {
   table: Table<T>;
   columns: ColumnDef<T, any>[];
   columnLabels: Record<string, string>;
-  emptyLabel?: string;
+  emptyLabel?: React.ReactNode;
   padCount?: number;
   isFetchingNextPage?: boolean;
   tableRef?: React.Ref<HTMLDivElement>;

@@ -30,12 +30,13 @@ interface BoxSearchBarProps {
   onClear: () => void;
   loading: boolean;
   hasActiveSearch: boolean;
+  isBase64: boolean;
+  onBase64Change: (isBase64: boolean) => void;
 }
 
-export default function BoxSearchBar({ onSearch, onClear, loading, hasActiveSearch }: BoxSearchBarProps) {
+export default function BoxSearchBar({ onSearch, onClear, loading, hasActiveSearch, isBase64, onBase64Change }: BoxSearchBarProps) {
   const [mode, setMode] = useState<BoxSearchMode>("key-prefix");
   const [term, setTerm] = useState("");
-  const [isBase64, setIsBase64] = useState(false);
 
   const showBase64Toggle = mode !== "key-prefix";
 
@@ -93,7 +94,7 @@ export default function BoxSearchBar({ onSearch, onClear, loading, hasActiveSear
         {showBase64Toggle && (
           <button
             type="button"
-            onClick={() => setIsBase64(!isBase64)}
+            onClick={() => onBase64Change(!isBase64)}
             className={`absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] font-mono px-1.5 py-0.5 rounded ${
               isBase64
                 ? "bg-primary text-background"

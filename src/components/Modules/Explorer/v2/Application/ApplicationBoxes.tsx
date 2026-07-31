@@ -179,6 +179,11 @@ function getSearchBytes(term: string, isBase64: boolean): Uint8Array {
   return new Uint8Array(Buffer.from(term, "utf-8"));
 }
 
+// Suggesting base64 is only helpful if the term could plausibly decode as one.
+function looksLikeBase64(term: string): boolean {
+  return /^[A-Za-z0-9+/]+={0,2}$/.test(term) && Buffer.from(term, "base64").length > 0;
+}
+
 function bytesContain(haystack: Uint8Array, needle: Uint8Array): boolean {
   if (needle.length === 0) return true;
   if (needle.length > haystack.length) return false;
@@ -247,6 +252,8 @@ function ApplicationBoxes(): JSX.Element {
   const [searchResults, setSearchResults] = useState<A_BoxName[] | null>(null);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchProgress, setSearchProgress] = useState("");
+  const [isBase64, setIsBase64] = useState(false);
+  const [lastSearch, setLastSearch] = useState<{ mode: BoxSearchMode; term: string; isBase64: boolean } | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const cachedAllBoxNames = useRef<A_BoxName[] | null>(null);
 
@@ -295,6 +302,7 @@ function ApplicationBoxes(): JSX.Element {
 
     setSearchLoading(true);
     setSearchProgress("Loading...");
+    setLastSearch({ mode, term, isBase64 });
 
     // Start filtering immediately with what we have
     if (mode === "key-prefix" || mode === "key-search") {
@@ -359,7 +367,24 @@ function ApplicationBoxes(): JSX.Element {
     setSearchResults(null);
     setSearchLoading(false);
     setSearchProgress("");
+    setLastSearch(null);
   }, []);
+
+  // A plain-text search that came up empty may well have been a base64 key
+  // pasted without the b64 toggle on — offer to redo it as base64.
+  const retryAsBase64 = useCallback(() => {
+    if (!lastSearch) return;
+    setIsBase64(true);
+    handleSearch(lastSearch.mode, lastSearch.term, true);
+  }, [handleSearch, lastSearch]);
+
+  const suggestBase64 =
+    !searchLoading &&
+    searchResults?.length === 0 &&
+    !!lastSearch &&
+    !lastSearch.isBase64 &&
+    lastSearch.mode !== "key-prefix" &&
+    looksLikeBase64(lastSearch.term);
 
   const displayedBoxNames = searchResults ?? boxNames;
 
@@ -403,12 +428,32 @@ function ApplicationBoxes(): JSX.Element {
             searchLoading={searchLoading}
             searchProgress={searchProgress}
             onCancelSearch={handleSearchClear}
+            emptySuggestion={
+              suggestBase64 ? (
+                <>
+                  Did you forget to toggle{" "}
+                  <a
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      retryAsBase64();
+                    }}
+                    className="text-primary hover:underline"
+                  >
+                    base 64
+                  </a>
+                  ?
+                </>
+              ) : null
+            }
           >
             <BoxSearchBar
               onSearch={handleSearch}
               onClear={handleSearchClear}
               loading={searchLoading}
               hasActiveSearch={searchResults !== null}
+              isBase64={isBase64}
+              onBase64Change={setIsBase64}
             />
           </BoxesList>
         )}
