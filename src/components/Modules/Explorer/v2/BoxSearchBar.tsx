@@ -9,15 +9,17 @@ import {
 } from "src/components/v2/ui/dropdown-menu";
 import { ChevronDown, Search, X } from "lucide-react";
 
-export type BoxSearchMode = "key-prefix" | "key-search" | "value-search";
+export type BoxSearchMode = "key-exact" | "key-prefix" | "key-search" | "value-search";
 
 const modeLabels: Record<BoxSearchMode, string> = {
+  "key-exact": "Exact box key",
   "key-prefix": "Key prefix",
   "key-search": "Key search",
   "value-search": "Value search",
 };
 
 const modePlaceholders: Record<BoxSearchMode, string> = {
+  "key-exact": "Full box key",
   "key-prefix": "UTF-8 prefix to filter keys",
   "key-search": "Search in keys",
   "value-search": "Search in values",

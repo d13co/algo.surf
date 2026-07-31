@@ -252,7 +252,7 @@ function ApplicationBoxes(): JSX.Element {
     return allBoxes;
   }, [boxNames, hasNextPage, numId]);
 
-  const filterKeys = useCallback((allNames: A_BoxName[], mode: BoxSearchMode, term: string, isBase64: boolean): A_BoxName[] => {
+  const filterKeys = useCallback((allNames: A_BoxName[], mode: "key-prefix" | "key-search", term: string, isBase64: boolean): A_BoxName[] => {
     if (mode === "key-prefix") {
       return allNames.filter((box) => {
         try {
@@ -278,14 +278,28 @@ function ApplicationBoxes(): JSX.Element {
     setSearchProgress("Loading...");
 
     // Start filtering immediately with what we have
-    if (mode !== "value-search") {
+    if (mode === "key-prefix" || mode === "key-search") {
       setSearchResults(filterKeys(cachedAllBoxNames.current ?? boxNames, mode, term, isBase64));
     } else {
       setSearchResults([]);
     }
 
     try {
-      if (mode === "key-prefix" || mode === "key-search") {
+      if (mode === "key-exact") {
+        // Exact keys resolve against algod directly, no need to page through names
+        setSearchProgress("Looking up box...");
+        const nameB64 = Buffer.from(getSearchBytes(term, isBase64)).toString("base64");
+        const client = new BoxClient(explorer.network);
+        try {
+          await client.getBox(numId, nameB64);
+          if (abort.signal.aborted) return;
+          setSearchResults([{ name: nameB64 }]);
+        } catch {
+          // no box under that key
+          if (abort.signal.aborted) return;
+          setSearchResults([]);
+        }
+      } else if (mode === "key-prefix" || mode === "key-search") {
         const allNames = await fetchAllBoxNames(abort.signal);
         if (abort.signal.aborted) return;
         setSearchResults(filterKeys(allNames, mode, term, isBase64));
