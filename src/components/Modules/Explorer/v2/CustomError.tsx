@@ -74,7 +74,7 @@ function CustomError({
     const otherNetworkConfigs = getOtherNetworkNodeConfigs();
     (async () => {
       let results = await Promise.all(
-        otherNetworkConfigs.entries().map(async ([network, config]) => {
+        [...otherNetworkConfigs].map(async ([network, config]) => {
           try {
             const networkClient = new Network(config);
             const client = new TransactionClient(networkClient);
