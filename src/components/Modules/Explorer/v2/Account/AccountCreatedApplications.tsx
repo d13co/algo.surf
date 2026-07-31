@@ -2,7 +2,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useAccount } from "src/hooks/useAccount";
 import { CoreAccount } from "src/packages/core-sdk/classes/core/CoreAccount";
-import { indexerModels, modelsv2 } from "algosdk";
+import { modelsv2 } from "algosdk";
 import {
   useReactTable,
   getCoreRowModel,
@@ -20,60 +20,10 @@ import MultiDateViewer from "src/components/v2/MultiDateViewer";
 import { AgeHeader } from "../Lists/TransactionsList/cells/AgeCell";
 import { DataTable } from "src/components/v2/DataTable";
 import { useFilteredApplications } from "src/hooks/useFilteredApplications";
-
-function findTxnByAppId(
-  block: indexerModels.Block,
-  appId: number,
-): indexerModels.Transaction | undefined {
-  const target = BigInt(appId);
-
-  function matches(txn: indexerModels.Transaction): boolean {
-    return (
-      txn.applicationTransaction?.applicationId === target ||
-      txn.createdApplicationIndex === target
-    );
-  }
-
-  function search(txns: indexerModels.Transaction[] | undefined): indexerModels.Transaction | undefined {
-    if (!txns) return undefined;
-    for (const txn of txns) {
-      if (matches(txn)) return txn;
-      const inner = search(txn.innerTxns);
-      if (inner) return inner;
-    }
-    return undefined;
-  }
-
-  return search(block.transactions);
-}
-
-function resolveAppName(block: indexerModels.Block, appId: number): string | null {
-  const creationTxn = findTxnByAppId(block, appId);
-  if (!creationTxn) return null;
-  const { note } = creationTxn;
-  if (!note) return null;
-  const noteStr = new TextDecoder().decode(note);
-  const prefix = 'ALGOKIT_DEPLOYER:j';
-  if (noteStr.startsWith(prefix)) {
-    try {
-      const parsed = JSON.parse(noteStr.slice(prefix.length));
-      return parsed.name;
-    } catch {
-      return null;
-    }
-  }
-  return null;
-}
+import { useCreatorSuppliedAppInfo } from "src/hooks/useCreatorSuppliedAppInfo";
 
 function NameCell({ appId, onNameResolved }: { appId: number; onNameResolved?: (id: number, name: string) => void }) {
-  const { data: appInfo } = useApplication(appId);
-  const createdAtRound = appInfo?.createdAtRound != null ? Number(appInfo.createdAtRound) : undefined;
-  const { data: blockInfo } = useBlock(createdAtRound ?? 0);
-
-  const appName = useMemo(() => {
-    if (!appInfo || !blockInfo) return null;
-    return resolveAppName(blockInfo, appId);
-  }, [appId, appInfo, blockInfo]);
+  const appName = useCreatorSuppliedAppInfo(appId)?.name ?? null;
 
   const reportedRef = useRef(false);
   if (appName && onNameResolved && !reportedRef.current) {

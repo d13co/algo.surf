@@ -15,18 +15,47 @@ import RecordPageHeader from "src/components/v2/RecordPageHeader";
 import Dym from "../Dym";
 import DeletedNotice from "../DeletedNotice";
 import useTitle from "src/components/Common/UseTitle/UseTitle";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Info } from "lucide-react";
 import {
   useApplication,
   useApplicationHashes,
   useApplicationBoxNames,
 } from "src/hooks/useApplication";
+import { useCreatorSuppliedAppInfo } from "src/hooks/useCreatorSuppliedAppInfo";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "src/components/v2/ui/tooltip";
 import { usePersistenBooleanState } from "src/utils/usePersistenBooleanState";
 import ApplicationProgram from "../ApplicationProgram";
 import ApplicationGlobalState from "./ApplicationGlobalState";
 import TabsUnderline from "src/components/v2/shadcn-studio/tabs/tabs-11";
 
 const isDevNet = process.env.REACT_APP_NETWORK !== "Mainnet";
+
+const CREATOR_SUPPLIED_HINT =
+  "Read from the AlgoKit deployer note on the application creation transaction. " +
+  "Anyone can write any note, so this is a claim by the creator. Nothing on chain verifies it.";
+
+function LabelWithHint({ children, hint }: { children: React.ReactNode; hint: string }) {
+  return (
+    <div className="text-muted-foreground flex items-center gap-1.5">
+      {children}
+      <TooltipProvider delayDuration={0}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Info size={13} className="cursor-help opacity-60 hover:opacity-100" />
+          </TooltipTrigger>
+          <TooltipContent className="bg-black text-white border-border max-w-xs">
+            <p>{hint}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    </div>
+  );
+}
 
 function Application(): JSX.Element {
   const navigate = useNavigate();
@@ -54,6 +83,8 @@ function Application(): JSX.Element {
     data: boxData,
     error: boxError,
   } = useApplicationBoxNames(numId);
+
+  const creatorSupplied = useCreatorSuppliedAppInfo(numId);
 
   const applicationInstance = useMemo(
     () => (appInfo ? new CoreApplication(appInfo) : null),
@@ -133,6 +164,28 @@ function Application(): JSX.Element {
                           copySize="m"
                           address={applicationInstance.getCreator()}
                         />
+                      </div>
+                    </div>
+
+                    {creatorSupplied?.name ? (
+                      <div className="mt-2.5">
+                        <LabelWithHint hint={CREATOR_SUPPLIED_HINT}>
+                          Creator-supplied name
+                        </LabelWithHint>
+                        <div className="mt-2.5 text-[13px] break-words overflow-hidden">
+                          {creatorSupplied.name}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    <div className="mt-2.5">
+                      <LabelWithHint
+                        hint="Counted on chain: 1 at creation, bumped by every update to the application's programs."
+                      >
+                        Version
+                      </LabelWithHint>
+                      <div className="mt-2.5 text-[13px] break-words overflow-hidden">
+                        {applicationInstance.getVersion()}
                       </div>
                     </div>
                   </div>
