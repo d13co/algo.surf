@@ -19,6 +19,12 @@ import { getABIDecodedValue } from "@algorandfoundation/algokit-utils/types/app-
 import { BoxClient } from "src/packages/core-sdk/clients/boxClient";
 import explorer from "src/utils/dappflow";
 import { A_BoxName } from "src/packages/core-sdk/types";
+import NumberFormat from "react-number-format";
+import AlgoIcon from "../../AlgoIcon/AlgoIcon";
+import { microalgosToAlgos } from "src/utils/common";
+
+const BOX_FLAT_COST = 2500;
+const BOX_BYTE_COST = 400;
 
 // --- Value type filter parsing ---
 
@@ -218,6 +224,19 @@ function ApplicationBoxes(): JSX.Element {
   } = useApplicationBoxNames(numId);
 
   const { data: boxData, isLoading: boxLoading } = useApplicationBox(numId, boxName);
+
+  // A box raises the app account's minimum balance by 2500 + 400 per byte of
+  // key + value (microAlgos).
+  const boxCost = useMemo(() => {
+    if (!boxData) return null;
+    const keyLength = Buffer.from(boxData.name, "base64").length;
+    const valueLength = Buffer.from(boxData.value, "base64").length;
+    return {
+      keyLength,
+      valueLength,
+      microAlgos: BOX_FLAT_COST + BOX_BYTE_COST * (keyLength + valueLength),
+    };
+  }, [boxData]);
 
   const boxNames = useMemo(
     () => data?.pages.flatMap((p) => p.boxes) ?? [],
@@ -457,6 +476,30 @@ function ApplicationBoxes(): JSX.Element {
                   <MultiFormatViewer view="auto" includeNum="auto" value={boxData.value} />
                 )}
               </div>
+              {boxCost ? (
+                <div>
+                  <div className="text-sm text-muted-foreground mb-1">Box cost</div>
+                  <div className="group inline-flex items-center gap-1">
+                    <AlgoIcon />
+                    <NumberFormat
+                      value={microalgosToAlgos(boxCost.microAlgos)}
+                      displayType="text"
+                      thousandSeparator={true}
+                    />
+                    <Copyable
+                      className="opacity-60 group-hover:opacity-100"
+                      value={microalgosToAlgos(boxCost.microAlgos)}
+                    />
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {boxCost.microAlgos.toLocaleString()} µALGO ={" "}
+                    {BOX_FLAT_COST.toLocaleString()} + {BOX_BYTE_COST} ×{" "}
+                    {(boxCost.keyLength + boxCost.valueLength).toLocaleString()} bytes
+                    ({boxCost.keyLength.toLocaleString()} key +{" "}
+                    {boxCost.valueLength.toLocaleString()} value)
+                  </div>
+                </div>
+              ) : null}
             </div>
           ) : null}
         </DialogContent>
