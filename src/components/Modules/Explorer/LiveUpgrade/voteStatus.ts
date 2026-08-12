@@ -9,6 +9,8 @@ export interface VoteStatus {
     voteRounds: number | null;
     /** Yes votes needed (UpgradeThreshold), null if the table didn't load. */
     threshold: number | null;
+    /** Rounds voted so far whose proposer did not vote yes, null if the table didn't load. */
+    noVotes: number | null;
     label: string;
 }
 
@@ -34,37 +36,53 @@ export function voteStatus(
 ): VoteStatus {
     const approvals = upgrade.nextProtocolApprovals;
 
+    // Every round in the window casts exactly one implicit vote — yes, or not-yes. While voting,
+    // rounds voted so far = the window minus the votable rounds left; once the vote closes the
+    // whole window has voted. Whatever wasn't a yes is a no.
+    const noVotes = voteRounds == null
+        ? null
+        : Math.max(0, voteRounds - approvals - (upgrade.phase === "voting" ? upgrade.roundsRemaining : 0));
+
     if (upgrade.phase === "waiting") {
         return {
             verdict: "approved",
             approvals,
             voteRounds,
             threshold,
+            noVotes,
             label: "Approved",
         };
     }
 
     if (threshold == null) {
-        return { verdict: "unknown", approvals, voteRounds, threshold, label: "Voting" };
+        return { verdict: "unknown", approvals, voteRounds, threshold, noVotes, label: "Voting" };
     }
 
     if (approvals >= threshold) {
-        return { verdict: "approved", approvals, voteRounds, threshold, label: "Threshold reached" };
+        return { verdict: "approved", approvals, voteRounds, threshold, noVotes, label: "Threshold reached" };
     }
 
     if (approvals + upgrade.roundsRemaining < threshold) {
-        return { verdict: "cannot-pass", approvals, voteRounds, threshold, label: "Cannot pass" };
+        return { verdict: "cannot-pass", approvals, voteRounds, threshold, noVotes, label: "Cannot pass" };
     }
 
-    return { verdict: "on-track", approvals, voteRounds, threshold, label: "On track" };
+    return { verdict: "on-track", approvals, voteRounds, threshold, noVotes, label: "On track" };
+}
+
+/** A vote tally as a percentage of the votes cast so far, e.g. "7.75". */
+export function votePercent(count: number, votesCast: number): string {
+    // No votes cast yet (the window's first round): call it 0 rather than divide by zero.
+    return votesCast ? ((count / votesCast) * 100).toFixed(2) : "0.00";
 }
 
 export function verdictClassName(verdict: VoteVerdict): string {
     switch (verdict) {
         case "approved":
             return "text-primary";
+        // secondary, not destructive: --color-destructive is never defined in the Tailwind theme,
+        // so text-destructive silently rendered as plain foreground.
         case "cannot-pass":
-            return "text-destructive";
+            return "text-secondary";
         default:
             return "text-foreground";
     }

@@ -73,9 +73,11 @@ function demoUpgrade(mode: string, round: number): ConsensusUpgrade | null {
     const voting = mode === "voting" || mode === "voting-fail";
     const voteBefore = voting ? round + 3200 : round - 5000;
     const switchOn = voteBefore + 208000;
-    // "voting" is on track (7,400 + 3,199 rounds left clears the 9,000 bar); "voting-fail" can no
-    // longer reach it (1,200 + 3,199 < 9,000), which is the "Cannot pass" branch.
-    const approvals = mode === "voting-fail" ? 1200 : voting ? 7400 : 9120;
+    // "voting" is on track (6,200 + 3,199 rounds left clears the 9,000 bar); "voting-fail" can no
+    // longer reach it (1,200 + 3,199 < 9,000), which is the "Cannot pass" branch. Approvals must
+    // stay below the 6,801 rounds already voted (10,000-round window) or the implied no-vote count
+    // goes negative — a state the real chain can't produce.
+    const approvals = mode === "voting-fail" ? 1200 : voting ? 6200 : 9120;
     const roundsToTarget = (voting ? voteBefore : switchOn) - round;
     return {
         currentProtocol: DEMO_PROTOCOLS.current,

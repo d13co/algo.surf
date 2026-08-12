@@ -194,3 +194,6 @@ localnet optimizations
     [ ] does waitforblock retry after timeout?
 [ ] show clock drift in Stats
 [ ] toast error: copy button misaligned with x
+
+[ ] account prefix search: add info: closed accounts can not be found by prefix
+[ ] paste address: trim whitespace

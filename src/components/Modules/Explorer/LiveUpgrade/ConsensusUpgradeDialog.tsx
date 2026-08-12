@@ -13,7 +13,7 @@ import LinkToBlock from "src/components/Modules/Explorer/v2/Links/LinkToBlock";
 import { ConsensusUpgrade } from "src/hooks/useConsensusUpgrade";
 import { useConsensusVersionLookup } from "src/hooks/useConsensusVersions";
 import UpgradeEta from "./UpgradeEta";
-import { verdictClassName, voteStatus } from "./voteStatus";
+import { verdictClassName, votePercent, voteStatus } from "./voteStatus";
 
 /**
  * The full protocol string, for spec-URL protocols. Skipped for bare tokens like "fnet5", where the
@@ -93,13 +93,20 @@ export default function ConsensusUpgradeDialog({
                     </Row>
 
                     <Row label="Votes in favour">
-                        <span className="text-foreground">{vote.approvals.toLocaleString()}</span>
-                        {vote.voteRounds ? (
-                            <span className="text-muted-foreground">
-                                {" / "}{vote.voteRounds.toLocaleString()}
-                                {vote.threshold ? ` · ${vote.threshold.toLocaleString()} needed` : ""}
-                            </span>
-                        ) : null}
+                        {vote.voteRounds && vote.noVotes != null ? (
+                            <>
+                                <span className="text-foreground">
+                                    {votePercent(vote.approvals, vote.approvals + vote.noVotes)}%
+                                </span>
+                                <span className="text-muted-foreground">
+                                    {" · "}{vote.approvals.toLocaleString()}
+                                    {" / "}{vote.voteRounds.toLocaleString()}
+                                    {vote.threshold ? ` · ${vote.threshold.toLocaleString()} needed` : ""}
+                                </span>
+                            </>
+                        ) : (
+                            <span className="text-foreground">{vote.approvals.toLocaleString()}</span>
+                        )}
                     </Row>
 
                     {upgrade.nextProtocolVoteBefore > 0 ? (
@@ -117,7 +124,9 @@ export default function ConsensusUpgradeDialog({
                         </Row>
                     ) : null}
 
-                    {upgrade.nextProtocolSwitchOn > 0 ? (
+                    {/* Only once the outcome is assured: while the vote can still fail, the switch
+                        round is speculative — showing it reads as a promise the tally hasn't made. */}
+                    {upgrade.nextProtocolSwitchOn > 0 && vote.verdict === "approved" ? (
                         <Row label="Switches on">
                             {/* Never a link: the switch round is always in the future here — the
                                 hook returns null once the chain reaches it — so it would 404. */}
@@ -127,9 +136,11 @@ export default function ConsensusUpgradeDialog({
 
                     <Row label={upgrade.phase === "voting" ? "Rounds left to vote" : "Rounds remaining"}>
                         {upgrade.roundsRemaining.toLocaleString()}
-                        <span className="text-muted-foreground">
-                            {" "}from round {upgrade.round.toLocaleString()}
-                        </span>
+                        {upgrade.phase === "waiting" ? (
+                            <span className="text-muted-foreground">
+                                {" "}from round {upgrade.round.toLocaleString()}
+                            </span>
+                        ) : null}
                     </Row>
 
                     <Row label={upgrade.phase === "voting" ? "Voting closes in" : "Estimated switch"}>
