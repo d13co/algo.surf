@@ -21,6 +21,7 @@ import {
 } from "../types";
 import { Buffer } from "buffer";
 import { encodeAddress } from "algosdk";
+import { parsePqSig } from "./pqsig";
 
 type JsonObject = Record<string, unknown>;
 
@@ -280,6 +281,7 @@ function convertSignature(obj: unknown): A_SearchTransaction_Signature {
   const multisig = obj["multisig"];
   const logicsig = obj["logicsig"];
   return {
+    pqsig: parsePqSig(obj["pqsig"]),
     multisig: isObject(multisig)
       ? {
           version: getNumber(multisig, ["version"]),

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import { CoreTransaction } from "src/packages/core-sdk/classes/core/CoreTransaction";
+import { pqSigSchemeLabel } from "src/packages/core-sdk/utils/pqsig";
 import { TXN_TYPES } from "src/packages/core-sdk/constants";
 import { useTransaction, useTransactionAsset } from "src/hooks/useTransaction";
 import { microalgosToAlgos } from "src/utils/common";
@@ -25,6 +26,7 @@ import TransactionRekey from "./Sections/TransactionRekey";
 import TransactionNote from "./Sections/TransactionNote";
 import TransactionMultiSig from "./Sections/TransactionMultiSig";
 import TransactionLogicSig from "./Sections/TransactionLogicSig";
+import TransactionPQSig from "./Sections/TransactionPQSig";
 import TransactionAdditionalDetails from "./Sections/TransactionAdditionalDetails";
 import { Chip, BadgesRow } from "src/components/v2/Chips";
 import { countInnerTxns } from "./Types/AppCall/AppCallTxnInnerTxns";
@@ -65,6 +67,8 @@ function Transaction(): JSX.Element {
       elem = document.getElementById("multisig");
     } else if (location.hash === "#logicsig" && txnInstance.isLogicSig()) {
       elem = document.getElementById("logicsig");
+    } else if (location.hash === "#pqsig" && txnInstance.isPqSig()) {
+      elem = document.getElementById("pqsig");
     }
     if (elem) {
       setTimeout(
@@ -110,6 +114,9 @@ function Transaction(): JSX.Element {
                   ) : null}
                   {txnInstance.isLogicSig() ? (
                     <Chip onClick={() => document.getElementById("logicsig")?.scrollIntoView({ behavior: "smooth", block: "start" })}>LogicSig</Chip>
+                  ) : null}
+                  {txnInstance.isPqSig() ? (
+                    <Chip onClick={() => document.getElementById("pqsig")?.scrollIntoView({ behavior: "smooth", block: "start" })}>{pqSigSchemeLabel(txnInstance.getPqSig())}</Chip>
                   ) : null}
                   {xChainOwner ? <XChainBadge /> : null}
                   {txnInstance.getRekeyTo() ? <Chip onClick={() => document.getElementById("rekey")?.scrollIntoView({ behavior: "smooth", block: "start" })}>Rekey</Chip> : null}
@@ -212,6 +219,7 @@ function Transaction(): JSX.Element {
                 <TransactionNote transaction={txnObj} />
                 <TransactionMultiSig transaction={txnObj} />
                 <TransactionLogicSig transaction={txnObj} />
+                <TransactionPQSig transaction={txnObj} />
                 <TransactionAdditionalDetails transaction={txnObj} />
               </div>
             )}

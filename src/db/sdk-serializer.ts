@@ -1,4 +1,9 @@
 import { indexerModels, modelsv2 } from "algosdk";
+import {
+  attachPqSig,
+  getAttachedPqSig,
+  parsePqSig,
+} from "src/packages/core-sdk/utils/pqsig";
 
 /**
  * Tag-and-reconstruct serializer for algosdk model instances.
@@ -28,10 +33,17 @@ const TAG_TO_CLASS: Record<string, EncodableClass> = Object.fromEntries(
 
 const TAG_FIELD = "_t";
 const DATA_FIELD = "_d";
+// Out-of-band pqsig on Transaction instances; toEncodingData() doesn't
+// include it, so it rides in the wrapper.
+const PQSIG_WRAPPER_FIELD = "_p";
 
 function isTagged(
   value: unknown,
-): value is { [TAG_FIELD]: string; [DATA_FIELD]: unknown } {
+): value is {
+  [TAG_FIELD]: string;
+  [DATA_FIELD]: unknown;
+  [PQSIG_WRAPPER_FIELD]?: unknown;
+} {
   return (
     typeof value === "object" &&
     value !== null &&
@@ -50,10 +62,15 @@ export function serializeForIDB(value: unknown): unknown {
   // Check SDK model instances first
   for (const [cls, tag] of CLASS_TO_TAG) {
     if (value instanceof cls) {
-      return {
+      const tagged: Record<string, unknown> = {
         [TAG_FIELD]: tag,
         [DATA_FIELD]: (value as { toEncodingData(): Map<string, unknown> }).toEncodingData(),
       };
+      if (value instanceof indexerModels.Transaction) {
+        const pqsig = getAttachedPqSig(value);
+        if (pqsig) tagged[PQSIG_WRAPPER_FIELD] = pqsig;
+      }
+      return tagged;
     }
   }
 
@@ -85,7 +102,12 @@ export function deserializeFromIDB(value: unknown): unknown {
     const cls = TAG_TO_CLASS[value[TAG_FIELD]];
     if (cls) {
       try {
-        return cls.fromEncodingData(value[DATA_FIELD]);
+        const restored = cls.fromEncodingData(value[DATA_FIELD]);
+        const pqsig = parsePqSig(value[PQSIG_WRAPPER_FIELD]);
+        if (pqsig && restored instanceof indexerModels.Transaction) {
+          attachPqSig(restored, pqsig);
+        }
+        return restored;
       } catch (e) {
         console.warn(
           `[sdk-serializer] Failed to reconstruct ${value[TAG_FIELD]}:`,
