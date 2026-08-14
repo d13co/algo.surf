@@ -61,8 +61,9 @@ function avgRoundTimeFromBlocks(blocks: { header: { round: bigint; timestamp: bi
 }
 
 // Mainnet spends years between upgrades and localnet never has one, so the tile is otherwise only
-// testable in the hours before a real switch round. In dev, ?upgrade=voting|waiting|unknown (or
-// localStorage "surf:fakeUpgrade") synthesises one. import.meta.env.DEV lets Vite drop this in prod.
+// testable in the hours before a real switch round. In dev, ?upgrade=voting|voting-behind|
+// voting-fail|waiting|unknown (or localStorage "surf:fakeUpgrade") synthesises one.
+// import.meta.env.DEV lets Vite drop this in prod.
 const DEMO_PROTOCOLS = {
     current: "https://github.com/algorandfoundation/specs/tree/236dcc18c9c507d794813ab768e467ea42d1b4d9", // v40, AVM 11
     next: "https://github.com/algorandfoundation/specs/tree/953304de35264fc3ef91bcd05c123242015eeaed", // v41, AVM 12
@@ -70,14 +71,16 @@ const DEMO_PROTOCOLS = {
 };
 
 function demoUpgrade(mode: string, round: number): ConsensusUpgrade | null {
-    const voting = mode === "voting" || mode === "voting-fail";
+    const voting = mode === "voting" || mode === "voting-fail" || mode === "voting-behind";
     const voteBefore = voting ? round + 3200 : round - 5000;
     const switchOn = voteBefore + 208000;
-    // "voting" is on track (6,200 + 3,199 rounds left clears the 9,000 bar); "voting-fail" can no
-    // longer reach it (1,200 + 3,199 < 9,000), which is the "Cannot pass" branch. Approvals must
-    // stay below the 6,801 rounds already voted (10,000-round window) or the implied no-vote count
-    // goes negative — a state the real chain can't produce.
-    const approvals = mode === "voting-fail" ? 1200 : voting ? 6200 : 9120;
+    // With 6,801 of the 10,000-round window already voted and 3,199 left: "voting" is on track
+    // (6,200/6,801 = 91.2% yes, above the 90% pace the 9,000 threshold demands); "voting-behind"
+    // can still pass (5,900 + 3,199 ≥ 9,000) but is below pace (86.8% yes); "voting-fail" can no
+    // longer reach it (1,200 + 3,199 < 9,000), the "Cannot pass" branch. Approvals must stay below
+    // the 6,801 rounds already voted or the implied no-vote count goes negative — a state the real
+    // chain can't produce.
+    const approvals = mode === "voting-fail" ? 1200 : mode === "voting-behind" ? 5900 : voting ? 6200 : 9120;
     const roundsToTarget = (voting ? voteBefore : switchOn) - round;
     return {
         currentProtocol: DEMO_PROTOCOLS.current,

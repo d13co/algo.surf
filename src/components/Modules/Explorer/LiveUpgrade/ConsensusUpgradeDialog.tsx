@@ -88,8 +88,17 @@ export default function ConsensusUpgradeDialog({
                         </Row>
                     ) : null}
 
+                    {next.description ? (
+                        <Row label={`What ${next.name} changes`}>
+                            <p className="text-muted-foreground">{next.description}</p>
+                        </Row>
+                    ) : null}
+
                     <Row label="Status">
                         <span className={verdictClassName(vote.verdict)}>{vote.label}</span>
+                        {vote.explainer ? (
+                            <span className="text-muted-foreground"> ({vote.explainer})</span>
+                        ) : null}
                     </Row>
 
                     <Row label="Votes in favour">
@@ -99,8 +108,10 @@ export default function ConsensusUpgradeDialog({
                                     {votePercent(vote.approvals, vote.approvals + vote.noVotes)}%
                                 </span>
                                 <span className="text-muted-foreground">
+                                    {/* Out of votes cast so far, matching the percentage's base —
+                                        the full window appears via "needed", whose count implies it. */}
                                     {" · "}{vote.approvals.toLocaleString()}
-                                    {" / "}{vote.voteRounds.toLocaleString()}
+                                    {" / "}{(vote.approvals + vote.noVotes).toLocaleString()}
                                     {vote.threshold ? ` · ${vote.threshold.toLocaleString()} needed` : ""}
                                 </span>
                             </>
@@ -114,13 +125,20 @@ export default function ConsensusUpgradeDialog({
                             {/* Only a link once the vote has closed. While voting, this round has
                                 not been produced yet, so the block page would 404. */}
                             {upgrade.phase === "voting" ? (
-                                <span>round {upgrade.nextProtocolVoteBefore.toLocaleString()}</span>
+                                <>
+                                    <span>Round {upgrade.nextProtocolVoteBefore.toLocaleString()}</span>
+                                    {/* One less than the distance to the close round — that round
+                                        resolves the vote without casting one (see votableRoundsLeft). */}
+                                    <span className="text-muted-foreground ml-2">
+                                        ({upgrade.roundsRemaining.toLocaleString()} left)
+                                    </span>
+                                </>
                             ) : (
-                                <LinkToBlock id={upgrade.nextProtocolVoteBefore} />
+                                <>
+                                    <LinkToBlock id={upgrade.nextProtocolVoteBefore} />
+                                    <span className="text-muted-foreground ml-2">(closed)</span>
+                                </>
                             )}
-                            <span className="text-muted-foreground ml-2">
-                                {upgrade.phase === "voting" ? "(open)" : "(closed)"}
-                            </span>
                         </Row>
                     ) : null}
 
@@ -130,20 +148,22 @@ export default function ConsensusUpgradeDialog({
                         <Row label="Switches on">
                             {/* Never a link: the switch round is always in the future here — the
                                 hook returns null once the chain reaches it — so it would 404. */}
-                            round {upgrade.nextProtocolSwitchOn.toLocaleString()}
+                            Round {upgrade.nextProtocolSwitchOn.toLocaleString()}
                         </Row>
                     ) : null}
 
-                    <Row label={upgrade.phase === "voting" ? "Rounds left to vote" : "Rounds remaining"}>
-                        {upgrade.roundsRemaining.toLocaleString()}
-                        {upgrade.phase === "waiting" ? (
+                    {/* While voting, the remaining count lives in "Voting closes"; this row's count
+                        runs to the *switch* round, which only exists once the vote has closed. */}
+                    {upgrade.phase === "waiting" ? (
+                        <Row label="Rounds remaining">
+                            {upgrade.roundsRemaining.toLocaleString()}
                             <span className="text-muted-foreground">
                                 {" "}from round {upgrade.round.toLocaleString()}
                             </span>
-                        ) : null}
-                    </Row>
+                        </Row>
+                    ) : null}
 
-                    <Row label={upgrade.phase === "voting" ? "Voting closes in" : "Estimated switch"}>
+                    <Row label={upgrade.phase === "voting" ? "Voting close ETA" : "Estimated switch"}>
                         <UpgradeEta targetEpoch={upgrade.targetEpoch} />
                         <div className="mt-1 text-muted-foreground text-xs">
                             {/* fixedView="local": MultiDateViewer's relative mode always appends
@@ -173,11 +193,6 @@ export default function ConsensusUpgradeDialog({
                         </span>
                     </Row>
 
-                    {next.description ? (
-                        <Row label={`What ${next.name} changes`}>
-                            <p className="text-muted-foreground">{next.description}</p>
-                        </Row>
-                    ) : null}
                 </div>
             </DialogContent>
         </Dialog>
