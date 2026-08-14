@@ -1,11 +1,13 @@
 import {
     A_SearchTransaction,
+    A_SearchTransaction_PQSig,
 } from "../../types";
 import {TEXT_ENCODING, TIMESTAMP_DISPLAY_FORMAT, TXN_TYPES} from "../../constants";
 import msgpack from "msgpack-lite";
 import dateFormat  from "dateformat";
 import {encodeAddress, indexerModels, bytesToBase64} from "algosdk";
 import { encodingDataToPlain } from "../../utils/serialize";
+import { attachPqSig, getAttachedPqSig, parsePqSig } from "../../utils/pqsig";
 import humanizeDuration from 'humanize-duration';
 
 function b64ToBytes(s: string | undefined): Uint8Array | undefined {
@@ -28,7 +30,7 @@ export class CoreTransaction {
     }
 
     static fromLegacy(t: A_SearchTransaction): indexerModels.Transaction {
-        return new indexerModels.Transaction({
+        const txn = new indexerModels.Transaction({
             fee: BigInt(t.fee ?? 0),
             firstValid: BigInt(t["first-valid"] ?? 0),
             lastValid: BigInt(t["last-valid"] ?? 0),
@@ -182,6 +184,11 @@ export class CoreTransaction {
 
             logs: t.logs?.map((l: string) => b64ToBytes(l)!),
         });
+        const pqsig = parsePqSig(t.signature?.pqsig);
+        if (pqsig) {
+            attachPqSig(txn, pqsig);
+        }
+        return txn;
     }
 
     get(): indexerModels.Transaction {
@@ -189,7 +196,15 @@ export class CoreTransaction {
     }
 
     toJSON(): Record<string, unknown> {
-        return encodingDataToPlain(this.txn.toEncodingData());
+        const plain = encodingDataToPlain(this.txn.toEncodingData());
+        const pqsig = this.getPqSig();
+        if (pqsig) {
+            plain.signature = {
+                ...(plain.signature ?? {}),
+                pqsig,
+            };
+        }
+        return plain;
     }
 
     getId(): string {
@@ -481,6 +496,14 @@ export class CoreTransaction {
     isLogicSig(): boolean {
         const sig = this.getSig();
         return sig?.logicsig !== undefined;
+    }
+
+    isPqSig(): boolean {
+        return this.getPqSig() !== undefined;
+    }
+
+    getPqSig(): A_SearchTransaction_PQSig | undefined {
+        return getAttachedPqSig(this.txn);
     }
 
     getGroup(): string {

@@ -203,6 +203,14 @@ export interface A_SearchTransaction_Signature {
         logic: string
         args?: string[]
     }
+    pqsig?: A_SearchTransaction_PQSig
+}
+
+export interface A_SearchTransaction_PQSig {
+    "public-key": string
+    signature: string
+    scheme?: string
+    salt?: number | string
 }
 
 export interface A_SearchTransaction_Heartbeat_Payload {

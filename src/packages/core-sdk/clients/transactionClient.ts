@@ -1,6 +1,7 @@
-import {Algodv2, indexerModels} from "algosdk";
+import {Algodv2, decodeJSON, indexerModels} from "algosdk";
 import type { Indexer } from "algosdk";
 import {Network} from "../network";
+import {attachPqSig, parsePqSig} from "../utils/pqsig";
 
 
 export type A_TransactionsResponse = {
@@ -31,7 +32,16 @@ export class TransactionClient {
     }
 
     async get(id: string): Promise<indexerModels.Transaction> {
-        const {transaction} = await this.indexer.lookupTransactionByID(id).do();
+        // Decode from the raw body: algosdk's models drop post-quantum
+        // signatures (signature.pqsig), which fnet transactions can carry.
+        const body = new TextDecoder().decode(
+            await this.indexer.lookupTransactionByID(id).doRaw()
+        );
+        const {transaction} = decodeJSON(body, indexerModels.TransactionResponse);
+        const pqsig = parsePqSig(JSON.parse(body)?.transaction?.signature?.pqsig);
+        if (pqsig) {
+            attachPqSig(transaction, pqsig);
+        }
         return transaction;
     }
 }
