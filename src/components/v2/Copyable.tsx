@@ -71,6 +71,13 @@ export default function Copyable({
             )}
             style={mergedStyle}
             onClick={copy}
+            onFocus={(e) => {
+              // Radix opens the tooltip on any non-pointer focus, including a
+              // Dialog auto-focusing its first focusable element on open;
+              // preventDefault suppresses that unless the focus is a real
+              // keyboard one (:focus-visible).
+              if (!e.currentTarget.matches(":focus-visible")) e.preventDefault();
+            }}
           >
             {children}
             <span className="shrink-0">
