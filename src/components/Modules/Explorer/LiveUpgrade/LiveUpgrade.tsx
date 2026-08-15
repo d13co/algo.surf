@@ -54,19 +54,20 @@ export default function LiveUpgrade(): JSX.Element | null {
                         // where it shares the row with the version name.
                         <div className="w-full md:w-auto md:min-w-[280px]">
                             {/* Tallies mirror the bar underneath: yes over the green left end, no
-                                over the red right end. Below sm they stack, each keeping its side. */}
-                            <div className="flex flex-col gap-y-0.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-x-2">
+                                over the red right end. Always one line: when space runs out the
+                                Yes label truncates while the No side keeps its full width. */}
+                            <div className="flex items-baseline justify-between gap-x-2">
                                 {vote.voteRounds && vote.noVotes != null ? (
                                     <>
-                                        <span className="flex items-baseline gap-x-2 text-primary">
-                                            <span className="text-xl">
+                                        <span className="flex items-baseline gap-x-2 text-primary min-w-0">
+                                            <span className="text-xl shrink-0">
                                                 {vote.approvals.toLocaleString()}
                                             </span>
-                                            <span className="text-[13px]">
+                                            <span className="text-[13px] truncate">
                                                 Yes ({votePercent(vote.approvals, vote.approvals + vote.noVotes)}%)
                                             </span>
                                         </span>
-                                        <span className="flex items-baseline gap-x-2 text-secondary self-end sm:self-auto">
+                                        <span className="flex items-baseline gap-x-2 text-secondary shrink-0">
                                             <span className="text-xl">
                                                 {vote.noVotes.toLocaleString()}
                                             </span>
