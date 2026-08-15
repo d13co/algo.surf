@@ -10,6 +10,10 @@ import {
 import { useAddressBook } from "src/hooks/useAddressBook";
 import { CoreAccount } from "src/packages/core-sdk/classes/core/CoreAccount";
 import {
+  getAttachedPqSig,
+  pqSigSchemeLabel,
+} from "src/packages/core-sdk/utils/pqsig";
+import {
   useAccount,
   useEscrowOf,
   useAccountTransactions,
@@ -162,8 +166,8 @@ function Account(): JSX.Element {
     [txnData]
   );
 
-  const [lastSent, isMultiSig, isLogicSig, isClosed, isXEVM] = useMemo(() => {
-    if (!accountInfo) return [undefined, false, false, false, null] as const;
+  const [lastSent, isMultiSig, isLogicSig, isClosed, isXEVM, pqSig] = useMemo(() => {
+    if (!accountInfo) return [undefined, false, false, false, null, undefined] as const;
     const lastSent = transactions.find(
       ({ sender }) => sender === address
     );
@@ -171,7 +175,8 @@ function Account(): JSX.Element {
     const isLogicSig = !!lastSent?.signature?.logicsig;
     const isClosed = accountInfo.amount === 0n && !!lastSent;
     const isXEVM = isLogicSig ? AlgoXEvmSdk.getEvmAddressFromProgram(lastSent!.signature!.logicsig!.logic) : null;
-    return [lastSent, isMultiSig, isLogicSig, isClosed, isXEVM] as const;
+    const pqSig = lastSent ? getAttachedPqSig(lastSent) : undefined;
+    return [lastSent, isMultiSig, isLogicSig, isClosed, isXEVM, pqSig] as const;
   }, [address, accountInfo, transactions]);
 
   const hasOptedAssets = accountInfo?.assets?.length ?? 0;
@@ -422,6 +427,29 @@ function Account(): JSX.Element {
                           </TooltipTrigger>
                           <TooltipContent className="bg-black text-white border-border">
                             <p>This account is controlled by a stateless smart contract (logic sig). Click to view program source.</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </a>
+                  ) : null}
+
+                  {pqSig && lastSent ? (
+                    <a
+                      href={`/transaction/${lastSent.id}#pqsig`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        navigate(`/transaction/${lastSent.id}#pqsig`);
+                      }}
+                    >
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Chip variant="success" onClick={() => {}}>
+                              PQ ({pqSigSchemeLabel(pqSig)})
+                            </Chip>
+                          </TooltipTrigger>
+                          <TooltipContent className="bg-black text-white border-border">
+                            <p>This account signs transactions with the {pqSigSchemeLabel(pqSig)} post-quantum signature scheme. Click to view the signature.</p>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>

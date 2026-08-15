@@ -1,4 +1,4 @@
-import {Algodv2, modelsv2, indexerModels} from "algosdk";
+import {Algodv2, decodeJSON, modelsv2, indexerModels} from "algosdk";
 import type { Indexer } from "algosdk";
 import {
     A_SearchAccount
@@ -6,6 +6,7 @@ import {
 import {Network} from "../network";
 import {A_TransactionsResponse} from "./transactionClient";
 import { toA_AccountsResponse } from "../utils/v3Adapters";
+import { attachPqSig, parsePqSig } from "../utils/pqsig";
 
 export const ACCOUNTS_PAGE_SIZE = 100;
 
@@ -47,9 +48,21 @@ export class AccountClient{
             req.nextToken(token);
         }
 
-        const response = await req.do();
+        // Decode from the raw body: algosdk's models drop post-quantum
+        // signatures (signature.pqsig), which fnet transactions can carry.
+        const body = new TextDecoder().decode(await req.doRaw());
+        const response = decodeJSON(body, indexerModels.TransactionsResponse);
         const transactions = (response.transactions ?? []) as indexerModels.Transaction[];
-        return { 'next-token': (response['nextToken'] as string) ?? '', transactions };
+        const rawTxns: unknown[] = JSON.parse(body)?.transactions ?? [];
+        rawTxns.forEach((rawTxn, i) => {
+            const pqsig = parsePqSig(
+                (rawTxn as { signature?: { pqsig?: unknown } })?.signature?.pqsig
+            );
+            if (pqsig && transactions[i]) {
+                attachPqSig(transactions[i], pqsig);
+            }
+        });
+        return { 'next-token': response.nextToken ?? '', transactions };
     }
 
     async getAuthAddr(address: string, token?: string): Promise<A_AccountsResponse> {
