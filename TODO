@@ -195,5 +195,15 @@ localnet optimizations
 [ ] show clock drift in Stats
 [ ] toast error: copy button misaligned with x
 
-[ ] account prefix search: add info: closed accounts can not be found by prefix
+[x] account prefix search: add info: closed accounts can not be found by prefix
+    - can not fix, indexer behavior
 [ ] paste address: trim whitespace
+
+ [ ] a vite:preloadError handler in the app so any future chunk-load failure self-heals with a cache-bypassing refetch instead of showing the error card
+
+[v] active consensus votes
+[ ] past consensus votes
+[v] falcon txn support
+[v] falcon account support
+[v] when opening a consensus vote dialog, the first copybutton is selected and its tooltip shows
+[v] bug: avg round time messed up when resuming suspended tabs

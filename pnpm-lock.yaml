@@ -15,11 +15,11 @@ importers:
         specifier: ^0.0.1
         version: 0.0.1(@algorandfoundation/algokit-utils@9.2.0(algosdk@3.5.2))(algosdk@3.5.2)
       '@d13co/algo-metrics-react':
-        specifier: ^1.1.0
-        version: 1.1.0(react@18.3.1)
+        specifier: ^1.2.1
+        version: 1.2.1(react@18.3.1)
       '@d13co/algo-metrics-sdk':
-        specifier: ^1.1.0
-        version: 1.1.0
+        specifier: ^1.2.1
+        version: 1.2.1
       '@d13co/escreg-sdk':
         specifier: ^0.0.2
         version: 0.0.2(@algorandfoundation/algokit-utils@9.2.0(algosdk@3.5.2))(algosdk@3.5.2)
@@ -287,13 +287,13 @@ packages:
       '@algorandfoundation/algokit-utils': ^9.2.0
       algosdk: ^3.5.2
 
-  '@d13co/algo-metrics-react@1.1.0':
-    resolution: {integrity: sha512-cIi+uUaKbjcwRFDECSS+df9enfHwOsDgrHgSh9vE9l7dX/rRzRjT7xe4yGuAo7MMryDr1I1sTX2h4ZlIDjreRA==}
+  '@d13co/algo-metrics-react@1.2.1':
+    resolution: {integrity: sha512-C+Wajr1Z3n/E41V4Af4FPB8m24iGqU4XWk+Uio5qjb2lb/txDGyio4+uXGtENZy+6ecrCmqLKIWcGsX7Cb+xwA==}
     peerDependencies:
       react: ^18.0.0 || ^19.0.0
 
-  '@d13co/algo-metrics-sdk@1.1.0':
-    resolution: {integrity: sha512-28mE7oB/CoYoxyDNAcd8lmOrVxNMXhG4hlwh8QNz1F61Ikjf8ct+Hw09AkWpqnaYPRolnO+Vep5Ef8frKbjOeQ==}
+  '@d13co/algo-metrics-sdk@1.2.1':
+    resolution: {integrity: sha512-VM2RRYUzZ5h99e5jQWFTlv4l759THmUJj70vay5rXxTqjNIGWsWELhE1vwaOVQAJCWoAwNoU6ZoNRyWYjpaDQg==}
 
   '@d13co/escreg-sdk@0.0.2':
     resolution: {integrity: sha512-jUc7tWQeDaW/0zn7xAlJEEF8et6GTy0663QHQNonijg1rGJm131iMZCiLjqDvrU4MiEfDwAQ88f9ff8mBLu5XA==}
@@ -2651,12 +2651,12 @@ snapshots:
       '@algorandfoundation/algokit-utils': 9.2.0(algosdk@3.5.2)
       algosdk: 3.5.2
 
-  '@d13co/algo-metrics-react@1.1.0(react@18.3.1)':
+  '@d13co/algo-metrics-react@1.2.1(react@18.3.1)':
     dependencies:
-      '@d13co/algo-metrics-sdk': 1.1.0
+      '@d13co/algo-metrics-sdk': 1.2.1
       react: 18.3.1
 
-  '@d13co/algo-metrics-sdk@1.1.0':
+  '@d13co/algo-metrics-sdk@1.2.1':
     dependencies:
       '@algorandfoundation/algokit-utils': 9.2.0(algosdk@3.5.2)
       abel-ghost-sdk: 0.0.7(@algorandfoundation/algokit-utils@9.2.0(algosdk@3.5.2))(algosdk@3.5.2)

@@ -29,8 +29,9 @@ function LiveStats(): JSX.Element {
     const tc = txnCount != null ? Number(txnCount).toLocaleString() : "-";
 
     const loading = blockCount < 4;
-    const intervalMinutes = avgRoundTime != null && blockCount > 1
-        ? Math.round((avgRoundTime * blockCount) / 60)
+    // Window duration from actual timestamps — immune to round gaps in the data
+    const intervalMinutes = blockData != null && blockCount > 1
+        ? Math.round((blockData[blockCount - 1].ts - blockData[0].ts) / 60)
         : null;
 
     return (
