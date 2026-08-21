@@ -138,3 +138,39 @@ export const networkToDomainMap: Record<Networks, string> = {
     "Betanet": "https://betanet.algo.surf",
     "Fnet": "https://fnet.algo.surf",
 }
+
+const accountRoute = /^\/account\/([A-Z2-7]{58})(?:\/(.*))?$/;
+
+const accountSubRoutes = new Set([
+    "",
+    "assets",
+    "transactions",
+    "created-assets",
+    "created-applications",
+    "opted-applications",
+    "controller",
+    "validator",
+]);
+
+/**
+ * Route (path + query + hash) to carry over when switching networks.
+ *
+ * Addresses are the same on every network, so account routes survive the switch.
+ * Everything else is keyed by network-specific ids (txn / block / asset / app),
+ * so those land on the other network's home page instead.
+ */
+export function getPreservedRoute({ pathname, search = '', hash = '' }: { pathname: string, search?: string, hash?: string }): string {
+    const match = pathname.match(accountRoute);
+    if (!match) {
+        return '';
+    }
+
+    const [, address, subRoute = ''] = match;
+    // opted-applications/:id embeds a network-specific app id: keep the tab, drop the id
+    const tab = subRoute.replace(/\/\d+$/, '').replace(/\/$/, '');
+    if (!accountSubRoutes.has(tab)) {
+        return '';
+    }
+
+    return `/account/${address}${tab ? `/${tab}` : ''}${search}${hash}`;
+}

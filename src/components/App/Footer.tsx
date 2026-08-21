@@ -12,7 +12,8 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "src/components/v2/ui/dropdown-menu";
-import { networkToDomainMap } from 'src/utils/nodeConfig';
+import { getPreservedRoute, networkToDomainMap } from 'src/utils/nodeConfig';
+import { useLocation } from 'react-router-dom';
 
 const networkMap = Object.entries(networkToDomainMap) as [keyof typeof networkToDomainMap, string][];
 
@@ -70,6 +71,9 @@ function Footer(): JSX.Element {
 }
 
 function NetworkSwitcher() {
+    const location = useLocation();
+    const preservedRoute = getPreservedRoute(location);
+
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -86,10 +90,8 @@ function NetworkSwitcher() {
                     const current = name === network;
                     return (
                         <DropdownMenuItem key={name} asChild>
-                            {/* TODO: figure out graceful network transition that maintains current page state
-                                (e.g. stay on /account/:address when switching networks) */}
                             <a
-                                href={url}
+                                href={`${url}${preservedRoute}`}
                                 className="flex items-center gap-2 cursor-pointer"
                             >
                                 <Check size={13} className={current ? "opacity-100" : "opacity-0"} />
