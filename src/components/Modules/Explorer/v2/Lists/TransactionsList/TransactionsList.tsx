@@ -51,6 +51,7 @@ interface TransactionsListProps {
   record?: string;
   recordId?: string;
   recordDef?: any;
+  pageSize?: number;
 }
 
 function TransactionsList({
@@ -63,9 +64,9 @@ function TransactionsList({
   record = "",
   recordId = "",
   recordDef = {},
+  pageSize = 10,
 }: TransactionsListProps): JSX.Element {
   const [pageIndex, setPageIndex] = React.useState(0);
-  const pageSize = 10;
 
   const columnVisibility: VisibilityState = useMemo(() => {
     const vis: VisibilityState = {};
@@ -93,7 +94,7 @@ function TransactionsList({
     }
 
     return vis;
-  }, [fields, transactions, pageIndex]);
+  }, [fields, transactions, pageIndex, pageSize]);
 
   // Single pass: collect addresses + compute group positions
   const { allAddresses, groupPositions } = useMemo(() => {

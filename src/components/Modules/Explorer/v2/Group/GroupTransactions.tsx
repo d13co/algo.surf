@@ -18,6 +18,7 @@ function GroupTransactions(): JSX.Element {
         hasMore={false}
         record="group"
         fields={["id", "from", "to", "fee", "amount", "type"]}
+        pageSize={16}
       />
     </div>
   );
