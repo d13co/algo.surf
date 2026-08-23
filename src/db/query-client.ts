@@ -1,12 +1,14 @@
 import { QueryClient } from "@tanstack/react-query";
-
-export const ONE_WEEK = 1000 * 60 * 60 * 24 * 7;
-export const ONE_MONTH = 1000 * 60 * 60 * 24 * 30;
+import { ONE_HOUR } from "./persist-policy";
 
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 0,
+      // In-memory session working set. Cross-session retention is the persist
+      // policy (src/db/persist-policy.ts), not gcTime; hydrated queries are
+      // built with this default too.
+      gcTime: ONE_HOUR,
     },
   },
 });

@@ -4,6 +4,7 @@ import {
   Persister,
 } from '@tanstack/react-query-persist-client'
 import { serializeForIDB, deserializeFromIDB } from './sdk-serializer'
+import { CACHE_BUSTER, isPersistable } from './persist-policy'
 
 /**
  * Creates an Indexed DB persister with debounced writes.
@@ -23,15 +24,32 @@ export function createIDBPersister(
   return {
     persistClient: async (client: PersistedClient) => {
       if (pendingTimeout) clearTimeout(pendingTimeout);
-      pendingTimeout = setTimeout(() => {
-        set(idbValidKey, serializeForIDB(client));
+      pendingTimeout = setTimeout(async () => {
         pendingTimeout = null;
+        try {
+          await set(idbValidKey, serializeForIDB(client));
+        } catch (e) {
+          // e.g. QuotaExceededError: drop the blob rather than retry forever.
+          console.warn('[query-persister] Failed to persist cache, clearing:', e);
+          await del(idbValidKey).catch(() => {});
+        }
       }, throttleMs);
     },
     restoreClient: async () => {
       try {
         const stored = await get<PersistedClient>(idbValidKey);
         if (!stored) return undefined;
+        // persistQueryClientRestore only checks the buster after we return,
+        // so check it here to skip the deserialize walk on a stale blob.
+        if (stored.buster !== CACHE_BUSTER) {
+          await del(idbValidKey);
+          return undefined;
+        }
+        // Drop expired entries before deserializing, not after.
+        const now = Date.now();
+        stored.clientState.queries = stored.clientState.queries.filter((q) =>
+          isPersistable(q, now),
+        );
         return deserializeFromIDB(stored) as PersistedClient;
       } catch (e) {
         console.warn('[query-persister] Failed to restore cache, clearing:', e);

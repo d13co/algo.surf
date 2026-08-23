@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { AccountClient, ACCOUNTS_PAGE_SIZE } from "src/packages/core-sdk/clients/accountClient";
 import explorer from "src/utils/dappflow";
-import { ONE_WEEK, ONE_MONTH } from "src/db/query-client";
 import { EscregSDK } from "@d13co/escreg-sdk";
 
 const escreg = new EscregSDK({});
@@ -19,7 +18,6 @@ export function useAccount(address: string) {
     queryFn: () =>
       new AccountClient(explorer.network).getAccountInformation(address),
     enabled: !!address,
-    gcTime: ONE_WEEK,
   });
 }
 
@@ -37,7 +35,6 @@ export function useEscrowOf(address: string) {
     },
     enabled: !!address,
     staleTime: (query) => query.state.data ? Infinity : ESCROW_FAILURE_CACHE_MS,
-    gcTime: ONE_MONTH,
   });
   return query;
 }
