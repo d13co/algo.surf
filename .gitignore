@@ -30,3 +30,4 @@ packages/*/build
 build/
 private/
 dist/
+.claude/worktrees/

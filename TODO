@@ -207,3 +207,9 @@ localnet optimizations
 [v] falcon account support
 [v] when opening a consensus vote dialog, the first copybutton is selected and its tooltip shows
 [v] bug: avg round time messed up when resuming suspended tabs
+
+[v] support/warn on invalid assets in axfers, thanks hampelman
+[v] preserve account when switching networks
+[.] sigreg
+
+[ ] persistence when navigating through pages of txn lists with #page
