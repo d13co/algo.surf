@@ -23,3 +23,8 @@ export function deferred (ms: number) {
 export async function sleep(ms: number): Promise<any> {
     await new Promise(resolve => setTimeout(resolve, ms));
 }
+
+// Matches both "not found" error shapes thrown by the algosdk clients.
+export function isNotFoundError(e: unknown): boolean {
+    return (e as any)?.response?.status === 404 || (e as any)?.status === 404;
+}

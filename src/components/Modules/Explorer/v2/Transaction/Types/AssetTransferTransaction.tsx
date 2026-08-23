@@ -23,7 +23,9 @@ function AssetTransferTransaction({
   return (
     <div className="mt-7">
       {!assetInstance ? (
-        <WarningNotice>
+        // mb-7 matches the section's own mt-7 so the banner sits with equal
+        // gaps between the details card above and the transfer card below.
+        <WarningNotice className="mb-7">
           Asset {txnInstance.getAssetId()} does not exist. The network permits
           zero-amount transfers of any asset ID, even one that was never
           created.

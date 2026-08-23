@@ -4,6 +4,7 @@ import { CoreTransaction } from "src/packages/core-sdk/classes/core/CoreTransact
 import { pqSigSchemeLabel } from "src/packages/core-sdk/utils/pqsig";
 import { TXN_TYPES } from "src/packages/core-sdk/constants";
 import { useTransaction, useTransactionAsset } from "src/hooks/useTransaction";
+import { isNotFoundError } from "src/packages/core-sdk/utils/common";
 import { microalgosToAlgos } from "src/utils/common";
 import LoadingTile from "src/components/v2/LoadingTile";
 import CustomError from "../CustomError";
@@ -44,7 +45,10 @@ function Transaction(): JSX.Element {
     isError,
     error,
   } = useTransaction(id);
-  const { data: asset } = useTransactionAsset(txnObj);
+  const { data: asset, error: assetError } = useTransactionAsset(txnObj);
+  // The AVM accepts zero-amount transfers of any asset id — nonexistent,
+  // not-yet-created, even application ids — so the referenced asset can 404.
+  const assetNotFound = isNotFoundError(assetError);
 
   const txnInstance = useMemo(
     () => txnObj ? new CoreTransaction(txnObj) : null,
@@ -190,10 +194,11 @@ function Transaction(): JSX.Element {
                 {txnInstance.getType() === TXN_TYPES.PAYMENT ? (
                   <PaymentTransaction transaction={txnObj} />
                 ) : null}
-                {txnInstance.getType() === TXN_TYPES.ASSET_TRANSFER && asset ? (
+                {txnInstance.getType() === TXN_TYPES.ASSET_TRANSFER &&
+                (asset || assetNotFound) ? (
                   <AssetTransferTransaction
                     transaction={txnObj}
-                    asset={asset}
+                    asset={asset ?? null}
                   />
                 ) : null}
                 {txnInstance.getType() === TXN_TYPES.ASSET_FREEZE && asset ? (

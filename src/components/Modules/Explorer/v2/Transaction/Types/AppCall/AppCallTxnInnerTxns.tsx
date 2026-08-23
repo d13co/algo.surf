@@ -4,6 +4,7 @@ import { useHotkeys } from "react-hotkeys-hook";
 import { CoreTransaction } from "src/packages/core-sdk/classes/core/CoreTransaction";
 import { TXN_TYPES } from "src/packages/core-sdk/constants";
 import { AssetClient } from "src/packages/core-sdk/clients/assetClient";
+import { isNotFoundError } from "src/packages/core-sdk/utils/common";
 import explorer from "src/utils/dappflow";
 import { getApplicationAddress, encodeAddress } from "algosdk";
 import { useEscrowBatch } from "src/hooks/useAccount";
@@ -235,7 +236,12 @@ function AppCallTxnInnerTxns({
     const inst = new CoreTransaction(currentEntry.txn);
     if (inst.getType() === TXN_TYPES.ASSET_TRANSFER) {
       const assetClient = new AssetClient(explorer.network);
-      assetClient.getWithCreationFallback(inst.getAssetId()).then(setAsset).catch(() => setAsset(undefined));
+      // null = the asset id resolves to nothing (zero-amount transfers of any
+      // asset id are valid); undefined = lookup failed / not applicable.
+      assetClient
+        .getWithCreationFallback(inst.getAssetId())
+        .then(setAsset)
+        .catch((e) => setAsset(isNotFoundError(e) ? null : undefined));
     } else {
       setAsset(undefined);
     }

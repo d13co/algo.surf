@@ -74,7 +74,10 @@ function InnerTransactionDetail({
       {txnInstance.getType() === TXN_TYPES.PAYMENT ? (
         <PaymentTransaction transaction={txn} />
       ) : null}
-      {txnInstance.getType() === TXN_TYPES.ASSET_TRANSFER && asset ? (
+      {txnInstance.getType() === TXN_TYPES.ASSET_TRANSFER &&
+      asset !== undefined ? (
+        // null asset = the id resolves to nothing on the indexer; the
+        // component renders a not-found warning in that case.
         <AssetTransferTransaction transaction={txn} asset={asset} />
       ) : null}
       {txnInstance.getType() === TXN_TYPES.ASSET_CONFIG ? (
