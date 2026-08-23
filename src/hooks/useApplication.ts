@@ -3,7 +3,6 @@ import { ApplicationClient, APPLICATIONS_PAGE_SIZE } from "src/packages/core-sdk
 import { BoxClient } from "src/packages/core-sdk/clients/boxClient";
 import { CoreApplication } from "src/packages/core-sdk/classes/core/CoreApplication";
 import explorer from "src/utils/dappflow";
-import { ONE_WEEK } from "src/db/query-client";
 import { indexerModels } from "algosdk";
 import sha512 from "js-sha512";
 import chunk from "lodash/chunk.js";
@@ -54,7 +53,6 @@ export function useApplication(id: number) {
     queryKey: ["application", id],
     queryFn: () => new ApplicationClient(explorer.network).get(id),
     enabled: !!id,
-    gcTime: ONE_WEEK,
   });
 }
 
@@ -113,8 +111,13 @@ export function useApplicationHashes(appInfo: indexerModels.Application | undefi
   const clearProgram = app?.getClearProgram() ?? "";
 
   return useQuery({
-    queryKey: ["application-hashes", approvalProgram, clearProgram],
+    // Keyed by id rather than program bytes (which would persist the programs
+    // twice, in the key and the queryHash). Local and cheap, so it is
+    // recomputed on mount instead of persisted; an updated app never shows
+    // stale hashes.
+    queryKey: ["application-hashes", Number(appInfo?.id ?? 0)],
     queryFn: () => getProgramHashes(approvalProgram, clearProgram),
     enabled: !!approvalProgram && !!clearProgram,
+    meta: { noPersist: true },
   });
 }

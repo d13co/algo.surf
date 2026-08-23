@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { useCallback } from "react";
-import { ONE_WEEK } from "src/db/query-client";
 import {
     CONSENSUS_VERSIONS_PATH,
     ConsensusVersionInfo,
@@ -11,7 +10,7 @@ import {
 
 /**
  * The consensus protocol name table. Same-origin, so it works in dev, on localnet, and offline
- * (gcTime keeps it in the IndexedDB query cache between visits).
+ * (the persist policy keeps it in the IndexedDB query cache between visits).
  */
 export function useConsensusVersions() {
     return useQuery<ConsensusVersionTable>({
@@ -25,7 +24,6 @@ export function useConsensusVersions() {
             return body;
         },
         staleTime: 6 * 60 * 60_000,
-        gcTime: ONE_WEEK,
     });
 }
 

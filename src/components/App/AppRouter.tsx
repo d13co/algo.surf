@@ -1,12 +1,14 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
-import React, { lazy, Suspense } from "react";
+import { lazy, Suspense } from "react";
 import Explorer from "../Modules/Explorer/Explorer/Explorer";
 import Loader from "../Common/Loader/Loader";
 import AppSnackbar from "./AppSnackbar";
 import Footer from "./Footer";
 import { queryClient } from "../../db/query-client";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import type { Query } from "@tanstack/react-query";
 import { persister } from "../../db/query-persister";
+import { CACHE_BUSTER, ONE_WEEK, isPersistable } from "../../db/persist-policy";
 import { AbelAssetsProvider } from "../Common/AbelAssetsProvider";
 import { GlobalUIProvider } from "../../contexts/GlobalUIContext";
 import LoadingTile from "../v2/LoadingTile";
@@ -37,7 +39,15 @@ const GroupTransactions = lazy(() => import("../Modules/Explorer/v2/Group/GroupT
 const StripExplorerFromPath = lazy(() => import("./StripExplorerFromPath"));
 const SearchFromPath = lazy(() => import("./SearchFromPath"));
 
-const PERSIST_OPTIONS = { persister };
+const PERSIST_OPTIONS = {
+  persister,
+  buster: CACHE_BUSTER,
+  // Whole-blob ceiling; per-entry retention is isPersistable (24h / 7d tiers).
+  maxAge: ONE_WEEK,
+  dehydrateOptions: {
+    shouldDehydrateQuery: (query: Query) => isPersistable(query, Date.now()),
+  },
+};
 
 function AppRouter(): JSX.Element {
   return (
