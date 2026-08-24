@@ -61,19 +61,37 @@ export function isLocalNodeConfig(config: NodeConnectionParams): boolean {
 }
 
 /**
- * Whether to look for a transaction on a node on the user's own machine.
- *
- * Browsers treat a remotely served page reaching localhost as local network
- * access: Chrome asks for permission, Safari blocks it outright. So this probe
- * is always fired on its own and never awaited alongside the remote networks -
- * where the browser allows it, localnet transactions are still found from
- * algo.surf; where it does not, it fails quietly instead of holding up the rest.
- *
- * Set `localStorage.probeLocalnet = 'false'` to skip it, and with it the
- * permission prompt.
+ * Whether to offer looking for a transaction on a node on the user's own
+ * machine at all. Set `localStorage.probeLocalnet = 'false'` to hide it.
  */
 export function shouldProbeLocalNodes(): boolean {
     return localStorage.getItem('probeLocalnet') !== 'false';
+}
+
+export type LocalNodeAccess = 'granted' | 'denied' | 'prompt' | 'unknown';
+
+/**
+ * Whether the browser already lets this page reach the user's machine.
+ *
+ * Querying a permission never prompts for it, so this is safe to call while
+ * rendering. 'unknown' means the browser does not recognise the permission
+ * (every engine but Chrome, and Chrome before it was exposed): treat that like
+ * 'prompt' and ask the user first, since the request may still put a dialog or
+ * a mixed content block in their way.
+ */
+export async function getLocalNodeAccess(): Promise<LocalNodeAccess> {
+    if (!navigator.permissions?.query) {
+        return 'unknown';
+    }
+    try {
+        // Not in the bundled DOM types, and an unknown name rejects.
+        const status = await navigator.permissions.query({
+            name: 'local-network-access',
+        } as unknown as PermissionDescriptor);
+        return status.state;
+    } catch (e) {
+        return 'unknown';
+    }
 }
 
 export function getKMDConfig(): KMDConnectionParams {

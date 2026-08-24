@@ -3,10 +3,12 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "src/components/v2/ui/button";
 import { Alert, AlertDescription } from "src/components/v2/ui/alert";
 import {
-  shouldProbeLocalNodes,
+  getLocalNodeAccess,
   getOtherNetworkNodeConfigs,
   isLocalNodeConfig,
   networkToDomainMap,
+  shouldProbeLocalNodes,
+  LocalNodeAccess,
 } from "src/utils/nodeConfig";
 import { network, Networks } from "src/packages/core-sdk/constants";
 import { TransactionClient } from "src/packages/core-sdk/clients/transactionClient";
@@ -17,6 +19,39 @@ const isLocalnet = process.env.REACT_APP_NETWORK === "Localnet";
 const TOTAL_RETRIES = 5;
 
 const networkOrder = Object.keys(Networks) as Networks[];
+
+type NetworkConfig = [Networks, NodeConnectionParams];
+
+/** The other networks, split by whether their node runs on the user's machine. */
+function getSearchableNetworks(): {
+  local: NetworkConfig[];
+  remote: NetworkConfig[];
+} {
+  const configs = [...getOtherNetworkNodeConfigs()] as NetworkConfig[];
+  return {
+    local: configs.filter(([, config]) => isLocalNodeConfig(config)),
+    remote: configs.filter(([, config]) => !isLocalNodeConfig(config)),
+  };
+}
+
+/** Reports each network that holds the transaction as its node answers. */
+async function findTransaction(
+  id: string,
+  configs: NetworkConfig[],
+  onFound: (network: Networks) => void,
+): Promise<void> {
+  await Promise.all(
+    configs.map(async ([network, config]) => {
+      try {
+        const client = new TransactionClient(new Network(config));
+        await client.get(id);
+        onFound(network);
+      } catch (e) {
+        // not on this network, or the node is unreachable
+      }
+    }),
+  );
+}
 
 function getRetries(hash: string): number {
   const regex = /retry=(\d)/g;
@@ -41,12 +76,25 @@ function CustomError({
   const [retry, setRetry] = useState(0);
   const [countdown, setCountdown] = useState(2);
 
+  const searchable = type === "transaction" && !!id;
   const [otherNetworks, setOtherNetworks] = useState<Networks[]>([]);
-  // Only tracks the remote networks: the localnet probe is decoupled, so it
-  // never holds up the retry loop or the results of the reachable networks.
-  const [checkingRemoteNetworks, setCheckingRemoteNetworks] = useState(
-    type === "transaction" && !!id,
+  // Only tracks the public networks: the localnet search is decoupled, so it
+  // never holds up these results or the retry loop below.
+  const [checkingRemoteNetworks, setCheckingRemoteNetworks] =
+    useState(searchable);
+  const [localAccess, setLocalAccess] = useState<LocalNodeAccess | null>(null);
+  const [localSearch, setLocalSearch] = useState<"idle" | "checking" | "done">(
+    "idle",
   );
+
+  const found = (network: Networks) =>
+    setOtherNetworks((current) =>
+      current.includes(network)
+        ? current
+        : [...current, network].sort(
+            (a, b) => networkOrder.indexOf(a) - networkOrder.indexOf(b),
+          ),
+    );
 
   useEffect(() => {
     let countdownTmot: ReturnType<typeof setTimeout>;
@@ -71,77 +119,87 @@ function CustomError({
     };
   }, [location.hash, checkingRemoteNetworks, otherNetworks.length]);
 
+  // The public networks: searched right away, each reporting as it answers so
+  // one slow node cannot hide the ones that did find the transaction.
   useEffect(() => {
-    if (type !== "transaction" || !id) {
+    if (!searchable) {
       setOtherNetworks([]);
       setCheckingRemoteNetworks(false);
       return;
     }
-
     let cancelled = false;
     setOtherNetworks([]);
     setCheckingRemoteNetworks(true);
-
-    const found = (network: Networks) => {
-      if (cancelled) {
-        return;
-      }
-      setOtherNetworks((current) =>
-        current.includes(network)
-          ? current
-          : [...current, network].sort(
-              (a, b) => networkOrder.indexOf(a) - networkOrder.indexOf(b),
-            ),
-      );
-    };
-
-    // Report each network as soon as it answers, so one slow or unreachable
-    // node cannot hide the ones that did find the transaction.
-    const probe = async ([network, config]: [
-      Networks,
-      NodeConnectionParams,
-    ]) => {
-      try {
-        const client = new TransactionClient(new Network(config));
-        await client.get(id);
+    setLocalSearch("idle");
+    findTransaction(id, getSearchableNetworks().remote, (network) => {
+      if (!cancelled) {
         found(network);
-      } catch (e) {
-        // not on this network, or the node is unreachable
       }
-    };
-
-    const configs = [...getOtherNetworkNodeConfigs()] as [
-      Networks,
-      NodeConnectionParams,
-    ][];
-    const [localConfigs, remoteConfigs] = configs.reduce<
-      [[Networks, NodeConnectionParams][], [Networks, NodeConnectionParams][]]
-    >(
-      (acc, entry) => {
-        acc[isLocalNodeConfig(entry[1]) ? 0 : 1].push(entry);
-        return acc;
-      },
-      [[], []],
-    );
-
-    Promise.all(remoteConfigs.map(probe)).then(() => {
+    }).then(() => {
       if (!cancelled) {
         setCheckingRemoteNetworks(false);
       }
     });
-
-    // A localnet node lives on the user's own machine, which browsers gate
-    // behind a local network access prompt. Fire it off on its own and never
-    // await it: it still reports a hit when it lands, but the remote lookups
-    // and the retry loop no longer wait on that dialog.
-    if (shouldProbeLocalNodes()) {
-      localConfigs.forEach(probe);
-    }
-
     return () => {
       cancelled = true;
     };
-  }, [type, id]);
+  }, [searchable, id]);
+
+  // Reaching a localnet node means reaching the user's own machine, which the
+  // browser gates. Ask it where we stand - querying never prompts - and only
+  // search unattended if the permission is already granted.
+  useEffect(() => {
+    if (
+      !searchable ||
+      !shouldProbeLocalNodes() ||
+      getSearchableNetworks().local.length === 0
+    ) {
+      setLocalAccess(null);
+      return;
+    }
+    let cancelled = false;
+    getLocalNodeAccess().then((access) => {
+      if (!cancelled) {
+        setLocalAccess(access);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [searchable, id]);
+
+  useEffect(() => {
+    if (localAccess === "granted" && localSearch === "idle") {
+      setLocalSearch("checking");
+    }
+  }, [localAccess, localSearch]);
+
+  useEffect(() => {
+    if (localSearch !== "checking" || !id) {
+      return;
+    }
+    let cancelled = false;
+    findTransaction(id, getSearchableNetworks().local, (network) => {
+      if (!cancelled) {
+        found(network);
+      }
+    }).then(() => {
+      if (!cancelled) {
+        setLocalSearch("done");
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, localSearch]);
+
+  // Asking for local network access is worth a permission prompt only once the
+  // public networks have come back empty.
+  const showLocalnet =
+    localAccess !== null &&
+    localAccess !== "denied" &&
+    !checkingRemoteNetworks &&
+    otherNetworks.length === 0;
 
   return (
     <div className="mt-36 mb-8">
@@ -179,6 +237,32 @@ function CustomError({
               ))}
               .
             </div>
+          ) : null}
+
+          {showLocalnet ? (
+            <Alert className="mt-5 bg-background-card border-none text-foreground rounded-lg">
+              <AlertDescription className="flex flex-wrap items-center gap-3">
+                {localSearch === "checking" ? (
+                  <>Looking for this transaction on your localnet&hellip;</>
+                ) : localSearch === "done" ? (
+                  <>This transaction is not on your localnet either.</>
+                ) : (
+                  <>
+                    <span>
+                      Not on the public networks. Your localnet runs on this
+                      machine, so your browser may ask permission to reach it.
+                    </span>
+                    <Button
+                      variant="outline"
+                      className="border-border text-primary hover:bg-primary/10"
+                      onClick={() => setLocalSearch("checking")}
+                    >
+                      Check my localnet
+                    </Button>
+                  </>
+                )}
+              </AlertDescription>
+            </Alert>
           ) : null}
 
           {isLocalnet &&
