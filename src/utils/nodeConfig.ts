@@ -42,6 +42,40 @@ export function getOtherNetworkNodeConfigs(network = defaultNetwork): Map<keyof 
     return otherNodes;
 }
 
+const localHostnames = new Set(['localhost', '127.0.0.1', '[::1]', '::1', '0.0.0.0']);
+
+function isLocalUrl(url: string): boolean {
+    try {
+        const {hostname} = new URL(url);
+        return localHostnames.has(hostname) || hostname.endsWith('.localhost');
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * A node config that lives on the machine running the browser (localnet).
+ */
+export function isLocalNodeConfig(config: NodeConnectionParams): boolean {
+    return isLocalUrl(config.algod.url) || isLocalUrl(config.indexer.url);
+}
+
+/**
+ * Whether to look for a transaction on a node on the user's own machine.
+ *
+ * Browsers treat a remotely served page reaching localhost as local network
+ * access: Chrome asks for permission, Safari blocks it outright. So this probe
+ * is always fired on its own and never awaited alongside the remote networks -
+ * where the browser allows it, localnet transactions are still found from
+ * algo.surf; where it does not, it fails quietly instead of holding up the rest.
+ *
+ * Set `localStorage.probeLocalnet = 'false'` to skip it, and with it the
+ * permission prompt.
+ */
+export function shouldProbeLocalNodes(): boolean {
+    return localStorage.getItem('probeLocalnet') !== 'false';
+}
+
 export function getKMDConfig(): KMDConnectionParams {
     const defaultKMDConfig: KMDConnectionParams = {
         url: 'http://localhost',
