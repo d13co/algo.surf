@@ -37,6 +37,7 @@ function InnerTransactionDetail({
         </span>
         <JsonViewer
           obj={() => txnInstance.toJSON()}
+          dataKey={txn}
           title={title}
           filename={filename}
           size="sm"

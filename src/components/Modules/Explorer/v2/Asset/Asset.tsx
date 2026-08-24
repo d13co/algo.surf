@@ -72,6 +72,7 @@ function Asset(): JSX.Element {
               jsonViewer={{
                 filename: `asset-${id}.json`,
                 obj: () => assetInstance?.toJSON() ?? {},
+                dataKey: assetInfo,
                 title: `Asset ${id}`,
               }}
               openIn={{ pageType: "asset", id }}

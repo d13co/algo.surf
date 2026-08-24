@@ -96,6 +96,7 @@ function Group(): JSX.Element {
               jsonViewer={{
                 filename: `group-${id}.json`,
                 obj: () => groupInstance?.toJSON() ?? {},
+                dataKey: groupInfo,
                 title: `Group ${id}`,
               }}
             />

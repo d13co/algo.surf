@@ -1,4 +1,4 @@
-import React, { Suspense, useState, useCallback, useRef } from "react";
+import React, { Suspense, useState, useCallback, useRef, useLayoutEffect } from "react";
 const ReactJson = React.lazy(() => import("react-json-view"));
 import { exportData } from "src/utils/common";
 import { X } from "lucide-react";
@@ -28,6 +28,12 @@ function JsonViewer(props: {
   size?: "sm" | "default";
   fullWidth?: boolean;
   variant?: "outline" | "default";
+  /**
+   * Identity of the record `obj` reads from. While the viewer is open, changing
+   * this re-reads `obj` so the JSON follows the page (e.g. block arrow keys,
+   * or the query resolving after a navigation).
+   */
+  dataKey?: unknown;
 }): JSX.Element {
   const {
     obj: getObj = () => ({}),
@@ -36,18 +42,19 @@ function JsonViewer(props: {
     size = "sm",
     fullWidth = false,
     variant = "outline",
+    dataKey,
   } = props;
 
-  const dataRef = useRef<any>(null);
+  const [data, setData] = useState<any>(null);
+  // Always read through the latest closure; call sites pass a fresh arrow each render.
+  const getObjRef = useRef(getObj);
+  getObjRef.current = getObj;
 
   const [{ show, expand, expanding, copied }, setState] = useState({ ...initialState, expanding: false, copied: false });
 
   const toggle = useCallback(() => {
-    setState((prev) => {
-      if (!prev.show) dataRef.current = getObj();
-      return { ...prev, show: !prev.show };
-    });
-  }, [getObj]);
+    setState((prev) => ({ ...prev, show: !prev.show }));
+  }, []);
 
   const handleClose = useCallback(() => {
     setState((prev) => ({ ...prev, show: false }));
@@ -61,14 +68,20 @@ function JsonViewer(props: {
   }, []);
 
   const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(JSON.stringify(dataRef.current ?? {}));
+    navigator.clipboard.writeText(JSON.stringify(data ?? {}));
     setState((prev) => ({ ...prev, copied: true }));
     setTimeout(() => setState((prev) => ({ ...prev, copied: false })), 1000);
-  }, []);
+  }, [data]);
 
   const handleDownload = useCallback(() => {
-    exportData(dataRef.current ?? {}, filename);
-  }, [filename]);
+    exportData(data ?? {}, filename);
+  }, [data, filename]);
+
+  // Snapshot on open, and refresh whenever the underlying record changes while open.
+  useLayoutEffect(() => {
+    if (!show) return;
+    setData(getObjRef.current());
+  }, [show, dataKey]);
 
   useHotkeys("j", toggle);
   useHotkeys("e", toggleExpand, { enabled: show });
@@ -81,7 +94,7 @@ function JsonViewer(props: {
         variant={variant}
         size={size}
         className={`border-border text-primary hover:bg-primary/10 ${fullWidth ? "w-full" : ""}`}
-        onClick={() => { dataRef.current = getObj(); setState((prev) => ({ ...prev, show: true })); }}
+        onClick={() => setState((prev) => ({ ...prev, show: true }))}
       >
         <span className="whitespace-nowrap">View&nbsp;<span className="underline">J</span>SON</span>
       </Button>
@@ -126,7 +139,7 @@ function JsonViewer(props: {
               <Suspense fallback={<div className="p-4 text-muted-foreground">Loading...</div>}>
                 <ReactJson
                   key={expand ? "expanded" : "collapsed"}
-                  src={dataRef.current ?? {}}
+                  src={data ?? {}}
                   name={false}
                   displayObjectSize={false}
                   displayDataTypes={false}

@@ -97,6 +97,7 @@ function Transaction(): JSX.Element {
               jsonViewer={{
                 filename: `txn-${id}.json`,
                 obj: () => txnInstance?.toJSON() ?? txnObj ?? {},
+                dataKey: txnObj,
                 title: `Transaction ${id?.slice(0, 24)}..`,
               }}
               openIn={{ pageType: "transaction", id }}

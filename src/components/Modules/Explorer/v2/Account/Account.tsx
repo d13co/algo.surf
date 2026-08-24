@@ -275,6 +275,7 @@ function Account(): JSX.Element {
               truncate
               jsonViewer={{
                 obj: () => accountInfo ? toPlainJson(accountInfo) : {},
+                dataKey: accountInfo,
                 filename: `account-${address}.json`,
                 title: `Account ${address?.slice(0, 16)}..`,
               }}

@@ -75,6 +75,7 @@ function Block(): JSX.Element {
               jsonViewer={{
                 filename: `block-${id}.json`,
                 obj: () => blockInstance?.toJSON() ?? {},
+                dataKey: blockInfo,
                 title: `Block ${id}`,
               }}
               openIn={{ pageType: "block", id }}

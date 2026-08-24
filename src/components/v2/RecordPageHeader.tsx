@@ -14,6 +14,8 @@ interface RecordPageHeaderProps {
     obj: () => any;
     filename?: string;
     title?: string;
+    /** Identity of the record `obj` reads from; see JsonViewer. */
+    dataKey?: unknown;
   };
   openIn?: {
     pageType: PageType;

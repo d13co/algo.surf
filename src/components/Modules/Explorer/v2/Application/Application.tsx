@@ -134,6 +134,7 @@ function Application(): JSX.Element {
               jsonViewer={{
                 filename: `app-${id}.json`,
                 obj: () => applicationInstance?.toJSON() ?? {},
+                dataKey: appInfo,
                 title: `Application ${id}`,
               }}
               openIn={{ pageType: "application", id }}
