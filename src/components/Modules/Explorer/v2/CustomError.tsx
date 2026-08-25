@@ -249,7 +249,7 @@ function CustomError({
                 ) : (
                   <>
                     <span>
-                      Not on the public networks. Your localnet runs on this
+                      Transaction not found on any public network. Your localnet runs on this
                       machine, so your browser may ask permission to reach it.
                     </span>
                     <Button
