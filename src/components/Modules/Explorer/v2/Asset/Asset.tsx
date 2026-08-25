@@ -74,6 +74,16 @@ function Asset(): JSX.Element {
                 obj: () => assetInstance?.toJSON() ?? {},
                 dataKey: assetInfo,
                 title: `Asset ${id}`,
+                // A destroyed asset is gone from algod - only the indexer
+                // still has it, and only with include-all=true.
+                api: assetInstance
+                  ? {
+                      ...(assetInstance.isDeleted()
+                        ? {}
+                        : { algod: `/v2/assets/${id}` }),
+                      indexer: `/v2/assets/${id}?include-all=true`,
+                    }
+                  : undefined,
               }}
               openIn={{ pageType: "asset", id }}
             />

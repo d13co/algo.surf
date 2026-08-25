@@ -136,6 +136,16 @@ function Application(): JSX.Element {
                 obj: () => applicationInstance?.toJSON() ?? {},
                 dataKey: appInfo,
                 title: `Application ${id}`,
+                // A deleted application is gone from algod - only the indexer
+                // still has it, and only with include-all=true.
+                api: applicationInstance
+                  ? {
+                      ...(applicationInstance.isDeleted()
+                        ? {}
+                        : { algod: `/v2/applications/${id}` }),
+                      indexer: `/v2/applications/${id}?include-all=true`,
+                    }
+                  : undefined,
               }}
               openIn={{ pageType: "application", id }}
             />

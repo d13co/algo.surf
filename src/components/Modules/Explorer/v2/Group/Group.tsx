@@ -98,6 +98,15 @@ function Group(): JSX.Element {
                 obj: () => groupInstance?.toJSON() ?? {},
                 dataKey: groupInfo,
                 title: `Group ${id}`,
+                // A group has no endpoint of its own; this is the indexer query
+                // that returns exactly its transactions. The id is base64, so it
+                // has to be escaped.
+                api:
+                  id && numBlockId
+                    ? {
+                        indexer: `/v2/transactions?group-id=${encodeURIComponent(id)}&round=${numBlockId}`,
+                      }
+                    : undefined,
               }}
             />
 

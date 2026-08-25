@@ -77,6 +77,13 @@ function Block(): JSX.Element {
                 obj: () => blockInstance?.toJSON() ?? {},
                 dataKey: blockInfo,
                 title: `Block ${id}`,
+                api: Number.isFinite(numId)
+                  ? {
+                      // algod serves blocks as msgpack unless asked otherwise.
+                      algod: `/v2/blocks/${numId}?format=json`,
+                      indexer: `/v2/blocks/${numId}`,
+                    }
+                  : undefined,
               }}
               openIn={{ pageType: "block", id }}
             >

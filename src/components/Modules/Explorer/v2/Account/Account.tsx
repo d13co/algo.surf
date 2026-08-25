@@ -49,6 +49,7 @@ import { AlgoXEvmSdk } from "algo-x-evm-sdk";
 import { CircleHelp } from "lucide-react";
 
 const isMainnet = network === "Mainnet";
+const INDEXER_MAX_ACCOUNT_RESOURCES = 1000;
 const tinymanAppEscrow =
   "XSKED5VKZZCSYNDWXZJI65JM2HP7HZFJWCOBIMOONKHTK5UVKENBNVDEYM";
 
@@ -127,6 +128,21 @@ function Account(): JSX.Element {
     () => accountInfo ? new CoreAccount(accountInfo) : null,
     [accountInfo]
   );
+
+  // The indexer inlines an account's asset and app arrays and refuses the
+  // whole record once their combined count passes its max-results limit
+  // ("Result limit exceeded"), so those accounts have to ask for the record
+  // without them. Every other account gets the arrays. The limit is per-node
+  // and not discoverable, so assume the indexer default and stay under it.
+  const indexerExcludesResources = useMemo(() => {
+    if (!accountInfo) return false;
+    const resources =
+      Number(accountInfo.totalAssetsOptedIn ?? 0) +
+      Number(accountInfo.totalCreatedAssets ?? 0) +
+      Number(accountInfo.totalAppsOptedIn ?? 0) +
+      Number(accountInfo.totalCreatedApps ?? 0);
+    return resources > INDEXER_MAX_ACCOUNT_RESOURCES;
+  }, [accountInfo]);
 
   const assetIdsToLookup = useMemo(() => {
     if (accountInfo?.authAddr?.toString() === tinymanAppEscrow) {
@@ -278,6 +294,14 @@ function Account(): JSX.Element {
                 dataKey: accountInfo,
                 filename: `account-${address}.json`,
                 title: `Account ${address?.slice(0, 16)}..`,
+                api: address
+                  ? {
+                      // algod has no such limit, so it always serves the
+                      // arrays in full.
+                      algod: `/v2/accounts/${address}`,
+                      indexer: `/v2/accounts/${address}${indexerExcludesResources ? "?exclude=all" : ""}`,
+                    }
+                  : undefined,
               }}
               openIn={{ pageType: "account", id: address }}
             />
