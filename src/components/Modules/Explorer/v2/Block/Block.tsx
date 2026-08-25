@@ -48,7 +48,12 @@ function Block(): JSX.Element {
 
   useTitle(`Block ${id}`);
 
-  const goToPrev = () => navigate(`/block/${numId - 1}/transactions`);
+  // Block 1 is the floor: stepping back from it would only reach the
+  // genesis round and then negative rounds, neither of which is a page.
+  const hasPrev = numId > 1;
+  const goToPrev = () => {
+    if (hasPrev) navigate(`/block/${numId - 1}/transactions`);
+  };
   const goToNext = () => navigate(`/block/${numId + 1}/transactions`);
 
   useHotkeys("left", goToPrev, [numId]);
@@ -77,18 +82,30 @@ function Block(): JSX.Element {
                 obj: () => blockInstance?.toJSON() ?? {},
                 dataKey: blockInfo,
                 title: `Block ${id}`,
+                api: Number.isFinite(numId)
+                  ? {
+                      // algod serves blocks as msgpack unless asked otherwise.
+                      algod: `/v2/blocks/${numId}?format=json`,
+                      indexer: `/v2/blocks/${numId}`,
+                    }
+                  : undefined,
               }}
               openIn={{ pageType: "block", id }}
             >
               <div className="flex items-center gap-1 shrink-0 ml-auto md:ml-0">
                 <a
-                  href={`/block/${numId - 1}/transactions`}
+                  href={hasPrev ? `/block/${numId - 1}/transactions` : undefined}
                   onClick={(e) => {
                     e.preventDefault();
                     goToPrev();
                   }}
-                  className="text-primary hover:bg-primary/10 rounded p-1.5"
-                  title="Previous block (←)"
+                  className={
+                    hasPrev
+                      ? "text-primary hover:bg-primary/10 rounded p-1.5"
+                      : "text-muted-foreground opacity-40 pointer-events-none rounded p-1.5"
+                  }
+                  aria-disabled={!hasPrev}
+                  title={hasPrev ? "Previous block (←)" : "First block"}
                 >
                   <ArrowLeftFromLine size={20} />
                 </a>

@@ -1,7 +1,7 @@
 import React, { useRef } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import Copyable from "src/components/v2/Copyable";
-import JsonViewer from "src/components/v2/JsonViewer";
+import JsonViewer, { JsonViewerApi } from "src/components/v2/JsonViewer";
 import OpenInMenu from "src/components/v2/OpenInMenu";
 import { PageType } from "@d13co/open-in";
 
@@ -16,6 +16,8 @@ interface RecordPageHeaderProps {
     title?: string;
     /** Identity of the record `obj` reads from; see JsonViewer. */
     dataKey?: unknown;
+    /** REST endpoints serving this record; see JsonViewer. */
+    api?: JsonViewerApi;
   };
   openIn?: {
     pageType: PageType;

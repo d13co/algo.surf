@@ -1,9 +1,16 @@
-import React, { Suspense, useState, useCallback, useRef, useLayoutEffect } from "react";
+import React, { Suspense, useState, useCallback, useMemo, useRef, useLayoutEffect } from "react";
 const ReactJson = React.lazy(() => import("react-json-view"));
 import { exportData } from "src/utils/common";
 import { X } from "lucide-react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { Button } from "src/components/v2/ui/button";
+import Copyable from "src/components/v2/Copyable";
+import {
+  ApiService,
+  apiRequiresToken,
+  getApiCurlCommand,
+  getApiUrl,
+} from "src/utils/nodeApi";
 import {
   Dialog,
   DialogContent,
@@ -21,6 +28,23 @@ const initialState: JsonViewerState = {
   show: false,
 };
 
+/**
+ * Paths (with query) on each service that serve the record being viewed. A key
+ * is omitted where no endpoint exists - algod cannot look up a confirmed
+ * transaction, and inner transactions are not addressable at all - so nothing
+ * is rendered rather than a link that cannot work.
+ */
+export type JsonViewerApi = { algod?: string; indexer?: string };
+
+const apiServices: ApiService[] = ["algod", "indexer"];
+
+const apiLabel: Record<ApiService, JSX.Element> = {
+  algod: <span className="whitespace-nowrap">Open <u>a</u>lgod API</span>,
+  indexer: <span className="whitespace-nowrap">Open <u>i</u>ndexer API</span>,
+};
+
+const actionClassName = "border-border text-primary hover:bg-primary/10";
+
 function JsonViewer(props: {
   obj?: () => any;
   filename?: string;
@@ -34,6 +58,8 @@ function JsonViewer(props: {
    * or the query resolving after a navigation).
    */
   dataKey?: unknown;
+  /** REST endpoints serving this record; see JsonViewerApi. */
+  api?: JsonViewerApi;
 }): JSX.Element {
   const {
     obj: getObj = () => ({}),
@@ -43,6 +69,7 @@ function JsonViewer(props: {
     fullWidth = false,
     variant = "outline",
     dataKey,
+    api,
   } = props;
 
   const [data, setData] = useState<any>(null);
@@ -51,6 +78,18 @@ function JsonViewer(props: {
   getObjRef.current = getObj;
 
   const [{ show, expand, expanding, copied }, setState] = useState({ ...initialState, expanding: false, copied: false });
+  // Which service's curl command is being shown, if any.
+  const [curlService, setCurlService] = useState<ApiService | null>(null);
+
+  const endpoints = useMemo(
+    () =>
+      apiServices.flatMap((service) => {
+        const path = api?.[service];
+        if (!path) return [];
+        return [{ service, path, requiresToken: apiRequiresToken(service) }];
+      }),
+    [api?.algod, api?.indexer]
+  );
 
   const toggle = useCallback(() => {
     setState((prev) => ({ ...prev, show: !prev.show }));
@@ -58,6 +97,7 @@ function JsonViewer(props: {
 
   const handleClose = useCallback(() => {
     setState((prev) => ({ ...prev, show: false }));
+    setCurlService(null);
   }, []);
 
   const toggleExpand = useCallback(() => {
@@ -77,6 +117,20 @@ function JsonViewer(props: {
     exportData(data ?? {}, filename);
   }, [data, filename]);
 
+  // Keyboard equivalent of clicking an endpoint button.
+  const openEndpoint = useCallback(
+    (service: ApiService) => {
+      const endpoint = endpoints.find((e) => e.service === service);
+      if (!endpoint) return;
+      if (endpoint.requiresToken) {
+        setCurlService(service);
+      } else {
+        window.open(getApiUrl(service, endpoint.path), "_blank", "noopener,noreferrer");
+      }
+    },
+    [endpoints]
+  );
+
   // Snapshot on open, and refresh whenever the underlying record changes while open.
   useLayoutEffect(() => {
     if (!show) return;
@@ -87,13 +141,17 @@ function JsonViewer(props: {
   useHotkeys("e", toggleExpand, { enabled: show });
   useHotkeys("c", handleCopy, { enabled: show });
   useHotkeys("d", handleDownload, { enabled: show });
+  useHotkeys("a", () => openEndpoint("algod"), { enabled: show && !!api?.algod }, [openEndpoint]);
+  useHotkeys("i", () => openEndpoint("indexer"), { enabled: show && !!api?.indexer }, [openEndpoint]);
+
+  const curlPath = curlService ? api?.[curlService] : undefined;
 
   return (
     <div>
       <Button
         variant={variant}
         size={size}
-        className={`border-border text-primary hover:bg-primary/10 ${fullWidth ? "w-full" : ""}`}
+        className={`${actionClassName} ${fullWidth ? "w-full" : ""}`}
         onClick={() => setState((prev) => ({ ...prev, show: true }))}
       >
         <span className="whitespace-nowrap">View&nbsp;<span className="underline">J</span>SON</span>
@@ -106,20 +164,50 @@ function JsonViewer(props: {
           </DialogHeader>
 
           <div className="text-[13px] flex flex-col min-h-0">
-            <div className="flex justify-between border-b border-primary pb-4 mb-4 shrink-0">
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-border text-primary hover:bg-primary/10"
-                onClick={toggleExpand}
-              >
-                {expanding ? (expand ? "Collapsing" : "Expanding") : !expand ? <span><u>E</u>xpand All</span> : "Collapse"}
-              </Button>
+            <div className="flex flex-wrap justify-between gap-2 border-b border-primary pb-4 mb-4 shrink-0">
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={actionClassName}
+                  onClick={toggleExpand}
+                >
+                  {expanding ? (expand ? "Collapsing" : "Expanding") : !expand ? <span><u>E</u>xpand All</span> : "Collapse"}
+                </Button>
+
+                {endpoints.map(({ service, path, requiresToken }) =>
+                  requiresToken ? (
+                    // The token travels in a request header, which a browser
+                    // navigation cannot set - offer the command instead of a 401.
+                    <Button
+                      key={service}
+                      variant="outline"
+                      size="sm"
+                      className={actionClassName}
+                      onClick={() => setCurlService(service)}
+                    >
+                      {apiLabel[service]}
+                    </Button>
+                  ) : (
+                    <Button key={service} variant="outline" size="sm" className={actionClassName} asChild>
+                      <a
+                        href={getApiUrl(service, path)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="no-underline text-inherit"
+                      >
+                        {apiLabel[service]}
+                      </a>
+                    </Button>
+                  )
+                )}
+              </div>
+
               <div className="flex gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-border text-primary hover:bg-primary/10"
+                  className={actionClassName}
                   onClick={handleCopy}
                 >
                   {copied ? "Copied" : <span><u>C</u>opy</span>}
@@ -127,7 +215,7 @@ function JsonViewer(props: {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-border text-primary hover:bg-primary/10"
+                  className={actionClassName}
                   onClick={handleDownload}
                 >
                   <span><u>D</u>ownload</span>
@@ -152,6 +240,52 @@ function JsonViewer(props: {
               </Suspense>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!curlService && !!curlPath}
+        onOpenChange={(open) => !open && setCurlService(null)}
+      >
+        <DialogContent className="max-w-2xl bg-background-muted text-foreground">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-normal">
+              {curlService} API
+            </DialogTitle>
+          </DialogHeader>
+
+          {curlService && curlPath && (
+            // min-w-0 on the grid item: without it the row below is sized by
+            // the URL's min-content, which for one long unbreakable token is
+            // the whole URL - and the dialog overflows.
+            <div className="text-[13px] flex flex-col gap-4 min-w-0">
+              <p className="text-muted-foreground m-0">
+                This node authenticates with a token sent as a request header, which a
+                browser cannot add when following a link. Run this instead:
+              </p>
+
+              <div className="flex items-start gap-2 rounded bg-background-card p-3 min-w-0">
+                <pre className="m-0 flex-1 min-w-0 whitespace-pre-wrap break-all font-mono">
+                  {getApiCurlCommand(curlService, curlPath)}
+                </pre>
+                <Copyable
+                  className="opacity-60 hover:opacity-100 mt-0.5 shrink-0"
+                  value={getApiCurlCommand(curlService, curlPath)}
+                />
+              </div>
+
+              <div className="flex items-start gap-2 min-w-0">
+                <span className="text-muted-foreground shrink-0">URL</span>
+                <span className="min-w-0 break-all font-mono">
+                  {getApiUrl(curlService, curlPath)}
+                </span>
+                <Copyable
+                  className="opacity-60 hover:opacity-100 shrink-0"
+                  value={getApiUrl(curlService, curlPath)}
+                />
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

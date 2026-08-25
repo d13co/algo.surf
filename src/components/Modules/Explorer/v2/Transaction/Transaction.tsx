@@ -99,6 +99,8 @@ function Transaction(): JSX.Element {
                 obj: () => txnInstance?.toJSON() ?? txnObj ?? {},
                 dataKey: txnObj,
                 title: `Transaction ${id?.slice(0, 24)}..`,
+                // No algod counterpart: it can only look up *pending* transactions.
+                api: id ? { indexer: `/v2/transactions/${id}` } : undefined,
               }}
               openIn={{ pageType: "transaction", id }}
             />
