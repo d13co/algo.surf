@@ -43,14 +43,30 @@ export function parsePqSig(raw: unknown): A_SearchTransaction_PQSig | undefined 
   };
 }
 
-/** Decode the base64 scheme identifier (e.g. "ZjE=" -> "f1"). */
+/** Printable ASCII, excluding DEL — what a scheme identifier may look like. */
+function isReadable(value: string): boolean {
+  return /^[\x20-\x7E]+$/.test(value);
+}
+
+/** Base64 is only plausible when the alphabet and the padded length both fit. */
+function looksBase64(value: string): boolean {
+  return value.length % 4 === 0 && /^[A-Za-z0-9+/]+={0,2}$/.test(value);
+}
+
+/**
+ * Read the scheme identifier (e.g. "f1"). Indexers ship it both as plain text
+ * and base64-encoded ("ZjE="), so only decode when the input actually looks
+ * like base64 and yields readable text — Buffer's base64 decoder never throws
+ * and happily turns a plain "f1" into a DEL byte.
+ */
 export function decodePqSigScheme(pqsig: A_SearchTransaction_PQSig): string {
-  if (!pqsig.scheme) return "";
-  try {
-    return Buffer.from(pqsig.scheme, "base64").toString("utf-8");
-  } catch {
-    return pqsig.scheme;
+  const raw = pqsig.scheme?.trim();
+  if (!raw) return "";
+  if (looksBase64(raw)) {
+    const decoded = Buffer.from(raw, "base64").toString("utf-8");
+    if (decoded && isReadable(decoded)) return decoded;
   }
+  return raw;
 }
 
 /** Human-readable scheme name; "f1" is falcon-1024. */
@@ -58,6 +74,6 @@ export function pqSigSchemeLabel(
   pqsig: A_SearchTransaction_PQSig | undefined,
 ): string {
   const scheme = pqsig ? decodePqSigScheme(pqsig) : "";
-  if (scheme === "f1" || !scheme) return "Falcon-1024";
+  if (!scheme || scheme.toLowerCase() === "f1") return "Falcon-1024";
   return scheme;
 }
