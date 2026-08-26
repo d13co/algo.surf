@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import BoxesList from "../BoxesList";
 import BoxSearchBar, { BoxSearchMode } from "../BoxSearchBar";
@@ -259,7 +259,10 @@ function ApplicationBoxes(): JSX.Element {
 
   const fetchAllBoxNames = useCallback(async (signal: AbortSignal): Promise<A_BoxName[]> => {
     if (cachedAllBoxNames.current) return cachedAllBoxNames.current;
-    if (!hasNextPage) {
+    // `hasNextPage` is also false before the first page lands, so require the
+    // query to have data — otherwise an early search caches an empty list and
+    // every later search on this app comes up empty.
+    if (data && !hasNextPage) {
       cachedAllBoxNames.current = boxNames;
       return boxNames;
     }
@@ -276,7 +279,7 @@ function ApplicationBoxes(): JSX.Element {
     } while (token);
     cachedAllBoxNames.current = allBoxes;
     return allBoxes;
-  }, [boxNames, hasNextPage, numId]);
+  }, [boxNames, data, hasNextPage, numId]);
 
   const filterKeys = useCallback((allNames: A_BoxName[], mode: "key-prefix" | "key-search", term: string, isBase64: boolean): A_BoxName[] => {
     if (mode === "key-prefix") {
@@ -361,6 +364,17 @@ function ApplicationBoxes(): JSX.Element {
       }
     }
   }, [fetchAllBoxNames, filterKeys, boxNames, numId]);
+
+  // The route keeps this component mounted when navigating between apps, so
+  // drop anything scoped to the previous app id.
+  useEffect(() => {
+    abortRef.current?.abort();
+    cachedAllBoxNames.current = null;
+    setSearchResults(null);
+    setSearchLoading(false);
+    setSearchProgress("");
+    setLastSearch(null);
+  }, [numId]);
 
   const handleSearchClear = useCallback(() => {
     abortRef.current?.abort();

@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import {
   useReactTable,
   getCoreRowModel,
@@ -93,6 +93,15 @@ function BoxList({
 
   const { pageIndex } = table.getState().pagination;
   const pageCount = table.getPageCount();
+
+  // Searching swaps the whole list out, so the current page can end up past the
+  // end of a shorter result set: the table renders empty and TablePagination
+  // hides itself, leaving no way back. Snap to the first page instead.
+  useEffect(() => {
+    if (pageIndex > 0 && pageIndex >= pageCount) {
+      table.setPageIndex(0);
+    }
+  }, [pageIndex, pageCount, table]);
 
   function onPageChange(newPage: number) {
     if (hasMore && loadMore && newPage >= pageCount - 2) {
