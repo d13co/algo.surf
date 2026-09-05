@@ -27,7 +27,6 @@ export default function TxnIdCell({
   return (
     <div className="flex items-center gap-1 min-w-0">
       <Copyable size="s" value={txnId} />
-      {rekey ? <RekeyIcon /> : null}
       {showGroupIcon ? (
         <div className="relative shrink-0 self-stretch flex items-center">
           {showLine && !isFirstOnPage && (groupPos === "middle" || groupPos === "last") && (
@@ -41,6 +40,7 @@ export default function TxnIdCell({
           </div>
         </div>
       ) : null}
+      {rekey ? <RekeyIcon /> : null}
       <LinkToTransaction id={txnId} />
     </div>
   );
