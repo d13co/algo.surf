@@ -1,3 +1,9 @@
 onlyBuiltDependencies:
   - '@parcel/watcher'
   - esbuild
+
+overrides:
+  # @d13co/algo-metrics-sdk pins ^0.0.7 (a 0.0.x caret is an exact pin), which
+  # would keep a second copy of the SDK around: two GhostBase instances mean two
+  # separate suggested-params caches, and its copy lacks the in-flight dedupe.
+  abel-ghost-sdk: 0.0.10

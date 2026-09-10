@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  abel-ghost-sdk: 0.0.10
+
 importers:
 
   .:
@@ -63,8 +66,8 @@ importers:
         specifier: ^0.10.1
         version: 0.10.1
       abel-ghost-sdk:
-        specifier: 0.0.7
-        version: 0.0.7(@algorandfoundation/algokit-utils@9.2.0(algosdk@3.5.2))(algosdk@3.5.2)
+        specifier: 0.0.10
+        version: 0.0.10(@algorandfoundation/algokit-utils@9.2.0(algosdk@3.5.2))(algosdk@3.5.2)
       algo-x-evm-sdk:
         specifier: ^0.1.3
         version: 0.1.3(@algorandfoundation/algokit-utils@9.2.0(algosdk@3.5.2))(algosdk@3.5.2)
@@ -1233,8 +1236,8 @@ packages:
   '@yornaath/batshit@0.10.1':
     resolution: {integrity: sha512-WGZ1WNoiVN6CLf28O73+6SCf+2lUn4U7TLGM9f4zOad0pn9mdoXIq8cwu3Kpf7N2OTYgWGK4eQPTflwFlduDGA==}
 
-  abel-ghost-sdk@0.0.7:
-    resolution: {integrity: sha512-1lmdR+PjetbYI0N3onxvTA3yUvE6Qa7WJoB+l4Y94gYQWekZcKwEnG9GnwnG+nkXWGfTh2cJRHk1MYPxg3F1OQ==}
+  abel-ghost-sdk@0.0.10:
+    resolution: {integrity: sha512-hzEK0YCE/5gzu85+U8EH1Wro5kcX6x4mbijcbXTGPqmlH1QdKkNSApSqRyRf5u8N++6BZJSfqtCrdezXzuBhLg==}
     peerDependencies:
       '@algorandfoundation/algokit-utils': ^9.2.0
       algosdk: ^3.5.2
@@ -2659,7 +2662,7 @@ snapshots:
   '@d13co/algo-metrics-sdk@1.2.1':
     dependencies:
       '@algorandfoundation/algokit-utils': 9.2.0(algosdk@3.5.2)
-      abel-ghost-sdk: 0.0.7(@algorandfoundation/algokit-utils@9.2.0(algosdk@3.5.2))(algosdk@3.5.2)
+      abel-ghost-sdk: 0.0.10(@algorandfoundation/algokit-utils@9.2.0(algosdk@3.5.2))(algosdk@3.5.2)
       algosdk: 3.5.2
 
   '@d13co/escreg-sdk@0.0.2(@algorandfoundation/algokit-utils@9.2.0(algosdk@3.5.2))(algosdk@3.5.2)':
@@ -3430,7 +3433,7 @@ snapshots:
     dependencies:
       '@yornaath/batshit-devtools': 1.7.1
 
-  abel-ghost-sdk@0.0.7(@algorandfoundation/algokit-utils@9.2.0(algosdk@3.5.2))(algosdk@3.5.2):
+  abel-ghost-sdk@0.0.10(@algorandfoundation/algokit-utils@9.2.0(algosdk@3.5.2))(algosdk@3.5.2):
     dependencies:
       '@algorandfoundation/algokit-utils': 9.2.0(algosdk@3.5.2)
       algosdk: 3.5.2
