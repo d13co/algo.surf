@@ -24,8 +24,8 @@ importers:
         specifier: ^1.2.1
         version: 1.2.1
       '@d13co/escreg-sdk':
-        specifier: ^0.0.2
-        version: 0.0.2(@algorandfoundation/algokit-utils@9.2.0(algosdk@3.5.2))(algosdk@3.5.2)
+        specifier: ^0.1.1
+        version: 0.1.1(@algorandfoundation/algokit-utils@9.2.0(algosdk@3.5.2))(algosdk@3.5.2)
       '@d13co/open-in':
         specifier: 0.1.2
         version: 0.1.2
@@ -298,11 +298,14 @@ packages:
   '@d13co/algo-metrics-sdk@1.2.1':
     resolution: {integrity: sha512-VM2RRYUzZ5h99e5jQWFTlv4l759THmUJj70vay5rXxTqjNIGWsWELhE1vwaOVQAJCWoAwNoU6ZoNRyWYjpaDQg==}
 
-  '@d13co/escreg-sdk@0.0.2':
-    resolution: {integrity: sha512-jUc7tWQeDaW/0zn7xAlJEEF8et6GTy0663QHQNonijg1rGJm131iMZCiLjqDvrU4MiEfDwAQ88f9ff8mBLu5XA==}
+  '@d13co/escreg-sdk@0.1.1':
+    resolution: {integrity: sha512-ADHuh9vmwC7lDp3TzFSoZR/wRWJ9GDNb1Lgl80tlehYVsViSyO3B7HYu1yLR0YDqT+12zyuZJA/cZp1FcINuTw==}
     peerDependencies:
       '@algorandfoundation/algokit-utils': ^9.0.0
-      algosdk: ^3.0.0
+      algosdk: ^3.6.0
+    peerDependenciesMeta:
+      '@algorandfoundation/algokit-utils':
+        optional: true
 
   '@d13co/open-in@0.1.2':
     resolution: {integrity: sha512-s2/p03vJLJnN46X6mAo1P2kERi0UGAubLwk8S5AI6vsEmxrxmfIvic/B01FM0+ygAQU23cIMRbY+qwbPsuyYag==}
@@ -2665,11 +2668,11 @@ snapshots:
       abel-ghost-sdk: 0.0.10(@algorandfoundation/algokit-utils@9.2.0(algosdk@3.5.2))(algosdk@3.5.2)
       algosdk: 3.5.2
 
-  '@d13co/escreg-sdk@0.0.2(@algorandfoundation/algokit-utils@9.2.0(algosdk@3.5.2))(algosdk@3.5.2)':
+  '@d13co/escreg-sdk@0.1.1(@algorandfoundation/algokit-utils@9.2.0(algosdk@3.5.2))(algosdk@3.5.2)':
     dependencies:
-      '@algorandfoundation/algokit-utils': 9.2.0(algosdk@3.5.2)
       algosdk: 3.5.2
-      p-map: 7.0.4
+    optionalDependencies:
+      '@algorandfoundation/algokit-utils': 9.2.0(algosdk@3.5.2)
 
   '@d13co/open-in@0.1.2': {}
 
