@@ -191,7 +191,7 @@ function Application(): JSX.Element {
 
                     <div className="mt-2.5">
                       <LabelWithHint
-                        hint="Counted on chain: 1 at creation, bumped by every update to the application's programs."
+                        hint="Counted on chain: 0 at creation, bumped by every update to the application's programs."
                       >
                         Version
                       </LabelWithHint>

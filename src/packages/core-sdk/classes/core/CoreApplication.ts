@@ -142,9 +142,9 @@ export class CoreApplication {
         return this.application.params.extraProgramPages ?? 0;
     }
 
-    /** On-chain version: 1 at creation, bumped by every program update. */
+    /** On-chain version: 0 at creation, bumped by every program update. */
     getVersion(): number {
-        return this.application.params.version ?? 1;
+        return this.application.params.version ?? 0;
     }
 
     getGlobalStorage(): A_GlobalState[] {

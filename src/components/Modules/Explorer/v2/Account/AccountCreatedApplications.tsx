@@ -88,7 +88,7 @@ function AccountCreatedApplications(): JSX.Element {
     {
       id: "version",
       header: "Version",
-      cell: ({ row }) => row.original.params.version ?? 1,
+      cell: ({ row }) => row.original.params.version ?? 0,
     },
   ], [onNameResolved]);
 
