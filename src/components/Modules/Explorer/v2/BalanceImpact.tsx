@@ -26,13 +26,22 @@ function BalanceImpact({
   if (!balanceImpact || !assets || assetIds.length === 0) return null;
 
   return (
-    <div className={`rounded-lg p-5 bg-background-card overflow-hidden min-w-0 ${className}`}>
+    <div className={`@container rounded-lg p-5 bg-background-card overflow-hidden min-w-0 ${className}`}>
       <div className="text-muted-foreground mb-4">Balance Impact</div>
       <div className="flex flex-col gap-3">
         {Object.entries(balanceImpact).map(([account, deltas]) => (
           <div key={account} className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1 sm:gap-4 min-w-0">
-            <div className="shrink-0 max-w-[120px]">
-              <LinkToAccount copy="left" strip={8} address={account} />
+            {/* The panel is half a column on the group page and full width on a
+                txn page, so the address length keys off the panel's own width
+                (@container), not the viewport. ~48rem is where a full address
+                plus the amount column fits. */}
+            <div className="shrink-0 max-w-[120px] @[48rem]:max-w-none">
+              <span className="@[48rem]:hidden">
+                <LinkToAccount copy="left" strip={8} address={account} />
+              </span>
+              <span className="hidden @[48rem]:inline-flex">
+                <LinkToAccount copy="left" address={account} />
+              </span>
             </div>
             <div className="flex flex-col gap-1 pl-6 sm:pl-0 sm:items-end sm:text-right">
               {Object.entries(deltas).sort(([, a], [, b]) => a - b).map(([assetId, delta]) => {
