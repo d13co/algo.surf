@@ -1,16 +1,13 @@
-import React, { Suspense, useMemo } from "react";
+import React, { Suspense } from "react";
 import { Outlet, useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { CoreGroup } from "src/packages/core-sdk/classes/core/CoreGroup";
 import { useGroup } from "src/hooks/useGroup";
-import { useTinyAssets } from "src/components/Common/UseTinyAsset";
 import LoadingTile from "src/components/v2/LoadingTile";
 import CustomError from "../CustomError";
-import NumberFormatCopy from "src/components/v2/NumberFormatCopy";
+import BalanceImpact from "../BalanceImpact";
 import MultiDateViewer, { DateSwitcher } from "src/components/v2/MultiDateViewer";
-import LinkToAccount from "../Links/LinkToAccount";
 import LinkToBlock from "../Links/LinkToBlock";
-import LinkToAsset from "../Links/LinkToAsset";
 import useTitle from "src/components/Common/UseTitle/UseTitle";
 import explorer from "src/utils/dappflow";
 import {
@@ -62,19 +59,6 @@ function Group(): JSX.Element {
   });
 
   const balanceImpact = balanceResult?.balanceImpact ?? null;
-
-  const balanceAssetIds = useMemo(() => {
-    if (!balanceImpact) return [];
-    const assetIds = new Set<number>();
-    Object.values(balanceImpact).forEach((deltas) => {
-      Object.keys(deltas).forEach((assetId) => {
-        assetIds.add(Number(assetId));
-      });
-    });
-    return Array.from(assetIds);
-  }, [balanceImpact]);
-
-  const { data: balanceAssets } = useTinyAssets(balanceAssetIds);
 
   useTitle(`Group Txn ${id}`);
 
@@ -168,75 +152,7 @@ function Group(): JSX.Element {
                     </div>
                   </div>
 
-                {balanceImpact && balanceAssets ? (
-                  <div className="rounded-lg p-5 bg-background-card overflow-hidden min-w-0">
-                    <div className="text-muted-foreground mb-4">Balance Impact</div>
-                    <div className="flex flex-col gap-3">
-                      {Object.entries(balanceImpact).map(([account, deltas]) => (
-                        <div key={account} className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1 sm:gap-4 min-w-0">
-                          <div className="shrink-0 max-w-[120px]">
-                            <LinkToAccount
-                              copy="left"
-                              strip={8}
-                              address={account}
-                            />
-                          </div>
-                          <div className="flex flex-col gap-1 pl-6 sm:pl-0 sm:items-end sm:text-right">
-                            {Object.entries(deltas).sort(([, a], [, b]) => a - b).map(([assetId, delta]) => {
-                              const asset = balanceAssets?.find(
-                                (a) => a.index === Number(assetId),
-                              );
-                              const assetLabel =
-                                assetId === "0"
-                                  ? "ALGO"
-                                  : asset?.params["unit-name"] || assetId;
-                              const decimals =
-                                assetId === "0"
-                                  ? 6
-                                  : asset?.params.decimals || 0;
-                              const amount = delta / 10 ** decimals;
-                              return (
-                                <div
-                                  key={assetId}
-                                  className={`flex items-center gap-1 flex-wrap ${
-                                    amount > 0
-                                      ? "text-green-500"
-                                      : amount < 0
-                                        ? "text-red-500"
-                                        : ""
-                                  }`}
-                                >
-                                  <NumberFormatCopy
-                                    value={amount}
-                                    dimmable={true}
-                                    showSign={true}
-                                    copyPosition="left"
-                                    copyStyle={{ marginRight: "0px" }}
-                                    displayType={"text"}
-                                    thousandSeparator={true}
-                                    style={{ marginRight: "4px" }}
-                                  />
-                                  {assetId === "0" ? (
-                                    <span>{assetLabel}</span>
-                                  ) : (
-                                    <LinkToAsset
-                                      style={{
-                                        color: "inherit",
-                                        textDecorationColor: "inherit",
-                                      }}
-                                      id={assetId}
-                                      name={assetLabel}
-                                    />
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
+                  <BalanceImpact balanceImpact={balanceImpact} />
                 </div>
 
                 <div className="mt-6">

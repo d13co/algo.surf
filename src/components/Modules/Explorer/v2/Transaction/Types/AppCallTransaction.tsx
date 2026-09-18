@@ -1,4 +1,7 @@
 import React from "react";
+import { useQuery } from "@tanstack/react-query";
+import { calculateTransactionBalanceImpact } from "@d13co/algo-group-balance-impact";
+import explorer from "src/utils/dappflow";
 import { CoreTransaction } from "src/packages/core-sdk/classes/core/CoreTransaction";
 import { CoreAppCall } from "src/packages/core-sdk/classes/core/CoreAppCall";
 import { capitalizeFirst } from "src/utils/common";
@@ -18,6 +21,7 @@ import AppCallTxnGlobalStateDelta from "./AppCall/AppCallTxnGlobalStateDelta";
 import AppCallTxnLocalStateDelta from "./AppCall/AppCallTxnLocalStateDelta";
 import AppCallTxnLogs from "./AppCall/AppCallTxnLogs";
 import AppCallTxnInnerTxns from "./AppCall/AppCallTxnInnerTxns";
+import BalanceImpact from "../../BalanceImpact";
 
 function AppCallTransaction({
   transaction,
@@ -44,6 +48,21 @@ function AppCallTransaction({
     false,
   );
   const [codeTabValue, setCodeTabValue] = React.useState("approval");
+
+  // A grouped app call gets its balance impact from the group page; a lone one
+  // has nowhere else to show what its inner txns moved. The txn is already in
+  // hand, so this only walks it — no network.
+  const showBalanceImpact = !hideInnerTxns && !txnInstance.getGroup();
+  const { data: balanceResult } = useQuery({
+    queryKey: ["txn-balance-impact", txnInstance.getId()],
+    queryFn: () =>
+      calculateTransactionBalanceImpact({
+        indexer: explorer.network.getIndexer(),
+        txn: transaction,
+        includeFees: true,
+      }),
+    enabled: showBalanceImpact,
+  });
 
   return (
     <div>
@@ -232,6 +251,13 @@ function AppCallTransaction({
 
       {txnInstance.hasInnerTransactions() && !hideInnerTxns ? (
         <AppCallTxnInnerTxns transaction={transaction} />
+      ) : null}
+
+      {showBalanceImpact ? (
+        <BalanceImpact
+          balanceImpact={balanceResult?.balanceImpact}
+          className="mt-6"
+        />
       ) : null}
 
       {txnInstance.hasLogs() ? (
