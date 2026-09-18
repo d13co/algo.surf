@@ -4,6 +4,8 @@ import { bytesToBase64 } from "algosdk";
 import LinkToAccount from "../../Links/LinkToAccount";
 import LinkToBlock from "../../Links/LinkToBlock";
 import XChainOwnerField from "../Sections/XChainOwner";
+import { partkeyIntegrityHash } from "src/utils/partkeyIntegrityHash";
+import Copyable from "src/components/v2/Copyable";
 
 function KeyRegTransaction({
   transaction,
@@ -12,6 +14,19 @@ function KeyRegTransaction({
 }): JSX.Element {
   const txnInstance = new CoreTransaction(transaction);
   const keyRegPayload = txnInstance.getKeyRegPayload();
+  const genesisHash = txnInstance.getGenesisHashBytes();
+  const integrityHash = genesisHash
+    ? partkeyIntegrityHash({
+        genesisHash,
+        address: txnInstance.getFrom(),
+        selectionKey: keyRegPayload?.selectionParticipationKey,
+        voteKey: keyRegPayload?.voteParticipationKey,
+        stateProofKey: keyRegPayload?.stateProofKey,
+        voteFirstValid: keyRegPayload?.voteFirstValid,
+        voteLastValid: keyRegPayload?.voteLastValid,
+        voteKeyDilution: keyRegPayload?.voteKeyDilution,
+      })
+    : "";
 
   return (
     <div className="mt-7">
@@ -25,6 +40,19 @@ function KeyRegTransaction({
         </div>
 
         <XChainOwnerField transaction={transaction} className="col-span-12" />
+
+        {integrityHash ? (
+          <div className="col-span-12">
+            <div className="text-muted-foreground">
+              Integrity hash{" "}
+              <span className="text-xs">(ARC-81)</span>
+            </div>
+            <div className="mt-2.5 text-[13px] font-mono flex items-center gap-1">
+              {integrityHash}
+              <Copyable size="m" value={integrityHash} />
+            </div>
+          </div>
+        ) : null}
 
         {keyRegPayload?.voteParticipationKey ? (
           <div className="col-span-12">

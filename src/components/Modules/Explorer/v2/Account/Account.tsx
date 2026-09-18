@@ -19,7 +19,7 @@ import {
   useAccountTransactions,
   useControllingAccounts,
 } from "src/hooks/useAccount";
-import { useValidator } from "src/hooks/useValidator";
+import { useValidatorStats } from "src/hooks/useValidator";
 import { useReverseNFD, useReverseNFDs } from "src/components/Common/UseNFD";
 import { useTinyAssets } from "src/components/Common/UseTinyAsset";
 import LoadingTile from "src/components/v2/LoadingTile";
@@ -94,7 +94,7 @@ function Account(): JSX.Element {
     error,
   } = useAccount(address);
   const { data: escrowOf } = useEscrowOf(address);
-  const { data: validatorData } = useValidator(address);
+  const { data: validatorStats } = useValidatorStats(address);
   const { data: nfd } = useReverseNFD(address);
   const { data: txnData } = useAccountTransactions(address);
   const { data: controllerData, fetchNextPage: fetchNextControllerPage, hasNextPage: hasNextControllerPage } = useControllingAccounts(address);
@@ -215,8 +215,9 @@ function Account(): JSX.Element {
   const hasAssetOrAppInfo =
     hasOptedAssets || hasCreatedAssets || hasOptedApps || hasCreatedApps;
   const hasValidatorData =
-    (validatorData?.proposals?.length ?? 0) > 0 ||
-    (validatorData?.suspensions?.length ?? 0) > 0;
+    (accountInfo?.status === "Online" && !!accountInfo.participation) ||
+    (validatorStats?.blocks ?? 0) > 0 ||
+    (validatorStats?.suspensions ?? 0) > 0;
 
   const tabsRef = useRef<HTMLDivElement>(null);
 

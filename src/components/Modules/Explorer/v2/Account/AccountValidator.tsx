@@ -1,10 +1,19 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import { useValidator } from "src/hooks/useValidator";
+import {
+  useValidator,
+  useValidatorStats,
+  validatorStatsSupported,
+} from "src/hooks/useValidator";
+import { useAccount } from "src/hooks/useAccount";
+import { useLiveBlocks } from "src/hooks/useLiveBlocks";
+import { useAverageRoundTime } from "@d13co/algo-metrics-react";
+import { BLOCK_TIME } from "src/packages/core-sdk/constants";
+import { partkeyIntegrityHash } from "src/utils/partkeyIntegrityHash";
+import { bytesToBase64 } from "algosdk";
 import Copyable from "src/components/v2/Copyable";
 import AlgoIcon from "../../AlgoIcon/AlgoIcon";
 import { NodeClient } from "src/packages/core-sdk/clients/nodeClient";
-import { BlockClient } from "src/packages/core-sdk/clients/blockClient";
 import explorer from "src/utils/dappflow";
 import { shortDuration } from "src/utils/common";
 import LoadingTile from "src/components/v2/LoadingTile";
@@ -53,7 +62,7 @@ function Row({
   className = "",
 }: {
   label: string;
-  value: string | number;
+  value: React.ReactNode;
   valueSuffix?: React.ReactNode;
   copy?: boolean;
   className?: string;
@@ -66,10 +75,113 @@ function Row({
       )}
     >
       <div>{label}</div>
-      <div className="flex items-center gap-1 text-foreground">
+      <div className="flex items-center gap-1 text-foreground text-right">
         <span>{value}</span>
         {valueSuffix}
-        {copy ? <Copyable value={value} size="s" /> : null}
+        {copy ? <Copyable value={value as string | number} size="s" /> : null}
+      </div>
+    </div>
+  );
+}
+
+function KeyRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-col gap-1 w-full text-muted-foreground leading-[1.5]">
+      <div>{label}</div>
+      <div className="flex items-center gap-1 text-foreground text-[13px] break-all">
+        <span>{value}</span>
+        <Copyable value={value} size="s" />
+      </div>
+    </div>
+  );
+}
+
+function ValidatorInfo({ address }: { address: string }): JSX.Element {
+  const { data: account, isLoading } = useAccount(address);
+  const { blocks } = useLiveBlocks();
+  const avgRoundTime = useAverageRoundTime() ?? BLOCK_TIME;
+  const latest = blocks[0]?.header;
+  const part = account?.participation;
+
+  if (isLoading) {
+    return (
+      <div className="w-full">
+        <LoadingTile
+          style={{ marginTop: "0" }}
+          lineStyle={{ height: "10px", margin: "5px 0" }}
+        />
+      </div>
+    );
+  }
+  if (!part || account?.status !== "Online") {
+    return <div className="text-muted-foreground">Account is offline</div>;
+  }
+
+  const lastValid = Number(part.voteLastValid);
+  const round = latest ? Number(latest.round) : 0;
+  const roundsLeft = lastValid - round;
+  const expiresAt = latest
+    ? Number(latest.timestamp) + roundsLeft * avgRoundTime
+    : 0;
+  const integrityHash = latest?.genesisHash
+    ? partkeyIntegrityHash({
+        genesisHash: latest.genesisHash,
+        address,
+        selectionKey: part.selectionParticipationKey,
+        voteKey: part.voteParticipationKey,
+        stateProofKey: part.stateProofKey,
+        voteFirstValid: part.voteFirstValid,
+        voteLastValid: part.voteLastValid,
+        voteKeyDilution: part.voteKeyDilution,
+      })
+    : "";
+
+  return (
+    <div className="w-full flex flex-col gap-4">
+      <div className="flex flex-col gap-1.5">
+        <Row
+          label="Integrity hash (ARC-81)"
+          value={integrityHash || "-"}
+          copy={!!integrityHash}
+        />
+        <Row
+          label="Vote first valid"
+          value={Number(part.voteFirstValid).toLocaleString()}
+          copy={false}
+        />
+        <Row
+          label="Vote last valid"
+          value={lastValid.toLocaleString()}
+          copy={false}
+        />
+        <Row
+          label="Key dilution"
+          value={Number(part.voteKeyDilution).toLocaleString()}
+          copy={false}
+        />
+        <Row
+          label="Estimated expiration"
+          value={
+            !latest ? (
+              "-"
+            ) : roundsLeft <= 0 ? (
+              "Expired"
+            ) : (
+              <MultiDateViewer timestamp={Math.floor(expiresAt)} switcherSide="right" noCopy />
+            )
+          }
+          copy={false}
+        />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <KeyRow label="Vote key" value={bytesToBase64(part.voteParticipationKey)} />
+        <KeyRow
+          label="Selection key"
+          value={bytesToBase64(part.selectionParticipationKey)}
+        />
+        {part.stateProofKey ? (
+          <KeyRow label="State proof key" value={bytesToBase64(part.stateProofKey)} />
+        ) : null}
       </div>
     </div>
   );
@@ -77,78 +189,40 @@ function Row({
 
 function AccountValidator(): JSX.Element {
   const { address } = useParams();
+  const [timeframe, setTimeframe] = useState<number>(0);
+  const [lastRound, setLastRound] = useState(0);
+  const [dialog, setDialog] = useState<"blocks" | "suspensions" | undefined>();
+  const [page, setPage] = useState(0);
+
+  const minRound = timeframe && lastRound ? Math.max(0, lastRound - timeframe) : 0;
+  const {
+    data: stats,
+    isLoading: statsLoading,
+    error: statsError,
+  } = useValidatorStats(address, minRound);
   const {
     data: validatorData,
     isLoading: validatorLoading,
     error: validatorError,
-  } = useValidator(address);
+  } = useValidator(address, !!dialog);
 
-  const [timeframe, setTimeframe] = useState<number>(0);
-  const [lastRound, setLastRound] = useState(0);
-  const [startTime, setStartTime] = useState(0);
-  const [lastNow, setLastNow] = useState(0);
-  const [dialog, setDialog] = useState<"blocks" | "suspensions" | undefined>();
-  const [page, setPage] = useState(0);
-
-  useEffect(() => {
-    refreshLastRound();
-  }, []);
-
-  const {
-    numBlocks,
-    numPayouts: sumPayouts,
-    numSuspensions,
-    proposals,
-    suspensions,
-  } = useMemo(() => {
-    if (!validatorData) {
-      return {
-        numBlocks: 0,
-        numPayouts: 0,
-        numSuspensions: 0,
-        proposals: [],
-        suspensions: [],
-      };
+  const { proposals, suspensions } = useMemo(() => {
+    let proposals = validatorData?.proposals ?? [];
+    let suspensions = validatorData?.suspensions ?? [];
+    if (minRound) {
+      proposals = proposals.filter(({ rnd }) => rnd >= minRound);
+      suspensions = suspensions.filter((rnd) => rnd >= minRound);
     }
+    return { proposals, suspensions: suspensions.map((r) => ({ rnd: r })) };
+  }, [validatorData, minRound]);
 
-    let proposals = validatorData.proposals;
-    let suspensions = validatorData.suspensions;
-
-    if (timeframe && lastRound) {
-      proposals = proposals.filter(({ rnd }) => rnd >= lastRound - timeframe);
-      suspensions = suspensions.filter((rnd) => rnd >= lastRound - timeframe);
-      setStartTime(0);
-      refreshStartTimeframeTime(Math.max(0, lastRound - timeframe));
-    } else {
-      if (proposals.length) refreshStartTimeframeTime(proposals[0].rnd);
-    }
-
-    const numBlocks = proposals.length;
-    const numPayouts = proposals.reduce((out, { pp }) => out + (pp ?? 0), 0);
-    const numSuspensions = suspensions.length;
-    return {
-      numBlocks,
-      numPayouts,
-      numSuspensions,
-      proposals,
-      suspensions: suspensions.map((r) => ({ rnd: r })),
-    };
-  }, [validatorData, timeframe, lastRound]);
-
-  const hasData = !!validatorData && !validatorLoading && !validatorError;
+  const hasData = !!stats && !statsLoading && !statsError;
+  const range = stats?.range;
+  const rangeDuration = range ? shortDuration(range.firstTs, range.lastTs) : "-";
 
   async function refreshLastRound() {
-    setStartTime(0);
-    const nodeClientInstance = new NodeClient(explorer.network);
-    const status = await nodeClientInstance.status();
+    const status = await new NodeClient(explorer.network).status();
     setLastRound(status["last-round"]);
-    setLastNow(Date.now() / 1000);
-  }
-
-  async function refreshStartTimeframeTime(rnd: number) {
-    const blockClientInstance = new BlockClient(explorer.network);
-    const block = await blockClientInstance.get(rnd);
-    setStartTime(block.timestamp);
   }
 
   const goExternalCalendar = () => {
@@ -193,16 +267,24 @@ function AccountValidator(): JSX.Element {
 
   return (
     <>
-      <div className="mt-6 px-1">
-        <div className="flex flex-col items-center gap-6">
-          {/* Time frame switcher */}
-          <div className="w-full max-w-[480px] flex items-center gap-3">
-            <span className="text-sm text-primary">
+      <div className="mt-6 px-1 flex flex-col lg:flex-row lg:justify-center gap-8 lg:gap-12">
+        {/* Participation info */}
+        <div className="w-full lg:max-w-[480px] flex flex-col gap-6">
+          <div className="flex items-end border-b border-primary pb-2 text-sm text-primary h-9">
+            Participation
+          </div>
+          <ValidatorInfo address={address!} />
+        </div>
+
+        {/* Stats */}
+        <div className="w-full lg:max-w-[480px] flex flex-col gap-6">
+          <div className="flex items-stretch gap-3 h-9 border-b border-primary">
+            <div className="flex items-end shrink-0 pb-2 text-sm text-primary">
               Rounds
-            </span>
+            </div>
             <div className="flex-1 min-w-0 overflow-hidden">
               <TabsUnderline
-                listClassName="flex-nowrap md:justify-end"
+                listClassName="flex-nowrap md:justify-end h-9 border-b-0"
                 value={
                   timeframe === 0
                     ? "lifetime"
@@ -239,109 +321,101 @@ function AccountValidator(): JSX.Element {
             </div>
           </div>
 
-          {/* Stats */}
-          {hasData ? (
-            <div className="w-full max-w-[480px] flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5">
-                <Row
-                  label="Block Proposals"
-                  value={numBlocks.toLocaleString()}
-                />
-                <Row
-                  label="Rewards"
-                  value={sumPayouts ? microalgosToAlgosStr(sumPayouts) : "-"}
-                  valueSuffix={sumPayouts ? <AlgoIcon /> : null}
-                  copy={!!sumPayouts}
-                />
-                <Row
-                  label="Suspensions"
-                  value={numSuspensions.toLocaleString()}
-                  valueSuffix={
-                    numSuspensions ? (
-                      <TriangleAlert className="text-yellow-500" size={16} />
-                    ) : null
-                  }
-                  copy={false}
-                />
+          {!validatorStatsSupported ? (
+            <div className="text-muted-foreground">Network not supported</div>
+          ) : hasData ? (
+            <>
+              <div className="w-full flex flex-col gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <Row
+                    label="Block Proposals"
+                    value={stats.blocks.toLocaleString()}
+                  />
+                  <Row
+                    label="Rewards"
+                    value={stats.payouts ? microalgosToAlgosStr(stats.payouts) : "-"}
+                    valueSuffix={stats.payouts ? <AlgoIcon /> : null}
+                    copy={!!stats.payouts}
+                  />
+                  <Row
+                    label="Suspensions"
+                    value={stats.suspensions.toLocaleString()}
+                    valueSuffix={
+                      stats.suspensions ? (
+                        <TriangleAlert className="text-yellow-500" size={16} />
+                      ) : null
+                    }
+                    copy={false}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Row
+                    label="Avg blocks / day"
+                    value={stats.avgBlocksPerDay.toLocaleString(undefined, {
+                      maximumFractionDigits: 2,
+                    })}
+                    copy={false}
+                  />
+                  <Row
+                    label="Time frame (in blocks)"
+                    value={timeframe ? timeframe.toLocaleString() : "Lifetime"}
+                    copy={false}
+                  />
+                  <Row
+                    label="Time frame (duration)"
+                    value={rangeDuration}
+                    copy={false}
+                  />
+                </div>
               </div>
-              <div className="flex flex-col gap-1.5">
-                <Row
-                  label="Avg blocks / day"
-                  value={
-                    startTime > 0
-                      ? (
-                          (numBlocks * 86400) /
-                          (lastNow - startTime)
-                        ).toLocaleString(undefined, {
-                          maximumFractionDigits: 2,
-                        })
-                      : "-"
-                  }
-                  copy={false}
-                />
-                <Row
-                  label="Time frame (in blocks)"
-                  value={timeframe ? timeframe.toLocaleString() : "Lifetime"}
-                  copy={false}
-                />
-                <Row
-                  label="Time frame (duration)"
-                  value={
-                    startTime > 0 ? shortDuration(startTime, lastNow) : "-"
-                  }
-                  copy={false}
-                />
+
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-primary text-primary hover:bg-primary hover:text-background"
+                  onClick={showBlocksProposed}
+                  disabled={!stats.blocks}
+                >
+                  <CubeIcon size={16} />
+                  Show Proposed Blocks
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-primary text-primary hover:bg-primary hover:text-background"
+                  onClick={showSuspensions}
+                  disabled={!stats.suspensions}
+                >
+                  <HandIcon size={16} />
+                  Show Suspension Events
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-primary text-primary hover:bg-primary hover:text-background"
+                  onClick={goExternalCalendar}
+                >
+                  <CalendarIcon size={16} />
+                  Calendar & Graphs
+                  <ExternalLink size={14} />
+                </Button>
               </div>
-            </div>
-          ) : validatorLoading ? (
-            <div className="w-full max-w-[480px]">
+            </>
+          ) : statsLoading ? (
+            <div className="w-full">
               <LoadingTile
                 style={{ marginTop: "0" }}
                 lineStyle={{ height: "10px", margin: "5px 0" }}
               />
             </div>
-          ) : validatorError ? (
+          ) : statsError ? (
             <div className="text-muted-foreground">
-              Error: {(validatorError as Error).message}
+              Error: {(statsError as Error).message}
             </div>
-          ) : null}
-        </div>
-
-        <div className="flex justify-center mt-8">
-          {hasData ? (
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-primary text-primary hover:bg-primary hover:text-background"
-                onClick={showBlocksProposed}
-                disabled={!numBlocks}
-              >
-                <CubeIcon size={16} />
-                Show Proposed Blocks
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-primary text-primary hover:bg-primary hover:text-background"
-                onClick={showSuspensions}
-                disabled={!numSuspensions}
-              >
-                <HandIcon size={16} />
-                Show Suspension Events
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-primary text-primary hover:bg-primary hover:text-background"
-                onClick={goExternalCalendar}
-              >
-                <CalendarIcon size={16} />
-                Calendar & Graphs
-                <ExternalLink size={14} />
-              </Button>
-            </div>
-          ) : null}
+          ) : (
+            <div className="text-muted-foreground">No stats available</div>
+          )}
         </div>
       </div>
 
@@ -357,13 +431,13 @@ function AccountValidator(): JSX.Element {
             <Row
               label="Block range"
               className="max-w-xs"
-              value={`${timeframe ? lastRound - timeframe : 0} - ${lastRound}`}
+              value={range ? `${range.firstRound} - ${range.lastRound}` : "-"}
               copy={false}
             />
             <Row
               label="Range duration"
               className="max-w-xs"
-              value={startTime > 0 ? shortDuration(startTime, lastNow) : "-"}
+              value={rangeDuration}
               copy={false}
             />
           </div>
@@ -393,7 +467,18 @@ function AccountValidator(): JSX.Element {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {dialogItems.length === 0 ? (
+              {validatorLoading || validatorError ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={dialog === "blocks" ? 3 : 1}
+                    className="text-center text-muted-foreground py-8"
+                  >
+                    {validatorError
+                      ? `Error: ${(validatorError as Error).message}`
+                      : "Loading…"}
+                  </TableCell>
+                </TableRow>
+              ) : dialogItems.length === 0 ? (
                 <TableRow>
                   <TableCell
                     colSpan={dialog === "blocks" ? 3 : 1}

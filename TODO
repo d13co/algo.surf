@@ -213,3 +213,5 @@ localnet optimizations
 [.] sigreg
 
 [ ] persistence when navigating through pages of txn lists with #page
+
+[v] json viewer: Open algod / Open indexer API

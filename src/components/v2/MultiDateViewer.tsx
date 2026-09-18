@@ -12,16 +12,19 @@ import {
   TooltipTrigger,
 } from "src/components/v2/ui/tooltip";
 
+function relative(date: Date, largest: number): string {
+  const diff = Date.now() - date.getTime();
+  const text = humanizeDuration(Math.abs(diff), { largest, round: true });
+  return diff >= 0 ? `${text} ago` : `in ${text}`;
+}
+
 function formatDate(timestamp: number, format: DateFormat): string {
   if (!timestamp) return "-";
   const date = new Date(timestamp * 1000);
   if (isNaN(date.getTime())) return "-";
   switch (format) {
-    case "relative": {
-      // @ts-ignore
-      const diff = new Date() - date;
-      return humanizeDuration(diff, { largest: 2, round: true }) + " ago";
-    }
+    case "relative":
+      return relative(date, 2);
     case "local":
       return dateFormat(date, TIMESTAMP_DISPLAY_FORMAT);
     case "utc":
@@ -36,11 +39,8 @@ function formatDateShort(timestamp: number, format: DateFormat): string {
   const date = new Date(timestamp * 1000);
   if (isNaN(date.getTime())) return "-";
   switch (format) {
-    case "relative": {
-      // @ts-ignore
-      const diff = new Date() - date;
-      return humanizeDuration(diff, { largest: 1, round: true }) + " ago";
-    }
+    case "relative":
+      return relative(date, 1);
     case "local":
       return dateFormat(date, "dd mmm yyyy HH:MM");
     case "utc":

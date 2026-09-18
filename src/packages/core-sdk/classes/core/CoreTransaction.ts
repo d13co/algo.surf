@@ -470,6 +470,10 @@ export class CoreTransaction {
         return this.txn.genesisHash ? bytesToBase64(this.txn.genesisHash) : "";
     }
 
+    getGenesisHashBytes(): Uint8Array | undefined {
+        return this.txn.genesisHash;
+    }
+
     getSig(): indexerModels.TransactionSignature | undefined {
         return this.txn.signature;
     }
