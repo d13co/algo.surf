@@ -11,6 +11,7 @@ import { useEscrowBatch } from "src/hooks/useAccount";
 import { ChevronRight, ChevronDown, ArrowRight, ArrowLeftFromLine, ArrowRightFromLine, Minus } from "lucide-react";
 import LinkToAccount from "src/components/Modules/Explorer/v2/Links/LinkToAccount";
 import LinkToApplication from "src/components/Modules/Explorer/v2/Links/LinkToApplication";
+import { Button } from "src/components/v2/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -75,6 +76,8 @@ function flattenInnerPaths(txns: any[], prefix: string = ""): FlatEntry[] {
   }
   return result;
 }
+
+const COLLAPSED_COUNT = 10;
 
 export function countInnerTxns(txnInstance: CoreTransaction): number {
   const inner = txnInstance.getInnerTransactions();
@@ -225,6 +228,11 @@ function AppCallTxnInnerTxns({
   const currentEntry = currentIndex >= 0 ? flatList[currentIndex] : null;
   const dialogOpen = !!currentEntry;
 
+  const [showAll, setShowAll] = useState(false);
+  const hiddenCount = innerTxns.length - COLLAPSED_COUNT;
+  const collapsed = !showAll && hiddenCount > 0;
+  const visibleTxns = collapsed ? innerTxns.slice(0, COLLAPSED_COUNT) : innerTxns;
+
   const [asset, setAsset] = useState<any>(undefined);
 
   // Fetch asset info when viewing an asset transfer inner txn
@@ -275,17 +283,35 @@ function AppCallTxnInnerTxns({
 
       <div className="rounded-lg p-5 bg-background-card">
         <div className="text-sm font-medium mb-1">Current transaction</div>
-        <div className="ml-6 pl-4 border-l border-dashed border-muted/40">
-          {innerTxns.map((txn, i) => (
-            <InnerTxnNode
-              key={String(i + 1)}
-              txn={txn}
-              level={1}
-              path={String(i + 1)}
-              onView={handleView}
-            />
-          ))}
+        <div className="relative">
+          <div className="ml-6 pl-4 border-l border-dashed border-muted/40">
+            {visibleTxns.map((txn, i) => (
+              <InnerTxnNode
+                key={String(i + 1)}
+                txn={txn}
+                level={1}
+                path={String(i + 1)}
+                onView={handleView}
+              />
+            ))}
+          </div>
+          {collapsed ? (
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-b from-transparent to-background-card" />
+          ) : null}
         </div>
+
+        {hiddenCount > 0 ? (
+          <div className="flex justify-center mt-3">
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-primary text-primary hover:bg-primary/10 hover:text-primary"
+              onClick={() => setShowAll(!showAll)}
+            >
+              {showAll ? "Show less" : `Show more (${hiddenCount})`}
+            </Button>
+          </div>
+        ) : null}
       </div>
 
       <Dialog
