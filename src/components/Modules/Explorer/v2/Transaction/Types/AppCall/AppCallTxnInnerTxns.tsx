@@ -228,7 +228,7 @@ function InnerTxnNode({
         {hasChildren ? (
           <button
             type="button"
-            className="shrink-0 p-0.5 cursor-pointer rounded hover:bg-muted"
+            className="shrink-0 p-0 sm:p-0.5 cursor-pointer rounded hover:bg-muted"
             onClick={() => setExpanded(!expanded)}
           >
             {expanded ? (
@@ -238,7 +238,7 @@ function InnerTxnNode({
             )}
           </button>
         ) : (
-          <span className="shrink-0 w-[18px] flex items-center justify-center">
+          <span className="shrink-0 w-3.5 sm:w-[18px] flex items-center justify-center">
             <Minus size={10} className="text-muted-foreground/50" />
           </span>
         )}
@@ -299,7 +299,7 @@ function InnerTxnNode({
         <div className="flex items-center gap-1.5 py-1">
           {/* Invisible chevron slot + badge keep the sender aligned with the
               row above. */}
-          <span className="shrink-0 w-[18px]" />
+          <span className="shrink-0 w-3.5 sm:w-[18px]" />
           <span
             aria-hidden
             className="invisible inline-flex text-xs border rounded px-2 py-0.5 shrink-0"
@@ -322,7 +322,7 @@ function InnerTxnNode({
       ) : null}
 
       {hasChildren && expanded ? (
-        <div className="ml-6 pl-4 border-l border-dashed border-muted/40">
+        <div className="ml-1 pl-1.5 sm:ml-6 sm:pl-4 border-l border-dashed border-muted/40">
           {children.map((child, i) => (
             <InnerTxnNode
               key={`${path}/${i + 1}`}
@@ -441,10 +441,10 @@ function AppCallTxnInnerTxns({
         Inner transactions ({count})
       </h3>
 
-      <div className="rounded-lg p-5 bg-background-card">
+      <div className="rounded-lg p-3 sm:p-5 bg-background-card">
         <div className="text-sm font-medium mb-1">Current transaction</div>
         <div className="relative">
-          <div className="ml-6 pl-4 border-l border-dashed border-muted/40">
+          <div className="ml-1 pl-1.5 sm:ml-6 sm:pl-4 border-l border-dashed border-muted/40">
             {visibleTxns.map((txn, i) => (
               <InnerTxnNode
                 key={String(i + 1)}
