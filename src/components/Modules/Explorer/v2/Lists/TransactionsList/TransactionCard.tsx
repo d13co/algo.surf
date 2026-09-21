@@ -23,7 +23,7 @@ function cellHasContent(columnId: string, txnType: string): boolean {
     return txnType === TXN_TYPES.PAYMENT || txnType === TXN_TYPES.ASSET_TRANSFER;
   }
   if (columnId === "to") {
-    return txnType === TXN_TYPES.PAYMENT || txnType === TXN_TYPES.ASSET_TRANSFER || txnType === TXN_TYPES.APP_CALL;
+    return txnType === TXN_TYPES.PAYMENT || txnType === TXN_TYPES.ASSET_TRANSFER || txnType === TXN_TYPES.APP_CALL || txnType === TXN_TYPES.ASSET_CONFIG;
   }
   return true;
 }

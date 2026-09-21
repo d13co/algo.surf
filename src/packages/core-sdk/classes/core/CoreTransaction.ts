@@ -235,25 +235,33 @@ export class CoreTransaction {
         return this.getType() === TXN_TYPES.ASSET_CONFIG && !!this.txn.createdAssetIndex;
     }
 
-    getTypeDisplayValue(): string {
+    // A destroy is an acfg on an existing asset that carries no params.
+    isAssetDestroy(): boolean {
+        const acfg = this.getAssetConfigPayload();
+        return this.getType() === TXN_TYPES.ASSET_CONFIG && !!acfg?.assetId && !acfg.params;
+    }
+
+    // `closeLabels` = false keeps "Payment"/"Transfer" for close-outs, for
+    // views that already show the close as its own line.
+    getTypeDisplayValue(closeLabels = true): string {
         const type = this.getType();
         if (type === TXN_TYPES.HEARTBEAT) {
             return "Heartbeat";
         }
         if (type === TXN_TYPES.PAYMENT) {
-            return "Payment";
+            return closeLabels && this.getCloseTo() ? "Close out" : "Payment";
         }
         else if(type === TXN_TYPES.KEY_REGISTRATION) {
             return 'Key registration';
         }
         else if(type === TXN_TYPES.ASSET_CONFIG) {
-            return this.isAssetCreate() ? 'Asset create' : 'Asset config';
+            return this.isAssetCreate() ? 'Asset create' : this.isAssetDestroy() ? 'Asset destroy' : 'Asset config';
         }
         else if(type === TXN_TYPES.ASSET_FREEZE) {
             return 'Asset freeze';
         }
         else if(type === TXN_TYPES.ASSET_TRANSFER) {
-            return 'Transfer';
+            return closeLabels && this.getCloseTo() ? 'Opt out' : 'Transfer';
         }
         else if(type === TXN_TYPES.APP_CALL) {
             const appPayload = this.getAppCallPayload();

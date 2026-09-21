@@ -7,7 +7,8 @@ export default function TypeCell({
   row,
 }: CellContext<indexerModels.Transaction, unknown>) {
   const txn = React.useMemo(() => new CoreTransaction(row.original), [row.original]);
-  const type = txn.getTypeDisplayValue();
+  // The close gets its own "Close" line below, lined up with the close-to row.
+  const type = txn.getTypeDisplayValue(false);
   const closeTo = txn.getCloseTo();
 
   if (closeTo) {

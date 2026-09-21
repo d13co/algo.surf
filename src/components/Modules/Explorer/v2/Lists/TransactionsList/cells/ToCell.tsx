@@ -5,6 +5,7 @@ import { CoreTransaction } from "src/packages/core-sdk/classes/core/CoreTransact
 import { TXN_TYPES } from "src/packages/core-sdk/constants";
 import LinkToAccount from "../../../Links/LinkToAccount";
 import LinkToApplication from "../../../Links/LinkToApplication";
+import LinkToAsset from "../../../Links/LinkToAsset";
 import { DisplayAccount } from "src/components/Common/DisplayAccount";
 import type { TransactionTableMeta } from "../columns";
 
@@ -45,6 +46,11 @@ export function ToCellMain({
     return <LinkToApplication id={appId} name={"App " + appId} copySize="m" />;
   }
 
+  if (type === TXN_TYPES.ASSET_CONFIG) {
+    const assetId = txn.getAssetId();
+    return assetId ? <LinkToAsset id={assetId} name={"Asset " + assetId} /> : null;
+  }
+
   return null;
 }
 
@@ -78,7 +84,7 @@ export default function ToCell({
     );
   }
 
-  if (type === TXN_TYPES.APP_CALL) {
+  if (type === TXN_TYPES.APP_CALL || type === TXN_TYPES.ASSET_CONFIG) {
     return <ToCellMain txn={txn} meta={meta} />;
   }
 

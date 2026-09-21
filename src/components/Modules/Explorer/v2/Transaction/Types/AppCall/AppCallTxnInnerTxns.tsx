@@ -14,6 +14,7 @@ import { microalgosToAlgos } from "src/utils/common";
 import { ChevronRight, ChevronDown, ArrowRight, ArrowLeftFromLine, ArrowRightFromLine, Minus } from "lucide-react";
 import LinkToAccount from "src/components/Modules/Explorer/v2/Links/LinkToAccount";
 import LinkToApplication from "src/components/Modules/Explorer/v2/Links/LinkToApplication";
+import LinkToAsset from "src/components/Modules/Explorer/v2/Links/LinkToAsset";
 import { Button } from "src/components/v2/ui/button";
 import {
   Dialog,
@@ -48,9 +49,12 @@ function collectInnerTxnData(
     const to = inst.getTo();
     if (from) addresses.add(from);
     if (to) addresses.add(to);
+    const closeTo = inst.getCloseTo();
+    if (closeTo) addresses.add(closeTo);
     const type = inst.getType();
-    if (type === TXN_TYPES.ASSET_TRANSFER) {
-      assetIds.add(inst.getAssetId());
+    if (type === TXN_TYPES.ASSET_TRANSFER || type === TXN_TYPES.ASSET_CONFIG) {
+      const assetId = inst.getAssetId();
+      if (assetId) assetIds.add(assetId);
     }
     if (type === TXN_TYPES.APP_CALL) {
       const appId = inst.getAppId();
@@ -101,23 +105,34 @@ function formatAmount(amount: number): string {
 function amountLabel(
   inst: CoreTransaction,
   assets: Map<number, A_AssetTiny>,
+  raw: number = inst.getAmount(),
 ): string | null {
   const type = inst.getType();
   if (type === TXN_TYPES.PAYMENT) {
-    return `${formatAmount(microalgosToAlgos(inst.getAmount()))} ALGO`;
+    return `${formatAmount(microalgosToAlgos(raw))} ALGO`;
   }
   if (type === TXN_TYPES.ASSET_TRANSFER) {
     const assetId = inst.getAssetId();
     const asset = assets.get(assetId);
     // No tiny data (uncached miss, deleted asset) — show base units and the id
     // rather than a wrong decimal shift.
-    const amount = asset
-      ? inst.getAmount() / 10 ** asset.params.decimals
-      : inst.getAmount();
+    const amount = asset ? raw / 10 ** asset.params.decimals : raw;
     const unit = asset?.params["unit-name"] || `#${assetId}`;
     return `${formatAmount(amount)} ${unit}`;
   }
   return null;
+}
+
+// "Asset 123 (Name)". A create/reconfig carries the name in its own params,
+// which covers assets ABEL has no label for yet.
+function assetName(
+  inst: CoreTransaction,
+  assets: Map<number, A_AssetTiny>,
+): string {
+  const assetId = inst.getAssetId();
+  const name =
+    assets.get(assetId)?.params.name || inst.getAssetConfigPayload()?.params?.name;
+  return name ? `Asset ${assetId} (${name})` : `Asset ${assetId}`;
 }
 
 export function countInnerTxns(txnInstance: CoreTransaction): number {
@@ -161,6 +176,18 @@ function BracketArrow({ className }: { className?: string }) {
   );
 }
 
+function AmountConnector({ amount }: { amount: string }) {
+  return (
+    <>
+      <DashBracket className="shrink-0" />
+      {/* -mx-1.5 cancels the row's gap-1.5 so the connectors sit against
+          the amount. px-1 is the padding inside the brackets. */}
+      <span className="text-xs shrink-0 -mx-1.5 px-0.5">{amount}</span>
+      <BracketArrow className="shrink-0" />
+    </>
+  );
+}
+
 function InnerTxnNode({
   txn,
   level,
@@ -177,7 +204,19 @@ function InnerTxnNode({
   const [expanded, setExpanded] = useState(true);
   const txnInstance = new CoreTransaction(txn);
   const type = txnInstance.getType();
-  const amount = amountLabel(txnInstance, assets);
+  // A close-to sweeps the remainder: fold it into the amount when it lands on
+  // the receiver, otherwise give it its own row.
+  const closeTo = txnInstance.getCloseTo();
+  const closeSame = !!closeTo && closeTo === txnInstance.getTo();
+  const amount = amountLabel(
+    txnInstance,
+    assets,
+    txnInstance.getAmount() + (closeSame ? txnInstance.getCloseAmount() : 0),
+  );
+  const closeAmount =
+    closeTo && !closeSame
+      ? amountLabel(txnInstance, assets, txnInstance.getCloseAmount())
+      : null;
   const children = txnInstance.hasInnerTransactions()
     ? txnInstance.getInnerTransactions()
     : [];
@@ -223,13 +262,7 @@ function InnerTxnNode({
         </span>
 
         {amount ? (
-          <>
-            <DashBracket className="shrink-0" />
-            {/* -mx-1.5 cancels the row's gap-1.5 so the connectors sit against
-                the amount. px-1 is the padding inside the brackets. */}
-            <span className="text-xs shrink-0 -mx-1.5 px-0.5">{amount}</span>
-            <BracketArrow className="shrink-0" />
-          </>
+          <AmountConnector amount={amount} />
         ) : (
           <ArrowRight
             size={12}
@@ -253,8 +286,40 @@ function InnerTxnNode({
               name={"App " + txnInstance.getAppId()}
             />
           ) : null}
+          {type === TXN_TYPES.ASSET_CONFIG && txnInstance.getAssetId() ? (
+            <LinkToAsset
+              id={txnInstance.getAssetId()}
+              name={assetName(txnInstance, assets)}
+            />
+          ) : null}
         </span>
       </div>
+
+      {closeAmount ? (
+        <div className="flex items-center gap-1.5 py-1">
+          {/* Invisible chevron slot + badge keep the sender aligned with the
+              row above. */}
+          <span className="shrink-0 w-[18px]" />
+          <span
+            aria-hidden
+            className="invisible inline-flex text-xs border rounded px-2 py-0.5 shrink-0"
+          >
+            {txnInstance.getTypeDisplayValue()}
+          </span>
+          <span className="text-xs truncate min-w-0">
+            <LinkToAccount
+              address={txnInstance.getFrom()}
+              strip={20}
+              copy="none"
+              shortEscrow
+            />
+          </span>
+          <AmountConnector amount={closeAmount} />
+          <span className="text-xs truncate min-w-0">
+            <LinkToAccount address={closeTo} strip={20} copy="none" shortEscrow />
+          </span>
+        </div>
+      ) : null}
 
       {hasChildren && expanded ? (
         <div className="ml-6 pl-4 border-l border-dashed border-muted/40">

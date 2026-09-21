@@ -11,13 +11,17 @@ type SignedTxnInBlock = modelsv2.BlockResponse["block"]["payset"][number];
 function getTypeDisplayValue(txn: Transaction): string {
     const type = txn.type;
     if (type === TransactionType.hb) return "Heartbeat";
-    if (type === TransactionType.pay) return "Payment";
+    if (type === TransactionType.pay) return txn.payment?.closeRemainderTo ? "Close out" : "Payment";
     if (type === TransactionType.keyreg) return "Key registration";
     if (type === TransactionType.acfg) {
-        return txn.assetConfig?.assetIndex === 0n ? "Asset create" : "Asset config";
+        const acfg = txn.assetConfig;
+        if (!acfg?.assetIndex) return "Asset create";
+        // No params (the SDK decodes them to empty role addresses) = destroy.
+        const destroy = !acfg.manager && !acfg.reserve && !acfg.freeze && !acfg.clawback;
+        return destroy ? "Asset destroy" : "Asset config";
     }
     if (type === TransactionType.afrz) return "Asset freeze";
-    if (type === TransactionType.axfer) return "Transfer";
+    if (type === TransactionType.axfer) return txn.assetTransfer?.closeRemainderTo ? "Opt out" : "Transfer";
     if (type === TransactionType.appl) {
         const appCall = txn.applicationCall;
         const onCompletion = appCall?.onComplete;
