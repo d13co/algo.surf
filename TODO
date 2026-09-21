@@ -215,3 +215,6 @@ localnet optimizations
 [ ] persistence when navigating through pages of txn lists with #page
 
 [v] json viewer: Open algod / Open indexer API
+
+[v] inner pay/axfer with close-to: https://algo.surf/transaction/ITPRBEIXGGQYHNVD3TBS65NODMEKEHTV5UXRYWXXLZNL57R25IMQ
+[v] inner acfg - delete/create: https://algo.surf/transaction/ZSEUPJMV7WC52LTVUCYRNN77NDPEALFW3R4DV27OGQNPRAFEDB4Q
