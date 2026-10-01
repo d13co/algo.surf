@@ -289,6 +289,7 @@ function Account(): JSX.Element {
               label="Account"
               id={address}
               copyValue={address!}
+              qrAddress={address}
               truncate
               jsonViewer={{
                 obj: () => accountInfo ? toPlainJson(accountInfo) : {},

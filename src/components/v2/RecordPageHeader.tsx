@@ -3,6 +3,7 @@ import { useHotkeys } from "react-hotkeys-hook";
 import Copyable from "src/components/v2/Copyable";
 import JsonViewer, { JsonViewerApi } from "src/components/v2/JsonViewer";
 import OpenInMenu from "src/components/v2/OpenInMenu";
+import AddressQRButton from "src/components/v2/AddressQRButton";
 import { PageType } from "@d13co/open-in";
 
 interface RecordPageHeaderProps {
@@ -10,6 +11,8 @@ interface RecordPageHeaderProps {
   id: React.ReactNode;
   copyValue: string | number;
   truncate?: boolean;
+  /** Show a QR code button for this address next to the copy button */
+  qrAddress?: string;
   jsonViewer: {
     obj: () => any;
     filename?: string;
@@ -34,6 +37,7 @@ export default function RecordPageHeader({
   id,
   copyValue,
   truncate,
+  qrAddress,
   jsonViewer,
   openIn,
   children,
@@ -54,6 +58,11 @@ export default function RecordPageHeader({
         <span ref={copyRef} className="-translate-y-[1px]">
           <Copyable className="opacity-60 group-hover:opacity-100" value={copyValue} />
         </span>
+        {qrAddress && (
+          <span className="-translate-y-[1px]">
+            <AddressQRButton className="opacity-60 group-hover:opacity-100" address={qrAddress} />
+          </span>
+        )}
       </div>
       {children}
       <div className={`flex items-center gap-2.5 shrink-0 ${children ? "ml-auto md:ml-0" : "ml-auto"}`}>

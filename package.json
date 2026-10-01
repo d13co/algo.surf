@@ -43,6 +43,7 @@
     "react-hotkeys-hook": "^4.6.1",
     "react-json-view": "^1.21.3",
     "react-number-format": "^4.9.1",
+    "react-qr-code": "^2.2.0",
     "react-router-dom": "6",
     "react-transition-group": "^4.4.2",
     "reset-css": "^5.0.1",
