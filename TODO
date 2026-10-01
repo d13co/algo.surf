@@ -218,3 +218,6 @@ localnet optimizations
 
 [v] inner pay/axfer with close-to: https://algo.surf/transaction/ITPRBEIXGGQYHNVD3TBS65NODMEKEHTV5UXRYWXXLZNL57R25IMQ
 [v] inner acfg - delete/create: https://algo.surf/transaction/ZSEUPJMV7WC52LTVUCYRNN77NDPEALFW3R4DV27OGQNPRAFEDB4Q
+
+[ ] inner app calls: no args / info in dialog
+[ ] itxn > json view > arrows: state does not update
