@@ -11,8 +11,40 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "src/components/v2/ui/tooltip";
+import { Link } from "react-router-dom";
+import { feesSupported, useFeeTotal } from "src/hooks/useFeesApi";
+import { microalgosToAlgos } from "src/utils/common";
 
 const NETWORK = process.env.REACT_APP_NETWORK;
+
+const FEE_PERIODS = [
+    { period: "24h", label: "Fees 24h", span: "24 hours" },
+    { period: "7d", label: "Fees 7d", span: "7 days" },
+    { period: "30d", label: "Fees 30d", span: "30 days" },
+] as const;
+
+function FeeRow({ period, label, span }: (typeof FEE_PERIODS)[number]): JSX.Element {
+    const { data } = useFeeTotal(period);
+    const value = data
+        ? microalgosToAlgos(data.fees).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " ALGO"
+        : "-";
+
+    return (
+        <TooltipProvider>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Link to="/fees" className="flex justify-between w-[90%] max-md:min-w-[80%] max-md:w-auto mb-2.5 text-muted-foreground hover:text-foreground">
+                        <span>{label}</span>
+                        <span className="text-primary ml-2.5">{value}</span>
+                    </Link>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="bg-black text-white border-border">
+                    <p>Fees paid over the last {span}, inner transactions included. Click for charts.</p>
+                </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
+    );
+}
 
 function LiveStats(): JSX.Element {
     const tpsValue = useTransactionsPerSecond();
@@ -85,6 +117,8 @@ function LiveStats(): JSX.Element {
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
+
+                    {feesSupported ? FEE_PERIODS.map((p) => <FeeRow key={p.period} {...p} />) : null}
 
                     <TooltipProvider>
                         <Tooltip>

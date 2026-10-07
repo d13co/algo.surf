@@ -3,10 +3,11 @@ import {useLocation} from "react-router-dom";
 import Search from "../Search/Search";
 import Logo from "./Logo";
 import Link from "../v2/Links/Link";
+import { feesSupported } from "src/hooks/useFeesApi";
 
 const networkLabel = process.env.REACT_APP_NETWORK;
 
-const routes = ["home", "accounts", "transactions", "assets", "applications"];
+const routes = ["home", "accounts", "transactions", "assets", "applications", "fees"];
 
 const navItems: { href: string; label: React.ReactNode; value: string }[] = [
     { href: "/", label: <Logo />, value: "home" },
@@ -14,6 +15,7 @@ const navItems: { href: string; label: React.ReactNode; value: string }[] = [
     { href: "/transactions", label: "Txns", value: "transactions" },
     { href: "/assets", label: "Assets", value: "assets" },
     { href: "/applications", label: "Apps", value: "applications" },
+    ...(feesSupported ? [{ href: "/fees", label: "Fees", value: "fees" }] : []),
 ];
 
 function Header(): JSX.Element {
