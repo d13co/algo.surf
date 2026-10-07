@@ -17,6 +17,7 @@ interface TabsUnderlineProps {
   className?: string
   listClassName?: string
   tabsRef?: React.Ref<HTMLDivElement>
+  activationMode?: 'automatic' | 'manual'
 }
 
 export default function TabsUnderline({
@@ -27,6 +28,7 @@ export default function TabsUnderline({
   className,
   listClassName,
   tabsRef,
+  activationMode,
 }: TabsUnderlineProps) {
   const hasContent = tabs.some(tab => tab.content !== undefined)
 
@@ -35,6 +37,7 @@ export default function TabsUnderline({
       defaultValue={defaultValue ?? tabs[0]?.value}
       value={value}
       onValueChange={onValueChange}
+      activationMode={activationMode}
       className={cn('gap-4', className)}
     >
       <TabsList
