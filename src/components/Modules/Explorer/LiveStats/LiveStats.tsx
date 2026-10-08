@@ -76,13 +76,20 @@ function LiveStats(): JSX.Element {
                     <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <div className="flex justify-between w-[90%] max-md:min-w-[80%] max-md:w-auto mb-2.5 cursor-help text-muted-foreground">
-                                    <span>Transactions per second</span>
-                                    <span className="text-primary ml-2.5">{tps}</span>
-                                </div>
+                                {feesSupported ? (
+                                    <Link to="/tps" className="flex justify-between w-[90%] max-md:min-w-[80%] max-md:w-auto mb-2.5 text-muted-foreground hover:text-foreground">
+                                        <span>Transactions per second</span>
+                                        <span className="text-primary ml-2.5">{tps}</span>
+                                    </Link>
+                                ) : (
+                                    <div className="flex justify-between w-[90%] max-md:min-w-[80%] max-md:w-auto mb-2.5 cursor-help text-muted-foreground">
+                                        <span>Transactions per second</span>
+                                        <span className="text-primary ml-2.5">{tps}</span>
+                                    </div>
+                                )}
                             </TooltipTrigger>
                             <TooltipContent side="top" className="bg-black text-white border-border">
-                                <p>{loading ? "Loading" : `TPS over the last ${blockCount} blocks (~${intervalMinutes} minutes)`}</p>
+                                <p>{loading ? "Loading" : `TPS over the last ${blockCount} blocks (~${intervalMinutes} minutes)`}{feesSupported ? ". Click for charts." : ""}</p>
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>

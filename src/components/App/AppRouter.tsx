@@ -37,6 +37,7 @@ const Transaction = lazy(() => import("../Modules/Explorer/v2/Transaction/Transa
 const Group = lazy(() => import("../Modules/Explorer/v2/Group/Group"));
 const GroupTransactions = lazy(() => import("../Modules/Explorer/v2/Group/GroupTransactions"));
 const Fees = lazy(() => import("../Modules/Explorer/v2/Fees/Fees"));
+const Tps = lazy(() => import("../Modules/Explorer/v2/Fees/Tps"));
 const StripExplorerFromPath = lazy(() => import("./StripExplorerFromPath"));
 const SearchFromPath = lazy(() => import("./SearchFromPath"));
 
@@ -86,6 +87,7 @@ function AppRouter(): JSX.Element {
                           element={<Applications></Applications>}
                         />
                         <Route path="/fees" element={<Fees></Fees>} />
+                        <Route path="/tps" element={<Tps></Tps>} />
                         <Route
                           path="/account/:address"
                           element={<Account></Account>}

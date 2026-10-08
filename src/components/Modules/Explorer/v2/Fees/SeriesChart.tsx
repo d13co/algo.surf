@@ -180,7 +180,7 @@ function SeriesChart({
         <Chart
           definition={definition}
           height={320}
-          ariaLabel={`${label} per ${interval}`}
+          ariaLabel={`${label} by ${interval}`}
           onFocusChange={(p) => {
             if (p) focused.current = p.datum;
             if (!dragging.current) describe(p?.datum ?? null);

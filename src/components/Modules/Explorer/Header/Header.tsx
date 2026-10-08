@@ -7,7 +7,8 @@ import { feesSupported } from "src/hooks/useFeesApi";
 
 const networkLabel = process.env.REACT_APP_NETWORK;
 
-const routes = ["home", "accounts", "transactions", "assets", "applications", "fees"];
+const routes = ["home", "accounts", "transactions", "assets", "applications", "fees", "tps"];
+const SERIES = ["fees", "tps"];
 
 const navItems: { href: string; label: React.ReactNode; value: string }[] = [
     { href: "/", label: <Logo />, value: "home" },
@@ -15,7 +16,12 @@ const navItems: { href: string; label: React.ReactNode; value: string }[] = [
     { href: "/transactions", label: "Txns", value: "transactions" },
     { href: "/assets", label: "Assets", value: "assets" },
     { href: "/applications", label: "Apps", value: "applications" },
-    ...(feesSupported ? [{ href: "/fees", label: "Fees", value: "fees" }] : []),
+    ...(feesSupported
+        ? [
+              { href: "/fees", label: "Fees", value: "fees" },
+              { href: "/tps", label: "TPS", value: "tps" },
+          ]
+        : []),
 ];
 
 function Header(): JSX.Element {
@@ -37,7 +43,8 @@ function Header(): JSX.Element {
                     {navItems.map((item) => (
                         <Link
                             key={item.value}
-                            href={item.href}
+                            // Fees and TPS chart the same view: switching keeps its range, interval and zoom.
+                            href={item.href + (SERIES.includes(route as string) && SERIES.includes(item.value) ? location.search : "")}
                             noStyle
                             className={`px-3 py-2 text-base whitespace-nowrap text-muted-foreground ${
                                 route === item.value
