@@ -55,10 +55,14 @@ export class ApplicationClient{
         return toA_ApplicationsResponse(response);
     }
 
-    async getApplicationTransactions(id: number, token?: string): Promise<A_ApplicationTransactionsResponse> {
+    /** With `maxRound`, only the transactions up to that round. */
+    async getApplicationTransactions(id: number, token?: string, maxRound?: number): Promise<A_ApplicationTransactionsResponse> {
         const req = this.indexer.searchForTransactions().applicationID(id);
         if (token) {
             req.nextToken(token);
+        }
+        if (maxRound !== undefined) {
+            req.maxRound(maxRound);
         }
 
         const response = await req.do();

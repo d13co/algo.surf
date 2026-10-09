@@ -40,7 +40,7 @@ export const columns: ColumnDef<indexerModels.Transaction, any>[] = [
   },
   {
     id: "age",
-    header: AgeHeader,
+    header: () => <AgeHeader />,
     cell: AgeCell,
   },
   {

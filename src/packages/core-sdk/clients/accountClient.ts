@@ -42,10 +42,14 @@ export class AccountClient{
         return toA_AccountsResponse(response);
     }
 
-    async getAccountTransactions(address: string, token?: string): Promise<A_AccountTransactionsResponse> {
+    /** With `maxRound`, only the transactions up to that round. */
+    async getAccountTransactions(address: string, token?: string, maxRound?: number): Promise<A_AccountTransactionsResponse> {
         const req = this.indexer.searchForTransactions().address(address);
         if (token) {
             req.nextToken(token);
+        }
+        if (maxRound !== undefined) {
+            req.maxRound(maxRound);
         }
 
         // Decode from the raw body: algosdk's models drop post-quantum

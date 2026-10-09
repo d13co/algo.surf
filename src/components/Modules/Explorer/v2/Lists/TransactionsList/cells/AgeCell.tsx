@@ -3,7 +3,7 @@ import { CellContext } from "@tanstack/react-table";
 import { indexerModels } from "algosdk";
 import { CoreTransaction } from "src/packages/core-sdk/classes/core/CoreTransaction";
 import MultiDateViewer from "src/components/v2/MultiDateViewer";
-import { useDateFormat, niceNames, nextFormat } from "src/contexts/DateFormatContext";
+import { useDateFormat, niceNames, nextFormat, DateFormat } from "src/contexts/DateFormatContext";
 import { RefreshCw } from "lucide-react";
 import {
   Tooltip,
@@ -12,13 +12,17 @@ import {
   TooltipTrigger,
 } from "src/components/v2/ui/tooltip";
 
-export function AgeHeader() {
+/** What a time column holds in `format`. */
+export function ageLabel(format: DateFormat): string {
+  return format === "block" ? "Block" : format === "relative" ? "Age" : format === "epoch" ? "Unix" : "Date";
+}
+
+export function AgeHeader({ switcherSide = "right" }: { switcherSide?: "left" | "right" }) {
   const { format, cycle } = useDateFormat();
-  const label = format === "block" ? "Block" : format === "relative" ? "Age" : format === "epoch" ? "Unix" : "Date";
   const next = nextFormat[format];
   return (
-    <span className="inline-flex items-center gap-1">
-      {label}
+    <span className={`inline-flex items-center gap-1${switcherSide === "left" ? " flex-row-reverse" : ""}`}>
+      {ageLabel(format)}
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>

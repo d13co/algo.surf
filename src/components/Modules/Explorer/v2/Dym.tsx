@@ -1,14 +1,20 @@
 import { useCallback } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { useRoundHref } from "src/hooks/useRound";
 import { X } from "lucide-react";
 
 export default function Dym(): JSX.Element | null {
   const [searchParams, setSearchParams] = useSearchParams();
+  const roundHref = useRoundHref();
 
   const dym = searchParams.get("dym");
 
   const dismiss = useCallback(() => {
-    setSearchParams({});
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete("dym");
+      return next;
+    });
   }, [setSearchParams]);
 
   if (!dym) return null;
@@ -21,7 +27,7 @@ export default function Dym(): JSX.Element | null {
     <div className="flex justify-between items-center p-5 rounded-[10px] mb-5 font-bold italic border-l-2 border-l-yellow-500 bg-yellow-500/10">
       <div>
         Did you mean{" "}
-        <Link to={link} className="text-yellow-500 hover:underline">
+        <Link to={roundHref(link)} className="text-yellow-500 hover:underline">
           {text}?
         </Link>
       </div>

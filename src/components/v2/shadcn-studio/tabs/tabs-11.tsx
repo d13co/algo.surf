@@ -14,6 +14,8 @@ interface TabsUnderlineProps {
   defaultValue?: string
   value?: string
   onValueChange?: (value: string) => void
+  /** "manual": arrow keys only move focus between tabs, leaving them free for other shortcuts. */
+  activationMode?: 'automatic' | 'manual'
   className?: string
   listClassName?: string
   tabsRef?: React.Ref<HTMLDivElement>
@@ -24,6 +26,7 @@ export default function TabsUnderline({
   defaultValue,
   value,
   onValueChange,
+  activationMode,
   className,
   listClassName,
   tabsRef,
@@ -35,6 +38,7 @@ export default function TabsUnderline({
       defaultValue={defaultValue ?? tabs[0]?.value}
       value={value}
       onValueChange={onValueChange}
+      activationMode={activationMode}
       className={cn('gap-4', className)}
     >
       <TabsList

@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import Explorer from "../Modules/Explorer/Explorer/Explorer";
 import Loader from "../Common/Loader/Loader";
@@ -26,6 +26,7 @@ const AccountCreatedApplications = lazy(() => import("../Modules/Explorer/v2/Acc
 const AccountOptedApplications = lazy(() => import("../Modules/Explorer/v2/Account/AccountOptedApplications"));
 const AccountControllerTo = lazy(() => import("../Modules/Explorer/v2/Account/AccountControllerTo"));
 const AccountValidator = lazy(() => import("../Modules/Explorer/v2/Account/AccountValidator"));
+const AccountVersions = lazy(() => import("../Modules/Explorer/v2/Account/AccountVersions"));
 const Block = lazy(() => import("../Modules/Explorer/v2/Block/Block"));
 const BlockTransactions = lazy(() => import("../Modules/Explorer/v2/Block/BlockTransactions"));
 const Asset = lazy(() => import("../Modules/Explorer/v2/Asset/Asset"));
@@ -33,11 +34,18 @@ const AssetTransactions = lazy(() => import("../Modules/Explorer/v2/Asset/AssetT
 const Application = lazy(() => import("../Modules/Explorer/v2/Application/Application"));
 const ApplicationTransactions = lazy(() => import("../Modules/Explorer/v2/Application/ApplicationTransactions"));
 const ApplicationBoxes = lazy(() => import("../Modules/Explorer/v2/Application/ApplicationBoxes"));
+const ApplicationVersions = lazy(() => import("../Modules/Explorer/v2/Application/ApplicationVersions"));
 const Transaction = lazy(() => import("../Modules/Explorer/v2/Transaction/Transaction"));
 const Group = lazy(() => import("../Modules/Explorer/v2/Group/Group"));
 const GroupTransactions = lazy(() => import("../Modules/Explorer/v2/Group/GroupTransactions"));
 const StripExplorerFromPath = lazy(() => import("./StripExplorerFromPath"));
 const SearchFromPath = lazy(() => import("./SearchFromPath"));
+
+/** A redirect that keeps the query string, so `?round=` survives it. */
+function NavigateKeepingSearch({ to }: { to: string }): JSX.Element {
+  const { search } = useLocation();
+  return <Navigate to={{ pathname: to, search }} replace />;
+}
 
 const PERSIST_OPTIONS = {
   persister,
@@ -69,7 +77,7 @@ function AppRouter(): JSX.Element {
                         <Route index element={<Home></Home>} />
                         <Route
                           path="/explorer/home"
-                          element={<Navigate to="/" replace />}
+                          element={<NavigateKeepingSearch to="/" />}
                         />
                         <Route
                           path="/accounts"
@@ -94,7 +102,7 @@ function AppRouter(): JSX.Element {
                           />
                           <Route
                             path="transactions"
-                            element={<Navigate to=".." replace />}
+                            element={<NavigateKeepingSearch to=".." />}
                           />
                           <Route
                             path="created-assets"
@@ -129,6 +137,10 @@ function AppRouter(): JSX.Element {
                             element={<AccountValidator />}
                           />
                           <Route
+                            path="versions"
+                            element={<AccountVersions />}
+                          />
+                          <Route
                             path=""
                             element={
                               <AccountTransactions></AccountTransactions>
@@ -142,7 +154,7 @@ function AppRouter(): JSX.Element {
                           />
                           <Route
                             path=""
-                            element={<Navigate to="transactions" replace />}
+                            element={<NavigateKeepingSearch to="transactions" />}
                           />
                         </Route>
                         <Route path="/asset/:id" element={<Asset></Asset>}>
@@ -152,7 +164,7 @@ function AppRouter(): JSX.Element {
                           />
                           <Route
                             path=""
-                            element={<Navigate to="transactions" replace />}
+                            element={<NavigateKeepingSearch to="transactions" />}
                           />
                         </Route>
                         <Route
@@ -170,8 +182,12 @@ function AppRouter(): JSX.Element {
                             element={<ApplicationBoxes></ApplicationBoxes>}
                           />
                           <Route
+                            path="versions"
+                            element={<ApplicationVersions />}
+                          />
+                          <Route
                             path=""
-                            element={<Navigate to="transactions" replace />}
+                            element={<NavigateKeepingSearch to="transactions" />}
                           />
                         </Route>
                         <Route
@@ -192,7 +208,7 @@ function AppRouter(): JSX.Element {
                           />
                           <Route
                             path=""
-                            element={<Navigate to="transactions" replace />}
+                            element={<NavigateKeepingSearch to="transactions" />}
                           />
                         </Route>
                         <Route

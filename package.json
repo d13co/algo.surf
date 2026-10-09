@@ -58,6 +58,7 @@
     "dev:betanet": "REACT_APP_NETWORK=Betanet vite",
     "dev:localnet": "REACT_APP_NETWORK=Localnet vite",
     "dev:fnet": "REACT_APP_NETWORK=Fnet vite",
+    "dev:fnet:tt": "REACT_APP_NETWORK=Fnet REACT_APP_TIMETRAVEL_ALGOD_URL=http://127.0.0.1:8099 vite",
     "build": "vite build",
     "gen:consensus": "node scripts/gen-consensus-versions.mjs",
     "preview": "REACT_APP_NETWORK=Mainnet vite preview"

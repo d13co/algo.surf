@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import BoxesList from "../BoxesList";
 import BoxSearchBar, { BoxSearchMode } from "../BoxSearchBar";
-import { useApplicationBoxNames, useApplicationBox } from "src/hooks/useApplication";
+import { useApplicationBoxNames, useApplicationBox, boxClientFor } from "src/hooks/useApplication";
+import { useRound, withRound } from "src/hooks/useRound";
 import MultiFormatViewer from "src/components/v2/MultiFormatViewer";
 import {
   Dialog,
@@ -15,13 +16,17 @@ import Copyable from "src/components/v2/Copyable";
 import { ArrowLeftFromLine, ArrowRightFromLine, Loader2 } from "lucide-react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { ABIType, isValidAddress, decodeAddress } from "algosdk";
-import { getABIDecodedValue } from "@algorandfoundation/algokit-utils/types/app-arc56";
-import { BoxClient } from "src/packages/core-sdk/clients/boxClient";
-import explorer from "src/utils/dappflow";
 import { A_BoxName } from "src/packages/core-sdk/types";
 import NumberFormat from "react-number-format";
 import AlgoIcon from "../../AlgoIcon/AlgoIcon";
 import { microalgosToAlgos } from "src/utils/common";
+import TabsUnderline from "src/components/v2/shadcn-studio/tabs/tabs-11";
+import { useTimeTravelSupport } from "src/hooks/useTimeTravel";
+import { DecodedValueView } from "./BoxValue";
+import BoxHistory from "./BoxHistory";
+
+/** The box dialog shows the value, or with a time-travel node its history (`?view=history`). */
+type BoxView = "value" | "history";
 
 const BOX_FLAT_COST = 2500;
 const BOX_BYTE_COST = 400;
@@ -60,107 +65,6 @@ function parseTypeFilter(filter: string): ParsedTypes | null {
     }
   }
   return { types };
-}
-
-// --- Decoded value rendering ---
-
-interface DecodedEntry {
-  type: string;
-  value: string;
-  copyValue?: string;
-  base64Value?: string;
-  indent: number;
-}
-
-function isByteArrayType(abiType: ABIType): boolean {
-  return "childType" in abiType && (abiType as any).childType.toString() === "byte";
-}
-
-function toBase64(value: unknown): string {
-  if (value instanceof Uint8Array) return Buffer.from(value).toString("base64");
-  return String(value);
-}
-
-function flattenDecoded(value: unknown, type: string, indent: number): DecodedEntry[] {
-  const abiType = ABIType.from(type);
-  const entries: DecodedEntry[] = [];
-
-  if ("childTypes" in abiType && Array.isArray((abiType as any).childTypes)) {
-    const childTypes = (abiType as any).childTypes as ABIType[];
-    const values = value as unknown[];
-    entries.push({ type, value: "", indent });
-    for (let i = 0; i < childTypes.length; i++) {
-      entries.push(...flattenDecoded(values[i], childTypes[i].toString(), indent + 1));
-    }
-    return entries;
-  }
-
-  if (isByteArrayType(abiType) && value instanceof Uint8Array) {
-    const b64 = Buffer.from(value).toString("base64");
-    return [{ type, value: "", base64Value: b64, indent }];
-  }
-
-  if ("childType" in abiType && Array.isArray(value)) {
-    const childType = (abiType as any).childType as ABIType;
-    const isByteArrayChild = isByteArrayType(childType);
-
-    if (isByteArrayChild) {
-      const b64Values = (value as unknown[]).map(toBase64);
-      const jsonCopy = JSON.stringify(b64Values);
-      entries.push({ type, value: `(${(value as unknown[]).length} items)`, copyValue: jsonCopy, indent });
-    } else {
-      const jsonCopy = JSON.stringify(value, (_k, v) => typeof v === "bigint" ? v.toString() : v);
-      entries.push({ type, value: `(${(value as unknown[]).length} items)`, copyValue: jsonCopy, indent });
-    }
-    for (let i = 0; i < (value as unknown[]).length; i++) {
-      entries.push(...flattenDecoded((value as unknown[])[i], childType.toString(), indent + 1));
-    }
-    return entries;
-  }
-
-  const display = typeof value === "bigint" ? value.toString() : String(value);
-  return [{ type, value: display, indent }];
-}
-
-function DecodedValueView({ value, types }: { value: string; types: string[] }) {
-  const result = useMemo(() => {
-    const buffer = new Uint8Array(Buffer.from(value, "base64"));
-    for (const type of types) {
-      try {
-        const decoded = getABIDecodedValue(buffer, type, {});
-        return { entries: flattenDecoded(decoded, type, 0), matchedType: type };
-      } catch {
-        continue;
-      }
-    }
-    return null;
-  }, [value, types]);
-
-  if (!result) {
-    return <MultiFormatViewer view="auto" includeNum="auto" value={value} />;
-  }
-
-  const { entries } = result;
-
-  return (
-    <div className="space-y-1 font-mono text-sm">
-      {entries.map((entry, i) => (
-        <div key={i} style={{ paddingLeft: entry.indent * 16 }}>
-          <span className="text-muted-foreground">{entry.type}</span>
-          {entry.base64Value ? (
-            <span className="inline">
-              : <MultiFormatViewer view="auto" includeNum="auto" value={entry.base64Value} />
-            </span>
-          ) : entry.value ? (
-            <span className="break-all">
-              : {entry.value}
-              <Copyable size="s" className="ml-1 opacity-60 hover:opacity-100" value={entry.copyValue ?? entry.value} />
-            </span>
-          ) : null}
-        </div>
-      ))}
-    </div>
-  );
 }
 
 // --- Search helpers ---
@@ -202,6 +106,11 @@ function ApplicationBoxes(): JSX.Element {
   const { id, "*": boxNameRaw } = useParams();
   const navigate = useNavigate();
   const numId = Number(id);
+  // Boxes as they were at a past round, when the URL asks for one.
+  const { round } = useRound();
+  const hasHistory = useTimeTravelSupport();
+  const [searchParams] = useSearchParams();
+  const view: BoxView = hasHistory && searchParams.get("view") === "history" ? "history" : "value";
 
   const boxName = boxNameRaw ? decodeURIComponent(boxNameRaw) : undefined;
   const dialogOpen = !!boxName;
@@ -226,9 +135,9 @@ function ApplicationBoxes(): JSX.Element {
     hasNextPage,
     fetchNextPage,
     isFetchingNextPage,
-  } = useApplicationBoxNames(numId);
+  } = useApplicationBoxNames(numId, round);
 
-  const { data: boxData, isLoading: boxLoading } = useApplicationBox(numId, boxName);
+  const { data: boxData, isLoading: boxLoading, error: boxValueError } = useApplicationBox(numId, boxName, round);
 
   // A box raises the app account's minimum balance by 2500 + 400 per byte of
   // key + value (microAlgos).
@@ -267,7 +176,7 @@ function ApplicationBoxes(): JSX.Element {
       return boxNames;
     }
 
-    const client = new BoxClient(explorer.network);
+    const client = boxClientFor(round);
     const allBoxes: A_BoxName[] = [];
     let token: string | undefined;
     do {
@@ -279,7 +188,7 @@ function ApplicationBoxes(): JSX.Element {
     } while (token);
     cachedAllBoxNames.current = allBoxes;
     return allBoxes;
-  }, [boxNames, data, hasNextPage, numId]);
+  }, [boxNames, data, hasNextPage, numId, round]);
 
   const filterKeys = useCallback((allNames: A_BoxName[], mode: "key-prefix" | "key-search", term: string, isBase64: boolean): A_BoxName[] => {
     if (mode === "key-prefix") {
@@ -319,7 +228,7 @@ function ApplicationBoxes(): JSX.Element {
         // Exact keys resolve against algod directly, no need to page through names
         setSearchProgress("Looking up box...");
         const nameB64 = Buffer.from(getSearchBytes(term, isBase64)).toString("base64");
-        const client = new BoxClient(explorer.network);
+        const client = boxClientFor(round);
         try {
           await client.getBox(numId, nameB64);
           if (abort.signal.aborted) return;
@@ -338,7 +247,7 @@ function ApplicationBoxes(): JSX.Element {
         if (abort.signal.aborted) return;
 
         const needle = getSearchBytes(term, isBase64);
-        const client = new BoxClient(explorer.network);
+        const client = boxClientFor(round);
         const results: A_BoxName[] = [];
 
         for (let i = 0; i < allNames.length; i++) {
@@ -363,10 +272,10 @@ function ApplicationBoxes(): JSX.Element {
         setSearchProgress("");
       }
     }
-  }, [fetchAllBoxNames, filterKeys, boxNames, numId]);
+  }, [fetchAllBoxNames, filterKeys, boxNames, numId, round]);
 
-  // The route keeps this component mounted when navigating between apps, so
-  // drop anything scoped to the previous app id.
+  // The route keeps this component mounted when navigating between apps (or
+  // rounds), so drop anything scoped to the previous app id and round.
   useEffect(() => {
     abortRef.current?.abort();
     cachedAllBoxNames.current = null;
@@ -374,7 +283,7 @@ function ApplicationBoxes(): JSX.Element {
     setSearchLoading(false);
     setSearchProgress("");
     setLastSearch(null);
-  }, [numId]);
+  }, [numId, round]);
 
   const handleSearchClear = useCallback(() => {
     abortRef.current?.abort();
@@ -407,8 +316,12 @@ function ApplicationBoxes(): JSX.Element {
   const hasPrev = currentIndex > 0;
   const hasNext = currentIndex >= 0 && currentIndex < displayedBoxNames.length - 1;
 
+  // Stepping between boxes keeps the view.
+  const boxHref = (name: string, v: BoxView = view) =>
+    withRound(`/application/${id}/boxes/${encodeURIComponent(name)}${v === "history" ? "?view=history" : ""}`, round);
+
   const goTo = (name: string) => {
-    navigate(`/application/${id}/boxes/${encodeURIComponent(name)}`, { replace: true });
+    navigate(boxHref(name), { replace: true });
   };
 
   const goToPrev = () => {
@@ -418,11 +331,28 @@ function ApplicationBoxes(): JSX.Element {
     if (hasNext) goTo(displayedBoxNames[currentIndex + 1].name);
   };
 
-  useHotkeys("left", goToPrev, { enabled: dialogOpen && hasPrev }, [currentIndex, displayedBoxNames, id]);
-  useHotkeys("right", goToNext, { enabled: dialogOpen && hasNext }, [currentIndex, displayedBoxNames, id]);
+  useHotkeys("left", goToPrev, { enabled: dialogOpen && hasPrev }, [currentIndex, displayedBoxNames, id, round, view]);
+  useHotkeys("right", goToNext, { enabled: dialogOpen && hasNext }, [currentIndex, displayedBoxNames, id, round, view]);
+
+  const valueTypes = parsedFilter?.types && !parsedFilter.error ? parsedFilter.types : undefined;
+  const valueTypesInput = (
+          <div>
+            <div className="text-sm text-muted-foreground mb-1">Value Types</div>
+            <Input
+              type="text"
+              value={valueFilter}
+              onChange={(e) => handleFilterChange(e.target.value)}
+              placeholder="Space separated ARC4 types for Values (e.g. 'string uint64 (address,bool)')"
+              className={`font-mono text-sm h-8 ${parsedFilter?.error ? "!border-secondary" : ""}`}
+            />
+            {parsedFilter?.error && (
+              <div className="text-secondary text-xs mt-1">{parsedFilter.error}</div>
+            )}
+          </div>
+  );
 
   const handleClose = () => {
-    navigate(`/application/${id}/boxes`);
+    navigate(withRound(`/application/${id}/boxes`, round));
   };
 
   return (
@@ -435,6 +365,8 @@ function ApplicationBoxes(): JSX.Element {
         ) : (
           <BoxesList
             appId={numId}
+            round={round}
+            history={hasHistory}
             boxNames={displayedBoxNames}
             hasMore={searchResults ? false : !!hasNextPage}
             loadMore={searchResults ? undefined : fetchNextPage}
@@ -478,7 +410,7 @@ function ApplicationBoxes(): JSX.Element {
           <DialogHeader>
             <div className="flex items-center gap-2">
               <a
-                href={hasPrev ? `/application/${id}/boxes/${encodeURIComponent(displayedBoxNames[currentIndex - 1]?.name)}` : undefined}
+                href={hasPrev ? boxHref(displayedBoxNames[currentIndex - 1]?.name) : undefined}
                 onClick={(e) => {
                   e.preventDefault();
                   goToPrev();
@@ -492,7 +424,7 @@ function ApplicationBoxes(): JSX.Element {
                 Box {currentIndex >= 0 ? `(${currentIndex + 1} of ${displayedBoxNames.length})` : ""}
               </DialogTitle>
               <a
-                href={hasNext ? `/application/${id}/boxes/${encodeURIComponent(displayedBoxNames[currentIndex + 1]?.name)}` : undefined}
+                href={hasNext ? boxHref(displayedBoxNames[currentIndex + 1]?.name) : undefined}
                 onClick={(e) => {
                   e.preventDefault();
                   goToNext();
@@ -504,33 +436,41 @@ function ApplicationBoxes(): JSX.Element {
               </a>
             </div>
           </DialogHeader>
-          {boxLoading ? (
+          {hasHistory ? (
+            <TabsUnderline
+              value={view}
+              onValueChange={(v) => navigate(boxHref(boxName, v as BoxView), { replace: true })}
+              activationMode="manual"
+              tabs={[
+                { name: "Value", value: "value" },
+                { name: "History", value: "history" },
+              ]}
+            />
+          ) : null}
+          {view === "history" ? (
+            <div className="space-y-4 min-w-0">
+              {valueTypesInput}
+              <div>
+                <div className="text-sm text-muted-foreground mb-1">Key</div>
+                <MultiFormatViewer view="auto" includeNum="auto" value={boxName} />
+              </div>
+              <BoxHistory appId={numId} name={boxName} round={round} types={valueTypes} />
+            </div>
+          ) : boxLoading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
           ) : boxData ? (
             <div className="space-y-4">
-              <div>
-                <div className="text-sm text-muted-foreground mb-1">Value Types</div>
-                <Input
-                  type="text"
-                  value={valueFilter}
-                  onChange={(e) => handleFilterChange(e.target.value)}
-                  placeholder="Space separated ARC4 types for Values (e.g. 'string uint64 (address,bool)')"
-                  className={`font-mono text-sm h-8 ${parsedFilter?.error ? "!border-secondary" : ""}`}
-                />
-                {parsedFilter?.error && (
-                  <div className="text-secondary text-xs mt-1">{parsedFilter.error}</div>
-                )}
-              </div>
+              {valueTypesInput}
               <div>
                 <div className="text-sm text-muted-foreground mb-1">Key</div>
                 <MultiFormatViewer view="auto" includeNum="auto" value={boxData.name} />
               </div>
               <div>
                 <div className="text-sm text-muted-foreground mb-1">Value</div>
-                {parsedFilter?.types && !parsedFilter.error ? (
-                  <DecodedValueView value={boxData.value} types={parsedFilter.types} />
+                {valueTypes ? (
+                  <DecodedValueView value={boxData.value} types={valueTypes} />
                 ) : (
                   <MultiFormatViewer view="auto" includeNum="auto" value={boxData.value} />
                 )}
@@ -560,6 +500,8 @@ function ApplicationBoxes(): JSX.Element {
                 </div>
               ) : null}
             </div>
+          ) : boxValueError ? (
+            <div className="text-secondary">{(boxValueError as Error).message || "Failed to load box"}</div>
           ) : null}
         </DialogContent>
       </Dialog>

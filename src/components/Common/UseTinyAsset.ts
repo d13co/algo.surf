@@ -27,6 +27,7 @@ export function useTinyAsset(
       }
       return tiny ?? null;
     },
+    enabled: assetId > 0,
     staleTime: Infinity,
   });
 }

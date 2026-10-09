@@ -5,6 +5,7 @@ import { AlgoMetricsProvider } from "@d13co/algo-metrics-react";
 import { AlgoMetricsSDK } from "@d13co/algo-metrics-sdk";
 import { LiveBlocksProvider } from "../../../../hooks/useLiveBlocks";
 import { abel } from "../../../../packages/abel/abel";
+import { TimeTravelBar } from "../v2/Versions/RoundNotice";
 
 const metricsSDK = new AlgoMetricsSDK({ abelGhostSDK: abel });
 
@@ -40,6 +41,7 @@ function Explorer({ children }: { children: React.ReactNode }): JSX.Element {
         <LiveBlocksProvider>
           <div className="explorer-root">
             <Header></Header>
+            <TimeTravelBar />
             <PageErrorBoundary>
               {children}
             </PageErrorBoundary>

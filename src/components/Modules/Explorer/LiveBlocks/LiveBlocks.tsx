@@ -1,5 +1,6 @@
 import React, { useRef } from "react";
 import { Link } from "react-router-dom";
+import { useRoundHref } from "src/hooks/useRound";
 import { useLiveBlocks } from "../../../../hooks/useLiveBlocks";
 import { CSSTransition, TransitionGroup } from 'react-transition-group';
 import MultiDateViewer from "../../../v2/MultiDateViewer";
@@ -64,12 +65,13 @@ function countTxnTypes(payset: Block["payset"]) {
 
 function BlockItem({ block, ...transitionProps }: { block: Block } & Record<string, unknown>) {
     const nodeRef = useRef<HTMLAnchorElement>(null);
+    const roundHref = useRoundHref();
     const round = Number(block.header.round);
     const { total, counts } = countTxnTypes(block.payset);
 
     return (
         <CSSTransition {...transitionProps} key={round} timeout={700} classNames="item" nodeRef={nodeRef}>
-            <Link ref={nodeRef} to={"/block/" + round} className="block bg-background-card p-4 my-3 border-l-[6px] border-primary rounded overflow-hidden hover:bg-background-card/80">
+            <Link ref={nodeRef} to={roundHref("/block/" + round)} className="block bg-background-card p-4 my-3 border-l-[6px] border-primary rounded overflow-hidden hover:bg-background-card/80">
                 <div className="w-full">
                     <div className="flex justify-between items-center flex-wrap">
                         <span className="text-primary font-medium">{round}</span>

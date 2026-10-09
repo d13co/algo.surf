@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import { useRoundNavigate } from "src/hooks/useRound";
 import { useHotkeys } from "react-hotkeys-hook";
 import { CoreTransaction } from "src/packages/core-sdk/classes/core/CoreTransaction";
 import { TXN_TYPES } from "src/packages/core-sdk/constants";
@@ -344,7 +345,7 @@ function AppCallTxnInnerTxns({
 }: {
   transaction: any;
 }): JSX.Element {
-  const navigate = useNavigate();
+  const navigate = useRoundNavigate();
   const params = useParams();
   const txnId = params.id;
   const innerPath = params["*"] || "";

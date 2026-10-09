@@ -1,5 +1,6 @@
 import React from 'react';
-import { useLocation, useNavigate, } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
+import { useRoundNavigate } from 'src/hooks/useRound';
 import search, { NotFoundError, ServerError, NotSearchableError } from "../Modules/Explorer/Search/CoreSearch";
 import Loader from "src/components/v2/LoadingTile";
 import { SearchX, CircleAlert, HeartCrack } from 'lucide-react';
@@ -20,7 +21,7 @@ function Error({ icon, children }): JSX.Element {
 
 export default function SearchFromPath(): JSX.Element {
     const { pathname } = useLocation();
-    const navigate = useNavigate();
+    const navigate = useRoundNavigate();
     const { loading: abelLoading, loadedPromise } = useAbelAssetsContext();
 
     const [loading, setLoading] = React.useState(false);

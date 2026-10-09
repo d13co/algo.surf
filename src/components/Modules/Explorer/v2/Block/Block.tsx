@@ -1,5 +1,6 @@
 import React, { Suspense } from "react";
-import { Outlet, useNavigate, useParams } from "react-router-dom";
+import { Outlet, useParams } from "react-router-dom";
+import { useRoundHref, useRoundNavigate } from "src/hooks/useRound";
 import { useHotkeys } from "react-hotkeys-hook";
 import { CoreBlock } from "src/packages/core-sdk/classes/core/CoreBlock";
 import { useBlock, useBlockHash } from "src/hooks/useBlock";
@@ -36,7 +37,8 @@ const txnTypeMap: Record<string, [string, string]> = {
 };
 
 function Block(): JSX.Element {
-  const navigate = useNavigate();
+  const navigate = useRoundNavigate();
+  const roundHref = useRoundHref();
   const params = useParams();
   const { id } = params;
   const numId = Number(id);
@@ -94,7 +96,7 @@ function Block(): JSX.Element {
             >
               <div className="flex items-center gap-1 shrink-0 ml-auto md:ml-0">
                 <a
-                  href={hasPrev ? `/block/${numId - 1}/transactions` : undefined}
+                  href={hasPrev ? roundHref(`/block/${numId - 1}/transactions`) : undefined}
                   onClick={(e) => {
                     e.preventDefault();
                     goToPrev();
@@ -110,7 +112,7 @@ function Block(): JSX.Element {
                   <ArrowLeftFromLine size={20} />
                 </a>
                 <a
-                  href={`/block/${numId + 1}/transactions`}
+                  href={roundHref(`/block/${numId + 1}/transactions`)}
                   onClick={(e) => {
                     e.preventDefault();
                     goToNext();
