@@ -72,7 +72,7 @@ export const objKindLabel: Record<ObjKind, string> = {
 };
 
 /** Object kinds keyed by TEAL key rather than by name. */
-const tealMapKeys = new Set(["global-state", "key-value"]);
+export const tealMapKeys = new Set(["global-state", "key-value"]);
 
 function normalizeKv(kv: TTKeyValue[] | undefined): DObject {
   const entries = [...(kv ?? [])].sort((a, b) =>
@@ -343,6 +343,44 @@ export function diff(before: DJson | undefined, after: DJson | undefined, path: 
   return [{ path, kind: "changed", before, after }];
 }
 
+// ---------------------------------------------------------------------------
+// Fields: paths into a state, to narrow a delta to
+
+/** A path into an object's state; TEAL keys in base64, as in Change.path. */
+export type FieldPath = string[];
+
+/** The value at `path` in `state`; undefined where there is none. */
+export function valueAt(state: DJson | undefined, path: FieldPath): DJson | undefined {
+  let v = state;
+  for (const segment of path) {
+    if (Array.isArray(v) && /^\d+$/.test(segment)) {
+      v = v[Number(segment)];
+    } else if (isPlainObject(v) && Object.prototype.hasOwnProperty.call(v, segment)) {
+      v = v[segment];
+    } else {
+      return undefined;
+    }
+  }
+  return v;
+}
+
+function isPrefix(prefix: FieldPath, path: FieldPath): boolean {
+  return prefix.length <= path.length && prefix.every((s, i) => s === path[i]);
+}
+
+/** `fields` without those inside another (or repeated): their changes are the other's. */
+export function fieldRoots(fields: FieldPath[]): FieldPath[] {
+  return fields.filter((p, i) => !fields.some((q, j) => j !== i && isPrefix(q, p) && (q.length < p.length || j < i)));
+}
+
+/**
+ * The changes from `before` to `after` at `fields` only, each at its own path:
+ * a key added under a field shows at the key, not at its parent.
+ */
+export function diffFields(before: Snapshot | undefined, after: Snapshot | undefined, fields: FieldPath[]): Change[] {
+  return fieldRoots(fields).flatMap((field) => diff(valueAt(before, field), valueAt(after, field), field));
+}
+
 /** A changed leaf in a delta tree. */
 export type ChangeLeaf = { $change: Change };
 
@@ -409,7 +447,7 @@ export function isTealKeySegment(parent: string | undefined): boolean {
   return parent !== undefined && tealMapKeys.has(parent);
 }
 
-const shortSegment: Record<string, string> = {
+export const shortSegment: Record<string, string> = {
   "global-state": "global",
   "key-value": "local",
 };
@@ -448,16 +486,21 @@ export type ObjectSummary = {
   error?: string;
 };
 
-export function summarizeObject(o: RowObject): ObjectSummary {
+/**
+ * What a version did to an object. With `fields`, only to those: their
+ * changes, and "unchanged" where none of them changed. `state` stays whole.
+ */
+export function summarizeObject(o: RowObject, fields?: FieldPath[]): ObjectSummary {
   const base = { key: o.key, ref: o.ref, state: o.after ?? o.before ?? null };
   if (o.baselineError) return { ...base, status: "error", changes: [], error: o.baselineError };
   if (o.before === undefined) return { ...base, status: "pending", changes: [] };
-  let changes = diff(o.before, o.after);
+  let changes = fields?.length ? diffFields(o.before, o.after, fields) : diff(o.before, o.after);
   // Created/deleted with values excluded ({}): nothing to show but the event.
   const root = changes.length === 1 && changes[0].path.length === 0 ? changes[0] : undefined;
   if (root && isPlainObject(root.after ?? root.before) && !Object.keys(root.after ?? root.before).length) {
     changes = [];
   }
+  if (fields?.length && !changes.length) return { ...base, status: "unchanged", changes };
   if (o.before === null && o.after !== null) return { ...base, status: "created", changes };
   if (o.before !== null && o.after === null) return { ...base, status: "deleted", changes };
   return { ...base, status: changes.length ? "changed" : "unchanged", changes };

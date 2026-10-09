@@ -1,7 +1,10 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
+import { cn } from "src/lib/utils";
 import { useAccountVersions, useVersionsOrder } from "src/hooks/useTimeTravel";
 import { useRound, withRound } from "src/hooks/useRound";
+import { useVersionFilter } from "src/hooks/useVersionFilter";
+import { withVersionFilter } from "src/utils/versionFilter";
 import { TTAccountVersion } from "src/utils/timeTravel";
 import {
   accountVersionTouches,
@@ -52,8 +55,14 @@ function AccountVersions(): JSX.Element {
   const { round } = useRound();
   // Off by default: each global state change of an app this account created
   // would otherwise be a version of the account as well.
-  const [includeCreatedParams, setIncludeCreatedParams] = useState(false);
+  const [includeParamsChecked, setIncludeParamsChecked] = useState(false);
   const [order, setOrder] = useVersionsOrder();
+  const filter = useVersionFilter(true);
+  const object = filter?.object;
+  // A field of a created app or asset is in its params: a link to one (or a
+  // reload of it) must read them, whatever the box says.
+  const paramsFiltered = !!filter?.fields.length && /^created-/.test(object ?? "");
+  const includeCreatedParams = includeParamsChecked || paramsFiltered;
 
   const {
     data,
@@ -63,7 +72,7 @@ function AccountVersions(): JSX.Element {
     fetchNextPage,
     isFetchingNextPage,
     isFetchNextPageError,
-  } = useAccountVersions(address, includeCreatedParams, round, order);
+  } = useAccountVersions(address, includeCreatedParams, round, order, object);
   const stateHref = useMemo(() => stateHrefFor(address), [address]);
 
   const versions = useMemo(() => data?.pages.flatMap((p) => p.versions) ?? [], [data]);
@@ -71,14 +80,19 @@ function AccountVersions(): JSX.Element {
     () => ({ kind: "account", address, includeCreatedParams }),
     [address, includeCreatedParams],
   );
+  // Filtered to an object, its list can hold another's versions too (see useAccountVersions).
   const touchesOf = useCallback(
-    (v: TTAccountVersion) => accountVersionTouches(v, includeCreatedParams),
-    [includeCreatedParams],
+    (v: TTAccountVersion) => {
+      const touches = accountVersionTouches(v, includeCreatedParams);
+      return object ? touches.filter((t) => t.key === object) : touches;
+    },
+    [includeCreatedParams, object],
   );
 
   return (
     <VersionsList
-      key={`${includeCreatedParams}-${order}`}
+      key={`${includeCreatedParams}-${order}-${withVersionFilter("", filter)}`}
+      filter={filter}
       ctx={ctx}
       versions={versions}
       touchesOf={touchesOf}
@@ -95,12 +109,13 @@ function AccountVersions(): JSX.Element {
       filenamePrefix={`account-${address}`}
       emptyLabel="No versions"
       toolbar={
-        <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+        <label className={cn("flex items-center gap-2 text-sm text-muted-foreground", paramsFiltered ? "opacity-60" : "cursor-pointer")}>
           <input
             type="checkbox"
             className="accent-primary"
             checked={includeCreatedParams}
-            onChange={(e) => setIncludeCreatedParams(e.target.checked)}
+            disabled={paramsFiltered}
+            onChange={(e) => setIncludeParamsChecked(e.target.checked)}
           />
           Include created app and asset params
         </label>

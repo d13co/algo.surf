@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, History, Loader2 } from "lucide-react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "src/components/v2/ui/dialog";
@@ -8,10 +8,11 @@ import MultiDateViewer from "src/components/v2/MultiDateViewer";
 import TabsUnderline from "src/components/v2/shadcn-studio/tabs/tabs-11";
 import { toPlainJson } from "src/packages/core-sdk/utils/serialize";
 import type { VersionsOrder } from "src/utils/timeTravel";
-import { objKindLabel, summarizeObject, VersionRow } from "src/utils/versionDelta";
+import { objKindLabel } from "src/utils/versionDelta";
 import Link from "../Links/Link";
 import LinkToBlock from "../Links/LinkToBlock";
-import { ObjectDiffTree, ObjectLabel, StateHref, StatusChip } from "./VersionChanges";
+import { FieldHref, FilterLink, ObjectDiffTree, ObjectLabel, StateHref, StatusChip } from "./VersionChanges";
+import type { SummarizedRow } from "./VersionsList";
 
 type View = "changes" | "full";
 
@@ -26,23 +27,28 @@ export default function VersionDetailsDialog<V>({
   onIndexChange,
   hasMore,
   fetchMore,
+  searchPaused = false,
   isFetchingMore,
   fetchMoreFailed,
   order,
   label,
   stateHref,
+  fieldHref,
   filenamePrefix,
 }: {
-  rows: VersionRow<V>[];
+  rows: SummarizedRow<V>[];
   index: number | null;
   onIndexChange: (index: number | null) => void;
   hasMore: boolean;
   fetchMore: () => void;
+  /** Filtered, the list stopped looking for more matches until asked (fetchMore). */
+  searchPaused?: boolean;
   isFetchingMore: boolean;
   fetchMoreFailed: boolean;
   order: VersionsOrder;
   label: ObjectLabel;
   stateHref: StateHref;
+  fieldHref?: FieldHref;
   filenamePrefix: string;
 }) {
   const [view, setView] = useState<View>("changes");
@@ -51,7 +57,7 @@ export default function VersionDetailsDialog<V>({
   const [prevTitle, nextTitle] = order === "desc" ? ["Newer version (←)", "Older version (→)"] : ["Older version (←)", "Newer version (→)"];
 
   const row = index === null ? undefined : rows[index];
-  const summaries = useMemo(() => row?.objects.map(summarizeObject) ?? [], [row]);
+  const summaries = row?.summaries ?? [];
 
   const canPrev = index !== null && index > 0;
   const canNext = index !== null && (index < rows.length - 1 || hasMore);
@@ -62,8 +68,11 @@ export default function VersionDetailsDialog<V>({
     if (awaitingMore && index !== null && index < rows.length - 1) {
       setAwaitingMore(false);
       onIndexChange(index + 1);
+    } else if (awaitingMore && (searchPaused || (!hasMore && !isFetchingMore))) {
+      // Nothing more is coming: none left, or none found before the search paused.
+      setAwaitingMore(false);
     }
-  }, [awaitingMore, rows.length, index, onIndexChange]);
+  }, [awaitingMore, rows.length, index, onIndexChange, searchPaused, hasMore, isFetchingMore]);
 
   function prev() {
     if (!canPrev) return;
@@ -110,6 +119,9 @@ export default function VersionDetailsDialog<V>({
                   <MultiDateViewer timestamp={row.timestamp} block={row.round} variant="short" />
                 </span>
                 {moreFailed ? <span className="text-red-400">Could not load more versions</span> : null}
+                {searchPaused && index === rows.length - 1 ? (
+                  <span className="text-muted-foreground">No more matches so far: → searches on</span>
+                ) : null}
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" className="border-border text-primary hover:bg-primary/10" asChild>
@@ -143,6 +155,7 @@ export default function VersionDetailsDialog<V>({
                   <div className="flex flex-wrap items-center gap-2 mb-1">
                     <span className="text-muted-foreground">{label ? label(s.ref) : objKindLabel[s.ref.kind]}</span>
                     <StatusChip summary={s} />
+                    {label && fieldHref ? <FilterLink href={fieldHref(s.key)} title="Only the versions that changed this" /> : null}
                     {label ? (
                       <Link href={stateHref(row.round, s.ref)} className="text-xs" title="Where the page shows this, as it was at this round">
                         <History size={12} className="inline -mt-0.5 mr-1" />
@@ -156,12 +169,12 @@ export default function VersionDetailsDialog<V>({
                     <span className="text-red-400">Previous state unavailable: {s.error}</span>
                   ) : view === "changes" ? (
                     s.changes.length ? (
-                      <ObjectDiffTree key={row.round} summary={s} collapseDepth={2} maxChildren={Infinity} truncateAt={120} />
+                      <ObjectDiffTree key={row.round} summary={s} fieldHref={fieldHref} collapseDepth={2} maxChildren={Infinity} truncateAt={120} />
                     ) : (
                       <span className="text-muted-foreground">No field changes</span>
                     )
                   ) : (
-                    <ObjectDiffTree key={row.round} summary={s} full collapseDepth={1} maxChildren={Infinity} truncateAt={120} />
+                    <ObjectDiffTree key={row.round} summary={s} full fieldHref={fieldHref} collapseDepth={1} maxChildren={Infinity} truncateAt={120} />
                   )}
                 </section>
               ))}

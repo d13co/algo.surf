@@ -2,6 +2,8 @@ import { useCallback, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { useAppVersions, useVersionsOrder } from "src/hooks/useTimeTravel";
 import { useRound, withRound } from "src/hooks/useRound";
+import { useVersionFilter } from "src/hooks/useVersionFilter";
+import { withVersionFilter } from "src/utils/versionFilter";
 import { appVersionTouches, BaselineContext } from "src/utils/versionDelta";
 import VersionsList from "../Versions/VersionsList";
 
@@ -11,6 +13,7 @@ function ApplicationVersions(): JSX.Element {
   // On a page at a past round, the versions up to it.
   const { round } = useRound();
   const [order, setOrder] = useVersionsOrder();
+  const filter = useVersionFilter(false);
 
   const {
     data,
@@ -28,7 +31,8 @@ function ApplicationVersions(): JSX.Element {
 
   return (
     <VersionsList
-      key={order}
+      key={`${order}-${withVersionFilter("", filter)}`}
+      filter={filter}
       ctx={ctx}
       versions={versions}
       touchesOf={appVersionTouches}

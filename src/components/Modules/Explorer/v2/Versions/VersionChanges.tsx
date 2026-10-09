@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo } from "react";
+import { ListFilter, X } from "lucide-react";
 import { cn } from "src/lib/utils";
 import { Chip } from "src/components/v2/Chips";
 import JsonDiffTree, { NumberFormat, NumberFormatOf } from "src/components/v2/JsonDiffTree";
@@ -7,18 +8,33 @@ import { isDeletedAssetTiny } from "src/packages/abel/abel";
 import {
   amountUnit,
   buildDeltaTree,
+  FieldPath,
   formatPath,
   ObjectSummary,
   ObjRef,
   overlayChanges,
   Snapshot,
 } from "src/utils/versionDelta";
+import { parseObjKey, VersionFilter } from "src/utils/versionFilter";
+import Link from "../Links/Link";
 
 /** How each tab names the objects a version touched: an app tab touches only the app. */
 export type ObjectLabel = ((ref: ObjRef) => React.ReactNode) | null;
 
 /** Where each tab shows the state at `round` (`?round=`): the whole record, or the part showing `ref`. */
 export type StateHref = (round: number, ref?: ObjRef) => string;
+
+/** The list of only the versions that changed `path` of the object `key`, or without one, that changed it at all. */
+export type FieldHref = (key: string, path?: FieldPath) => string;
+
+/** Links to the list filtered to a field or object, shown on hover. */
+export function FilterLink({ href, title, className }: { href: string; title: string; className?: string }) {
+  return (
+    <Link noStyle href={href} title={title} className={cn("inline-flex text-muted-foreground hover:text-primary", className)}>
+      <ListFilter size={11} />
+    </Link>
+  );
+}
 
 /** Placeholder while the state before a version is being read. */
 function Pending({ className }: { className: string }) {
@@ -51,26 +67,89 @@ export function StatusChip({ summary }: { summary: ObjectSummary }) {
 
 const MAX_PATH_CHIPS = 4;
 
-/** The changed paths of each object, as chips. */
-export function ChangedKeys({ summaries, label }: { summaries: ObjectSummary[]; label: ObjectLabel }) {
+/** The changed paths of each object, as chips; with `fieldHref`, each links to the versions that changed it. */
+export function ChangedKeys({
+  summaries,
+  label,
+  fieldHref,
+}: {
+  summaries: ObjectSummary[];
+  label: ObjectLabel;
+  fieldHref?: FieldHref;
+}) {
   return (
     <div className="flex flex-col gap-1">
       {summaries.map((s) => {
-        const paths = s.status === "changed" ? s.changes.map((c) => formatPath(c.path)) : [];
+        const paths = s.status === "changed" ? s.changes.map((c) => ({ path: c.path, text: formatPath(c.path) })) : [];
         return (
           <div key={s.key} className="flex flex-wrap items-center gap-1">
-            {label ? <span className="text-muted-foreground text-xs mr-0.5">{label(s.ref)}</span> : null}
+            {label ? (
+              <span className="text-muted-foreground text-xs mr-0.5 inline-flex items-center gap-1">
+                {label(s.ref)}
+                {fieldHref ? <FilterLink href={fieldHref(s.key)} title="Only the versions that changed this" /> : null}
+              </span>
+            ) : null}
             {s.status === "pending" ? <Pending className="h-5 w-24" /> : null}
             <StatusChip summary={s} />
-            {paths.slice(0, MAX_PATH_CHIPS).map((p) => (
-              <Chip key={p} variant="success" className="font-mono" title={p}>
-                <span className="max-w-[16ch] truncate">{p}</span>
-              </Chip>
-            ))}
+            {paths.slice(0, MAX_PATH_CHIPS).map(({ path, text }) => {
+              const chip = (
+                <Chip variant="success" className={cn("font-mono", fieldHref && "cursor-pointer hover:bg-primary/10")} title={text}>
+                  <span className="max-w-[16ch] truncate">{text}</span>
+                </Chip>
+              );
+              return fieldHref ? (
+                <Link key={text} noStyle href={fieldHref(s.key, path)} title={`Only the versions that changed ${text}`}>
+                  {chip}
+                </Link>
+              ) : (
+                <React.Fragment key={text}>{chip}</React.Fragment>
+              );
+            })}
             {paths.length > MAX_PATH_CHIPS ? (
               <span className="text-xs text-muted-foreground">+{paths.length - MAX_PATH_CHIPS}</span>
             ) : null}
           </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * The filter a list shows, as chips: the object (where the list has several)
+ * and each field, each removable.
+ */
+export function ActiveFilter({
+  filter,
+  label,
+  filterHref,
+}: {
+  filter: VersionFilter;
+  label: ObjectLabel;
+  filterHref: (filter: VersionFilter | undefined) => string;
+}) {
+  const ref = filter.object ? parseObjKey(filter.object) : undefined;
+  const remove = (href: string, what: string) => (
+    <Link noStyle href={href} title={`Remove ${what}`} className="inline-flex -mr-1 ml-1 hover:text-foreground">
+      <X size={12} />
+    </Link>
+  );
+  return (
+    <div className="flex flex-wrap items-center gap-1.5 text-sm">
+      <ListFilter size={14} className="text-muted-foreground" />
+      {ref && label ? (
+        <Chip variant="success">
+          {label(ref)}
+          {remove(filterHref(undefined), "the filter")}
+        </Chip>
+      ) : null}
+      {filter.fields.map((field, i) => {
+        const text = formatPath(field);
+        return (
+          <Chip key={text} variant="success" className="font-mono" title={text}>
+            <span className="max-w-[24ch] truncate">{text}</span>
+            {remove(filterHref({ ...filter, fields: filter.fields.filter((_, j) => j !== i) }), text)}
+          </Chip>
         );
       })}
     </div>
@@ -120,18 +199,42 @@ function useNumberFormat(ref: ObjRef, state: Snapshot): NumberFormatOf {
 export function ObjectDiffTree({
   summary,
   full = false,
+  fieldHref,
   ...treeProps
-}: { summary: ObjectSummary; full?: boolean } & Omit<React.ComponentProps<typeof JsonDiffTree>, "value" | "numberFormat">) {
+}: { summary: ObjectSummary; full?: boolean; fieldHref?: FieldHref } & Omit<
+  React.ComponentProps<typeof JsonDiffTree>,
+  "value" | "numberFormat" | "keyAction"
+>) {
   const numberFormat = useNumberFormat(summary.ref, summary.state);
   const value = useMemo(
     () => (full ? overlayChanges(summary.state, summary.changes) : buildDeltaTree(summary.changes)),
     [full, summary],
   );
-  return <JsonDiffTree value={value} numberFormat={numberFormat} {...treeProps} />;
+  const keyAction = useMemo(
+    () =>
+      fieldHref &&
+      ((path: FieldPath) => (
+        <FilterLink
+          href={fieldHref(summary.key, path)}
+          title={`Only the versions that changed ${formatPath(path)}`}
+          className="hidden group-hover/key:inline-flex ml-1"
+        />
+      )),
+    [fieldHref, summary.key],
+  );
+  return <JsonDiffTree value={value} numberFormat={numberFormat} keyAction={keyAction} {...treeProps} />;
 }
 
 /** Each object's changes as a compact JSON delta. */
-export function DeltaCell({ summaries, label }: { summaries: ObjectSummary[]; label: ObjectLabel }) {
+export function DeltaCell({
+  summaries,
+  label,
+  fieldHref,
+}: {
+  summaries: ObjectSummary[];
+  label: ObjectLabel;
+  fieldHref?: FieldHref;
+}) {
   return (
     <div className="flex flex-col gap-2 min-w-0 text-left">
       {summaries.map((s) => (
@@ -144,7 +247,7 @@ export function DeltaCell({ summaries, label }: { summaries: ObjectSummary[]; la
           ) : s.status === "error" ? (
             <span className="text-red-400 text-xs">Previous state unavailable: {s.error}</span>
           ) : s.changes.length ? (
-            <ObjectDiffTree summary={s} collapseDepth={0} maxChildren={6} truncateAt={40} />
+            <ObjectDiffTree summary={s} fieldHref={fieldHref} collapseDepth={0} maxChildren={6} truncateAt={40} />
           ) : (
             <span className="text-muted-foreground text-xs">—</span>
           )}

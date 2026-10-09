@@ -35,6 +35,7 @@ type Options = {
   maxChildren: number;
   truncateAt: number;
   numberFormat?: NumberFormatOf;
+  keyAction?: (path: string[]) => React.ReactNode;
 };
 
 const toneClass: Record<NonNullable<Tone>, string> = {
@@ -135,12 +136,14 @@ function Leaf({ value, path, opts, unit }: { value: DJson; path: string[]; opts:
   return <span>{String(value)}</span>;
 }
 
-function Key({ name, parent }: { name?: string; parent?: string }) {
+function Key({ name, parent, path, opts }: { name?: string; parent?: string; path: string[]; opts: Options }) {
   if (name === undefined) return null;
   const teal = isTealKeySegment(parent);
   return (
-    <span className="text-muted-foreground" title={teal ? `base64: ${name}` : undefined}>
-      {teal ? displayTealKey(name) : name}:{" "}
+    <span className="group/key text-muted-foreground" title={teal ? `base64: ${name}` : undefined}>
+      {teal ? displayTealKey(name) : name}
+      {opts.keyAction ? <span onClick={(e) => e.stopPropagation()}>{opts.keyAction(path)}</span> : null}
+      :{" "}
     </span>
   );
 }
@@ -210,7 +213,7 @@ function Branch({
   if (!count) {
     return (
       <div className={tone ? toneClass[tone] : undefined}>
-        <Key name={name} parent={parent} />
+        <Key name={name} parent={parent} path={path} opts={opts} />
         {openBrace}
         {closeBrace}
       </div>
@@ -222,7 +225,7 @@ function Branch({
     <div className={tone ? toneClass[tone] : undefined}>
       <span className="cursor-pointer select-none" onClick={() => setOpen((o) => !o)}>
         <Toggle size={12} className="inline -ml-3.5 mr-0.5 opacity-60" />
-        <Key name={name} parent={parent} />
+        <Key name={name} parent={parent} path={path} opts={opts} />
         {open ? openBrace : (
           <span className="text-muted-foreground">
             {openBrace}…{closeBrace} {count} {count === 1 ? "key" : "keys"}
@@ -250,7 +253,7 @@ function Valued({ name, parent, path, value, depth, tone, opts }: {
   }
   return (
     <div className={tone ? toneClass[tone] : undefined}>
-      <Key name={name} parent={parent} />
+      <Key name={name} parent={parent} path={path} opts={opts} />
       <Leaf value={value} path={path} opts={opts} />
     </div>
   );
@@ -287,7 +290,7 @@ function ChangeNode({ name, parent, path, change, depth, opts }: {
   const ints = isInteger(change.before) && isInteger(change.after);
   return (
     <div className={rowClass}>
-      <Key name={name} parent={parent} />
+      <Key name={name} parent={parent} path={path} opts={opts} />
       {nested ? (
         <div className="pl-4">
           <Valued path={path} value={change.before} depth={depth + 1} tone="removed" opts={opts} />
@@ -330,6 +333,7 @@ export default function JsonDiffTree({
   maxChildren = 8,
   truncateAt = 64,
   numberFormat,
+  keyAction,
   className,
 }: {
   /** A delta tree (`buildDeltaTree`) or a state with changes overlaid (`overlayChanges`). */
@@ -342,9 +346,11 @@ export default function JsonDiffTree({
   truncateAt?: number;
   /** Integers to read as amounts, by path. */
   numberFormat?: NumberFormatOf;
+  /** Shown after each key, on hover: an action on the value at `path`. */
+  keyAction?: (path: string[]) => React.ReactNode;
   className?: string;
 }): JSX.Element {
-  const opts = { collapseDepth, maxChildren, truncateAt, numberFormat };
+  const opts = { collapseDepth, maxChildren, truncateAt, numberFormat, keyAction };
   return (
     <div className={cn("font-mono text-[12px] leading-5 pl-3.5 min-w-0 wrap-anywhere", className)}>
       {isBranch(value) ? (

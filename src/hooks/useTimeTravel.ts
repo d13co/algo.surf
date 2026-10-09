@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useInfiniteQuery, useQueries, useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { network, Networks } from "src/packages/core-sdk/constants";
 import { usePersistenBooleanState } from "src/utils/usePersistenBooleanState";
 import {
@@ -26,6 +26,7 @@ import {
   Touch,
   VersionRow,
 } from "src/utils/versionDelta";
+import { parseObjKey } from "src/utils/versionFilter";
 
 const ZERO_ADDRESS = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ";
 
@@ -144,49 +145,88 @@ export function useBoxVersions(appId: number, name: string | undefined, maxRound
 }
 
 /**
+ * Where an account's versions are listed, and what to leave out: all of it,
+ * or of `object` (an objKey) alone. A holding and the asset's params (where
+ * the account created it) share a list, as do local state and app params;
+ * neither list leaves anything out.
+ */
+function accountVersionsRequest(address: string, includeCreatedParams: boolean, object: string | undefined) {
+  const account = `/v2/accounts/${address}`;
+  const ref = object ? parseObjKey(object) : undefined;
+  switch (ref?.kind) {
+    case "base":
+      return { path: `${account}/versions`, exclude: "all" };
+    case "asset":
+    case "created-asset":
+      return { path: `${account}/assets/${ref.id}/versions` };
+    case "local":
+    case "created-app":
+      return { path: `${account}/applications/${ref.id}/versions` };
+    default:
+      return {
+        path: `${account}/versions`,
+        exclude: includeCreatedParams ? undefined : "created-apps-params,created-assets-params",
+      };
+  }
+}
+
+/**
  * An account's versions up to `maxRound` (default: the latest), in `order`,
- * a batch at a time. Without `includeCreatedParams`, every global state change
- * of an app the account created would be a version of the account too.
+ * a batch at a time; with `object` (an objKey), the versions of the lists
+ * that object is in (see accountVersionsRequest). Without
+ * `includeCreatedParams`, every global state change of an app the account
+ * created would be a version of the account too.
  */
 export function useAccountVersions(
   address: string,
   includeCreatedParams: boolean,
   maxRound: number | undefined,
   order: VersionsOrder,
+  object?: string,
 ) {
+  // Keyed by the request: objects sharing a list share its versions.
+  const { path, exclude } = accountVersionsRequest(address, includeCreatedParams, object);
   return useInfiniteQuery({
     ...versionsQueryOptions,
-    queryKey: ["timetravel-account-versions", getTimeTravelNode()?.baseUrl, address, includeCreatedParams, maxRound, order],
+    queryKey: ["timetravel-account-versions", getTimeTravelNode()?.baseUrl, path, exclude, maxRound, order],
     queryFn: ({ pageParam }) =>
-      getVersionsPage<TTAccountVersion>(`/v2/accounts/${address}/versions`, {
+      getVersionsPage<TTAccountVersion>(path, {
         next: pageParam,
         "max-round": maxRound,
         order,
-        exclude: includeCreatedParams ? undefined : "created-apps-params,created-assets-params",
+        exclude,
       }),
     enabled: !!address,
   });
 }
 
-/** Reads each needed object's state at its round; the same request is sent once. */
-function useBaselines(ctx: BaselineContext, needs: BaselineNeed[]): Baselines {
+/**
+ * Reads each needed object's state at its round, for the `shown` rows; the
+ * same request is sent once. The others get any state an earlier read left in
+ * the cache, so a row that stops being shown keeps what it had.
+ */
+function useBaselines(ctx: BaselineContext, needs: BaselineNeed[], shown: (row: number) => boolean): Baselines {
+  const queryClient = useQueryClient();
   const baseUrl = getTimeTravelNode()?.baseUrl;
 
   const requests = useMemo(() => {
-    const byKey = new Map<string, { path: string; query: Record<string, string | number> }>();
+    const byKey = new Map<string, { path: string; query: Record<string, string | number>; wanted: boolean }>();
     const keyOf = new Map<string, string>();
     for (const need of needs) {
       const req = baselineRequest(ctx, need.ref, need.round);
       const key = `${req.path}?${new URLSearchParams(req.query as Record<string, string>)}`;
-      byKey.set(key, req);
+      byKey.set(key, { ...req, wanted: !!byKey.get(key)?.wanted || shown(need.row) });
       keyOf.set(baselineId(need), key);
     }
-    return { list: [...byKey.entries()], keyOf };
-  }, [ctx, needs]);
+    return { byKey, keyOf, wanted: [...byKey.entries()].filter(([, req]) => req.wanted) };
+  }, [ctx, needs, shown]);
+
+  const queryKeyOf = (req: { path: string; query: Record<string, string | number> }) =>
+    ["timetravel-at-round", baseUrl, req.path, req.query];
 
   const results = useQueries({
-    queries: requests.list.map(([, req]) => ({
-      queryKey: ["timetravel-at-round", baseUrl, req.path, req.query],
+    queries: requests.wanted.map(([, req]) => ({
+      queryKey: queryKeyOf(req),
       queryFn: () => ttGet(req.path, req.query),
       // State at a past round never changes.
       staleTime: Infinity,
@@ -197,10 +237,11 @@ function useBaselines(ctx: BaselineContext, needs: BaselineNeed[]): Baselines {
   const signature = results.map((r) => `${r.status}:${r.dataUpdatedAt}`).join(",");
 
   return useMemo(() => {
-    const byKey = new Map(requests.list.map(([key], i) => [key, results[i]]));
+    const fetched = new Map(requests.wanted.map(([key], i) => [key, results[i]]));
     const baselines: Baselines = new Map();
     for (const need of needs) {
-      const result = byKey.get(requests.keyOf.get(baselineId(need)));
+      const key = requests.keyOf.get(baselineId(need));
+      const result = fetched.get(key) ?? queryClient.getQueryState(queryKeyOf(requests.byKey.get(key)));
       if (result?.status === "success") {
         baselines.set(baselineId(need), extractBaseline(ctx, need.ref, result.data));
       } else if (result?.status === "error") {
@@ -209,7 +250,7 @@ function useBaselines(ctx: BaselineContext, needs: BaselineNeed[]): Baselines {
     }
     return baselines;
     // results is a new array every render; signature captures what matters.
-  }, [signature, requests, needs, ctx]);
+  }, [signature, requests, needs, ctx, queryClient, baseUrl]);
 }
 
 /**
@@ -233,10 +274,10 @@ export function useVersionRows<V extends { round: number; timestamp: number }>(
   const hasOlder = order === "desc" && hasMore;
 
   const needs = useMemo(
-    () => buildRows(newestFirst, touchesOf, hasOlder, new Map()).needs.filter((need) => shown(need.row)),
-    [newestFirst, touchesOf, hasOlder, shown],
+    () => buildRows(newestFirst, touchesOf, hasOlder, new Map()).needs,
+    [newestFirst, touchesOf, hasOlder],
   );
-  const baselines = useBaselines(ctx, needs);
+  const baselines = useBaselines(ctx, needs, shown);
   return useMemo(() => {
     const { rows } = buildRows(newestFirst, touchesOf, hasOlder, baselines);
     return order === "asc" ? rows.reverse() : rows;
