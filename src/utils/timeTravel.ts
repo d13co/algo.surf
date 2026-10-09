@@ -72,8 +72,20 @@ export type TTVersionsPage<V> = { round: number; "next-token"?: string; versions
 /** Version lists: newest first (`desc`) or oldest first (`asc`). */
 export type VersionsOrder = "asc" | "desc";
 
-/** Versions per request: small, since each app version carries its programs. */
-export const VERSIONS_BATCH_SIZE = 10;
+/** Rows per page of a version table. */
+export const VERSIONS_PAGE_SIZE = 10;
+
+/**
+ * Versions per request: a few pages first, so the first page's deltas wait on
+ * no second batch and few previous-state reads, then more at a time.
+ * The node ends a batch early past ~1 MB of values (app versions carry their
+ * programs), so one can come back short.
+ */
+export const VERSIONS_FIRST_BATCH_SIZE = 3 * VERSIONS_PAGE_SIZE;
+export const VERSIONS_BATCH_SIZE = 5 * VERSIONS_PAGE_SIZE;
+
+/** Box histories render every loaded version, of values up to 32 KB: a page at a time. */
+export const BOX_VERSIONS_BATCH_SIZE = VERSIONS_PAGE_SIZE;
 
 function readStorage(key: string): string | null {
   try {

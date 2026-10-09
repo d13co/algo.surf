@@ -13,7 +13,7 @@ import MultiDateViewer from "src/components/v2/MultiDateViewer";
 import { useDateFormat } from "src/contexts/DateFormatContext";
 import { useStableHeight } from "src/hooks/useStableHeight";
 import { useVersionRows } from "src/hooks/useTimeTravel";
-import { VERSIONS_BATCH_SIZE, VersionsOrder } from "src/utils/timeTravel";
+import { VERSIONS_PAGE_SIZE, VersionsOrder } from "src/utils/timeTravel";
 import { BaselineContext, ObjectSummary, summarizeObject, Touch, VersionRow } from "src/utils/versionDelta";
 import Link from "../Links/Link";
 import LinkToBlock from "../Links/LinkToBlock";
@@ -96,7 +96,7 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
 }) {
   const [detailsIndex, setDetailsIndex] = useState<number | null>(null);
   const { format } = useDateFormat();
-  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: VERSIONS_BATCH_SIZE });
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: VERSIONS_PAGE_SIZE });
 
   // Newest first, previous states are read for the rows on the current page
   // and the one open in the dialog - but not while the next batch is on its
@@ -181,9 +181,9 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
 
   const { ref: tableRef, style: stableStyle } = useStableHeight(currentRowCount === pageSize);
 
-  // Stay a batch ahead: a batch fills exactly one page, so without the next
-  // one loaded there would be no next page to go to. A failed batch is not
-  // retried until the next page change.
+  // On the last loaded page, fetch the next batch: without it there would be
+  // no next page to go to. A failed batch is not retried until the next page
+  // change.
   useEffect(() => {
     if (pageIndex >= pageCount - 1 && hasMore && !isFetchingMore && !fetchMoreFailed) {
       fetchMore();

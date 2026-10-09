@@ -10,7 +10,9 @@ import {
   TTAppVersion,
   TTBoxVersion,
   TTVersionsPage,
+  BOX_VERSIONS_BATCH_SIZE,
   VERSIONS_BATCH_SIZE,
+  VERSIONS_FIRST_BATCH_SIZE,
   VersionsOrder,
 } from "src/utils/timeTravel";
 import {
@@ -85,7 +87,7 @@ export function useTimeTravelSupport(): boolean {
 async function getVersionsPage<V>(path: string, query: Record<string, string | number | undefined>) {
   const page = await ttGet<TTVersionsPage<V>>(path, {
     include: "values",
-    limit: VERSIONS_BATCH_SIZE,
+    limit: query.next === undefined ? VERSIONS_FIRST_BATCH_SIZE : VERSIONS_BATCH_SIZE,
     ...query,
   });
   if (!page) {
@@ -132,6 +134,7 @@ export function useBoxVersions(appId: number, name: string | undefined, maxRound
     queryFn: ({ pageParam }) =>
       getVersionsPage<TTBoxVersion>(`/v2/applications/${appId}/box/versions`, {
         name: `b64:${name}`,
+        limit: BOX_VERSIONS_BATCH_SIZE,
         next: pageParam,
         "max-round": maxRound,
         order,
