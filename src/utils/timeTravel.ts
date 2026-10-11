@@ -176,7 +176,7 @@ async function ttGetText(path: string, query: Query = {}, signal?: AbortSignal):
 export async function getApplicationAt(id: number, round: number): Promise<indexerModels.Application> {
   const text = await ttGetText(`/v2/applications/${id}`, { round });
   if (text === null) {
-    throw new TimeTravelError(`Application ${id} did not exist at round ${round}`, 404);
+    throw new TimeTravelError(`Application ${id} did not exist at block ${round}`, 404);
   }
   return decodeJSON(text, indexerModels.Application);
 }
@@ -185,7 +185,7 @@ export async function getApplicationAt(id: number, round: number): Promise<index
 export async function getAssetAt(id: number, round: number): Promise<indexerModels.Asset> {
   const text = await ttGetText(`/v2/assets/${id}`, { round });
   if (text === null) {
-    throw new TimeTravelError(`Asset ${id} did not exist at round ${round}`, 404);
+    throw new TimeTravelError(`Asset ${id} did not exist at block ${round}`, 404);
   }
   return decodeJSON(text, indexerModels.Asset);
 }
@@ -194,7 +194,7 @@ export async function getAssetAt(id: number, round: number): Promise<indexerMode
 export async function getAccountAt(address: string, round: number): Promise<modelsv2.Account> {
   const text = await ttGetText(`/v2/accounts/${address}`, { round });
   if (text === null) {
-    throw new TimeTravelError(`Account ${address} not found at round ${round}`, 404);
+    throw new TimeTravelError(`Account ${address} not found at block ${round}`, 404);
   }
   return decodeJSON(text, modelsv2.Account);
 }
@@ -217,7 +217,7 @@ export class TimeTravelBoxClient {
       round: this.round,
     });
     if (!box) {
-      throw new TimeTravelError(`No such box at round ${this.round}`, 404);
+      throw new TimeTravelError(`No such box at block ${this.round}`, 404);
     }
     return { name, value: box.value };
   }

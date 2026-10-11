@@ -44,7 +44,7 @@ const SCAN_STEP = 500;
 const actionClassName = "border-border text-primary hover:bg-primary/10";
 
 /** The round column's header: the round, over its time in the chosen date format. */
-const roundLabel = (format: DateFormat) => `Round / ${ageLabel(format)}`;
+const roundLabel = (format: DateFormat) => `Block / ${ageLabel(format)}`;
 
 /** A version's round, a link to its block, over its time in the chosen date format (see AgeHeader); each copyable. */
 function RoundCell({ round, timestamp }: { round: number; timestamp: number }) {
@@ -220,7 +220,7 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
         cell: ({ row }) => (
           <div className="flex flex-wrap gap-2 justify-end">
             <Button variant="outline" size="sm" className={actionClassName} asChild>
-              <Link noStyle href={stateHref(row.original.round)} title="This page as it was at this round">
+              <Link noStyle href={stateHref(row.original.round)} title="This page as it was at this block">
                 <History />
                 <span className="lg:max-xl:sr-only">Rewind</span>
               </Link>

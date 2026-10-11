@@ -309,8 +309,8 @@ function Account(): JSX.Element {
               jsonViewer={{
                 obj: () => accountInfo ? toPlainJson(accountInfo) : {},
                 dataKey: accountInfo,
-                filename: round === undefined ? `account-${address}.json` : `account-${address}-round-${round}.json`,
-                title: `Account ${address?.slice(0, 16)}..${round === undefined ? "" : ` at round ${round}`}`,
+                filename: round === undefined ? `account-${address}.json` : `account-${address}-block-${round}.json`,
+                title: `Account ${address?.slice(0, 16)}..${round === undefined ? "" : ` at block ${round}`}`,
                 // Neither serves a past round: that came from the time-travel node.
                 api: address && round === undefined
                   ? {

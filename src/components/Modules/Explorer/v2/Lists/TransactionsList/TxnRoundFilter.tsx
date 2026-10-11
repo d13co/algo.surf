@@ -14,7 +14,7 @@ export default function TxnRoundFilter({ round }: { round: number }) {
     <div className="flex flex-wrap items-center gap-1.5 text-sm">
       <ListFilter size={14} className="text-muted-foreground" />
       <Chip variant="success" className="gap-1">
-        Round <LinkToBlock id={round} />
+        Block <LinkToBlock id={round} />
         <Link
           noStyle
           href={withTxnRound(`${pathname}${search}`, undefined)}
@@ -45,7 +45,7 @@ export function useTxnRoundFilter(whose: string): {
     txnRound,
     toolbar: <TxnRoundFilter round={txnRound} />,
     emptyLabel: isPastRound(txnRound, round)
-      ? `Round ${txnRound} is after round ${round}, which this page shows`
-      : `No transactions involving ${whose} in round ${txnRound}`,
+      ? `Block ${txnRound} is after block ${round}, which this page shows`
+      : `No transactions involving ${whose} in block ${txnRound}`,
   };
 }

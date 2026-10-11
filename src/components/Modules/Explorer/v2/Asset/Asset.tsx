@@ -74,10 +74,10 @@ function Asset(): JSX.Element {
               }
               copyValue={Number(id)}
               jsonViewer={{
-                filename: round === undefined ? `asset-${id}.json` : `asset-${id}-round-${round}.json`,
+                filename: round === undefined ? `asset-${id}.json` : `asset-${id}-block-${round}.json`,
                 obj: () => assetInstance?.toJSON() ?? {},
                 dataKey: assetInfo,
-                title: round === undefined ? `Asset ${id}` : `Asset ${id} at round ${round}`,
+                title: round === undefined ? `Asset ${id}` : `Asset ${id} at block ${round}`,
                 // A destroyed asset is gone from algod - only the indexer
                 // still has it, and only with include-all=true. Neither serves
                 // a past round: that came from the time-travel node.

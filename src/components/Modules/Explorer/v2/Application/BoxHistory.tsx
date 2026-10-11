@@ -307,7 +307,7 @@ function BoxVersionItem({ row, appId, name, types }: { row: VersionRow<TTBoxVers
     <div className="border-t border-border pt-3 first:border-t-0 first:pt-0">
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1.5 text-sm">
         <span>
-          Round <LinkToBlock id={row.round} />
+          Block <LinkToBlock id={row.round} />
         </span>
         <span className="text-muted-foreground">
           <MultiDateViewer timestamp={row.timestamp} block={row.round} variant="short" />
@@ -317,13 +317,13 @@ function BoxVersionItem({ row, appId, name, types }: { row: VersionRow<TTBoxVers
         <span className="ml-auto flex gap-3">
           <FindTxnsLink
             href={withTxnRound(`/application/${appId}/transactions`, row.round)}
-            title="The app's transactions in this round"
+            title="The app's transactions in this block"
           />
           {after !== null ? (
             <Link
               href={withRound(`/application/${appId}/boxes/${encodeURIComponent(name)}`, row.round)}
               className="text-xs"
-              title="This box as it was at this round"
+              title="This box as it was at this block"
             >
               <History size={12} className="inline -mt-0.5 mr-1" />
               rewind

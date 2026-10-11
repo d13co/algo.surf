@@ -50,7 +50,7 @@ export function TimeTravelBar(): JSX.Element | null {
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 max-w-[1280px] mx-auto px-5 md:px-[100px] py-2">
         <History className="h-4 w-4 shrink-0" />
         <span className="min-w-0 font-bold [&_a]:text-primary-dark [&_a]:underline">
-          {roundAwarePath.test(pathname) ? "Showing historical state at" : "Time travel mode at round"}{" "}
+          {roundAwarePath.test(pathname) ? "Showing historical state at" : "Time travel mode at block"}{" "}
           <LinkToBlock id={round} />
         </span>
         <span className="opacity-80">
@@ -86,7 +86,7 @@ export default function RoundNotice(): JSX.Element | null {
     <div className="flex flex-wrap items-center gap-2.5 p-5 rounded-[10px] mb-5 border-l-2 border-l-yellow-500 bg-yellow-500/10">
       <History className="h-5 w-5 text-yellow-500 shrink-0" />
       <div>
-        Showing the latest state: round {requested} needs a time-travel node,{" "}
+        Showing the latest state: block {requested} needs a time-travel node,{" "}
         {status === "none" ? "and none is configured." : "and the configured one is not available for this network."}
       </div>
     </div>

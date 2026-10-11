@@ -31,7 +31,7 @@ function ApplicationVersions(): JSX.Element {
   const ctx = useMemo<BaselineContext>(() => ({ kind: "app", appId }), [appId]);
   const stateHref = useCallback((at: number) => withRound(`/application/${appId}`, at), [appId]);
   const txnsLink = useCallback<TxnsLink>(
-    (at) => ({ href: withTxnRound(`/application/${appId}/transactions`, at), title: "The app's transactions in this round" }),
+    (at) => ({ href: withTxnRound(`/application/${appId}/transactions`, at), title: "The app's transactions in this block" }),
     [appId],
   );
 

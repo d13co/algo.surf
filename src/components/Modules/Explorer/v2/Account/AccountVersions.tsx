@@ -60,11 +60,11 @@ function txnsLinkFor(address: string): TxnsLink {
   return (round, ref) => {
     switch (ref?.kind) {
       case "created-app":
-        return { href: withTxnRound(`/application/${ref.id}/transactions`, round), title: "The app's transactions in this round" };
+        return { href: withTxnRound(`/application/${ref.id}/transactions`, round), title: "The app's transactions in this block" };
       case "created-asset":
-        return { href: withTxnRound(`/asset/${ref.id}/transactions`, round), title: "The asset's transactions in this round" };
+        return { href: withTxnRound(`/asset/${ref.id}/transactions`, round), title: "The asset's transactions in this block" };
       default:
-        return { href: withTxnRound(`/account/${address}`, round), title: "The account's transactions in this round" };
+        return { href: withTxnRound(`/account/${address}`, round), title: "The account's transactions in this block" };
     }
   };
 }

@@ -114,7 +114,7 @@ export default function VersionDetailsDialog<V>({
     <Dialog open={!!row} onOpenChange={(open) => !open && close()}>
       <DialogContent aria-describedby={undefined} className="max-w-4xl max-h-[90vh] flex flex-col bg-background-muted text-foreground">
         <DialogHeader>
-          <DialogTitle className="text-lg font-normal">Version at round {row ? <LinkToBlock id={row.round} /> : null}</DialogTitle>
+          <DialogTitle className="text-lg font-normal">Version at block {row ? <LinkToBlock id={row.round} /> : null}</DialogTitle>
         </DialogHeader>
 
         {row ? (
@@ -137,7 +137,7 @@ export default function VersionDetailsDialog<V>({
               </div>
               <div className="flex flex-wrap gap-2">
                 <Button variant="outline" size="sm" className="border-border text-primary hover:bg-primary/10" asChild>
-                  <Link noStyle href={stateHref(row.round)} title="The page as it was at this round">
+                  <Link noStyle href={stateHref(row.round)} title="The page as it was at this block">
                     <History />
                     Rewind
                   </Link>
@@ -149,7 +149,7 @@ export default function VersionDetailsDialog<V>({
                   </Link>
                 </Button>
                 <JsonViewer
-                  title={`Version at round ${row.round}`}
+                  title={`Version at block ${row.round}`}
                   filename={`${filenamePrefix}-version-${row.round}.json`}
                   obj={() => toPlainJson(row.version)}
                   dataKey={row.round}
@@ -175,7 +175,7 @@ export default function VersionDetailsDialog<V>({
                     <StatusChip summary={s} />
                     {label && fieldHref ? <FilterLink href={fieldHref(s.key)} title="Only the versions that changed this" /> : null}
                     {label ? (
-                      <Link href={stateHref(row.round, s.ref)} className="text-xs" title="Where the page shows this, as it was at this round">
+                      <Link href={stateHref(row.round, s.ref)} className="text-xs" title="Where the page shows this, as it was at this block">
                         <History size={12} className="inline -mt-0.5 mr-1" />
                         rewind
                       </Link>

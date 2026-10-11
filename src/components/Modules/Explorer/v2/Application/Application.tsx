@@ -148,7 +148,7 @@ function Application(): JSX.Element {
               <DeletedNotice>
                 {round !== undefined && appInfo?.deletedAtRound !== undefined ? (
                   <>
-                    This application was deleted in round <LinkToBlock id={Number(appInfo.deletedAtRound)} />
+                    This application was deleted in block <LinkToBlock id={Number(appInfo.deletedAtRound)} />
                   </>
                 ) : (
                   "This application has been deleted"
@@ -166,10 +166,10 @@ function Application(): JSX.Element {
               id={<><span className="select-none">#</span>{id}</>}
               copyValue={Number(id)}
               jsonViewer={{
-                filename: round === undefined ? `app-${id}.json` : `app-${id}-round-${round}.json`,
+                filename: round === undefined ? `app-${id}.json` : `app-${id}-block-${round}.json`,
                 obj: () => applicationInstance?.toJSON() ?? {},
                 dataKey: appInfo,
-                title: round === undefined ? `Application ${id}` : `Application ${id} at round ${round}`,
+                title: round === undefined ? `Application ${id}` : `Application ${id} at block ${round}`,
                 // A deleted application is gone from algod - only the indexer
                 // still has it, and only with include-all=true. Neither serves
                 // a past round: that came from the time-travel node.
