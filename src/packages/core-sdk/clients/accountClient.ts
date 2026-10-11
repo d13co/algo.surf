@@ -42,13 +42,16 @@ export class AccountClient{
         return toA_AccountsResponse(response);
     }
 
-    /** With `maxRound`, only the transactions up to that round. */
-    async getAccountTransactions(address: string, token?: string, maxRound?: number): Promise<A_AccountTransactionsResponse> {
+    /** With `round`, only the transactions in that round; else with `maxRound`, only those up to it. */
+    async getAccountTransactions(address: string, token?: string, maxRound?: number, round?: number): Promise<A_AccountTransactionsResponse> {
         const req = this.indexer.searchForTransactions().address(address);
         if (token) {
             req.nextToken(token);
         }
-        if (maxRound !== undefined) {
+        // The indexer takes one or the other.
+        if (round !== undefined) {
+            req.round(round);
+        } else if (maxRound !== undefined) {
             req.maxRound(maxRound);
         }
 

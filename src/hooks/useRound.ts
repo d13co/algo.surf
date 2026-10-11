@@ -22,6 +22,11 @@ export function keepsRound(href: string): boolean {
   return href.startsWith("/") && !href.startsWith("//") && !/[?&]round=/.test(href);
 }
 
+/** A round from a URL query value; undefined where it is not one. */
+export function parseRound(raw: string | null): number | undefined {
+  return raw && /^\d+$/.test(raw) && Number.isSafeInteger(Number(raw)) ? Number(raw) : undefined;
+}
+
 /**
  * The past round a record page shows, from `?round=R`; undefined for the
  * latest state. Only the time-travel node serves past state, so without one
@@ -34,7 +39,7 @@ export function useRound(): { round: number | undefined; requested: number | und
   const status = useTimeTravelStatus();
   const usable = status === "checking" || status === "supported";
   return useMemo(() => {
-    const requested = raw && /^\d+$/.test(raw) && Number.isSafeInteger(Number(raw)) ? Number(raw) : undefined;
+    const requested = parseRound(raw);
     return {
       requested,
       round: requested !== undefined && usable ? requested : undefined,

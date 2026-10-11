@@ -6,6 +6,7 @@ import JsonDiffTree from "src/components/v2/JsonDiffTree";
 import MultiDateViewer from "src/components/v2/MultiDateViewer";
 import { useBoxVersions, useVersionRows, useVersionsOrder } from "src/hooks/useTimeTravel";
 import { withRound } from "src/hooks/useRound";
+import { withTxnRound } from "src/hooks/useTxnRound";
 import type { TTBoxVersion } from "src/utils/timeTravel";
 import {
   BaselineContext,
@@ -19,7 +20,7 @@ import {
 import Link from "../Links/Link";
 import LinkToBlock from "../Links/LinkToBlock";
 import { OrderButton } from "../Versions/VersionsList";
-import { StatusChip } from "../Versions/VersionChanges";
+import { FindTxnsLink, StatusChip } from "../Versions/VersionChanges";
 import { decodeBoxValue, DecodedEntry, DecodedEntryValue } from "./BoxValue";
 
 /** Values up to this many bytes show whole, old → new, with the format switcher. */
@@ -313,16 +314,22 @@ function BoxVersionItem({ row, appId, name, types }: { row: VersionRow<TTBoxVers
         </span>
         <StatusChip summary={summary} />
         {before !== undefined ? <SizeNote before={before} after={after} /> : null}
-        {after !== null ? (
-          <Link
-            href={withRound(`/application/${appId}/boxes/${encodeURIComponent(name)}`, row.round)}
-            className="ml-auto text-xs"
-            title="This box as it was at this round"
-          >
-            <History size={12} className="inline -mt-0.5 mr-1" />
-            rewind
-          </Link>
-        ) : null}
+        <span className="ml-auto flex gap-3">
+          <FindTxnsLink
+            href={withTxnRound(`/application/${appId}/transactions`, row.round)}
+            title="The app's transactions in this round"
+          />
+          {after !== null ? (
+            <Link
+              href={withRound(`/application/${appId}/boxes/${encodeURIComponent(name)}`, row.round)}
+              className="text-xs"
+              title="This box as it was at this round"
+            >
+              <History size={12} className="inline -mt-0.5 mr-1" />
+              rewind
+            </Link>
+          ) : null}
+        </span>
       </div>
       {summary.status === "pending" ? (
         <div className="h-4 w-40 my-0.5 rounded bg-muted animate-pulse" />

@@ -17,12 +17,32 @@ export function ageLabel(format: DateFormat): string {
   return format === "block" ? "Block" : format === "relative" ? "Age" : format === "epoch" ? "Unix" : "Date";
 }
 
-export function AgeHeader({ switcherSide = "right" }: { switcherSide?: "left" | "right" }) {
-  const { format, cycle } = useDateFormat();
-  const next = nextFormat[format];
+/** The date format a time column shows; "block" is relative where the block shows beside it (`noBlock`). */
+export function shownFormat(format: DateFormat, noBlock = false): DateFormat {
+  return noBlock && format === "block" ? "relative" : format;
+}
+
+/**
+ * A time column's header, with a switcher cycling the date format. `noBlock`:
+ * the column shows the block beside the time, so the cycle skips "block".
+ */
+export function AgeHeader({
+  switcherSide = "right",
+  noBlock = false,
+  label,
+}: {
+  switcherSide?: "left" | "right";
+  noBlock?: boolean;
+  /** In place of ageLabel, given the format shown. */
+  label?: (format: DateFormat) => string;
+}) {
+  const { format: chosen, setFormat } = useDateFormat();
+  const format = shownFormat(chosen, noBlock);
+  const next = noBlock && nextFormat[format] === "block" ? nextFormat.block : nextFormat[format];
+  const cycle = () => setFormat(next);
   return (
     <span className={`inline-flex items-center gap-1${switcherSide === "left" ? " flex-row-reverse" : ""}`}>
-      {ageLabel(format)}
+      {(label ?? ageLabel)(format)}
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>

@@ -102,7 +102,9 @@ function Account(): JSX.Element {
   const { data: validatorStats } = useValidatorStats(address);
   const { data: nfd } = useReverseNFD(address);
   const { data: txnData } = useAccountTransactions(address, round);
-  const { data: controllerData, fetchNextPage: fetchNextControllerPage, hasNextPage: hasNextControllerPage } = useControllingAccounts(address);
+  // The indexer only knows which accounts are rekeyed to this one now, so
+  // there is no list to show for a past round.
+  const { data: controllerData, fetchNextPage: fetchNextControllerPage, hasNextPage: hasNextControllerPage } = useControllingAccounts(address, round === undefined);
 
   const { data: addressBookData } = useAddressBook();
 
@@ -175,12 +177,12 @@ function Account(): JSX.Element {
 
   // Fetch more controller pages if available
   React.useEffect(() => {
-    if (hasNextControllerPage) {
+    if (hasNextControllerPage && round === undefined) {
       fetchNextControllerPage();
     }
-  }, [hasNextControllerPage, fetchNextControllerPage]);
+  }, [hasNextControllerPage, fetchNextControllerPage, round]);
 
-  const numControlledAccounts = controllingAccounts.length;
+  const numControlledAccounts = round === undefined ? controllingAccounts.length : 0;
 
   const transactions = useMemo(
     () => txnData?.pages.flatMap((p) => p.transactions) ?? [],

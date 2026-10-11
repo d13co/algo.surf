@@ -5,12 +5,14 @@ import {
   getPaginationRowModel,
   ColumnDef,
 } from "@tanstack/react-table";
-import { ArrowDownWideNarrow, ArrowUpNarrowWide, History, Loader2 } from "lucide-react";
+import { ArrowDownWideNarrow, ArrowLeftRight, ArrowUpNarrowWide, History, Loader2 } from "lucide-react";
 import { Button } from "src/components/v2/ui/button";
 import { DataTable } from "src/components/v2/DataTable";
 import ListToolbar from "src/components/v2/ListToolbar";
-import MultiDateViewer from "src/components/v2/MultiDateViewer";
-import { useDateFormat } from "src/contexts/DateFormatContext";
+import Copyable from "src/components/v2/Copyable";
+import MultiDateViewer, { formatDate } from "src/components/v2/MultiDateViewer";
+import { DateFormat, useDateFormat } from "src/contexts/DateFormatContext";
+import { cn } from "src/lib/utils";
 import { useStableHeight } from "src/hooks/useStableHeight";
 import { useVersionRows } from "src/hooks/useTimeTravel";
 import { useVersionFilterHref } from "src/hooks/useVersionFilter";
@@ -19,8 +21,17 @@ import { BaselineContext, FieldPath, ObjectSummary, summarizeObject, Touch, Vers
 import { VersionFilter, versionMatches } from "src/utils/versionFilter";
 import Link from "../Links/Link";
 import LinkToBlock from "../Links/LinkToBlock";
-import { AgeHeader, ageLabel } from "../Lists/TransactionsList/cells/AgeCell";
-import { ActiveFilter, ChangedKeys, DeltaCell, FieldHref, ObjectLabel, StateHref } from "./VersionChanges";
+import { AgeHeader, ageLabel, shownFormat } from "../Lists/TransactionsList/cells/AgeCell";
+import {
+  ActiveFilter,
+  ChangedKeys,
+  DeltaCell,
+  FieldHref,
+  ObjectLabel,
+  StateHref,
+  TxnsLink,
+  versionTxnsLink,
+} from "./VersionChanges";
 import VersionDetailsDialog from "./VersionDetailsDialog";
 
 export type SummarizedRow<V> = VersionRow<V> & { summaries: ObjectSummary[] };
@@ -32,11 +43,27 @@ const SCAN_STEP = 500;
 
 const actionClassName = "border-border text-primary hover:bg-primary/10";
 
-/** A version's time in the chosen date format (see AgeHeader); as a block, a link to it. */
+/** The round column's header: the round, over its time in the chosen date format. */
+const roundLabel = (format: DateFormat) => `Round / ${ageLabel(format)}`;
+
+/** A version's round, a link to its block, over its time in the chosen date format (see AgeHeader); each copyable. */
 function RoundCell({ round, timestamp }: { round: number; timestamp: number }) {
-  const { format } = useDateFormat();
-  if (format === "block") return <LinkToBlock id={round} />;
-  return <MultiDateViewer timestamp={timestamp} block={round} variant="short" />;
+  const { format: chosen } = useDateFormat();
+  const format = shownFormat(chosen, true);
+  // "3 days ago" is no use pasted elsewhere: copy the date.
+  const copyValue = formatDate(timestamp, format === "relative" ? "local" : format);
+  return (
+    <div className="flex flex-col">
+      <span className="group inline-flex items-center gap-0.5">
+        <Copyable className="opacity-60 group-hover:opacity-100" value={round} />
+        <LinkToBlock id={round} />
+      </span>
+      <span className="group inline-flex items-center gap-0.5 text-muted-foreground">
+        <Copyable className="opacity-60 group-hover:opacity-100" value={copyValue} />
+        <MultiDateViewer timestamp={timestamp} variant="short" noBlock />
+      </span>
+    </div>
+  );
 }
 
 /** Toggles a version list between newest first and oldest first. */
@@ -78,6 +105,7 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
   fetchMoreFailed,
   label,
   stateHref,
+  txnsLink,
   filenamePrefix,
   emptyLabel,
   toolbar,
@@ -100,6 +128,8 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
   label: ObjectLabel;
   /** The page showing the state at `round` (see useRound), or the part of it showing `ref`. */
   stateHref: StateHref;
+  /** The transactions in `round` that changed `ref`, or the record. */
+  txnsLink: TxnsLink;
   filenamePrefix: string;
   emptyLabel: string;
   toolbar?: React.ReactNode;
@@ -167,8 +197,8 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
     () => [
       {
         id: "round",
-        header: () => <AgeHeader switcherSide="left" />,
-        meta: { width: "130px" },
+        header: () => <AgeHeader switcherSide="left" noBlock label={roundLabel} />,
+        meta: { width: "170px" },
         cell: ({ row }) => <RoundCell round={row.original.round} timestamp={row.original.timestamp} />,
       },
       {
@@ -185,13 +215,20 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
       {
         id: "details",
         header: "",
-        meta: { width: "215px" },
+        // Icons only until xl, where there is room for labels.
+        meta: { className: "w-[215px] xl:w-[325px]" },
         cell: ({ row }) => (
-          <div className="flex gap-2 justify-end">
+          <div className="flex flex-wrap gap-2 justify-end">
             <Button variant="outline" size="sm" className={actionClassName} asChild>
               <Link noStyle href={stateHref(row.original.round)} title="This page as it was at this round">
                 <History />
-                Rewind
+                <span className="lg:max-xl:sr-only">Rewind</span>
+              </Link>
+            </Button>
+            <Button variant="outline" size="sm" className={actionClassName} asChild>
+              <Link noStyle {...versionTxnsLink(txnsLink, row.original)}>
+                <ArrowLeftRight />
+                <span className="lg:max-xl:sr-only">Find txns</span>
               </Link>
             </Button>
             <Button
@@ -206,7 +243,7 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
         ),
       },
     ],
-    [label, stateHref, fieldHref],
+    [label, stateHref, txnsLink, fieldHref],
   );
 
   const table = useReactTable({
@@ -251,14 +288,16 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
     else fetchMore();
   }, [scanPaused, fetchMoreFailed, searchOn, fetchMore]);
 
-  // Filtered from a link (each filter mounts a new list), bring the list into
-  // view where it is off screen: above it, or low on it.
+  // Filtered from a link (each filter mounts a new list), scroll the list to
+  // the top of the screen unless it is there already. It is at least a screen
+  // tall, so it fills the screen even when short.
   const rootRef = useRef<HTMLDivElement>(null);
+  const fillScreen = filter ? "min-h-svh" : undefined;
   useEffect(() => {
     const el = rootRef.current;
     if (!filter || !el) return;
     const { top } = el.getBoundingClientRect();
-    if (top < 0 || top > window.innerHeight * 0.75) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (top < 0 || top > window.innerHeight * 0.1) el.scrollIntoView({ behavior: "smooth", block: "start" });
     // On mount only.
   }, []);
 
@@ -273,7 +312,7 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
 
   if (isLoading) {
     return (
-      <div ref={rootRef} className="flex items-center justify-center py-12">
+      <div ref={rootRef} className={cn("flex items-start justify-center py-12", fillScreen)}>
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
@@ -281,14 +320,14 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
 
   if (error) {
     return (
-      <div ref={rootRef} className="py-6 text-muted-foreground">
+      <div ref={rootRef} className={cn("py-6 text-muted-foreground", fillScreen)}>
         Version history unavailable: {error.message}
       </div>
     );
   }
 
   return (
-    <div ref={rootRef}>
+    <div ref={rootRef} className={fillScreen}>
       <ListToolbar
         className="mt-3"
         pageIndex={pageIndex}
@@ -323,7 +362,7 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
       <DataTable
         table={table}
         columns={columns}
-        columnLabels={{ round: ageLabel(format), changed: "Changed", delta: "Delta", details: "" }}
+        columnLabels={{ round: roundLabel(shownFormat(format, true)), changed: "Changed", delta: "Delta", details: "" }}
         emptyLabel={
           !filter
             ? emptyLabel
@@ -353,6 +392,7 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
         order={order}
         label={label}
         stateHref={stateHref}
+        txnsLink={txnsLink}
         fieldHref={fieldHref}
         filenamePrefix={filenamePrefix}
       />

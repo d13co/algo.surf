@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { cn } from "src/lib/utils";
 import { useAccountVersions, useVersionsOrder } from "src/hooks/useTimeTravel";
 import { useRound, withRound } from "src/hooks/useRound";
+import { withTxnRound } from "src/hooks/useTxnRound";
 import { useVersionFilter } from "src/hooks/useVersionFilter";
 import { withVersionFilter } from "src/utils/versionFilter";
 import { TTAccountVersion } from "src/utils/timeTravel";
@@ -14,6 +15,7 @@ import {
 } from "src/utils/versionDelta";
 import LinkToAsset from "../Links/LinkToAsset";
 import LinkToApplication from "../Links/LinkToApplication";
+import { TxnsLink } from "../Versions/VersionChanges";
 import VersionsList from "../Versions/VersionsList";
 
 function objectLabel(ref: ObjRef): React.ReactNode {
@@ -49,6 +51,24 @@ function stateHrefFor(address: string) {
   };
 }
 
+/**
+ * Where the transactions in `round` that changed `ref` (or the account) are
+ * listed: a created app's or asset's own, since changing one need not involve
+ * the account, else the account's.
+ */
+function txnsLinkFor(address: string): TxnsLink {
+  return (round, ref) => {
+    switch (ref?.kind) {
+      case "created-app":
+        return { href: withTxnRound(`/application/${ref.id}/transactions`, round), title: "The app's transactions in this round" };
+      case "created-asset":
+        return { href: withTxnRound(`/asset/${ref.id}/transactions`, round), title: "The asset's transactions in this round" };
+      default:
+        return { href: withTxnRound(`/account/${address}`, round), title: "The account's transactions in this round" };
+    }
+  };
+}
+
 function AccountVersions(): JSX.Element {
   const { address } = useParams();
   // On a page at a past round, the versions up to it.
@@ -74,6 +94,7 @@ function AccountVersions(): JSX.Element {
     isFetchNextPageError,
   } = useAccountVersions(address, includeCreatedParams, round, order, object);
   const stateHref = useMemo(() => stateHrefFor(address), [address]);
+  const txnsLink = useMemo(() => txnsLinkFor(address), [address]);
 
   const versions = useMemo(() => data?.pages.flatMap((p) => p.versions) ?? [], [data]);
   const ctx = useMemo<BaselineContext>(
@@ -106,6 +127,7 @@ function AccountVersions(): JSX.Element {
       fetchMoreFailed={isFetchNextPageError}
       label={objectLabel}
       stateHref={stateHref}
+      txnsLink={txnsLink}
       filenamePrefix={`account-${address}`}
       emptyLabel="No versions"
       toolbar={

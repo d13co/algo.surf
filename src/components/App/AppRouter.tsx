@@ -12,6 +12,7 @@ import { CACHE_BUSTER, ONE_WEEK, isPersistable } from "../../db/persist-policy";
 import { AbelAssetsProvider } from "../Common/AbelAssetsProvider";
 import { GlobalUIProvider } from "../../contexts/GlobalUIContext";
 import LoadingTile from "../v2/LoadingTile";
+import { TimeTravelBar } from "../Modules/Explorer/v2/Versions/RoundNotice";
 
 const Home = lazy(() => import("../Modules/Explorer/Home/Home"));
 const Accounts = lazy(() => import("../Modules/Explorer/v2/Account/Accounts"));
@@ -67,6 +68,7 @@ function AppRouter(): JSX.Element {
         >
           <GlobalUIProvider>
           <AbelAssetsProvider>
+            <TimeTravelBar />
             <div className="flex flex-col items-center justify-start">
               <div className="w-full max-w-[1280px]">
                 <div className="overflow-auto min-h-svh flex flex-col">

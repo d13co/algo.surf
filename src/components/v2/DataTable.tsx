@@ -56,6 +56,7 @@ export function DataTable<T>({
                   <TableHead
                     key={header.id}
                     style={(header.column.columnDef.meta as any)?.width ? { width: (header.column.columnDef.meta as any).width } : undefined}
+                    className={(header.column.columnDef.meta as any)?.className}
                   >
                     {header.isPlaceholder
                       ? null

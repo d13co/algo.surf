@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, History, Loader2 } from "lucide-react";
+import { ArrowLeftRight, ChevronLeft, ChevronRight, History, Loader2 } from "lucide-react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "src/components/v2/ui/dialog";
 import { Button } from "src/components/v2/ui/button";
@@ -11,7 +11,17 @@ import type { VersionsOrder } from "src/utils/timeTravel";
 import { objKindLabel } from "src/utils/versionDelta";
 import Link from "../Links/Link";
 import LinkToBlock from "../Links/LinkToBlock";
-import { FieldHref, FilterLink, ObjectDiffTree, ObjectLabel, StateHref, StatusChip } from "./VersionChanges";
+import {
+  FieldHref,
+  FilterLink,
+  FindTxnsLink,
+  ObjectDiffTree,
+  ObjectLabel,
+  StateHref,
+  StatusChip,
+  TxnsLink,
+  versionTxnsLink,
+} from "./VersionChanges";
 import type { SummarizedRow } from "./VersionsList";
 
 type View = "changes" | "full";
@@ -33,6 +43,7 @@ export default function VersionDetailsDialog<V>({
   order,
   label,
   stateHref,
+  txnsLink,
   fieldHref,
   filenamePrefix,
 }: {
@@ -48,6 +59,7 @@ export default function VersionDetailsDialog<V>({
   order: VersionsOrder;
   label: ObjectLabel;
   stateHref: StateHref;
+  txnsLink: TxnsLink;
   fieldHref?: FieldHref;
   filenamePrefix: string;
 }) {
@@ -123,11 +135,17 @@ export default function VersionDetailsDialog<V>({
                   <span className="text-muted-foreground">No more matches so far: → searches on</span>
                 ) : null}
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Button variant="outline" size="sm" className="border-border text-primary hover:bg-primary/10" asChild>
                   <Link noStyle href={stateHref(row.round)} title="The page as it was at this round">
                     <History />
                     Rewind
+                  </Link>
+                </Button>
+                <Button variant="outline" size="sm" className="border-border text-primary hover:bg-primary/10" asChild>
+                  <Link noStyle {...versionTxnsLink(txnsLink, row)}>
+                    <ArrowLeftRight />
+                    Find txns
                   </Link>
                 </Button>
                 <JsonViewer
@@ -162,6 +180,7 @@ export default function VersionDetailsDialog<V>({
                         rewind
                       </Link>
                     ) : null}
+                    {label ? <FindTxnsLink {...txnsLink(row.round, s.ref)} /> : null}
                   </div>
                   {s.status === "pending" ? (
                     <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />

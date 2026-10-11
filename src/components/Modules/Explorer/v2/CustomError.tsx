@@ -63,10 +63,11 @@ function getRetries(hash: string): number {
   return 0;
 }
 
-/** The query to carry to another network: without ?round=, which says nothing about it. */
+/** The query to carry to another network: without ?round= or ?txn-round=, which say nothing about it. */
 function searchForOtherNetwork(search: string): string {
   const params = new URLSearchParams(search);
   params.delete("round");
+  params.delete("txn-round");
   const query = params.toString();
   return query ? `?${query}` : "";
 }

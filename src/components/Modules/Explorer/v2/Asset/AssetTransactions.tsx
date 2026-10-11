@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { useParams } from "react-router-dom";
 import TransactionsList from "../Lists/TransactionsList/TransactionsList";
+import { useTxnRoundFilter } from "../Lists/TransactionsList/TxnRoundFilter";
 import { useAsset } from "src/hooks/useAsset";
 import { useAssetTransactions } from "src/hooks/useAssetTransactions";
 import { useRound } from "src/hooks/useRound";
@@ -9,6 +10,7 @@ function AssetTransactions(): JSX.Element {
   const { id } = useParams();
   const numId = Number(id);
   const { round } = useRound();
+  const { txnRound, toolbar, emptyLabel } = useTxnRoundFilter("this asset");
 
   const { data: assetInfo } = useAsset(numId, round);
   const {
@@ -17,7 +19,7 @@ function AssetTransactions(): JSX.Element {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useAssetTransactions(numId, round);
+  } = useAssetTransactions(numId, round, txnRound);
 
   const transactions = useMemo(
     () => data?.pages.flatMap((p) => p.transactions) ?? [],
@@ -35,6 +37,7 @@ function AssetTransactions(): JSX.Element {
       <div className="asset-transactions-container">
         <div className="asset-transactions-body">
           <TransactionsList
+            key={txnRound}
             record="asset"
             recordDef={assetInfo ?? {}}
             transactions={transactions}
@@ -42,6 +45,8 @@ function AssetTransactions(): JSX.Element {
             loading={isFetchingNextPage}
             initialLoading={isLoading}
             hasMore={hasNextPage}
+            toolbar={toolbar}
+            emptyLabel={emptyLabel}
           />
         </div>
       </div>

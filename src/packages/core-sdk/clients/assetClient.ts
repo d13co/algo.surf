@@ -191,13 +191,16 @@ export class AssetClient{
         return toA_AssetsResponse(response);
     }
 
-    /** With `maxRound`, only the transactions up to that round. */
-    async getAssetTransactions(id: number, token?: string, maxRound?: number): Promise<A_AssetTransactionsResponse> {
+    /** With `round`, only the transactions in that round; else with `maxRound`, only those up to it. */
+    async getAssetTransactions(id: number, token?: string, maxRound?: number, round?: number): Promise<A_AssetTransactionsResponse> {
         const req = this.indexer.searchForTransactions().assetID(id);
         if (token) {
             req.nextToken(token);
         }
-        if (maxRound !== undefined) {
+        // The indexer takes one or the other.
+        if (round !== undefined) {
+            req.round(round);
+        } else if (maxRound !== undefined) {
             req.maxRound(maxRound);
         }
 

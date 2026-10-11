@@ -3,7 +3,8 @@ import { ApplicationClient, APPLICATIONS_PAGE_SIZE } from "src/packages/core-sdk
 import { BoxClient } from "src/packages/core-sdk/clients/boxClient";
 import { CoreApplication } from "src/packages/core-sdk/classes/core/CoreApplication";
 import explorer from "src/utils/dappflow";
-import { getApplicationAt, TimeTravelBoxClient } from "src/utils/timeTravel";
+import { getApplicationAt, TimeTravelBoxClient, TimeTravelError } from "src/utils/timeTravel";
+import { isEmptyTxnRound } from "src/hooks/useTxnRound";
 import { indexerModels } from "algosdk";
 import sha512 from "js-sha512";
 import chunk from "lodash/chunk.js";
@@ -60,6 +61,22 @@ function atRound(key: unknown[], round: number | undefined) {
     : { queryKey: [...key, { round }], meta: { noPersist: true }, retry: false };
 }
 
+/**
+ * The app at `round`, deleted by then: as the indexer has it now, deleted, as
+ * on the latest page. Where it was not yet created, the time-travel error.
+ */
+async function getApplicationOrDeletedAt(id: number, round: number): Promise<indexerModels.Application> {
+  try {
+    return await getApplicationAt(id, round);
+  } catch (e) {
+    if (e instanceof TimeTravelError && e.status === 404) {
+      const app = await new ApplicationClient(explorer.network).get(id).catch(() => undefined);
+      if (app?.deleted && app.deletedAtRound !== undefined && app.deletedAtRound <= BigInt(round)) return app;
+    }
+    throw e;
+  }
+}
+
 /** The app at `round` when given (see useRound), else as it is now. */
 export function useApplication(id: number, round?: number) {
   return useQuery({
@@ -67,7 +84,7 @@ export function useApplication(id: number, round?: number) {
     queryFn: () =>
       round === undefined
         ? new ApplicationClient(explorer.network).get(id)
-        : getApplicationAt(id, round),
+        : getApplicationOrDeletedAt(id, round),
     enabled: !!id,
   });
 }
@@ -92,19 +109,20 @@ export function useApplications() {
   });
 }
 
-/** With `round`, only the transactions up to it. */
-export function useApplicationTransactions(id: number, round?: number) {
+/** With `round`, only the transactions up to it; with `txnRound`, only those in it (see useTxnRound). */
+export function useApplicationTransactions(id: number, round?: number, txnRound?: number) {
   return useInfiniteQuery({
-    ...atRound(["application-transactions", id], round),
+    ...atRound(["application-transactions", id, ...(txnRound === undefined ? [] : [{ txnRound }])], round),
     queryFn: ({ pageParam }) =>
       new ApplicationClient(explorer.network).getApplicationTransactions(
         id,
         pageParam,
         round,
+        txnRound,
       ),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage["next-token"] || undefined,
-    enabled: !!id,
+    enabled: !!id && !isEmptyTxnRound(txnRound, round),
   });
 }
 

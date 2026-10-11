@@ -2,9 +2,11 @@ import { useCallback, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { useAppVersions, useVersionsOrder } from "src/hooks/useTimeTravel";
 import { useRound, withRound } from "src/hooks/useRound";
+import { withTxnRound } from "src/hooks/useTxnRound";
 import { useVersionFilter } from "src/hooks/useVersionFilter";
 import { withVersionFilter } from "src/utils/versionFilter";
 import { appVersionTouches, BaselineContext } from "src/utils/versionDelta";
+import { TxnsLink } from "../Versions/VersionChanges";
 import VersionsList from "../Versions/VersionsList";
 
 function ApplicationVersions(): JSX.Element {
@@ -28,6 +30,10 @@ function ApplicationVersions(): JSX.Element {
   const versions = useMemo(() => data?.pages.flatMap((p) => p.versions) ?? [], [data]);
   const ctx = useMemo<BaselineContext>(() => ({ kind: "app", appId }), [appId]);
   const stateHref = useCallback((at: number) => withRound(`/application/${appId}`, at), [appId]);
+  const txnsLink = useCallback<TxnsLink>(
+    (at) => ({ href: withTxnRound(`/application/${appId}/transactions`, at), title: "The app's transactions in this round" }),
+    [appId],
+  );
 
   return (
     <VersionsList
@@ -46,6 +52,7 @@ function ApplicationVersions(): JSX.Element {
       fetchMoreFailed={isFetchNextPageError}
       label={null}
       stateHref={stateHref}
+      txnsLink={txnsLink}
       filenamePrefix={`app-${appId}`}
       emptyLabel="No versions"
     />

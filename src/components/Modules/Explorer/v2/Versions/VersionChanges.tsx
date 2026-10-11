@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from "react";
-import { ListFilter, X } from "lucide-react";
+import { ArrowLeftRight, ListFilter, X } from "lucide-react";
 import { cn } from "src/lib/utils";
 import { Chip } from "src/components/v2/Chips";
 import JsonDiffTree, { NumberFormat, NumberFormatOf } from "src/components/v2/JsonDiffTree";
@@ -23,6 +23,27 @@ export type ObjectLabel = ((ref: ObjRef) => React.ReactNode) | null;
 
 /** Where each tab shows the state at `round` (`?round=`): the whole record, or the part showing `ref`. */
 export type StateHref = (round: number, ref?: ObjRef) => string;
+
+/**
+ * Where each tab lists the transactions in `round` (`?txn-round=`) that
+ * changed `ref`, or without one the record, and whose they are.
+ */
+export type TxnsLink = (round: number, ref?: ObjRef) => { href: string; title: string };
+
+/** A version's TxnsLink: of the one object it changed, else of the record. */
+export function versionTxnsLink(txnsLink: TxnsLink, row: { round: number; summaries: ObjectSummary[] }) {
+  return txnsLink(row.round, row.summaries.length === 1 ? row.summaries[0].ref : undefined);
+}
+
+/** A small link to transactions in a round, beside a version's rewind link. */
+export function FindTxnsLink({ href, title }: { href: string; title: string }) {
+  return (
+    <Link href={href} className="text-xs" title={title}>
+      <ArrowLeftRight size={12} className="inline -mt-0.5 mr-1" />
+      find txns
+    </Link>
+  );
+}
 
 /** The list of only the versions that changed `path` of the object `key`, or without one, that changed it at all. */
 export type FieldHref = (key: string, path?: FieldPath) => string;

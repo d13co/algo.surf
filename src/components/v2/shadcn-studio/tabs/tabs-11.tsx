@@ -43,7 +43,7 @@ export default function TabsUnderline({
     >
       <TabsList
         ref={tabsRef}
-        className={cn('bg-transparent justify-start rounded-none border-b border-primary p-0 overflow-x-auto', listClassName)}
+        className={cn('bg-transparent justify-start rounded-none border-b border-primary p-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden', listClassName)}
       >
         {tabs.map(tab => (
           <TabsTrigger

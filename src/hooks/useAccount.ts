@@ -3,6 +3,7 @@ import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { AccountClient, ACCOUNTS_PAGE_SIZE } from "src/packages/core-sdk/clients/accountClient";
 import explorer from "src/utils/dappflow";
 import { getAccountAt } from "src/utils/timeTravel";
+import { isEmptyTxnRound } from "src/hooks/useTxnRound";
 import { EscregSDK } from "@d13co/escreg-sdk";
 
 const escreg = new EscregSDK({});
@@ -114,29 +115,36 @@ export function useAccounts(prefixToken?: string) {
   });
 }
 
-/** With `round`, only the transactions up to it. */
-export function useAccountTransactions(address: string, round?: number) {
+/** With `round`, only the transactions up to it; with `txnRound`, only those in it (see useTxnRound). */
+export function useAccountTransactions(address: string, round?: number, txnRound?: number) {
   return useInfiniteQuery({
-    queryKey: round === undefined ? ["account-transactions", address] : ["account-transactions", address, { round }],
+    queryKey: [
+      "account-transactions",
+      address,
+      ...(txnRound === undefined ? [] : [{ txnRound }]),
+      ...(round === undefined ? [] : [{ round }]),
+    ],
     queryFn: ({ pageParam }) =>
       new AccountClient(explorer.network).getAccountTransactions(
         address,
         pageParam,
-        round
+        round,
+        txnRound
       ),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage["next-token"] || undefined,
-    enabled: !!address,
+    enabled: !!address && !isEmptyTxnRound(txnRound, round),
   });
 }
 
-export function useControllingAccounts(address: string) {
+/** Accounts rekeyed to `address`, as they are now; `enabled` false to skip asking. */
+export function useControllingAccounts(address: string, enabled = true) {
   return useInfiniteQuery({
     queryKey: ["controlling-accounts", address],
     queryFn: ({ pageParam }) =>
       new AccountClient(explorer.network).getAuthAddr(address, pageParam),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage["next-token"] || undefined,
-    enabled: !!address,
+    enabled: !!address && enabled,
   });
 }

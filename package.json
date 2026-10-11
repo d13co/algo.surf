@@ -54,11 +54,12 @@
     "start": "vite",
     "dev": "npm run dev:mainnet",
     "dev:mainnet": "REACT_APP_NETWORK=Mainnet vite",
+    "dev:mainnet:tt": "REACT_APP_NETWORK=Mainnet REACT_APP_TIMETRAVEL_ALGOD_URL=https://mainnet-api-dt.d13.co vite",
     "dev:testnet": "REACT_APP_NETWORK=Testnet vite",
     "dev:betanet": "REACT_APP_NETWORK=Betanet vite",
     "dev:localnet": "REACT_APP_NETWORK=Localnet vite",
     "dev:fnet": "REACT_APP_NETWORK=Fnet vite",
-    "dev:fnet:tt": "REACT_APP_NETWORK=Fnet REACT_APP_TIMETRAVEL_ALGOD_URL=http://127.0.0.1:8099 vite",
+    "dev:fnet:tt": "REACT_APP_NETWORK=Fnet REACT_APP_TIMETRAVEL_ALGOD_URL=http://10.114.0.27:8099 vite",
     "build": "vite build",
     "gen:consensus": "node scripts/gen-consensus-versions.mjs",
     "preview": "REACT_APP_NETWORK=Mainnet vite preview"
