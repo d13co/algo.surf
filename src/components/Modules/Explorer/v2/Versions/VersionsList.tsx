@@ -16,7 +16,7 @@ import { cn } from "src/lib/utils";
 import { useStableHeight } from "src/hooks/useStableHeight";
 import { useVersionRows } from "src/hooks/useTimeTravel";
 import { useVersionFilterHref } from "src/hooks/useVersionFilter";
-import { VERSIONS_PAGE_SIZE, VersionsOrder } from "src/utils/timeTravel";
+import { getSearchDelayMs, VERSIONS_PAGE_SIZE, VersionsOrder } from "src/utils/timeTravel";
 import { BaselineContext, FieldPath, ObjectSummary, summarizeObject, Touch, VersionRow } from "src/utils/versionDelta";
 import { VersionFilter, versionMatches } from "src/utils/versionFilter";
 import Link from "../Links/Link";
@@ -110,6 +110,7 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
   emptyLabel,
   toolbar,
   filter,
+  onKeepSearching,
 }: {
   ctx: BaselineContext;
   /** Loaded versions, in `order`. */
@@ -138,20 +139,21 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
    * touches, so a version needs at most one previous state read.
    */
   filter?: VersionFilter;
+  /** Filtered, the reader told the list to keep searching (see useSearchBatchSize). */
+  onKeepSearching?: () => void;
 }) {
   const [detailsIndex, setDetailsIndex] = useState<number | null>(null);
   const { format } = useDateFormat();
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: VERSIONS_PAGE_SIZE });
 
   // Filtered, a batch can hold few matches or none: fetch on while the page
-  // is short, up to SCAN_STEP versions past where the reader last asked for more.
+  // is short, up to SCAN_STEP versions past where the reader last asked for
+  // more - or, searching on, until told to stop.
   const [scanUntil, setScanUntil] = useState(() => versions.length + SCAN_STEP);
-  const scanPaused = !!filter && versions.length >= scanUntil;
-  // Searching on lifts the limit, and retries a failed batch (the effect below does not).
-  const searchOn = useCallback(() => {
-    setScanUntil(versions.length + SCAN_STEP);
-    if (fetchMoreFailed && !isFetchingMore) fetchMore();
-  }, [versions.length, fetchMoreFailed, isFetchingMore, fetchMore]);
+  // Searching on, the number of matches then: one more stops the search.
+  const [searchFrom, setSearchFrom] = useState<number | null>(null);
+  const searching = searchFrom !== null;
+  const scanPaused = !!filter && !searching && versions.length >= scanUntil;
 
   // Newest first, previous states are read for the rows on the current page
   // and the one open in the dialog - but not while the next batch is on its
@@ -186,6 +188,22 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
     }
     return out;
   }, [rows, filter]);
+
+  // Searching on lifts the limit until stopped or a match is found, and
+  // retries a failed batch (the effect below does not).
+  const searchOn = useCallback(() => {
+    setSearchFrom(data.length);
+    onKeepSearching?.();
+    if (fetchMoreFailed && !isFetchingMore) fetchMore();
+  }, [data.length, onKeepSearching, fetchMoreFailed, isFetchingMore, fetchMore]);
+  // A batch on its way still comes in.
+  const searchOff = useCallback(() => {
+    setSearchFrom(null);
+    setScanUntil(versions.length);
+  }, [versions.length]);
+  useEffect(() => {
+    if (searchFrom !== null && data.length > searchFrom) searchOff();
+  }, [searchFrom, data.length, searchOff]);
 
   const filterHref = useVersionFilterHref();
   const fieldHref = useCallback<FieldHref>(
@@ -264,14 +282,26 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
 
   const { ref: tableRef, style: stableStyle } = useStableHeight(currentRowCount === pageSize);
 
-  // On the last loaded page, fetch the next batch: without it there would be
-  // no next page to go to. A failed batch is not retried until the next page
-  // change.
+  // When the last batch came in (or the list mounted), for spacing out a search.
+  const lastFetchEnd = useRef(Date.now());
   useEffect(() => {
-    if (pageIndex >= pageCount - 1 && hasMore && !isFetchingMore && !fetchMoreFailed && !scanPaused) {
+    if (!isFetchingMore) lastFetchEnd.current = Date.now();
+  }, [isFetchingMore]);
+
+  // On the last loaded page, fetch the next batch: without it there would be
+  // no next page to go to; searching on, getSearchDelayMs() after the last. A
+  // failed batch is not retried until the next page change.
+  const scanning = pageIndex >= pageCount - 1 && hasMore && !fetchMoreFailed && !scanPaused;
+  useEffect(() => {
+    if (!scanning || isFetchingMore) return;
+    const delay = searching ? lastFetchEnd.current + getSearchDelayMs() - Date.now() : 0;
+    if (delay <= 0) {
       fetchMore();
+      return;
     }
-  }, [pageIndex, pageCount, hasMore, isFetchingMore, fetchMoreFailed, scanPaused, fetchMore]);
+    const timer = setTimeout(fetchMore, delay);
+    return () => clearTimeout(timer);
+  }, [scanning, isFetchingMore, searching, fetchMore]);
 
   function onPageChange(newPage: number) {
     table.setPageIndex(newPage);
@@ -338,7 +368,7 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
         onPrev={() => onPageChange(pageIndex - 1)}
         onNext={() => onPageChange(pageIndex + 1)}
         onLast={() => onPageChange(pageCount - 1)}
-        loading={isFetchingMore}
+        loading={isFetchingMore || scanning}
       >
         <div className="flex flex-wrap items-center gap-3">
           <OrderButton order={order} onChange={onOrderChange} />
@@ -350,7 +380,11 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
                 {data.length.toLocaleString()} of {versions.length.toLocaleString()}
                 {hasMore ? "+" : ""} {versions.length === 1 && !hasMore ? "version" : "versions"}
               </span>
-              {(scanPaused || fetchMoreFailed) && hasMore && !isFetchingMore ? (
+              {searching && scanning ? (
+                <Button variant="outline" size="sm" className={actionClassName} onClick={searchOff}>
+                  Stop searching
+                </Button>
+              ) : hasMore && (fetchMoreFailed ? !isFetchingMore : scanPaused) ? (
                 <Button variant="outline" size="sm" className={actionClassName} onClick={searchOn}>
                   {fetchMoreFailed ? "Retry" : "Keep searching"}
                 </Button>
@@ -375,7 +409,7 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
                   : "No versions changed this"
         }
         padCount={padCount}
-        isFetchingNextPage={isFetchingMore}
+        isFetchingNextPage={isFetchingMore || scanning}
         tableRef={tableRef}
         tableStyle={stableStyle}
         cardsBelow="lg"

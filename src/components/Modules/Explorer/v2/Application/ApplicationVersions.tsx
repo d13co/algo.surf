@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react";
 import { useParams } from "react-router-dom";
-import { useAppVersions, useVersionsOrder } from "src/hooks/useTimeTravel";
+import { useAppVersions, useSearchBatchSize, useVersionsOrder } from "src/hooks/useTimeTravel";
 import { useRound, withRound } from "src/hooks/useRound";
 import { withTxnRound } from "src/hooks/useTxnRound";
 import { useVersionFilter } from "src/hooks/useVersionFilter";
@@ -16,6 +16,8 @@ function ApplicationVersions(): JSX.Element {
   const { round } = useRound();
   const [order, setOrder] = useVersionsOrder();
   const filter = useVersionFilter(false);
+  const listKey = `${order}-${withVersionFilter("", filter)}`;
+  const [batchSize, keepSearching] = useSearchBatchSize(listKey, filter);
 
   const {
     data,
@@ -25,7 +27,7 @@ function ApplicationVersions(): JSX.Element {
     fetchNextPage,
     isFetchingNextPage,
     isFetchNextPageError,
-  } = useAppVersions(appId, round, order);
+  } = useAppVersions(appId, round, order, batchSize);
 
   const versions = useMemo(() => data?.pages.flatMap((p) => p.versions) ?? [], [data]);
   const ctx = useMemo<BaselineContext>(() => ({ kind: "app", appId }), [appId]);
@@ -37,8 +39,9 @@ function ApplicationVersions(): JSX.Element {
 
   return (
     <VersionsList
-      key={`${order}-${withVersionFilter("", filter)}`}
+      key={listKey}
       filter={filter}
+      onKeepSearching={keepSearching}
       ctx={ctx}
       versions={versions}
       touchesOf={appVersionTouches}

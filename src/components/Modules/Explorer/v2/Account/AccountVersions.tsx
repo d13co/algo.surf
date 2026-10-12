@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { cn } from "src/lib/utils";
-import { useAccountVersions, useVersionsOrder } from "src/hooks/useTimeTravel";
+import { useAccountVersions, useSearchBatchSize, useVersionsOrder } from "src/hooks/useTimeTravel";
 import { useRound, withRound } from "src/hooks/useRound";
 import { withTxnRound } from "src/hooks/useTxnRound";
 import { useVersionFilter } from "src/hooks/useVersionFilter";
@@ -83,6 +83,8 @@ function AccountVersions(): JSX.Element {
   // reload of it) must read them, whatever the box says.
   const paramsFiltered = !!filter?.fields.length && /^created-/.test(object ?? "");
   const includeCreatedParams = includeParamsChecked || paramsFiltered;
+  const listKey = `${includeCreatedParams}-${order}-${withVersionFilter("", filter)}`;
+  const [batchSize, keepSearching] = useSearchBatchSize(listKey, filter);
 
   const {
     data,
@@ -92,7 +94,7 @@ function AccountVersions(): JSX.Element {
     fetchNextPage,
     isFetchingNextPage,
     isFetchNextPageError,
-  } = useAccountVersions(address, includeCreatedParams, round, order, object);
+  } = useAccountVersions(address, includeCreatedParams, round, order, object, batchSize);
   const stateHref = useMemo(() => stateHrefFor(address), [address]);
   const txnsLink = useMemo(() => txnsLinkFor(address), [address]);
 
@@ -112,8 +114,9 @@ function AccountVersions(): JSX.Element {
 
   return (
     <VersionsList
-      key={`${includeCreatedParams}-${order}-${withVersionFilter("", filter)}`}
+      key={listKey}
       filter={filter}
+      onKeepSearching={keepSearching}
       ctx={ctx}
       versions={versions}
       touchesOf={touchesOf}

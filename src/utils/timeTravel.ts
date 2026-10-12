@@ -2,7 +2,11 @@ import { decodeJSON, indexerModels, IntDecoding, modelsv2, parseJSON } from "alg
 import { network, Networks } from "src/packages/core-sdk/constants";
 import type { BoxNamesPage } from "src/packages/core-sdk/clients/boxClient";
 import type { A_Box } from "src/packages/core-sdk/types";
-import { REACT_APP_TIMETRAVEL_ALGOD_TOKEN, REACT_APP_TIMETRAVEL_ALGOD_URL } from "src/env";
+import {
+  REACT_APP_TIMETRAVEL_ALGOD_TOKEN,
+  REACT_APP_TIMETRAVEL_ALGOD_URL,
+  REACT_APP_TIMETRAVEL_SEARCH_DELAY_MS,
+} from "src/env";
 import { getApiBaseUrl, getApiHeaders } from "./nodeApi";
 
 /**
@@ -84,6 +88,9 @@ export const VERSIONS_PAGE_SIZE = 10;
 export const VERSIONS_FIRST_BATCH_SIZE = 3 * VERSIONS_PAGE_SIZE;
 export const VERSIONS_BATCH_SIZE = 5 * VERSIONS_PAGE_SIZE;
 
+/** Versions per request once a list filtered to fields is told to keep searching: the node's maximum. */
+export const VERSIONS_SEARCH_BATCH_SIZE = 1000;
+
 /** Box histories render every loaded version, of values up to 32 KB: a page at a time. */
 export const BOX_VERSIONS_BATCH_SIZE = VERSIONS_PAGE_SIZE;
 
@@ -119,6 +126,38 @@ export function getTimeTravelNode(): TimeTravelNode | null {
     return { baseUrl: getApiBaseUrl("algod").replace(/\/+$/, ""), headers: getApiHeaders("algod") };
   }
   return null;
+}
+
+/** Whether `baseUrl` is on this machine or a private network. */
+function isLocalServer(baseUrl: string): boolean {
+  let host: string;
+  try {
+    host = new URL(baseUrl).hostname.replace(/^\[|\]$/g, "");
+  } catch {
+    return false;
+  }
+  return (
+    host === "localhost" ||
+    host.endsWith(".localhost") ||
+    host.endsWith(".local") ||
+    host === "::1" ||
+    /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)[\d.]+$/.test(host)
+  );
+}
+
+/**
+ * The least time, in ms, between the end of one batch of a version search
+ * (Keep searching) and the next request: `localStorage.timetravelSearchDelayMs`,
+ * else `REACT_APP_TIMETRAVEL_SEARCH_DELAY_MS` at build time, else none for a
+ * local server (see isLocalServer) and 500 for any other.
+ */
+export function getSearchDelayMs(): number {
+  for (const value of [readStorage("timetravelSearchDelayMs"), REACT_APP_TIMETRAVEL_SEARCH_DELAY_MS]) {
+    const ms = value ? Number(value) : NaN;
+    if (Number.isFinite(ms) && ms >= 0) return ms;
+  }
+  const node = getTimeTravelNode();
+  return node && isLocalServer(node.baseUrl) ? 0 : 500;
 }
 
 export class TimeTravelError extends Error {

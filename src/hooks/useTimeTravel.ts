@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useInfiniteQuery, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { network, Networks } from "src/packages/core-sdk/constants";
 import { usePersistenBooleanState } from "src/utils/usePersistenBooleanState";
@@ -13,6 +13,7 @@ import {
   BOX_VERSIONS_BATCH_SIZE,
   VERSIONS_BATCH_SIZE,
   VERSIONS_FIRST_BATCH_SIZE,
+  VERSIONS_SEARCH_BATCH_SIZE,
   VersionsOrder,
 } from "src/utils/timeTravel";
 import {
@@ -26,7 +27,7 @@ import {
   Touch,
   VersionRow,
 } from "src/utils/versionDelta";
-import { parseObjKey } from "src/utils/versionFilter";
+import { parseObjKey, VersionFilter } from "src/utils/versionFilter";
 
 const ZERO_ADDRESS = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ";
 
@@ -85,10 +86,14 @@ export function useTimeTravelSupport(): boolean {
   return useTimeTravelStatus() === "supported";
 }
 
-async function getVersionsPage<V>(path: string, query: Record<string, string | number | undefined>) {
+async function getVersionsPage<V>(
+  path: string,
+  query: Record<string, string | number | undefined>,
+  batchSize = VERSIONS_BATCH_SIZE,
+) {
   const page = await ttGet<TTVersionsPage<V>>(path, {
     include: "values",
-    limit: query.next === undefined ? VERSIONS_FIRST_BATCH_SIZE : VERSIONS_BATCH_SIZE,
+    limit: query.next === undefined ? VERSIONS_FIRST_BATCH_SIZE : batchSize,
     ...query,
   });
   if (!page) {
@@ -106,14 +111,45 @@ const versionsQueryOptions = {
   meta,
 };
 
+/**
+ * `batchSize` as of the latest render, for a queryFn to read: Keep searching
+ * fetches from the list's effects, before the query's observer is given the
+ * queryFn of that render.
+ */
+function useLatestBatchSize(batchSize: number | undefined) {
+  const ref = useRef(batchSize);
+  ref.current = batchSize;
+  return ref;
+}
+
+/**
+ * The batch size for a version list filtered to fields, once the reader tells
+ * it to keep searching (the callback): the node's maximum, so the search takes
+ * fewer requests. Undefined (the usual sizes) before that, and again once the
+ * list (`listKey`, its VersionsList key) changes.
+ */
+export function useSearchBatchSize(
+  listKey: string,
+  filter: VersionFilter | undefined,
+): [number | undefined, () => void] {
+  const [searchedOn, setSearchedOn] = useState<string>();
+  const batchSize = searchedOn === listKey && filter?.fields.length ? VERSIONS_SEARCH_BATCH_SIZE : undefined;
+  const keepSearching = useCallback(() => setSearchedOn(listKey), [listKey]);
+  return [batchSize, keepSearching];
+}
+
 /** The order version lists show in: newest first unless switched, remembered across visits. */
 export function useVersionsOrder(): [VersionsOrder, (order: VersionsOrder) => void] {
   const [oldestFirst, setOldestFirst] = usePersistenBooleanState("versions-oldest-first", false);
   return [oldestFirst ? "asc" : "desc", (order) => setOldestFirst(order === "asc")];
 }
 
-/** An application's versions up to `maxRound` (default: the latest), in `order`, a batch at a time. */
-export function useAppVersions(id: number, maxRound: number | undefined, order: VersionsOrder) {
+/**
+ * An application's versions up to `maxRound` (default: the latest), in
+ * `order`, a batch at a time; after the first, `batchSize` (default: the usual).
+ */
+export function useAppVersions(id: number, maxRound: number | undefined, order: VersionsOrder, batchSize?: number) {
+  const batchSizeRef = useLatestBatchSize(batchSize);
   return useInfiniteQuery({
     ...versionsQueryOptions,
     queryKey: ["timetravel-app-versions", getTimeTravelNode()?.baseUrl, id, maxRound, order],
@@ -122,7 +158,7 @@ export function useAppVersions(id: number, maxRound: number | undefined, order: 
         next: pageParam,
         "max-round": maxRound,
         order,
-      }),
+      }, batchSizeRef.current),
     enabled: !!id,
   });
 }
@@ -175,7 +211,8 @@ function accountVersionsRequest(address: string, includeCreatedParams: boolean, 
  * a batch at a time; with `object` (an objKey), the versions of the lists
  * that object is in (see accountVersionsRequest). Without
  * `includeCreatedParams`, every global state change of an app the account
- * created would be a version of the account too.
+ * created would be a version of the account too. After the first batch,
+ * `batchSize` at a time (default: the usual).
  */
 export function useAccountVersions(
   address: string,
@@ -183,7 +220,9 @@ export function useAccountVersions(
   maxRound: number | undefined,
   order: VersionsOrder,
   object?: string,
+  batchSize?: number,
 ) {
+  const batchSizeRef = useLatestBatchSize(batchSize);
   // Keyed by the request: objects sharing a list share its versions.
   const { path, exclude } = accountVersionsRequest(address, includeCreatedParams, object);
   return useInfiniteQuery({
@@ -195,7 +234,7 @@ export function useAccountVersions(
         "max-round": maxRound,
         order,
         exclude,
-      }),
+      }, batchSizeRef.current),
     enabled: !!address,
   });
 }

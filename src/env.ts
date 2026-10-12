@@ -7,3 +7,4 @@ export const REACT_APP_SANDNET_GENESIS_ID: string = process.env.REACT_APP_SANDNE
 // Experimental time-travel algod (version histories); see src/utils/timeTravel.ts
 export const REACT_APP_TIMETRAVEL_ALGOD_URL: string = process.env.REACT_APP_TIMETRAVEL_ALGOD_URL || '';
 export const REACT_APP_TIMETRAVEL_ALGOD_TOKEN: string = process.env.REACT_APP_TIMETRAVEL_ALGOD_TOKEN || '';
+export const REACT_APP_TIMETRAVEL_SEARCH_DELAY_MS: string = process.env.REACT_APP_TIMETRAVEL_SEARCH_DELAY_MS || '';
