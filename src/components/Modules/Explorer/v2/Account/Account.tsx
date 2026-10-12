@@ -99,7 +99,7 @@ function Account(): JSX.Element {
     error,
   } = useAccount(address, round);
   const { data: escrowOf } = useEscrowOf(address);
-  const { data: validatorStats } = useValidatorStats(address);
+  const { data: validatorStats } = useValidatorStats(address, 0, round);
   const { data: nfd } = useReverseNFD(address);
   const { data: txnData } = useAccountTransactions(address, round);
   // The indexer only knows which accounts are rekeyed to this one now, so
