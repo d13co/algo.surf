@@ -22,7 +22,7 @@ import { useAsset } from "src/hooks/useAsset";
 import { useRound, useRoundNavigate } from "src/hooks/useRound";
 import RoundNotice from "../Versions/RoundNotice";
 import { useAssetLabels } from "src/hooks/useAssetLabels";
-import { useBlock } from "src/hooks/useBlock";
+import { useBlockHeader } from "src/hooks/useBlock";
 import { CoreBlock } from "src/packages/core-sdk/classes/core/CoreBlock";
 import TabsUnderline from "src/components/v2/shadcn-studio/tabs/tabs-11";
 import { BadgesRow } from "src/components/v2/Chips";
@@ -40,7 +40,7 @@ function Asset(): JSX.Element {
 
   const assetInstance = assetInfo ? new CoreAsset(assetInfo) : null;
   const createdAtRound = assetInstance?.getCreatedAtRound();
-  const { data: createdBlock } = useBlock(createdAtRound ?? 0);
+  const { data: createdBlock } = useBlockHeader(createdAtRound ?? 0);
   const createdBlockTimestamp = createdBlock
     ? new CoreBlock(createdBlock).getTimestamp()
     : undefined;

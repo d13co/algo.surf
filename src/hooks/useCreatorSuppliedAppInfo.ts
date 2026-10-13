@@ -1,7 +1,7 @@
-import { useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { indexerModels } from "algosdk";
 import { useApplication } from "src/hooks/useApplication";
-import { useBlock } from "src/hooks/useBlock";
+import { blockQuery } from "src/hooks/useBlock";
 
 // AlgoKit's deployer stamps the app creation transaction with a JSON note.
 // Everything in that note is typed by whoever deployed the app — the chain
@@ -75,11 +75,16 @@ export function readCreatorSuppliedAppInfo(
  */
 export function useCreatorSuppliedAppInfo(appId: number): CreatorSuppliedAppInfo | null {
   const { data: appInfo } = useApplication(appId);
+  const queryClient = useQueryClient();
   const createdAtRound = appInfo?.createdAtRound != null ? Number(appInfo.createdAtRound) : undefined;
-  const { data: blockInfo } = useBlock(createdAtRound ?? 0);
-
-  return useMemo(() => {
-    if (!appInfo || !blockInfo) return null;
-    return readCreatorSuppliedAppInfo(blockInfo, appId);
-  }, [appId, appInfo, blockInfo]);
+  // Its own entry, so the stored cache keeps the claim and not the whole creation block. The block comes through
+  // the shared ["block", round] query, so apps created in the same block fetch it once.
+  const { data } = useQuery({
+    queryKey: ["creator-app-info", appId],
+    queryFn: async () =>
+      readCreatorSuppliedAppInfo(await queryClient.ensureQueryData(blockQuery(createdAtRound!)), appId),
+    enabled: !!createdAtRound,
+    staleTime: Infinity,
+  });
+  return data ?? null;
 }

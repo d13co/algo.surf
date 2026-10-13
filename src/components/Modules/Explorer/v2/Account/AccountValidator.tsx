@@ -6,7 +6,7 @@ import {
   validatorStatsSupported,
 } from "src/hooks/useValidator";
 import { useAccount } from "src/hooks/useAccount";
-import { useBlock } from "src/hooks/useBlock";
+import { useBlockHeader } from "src/hooks/useBlock";
 import { useRound } from "src/hooks/useRound";
 import { useLiveBlocks } from "src/hooks/useLiveBlocks";
 import { useAverageRoundTime } from "@d13co/algo-metrics-react";
@@ -111,7 +111,7 @@ function ValidatorInfo({ address, round }: { address: string; round?: number }):
   // time: their last valid block's.
   const expiredSince =
     round !== undefined && lastValid >= round && !!latestRound && lastValid <= latestRound;
-  const { data: lastValidBlock } = useBlock(expiredSince ? lastValid : 0);
+  const { data: lastValidBlock } = useBlockHeader(expiredSince ? lastValid : 0);
 
   if (isLoading) {
     return (
