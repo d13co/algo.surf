@@ -14,6 +14,7 @@ import {
   VERSIONS_BATCH_SIZE,
   VERSIONS_FIRST_BATCH_SIZE,
   VERSIONS_SEARCH_BATCH_SIZE,
+  RoundBounds,
   VersionsOrder,
 } from "src/utils/timeTravel";
 import {
@@ -112,6 +113,14 @@ const versionsQueryOptions = {
 };
 
 /**
+ * `bounds` in a query key. Without bounds there is nothing to read: a key of
+ * its own, so the list does not show (or fetch on) the unbounded one's.
+ */
+function boundsKey(bounds: RoundBounds | undefined) {
+  return bounds ? [bounds.min ?? null, bounds.max ?? null] : "none";
+}
+
+/**
  * `batchSize` as of the latest render, for a queryFn to read: Keep searching
  * fetches from the list's effects, before the query's observer is given the
  * queryFn of that render.
@@ -145,21 +154,23 @@ export function useVersionsOrder(): [VersionsOrder, (order: VersionsOrder) => vo
 }
 
 /**
- * An application's versions up to `maxRound` (default: the latest), in
- * `order`, a batch at a time; after the first, `batchSize` (default: the usual).
+ * An application's versions in the rounds of `bounds` (default: all of them;
+ * none while undefined), in `order`, a batch at a time; after the first,
+ * `batchSize` (default: the usual).
  */
-export function useAppVersions(id: number, maxRound: number | undefined, order: VersionsOrder, batchSize?: number) {
+export function useAppVersions(id: number, bounds: RoundBounds | undefined, order: VersionsOrder, batchSize?: number) {
   const batchSizeRef = useLatestBatchSize(batchSize);
   return useInfiniteQuery({
     ...versionsQueryOptions,
-    queryKey: ["timetravel-app-versions", getTimeTravelNode()?.baseUrl, id, maxRound, order],
+    queryKey: ["timetravel-app-versions", getTimeTravelNode()?.baseUrl, id, boundsKey(bounds), order],
     queryFn: ({ pageParam }) =>
       getVersionsPage<TTAppVersion>(`/v2/applications/${id}/versions`, {
         next: pageParam,
-        "max-round": maxRound,
+        "min-round": bounds?.min,
+        "max-round": bounds?.max,
         order,
       }, batchSizeRef.current),
-    enabled: !!id,
+    enabled: !!id && !!bounds,
   });
 }
 
@@ -207,17 +218,17 @@ function accountVersionsRequest(address: string, includeCreatedParams: boolean, 
 }
 
 /**
- * An account's versions up to `maxRound` (default: the latest), in `order`,
- * a batch at a time; with `object` (an objKey), the versions of the lists
- * that object is in (see accountVersionsRequest). Without
- * `includeCreatedParams`, every global state change of an app the account
- * created would be a version of the account too. After the first batch,
- * `batchSize` at a time (default: the usual).
+ * An account's versions in the rounds of `bounds` (default: all of them; none
+ * while undefined), in `order`, a batch at a time; with `object` (an objKey),
+ * the versions of the lists that object is in (see accountVersionsRequest).
+ * Without `includeCreatedParams`, every global state change of an app the
+ * account created would be a version of the account too. After the first
+ * batch, `batchSize` at a time (default: the usual).
  */
 export function useAccountVersions(
   address: string,
   includeCreatedParams: boolean,
-  maxRound: number | undefined,
+  bounds: RoundBounds | undefined,
   order: VersionsOrder,
   object?: string,
   batchSize?: number,
@@ -227,15 +238,16 @@ export function useAccountVersions(
   const { path, exclude } = accountVersionsRequest(address, includeCreatedParams, object);
   return useInfiniteQuery({
     ...versionsQueryOptions,
-    queryKey: ["timetravel-account-versions", getTimeTravelNode()?.baseUrl, path, exclude, maxRound, order],
+    queryKey: ["timetravel-account-versions", getTimeTravelNode()?.baseUrl, path, exclude, boundsKey(bounds), order],
     queryFn: ({ pageParam }) =>
       getVersionsPage<TTAccountVersion>(path, {
         next: pageParam,
-        "max-round": maxRound,
+        "min-round": bounds?.min,
+        "max-round": bounds?.max,
         order,
         exclude,
       }, batchSizeRef.current),
-    enabled: !!address,
+    enabled: !!address && !!bounds,
   });
 }
 
@@ -298,7 +310,9 @@ function useBaselines(ctx: BaselineContext, needs: BaselineNeed[], shown: (row: 
  * versions remain - for the `shown` rows only: the next batch usually supplies
  * it before the others are looked at. Oldest first, every earlier version is
  * loaded before a later one, so an object's first loaded version is its first
- * ever and nothing needs reading. `touchesOf` and `shown` must be stable.
+ * ever and nothing needs reading - unless the list starts at `minRound`, where
+ * the state before each object's first touch is read either way. `touchesOf`
+ * and `shown` must be stable.
  */
 export function useVersionRows<V extends { round: number; timestamp: number }>(
   ctx: BaselineContext,
@@ -307,15 +321,16 @@ export function useVersionRows<V extends { round: number; timestamp: number }>(
   hasMore: boolean,
   shown: (row: number) => boolean,
   order: VersionsOrder,
+  minRound?: number,
 ): VersionRow<V>[] {
   // buildRows walks newest first; `row` indexes match the list only then.
   const newestFirst = useMemo(() => (order === "asc" ? [...versions].reverse() : versions), [versions, order]);
-  const hasOlder = order === "desc" && hasMore;
+  const hasOlder = (order === "desc" && hasMore) || !!minRound;
 
-  const needs = useMemo(
-    () => buildRows(newestFirst, touchesOf, hasOlder, new Map()).needs,
-    [newestFirst, touchesOf, hasOlder],
-  );
+  const needs = useMemo(() => {
+    const { needs } = buildRows(newestFirst, touchesOf, hasOlder, new Map());
+    return order === "asc" ? needs.map((need) => ({ ...need, row: newestFirst.length - 1 - need.row })) : needs;
+  }, [newestFirst, touchesOf, hasOlder, order]);
   const baselines = useBaselines(ctx, needs, shown);
   return useMemo(() => {
     const { rows } = buildRows(newestFirst, touchesOf, hasOlder, baselines);

@@ -76,6 +76,9 @@ export type TTVersionsPage<V> = { round: number; "next-token"?: string; versions
 /** Version lists: newest first (`desc`) or oldest first (`asc`). */
 export type VersionsOrder = "asc" | "desc";
 
+/** The rounds a version list reads: at least `min` and at most `max`, each unbounded where undefined. */
+export type RoundBounds = { min?: number; max?: number };
+
 /** Rows per page of a version table. */
 export const VERSIONS_PAGE_SIZE = 10;
 

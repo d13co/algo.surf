@@ -111,6 +111,7 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
   toolbar,
   filter,
   onKeepSearching,
+  minRound,
 }: {
   ctx: BaselineContext;
   /** Loaded versions, in `order`. */
@@ -141,6 +142,8 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
   filter?: VersionFilter;
   /** Filtered, the reader told the list to keep searching (see useSearchBatchSize). */
   onKeepSearching?: () => void;
+  /** The first round `versions` can be of (a date range's), if not the first ever. */
+  minRound?: number;
 }) {
   const [detailsIndex, setDetailsIndex] = useState<number | null>(null);
   const { format } = useDateFormat();
@@ -159,7 +162,9 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
   // and the one open in the dialog - but not while the next batch is on its
   // way (see the effect below), since it supplies most of them. Filtered, the
   // one there can be (of the oldest loaded version) holds back only the rows
-  // after it, so it is read only once no more batches are coming.
+  // after it, so it is read only once no more batches are coming. Oldest
+  // first (from minRound), no batch supplies any, so none waits.
+  const batchesSupply = order === "desc";
   const loadedPages = Math.max(1, Math.ceil(versions.length / pagination.pageSize));
   const batchComing =
     hasMore && !fetchMoreFailed && (isFetchingMore || pagination.pageIndex >= loadedPages - 1);
@@ -167,12 +172,12 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
   const shown = useCallback(
     (row: number) =>
       filter
-        ? !moreComing
-        : !batchComing &&
+        ? !(batchesSupply && moreComing)
+        : !(batchesSupply && batchComing) &&
           (Math.floor(row / pagination.pageSize) === pagination.pageIndex || row === detailsIndex),
-    [filter, moreComing, batchComing, pagination, detailsIndex],
+    [filter, batchesSupply, moreComing, batchComing, pagination, detailsIndex],
   );
-  const rows = useVersionRows(ctx, versions, touchesOf, hasMore, shown, order);
+  const rows = useVersionRows(ctx, versions, touchesOf, hasMore, shown, order, minRound);
 
   const data = useMemo<Row<V>[]>(() => {
     const out: Row<V>[] = [];

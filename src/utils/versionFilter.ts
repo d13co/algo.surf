@@ -130,3 +130,48 @@ export function versionMatches(summaries: ObjectSummary[], fields: FieldPath[]):
   }
   return pending ? undefined : false;
 }
+
+/**
+ * A version list's date range, as the URL carries it:
+ *
+ *   ?from=2026-01-01T00:00:00Z         the versions at or after an instant
+ *   ?to=2026-02-01T00:00:00Z           ...at or before one
+ *
+ * Each an ISO 8601 date and time (UTC where it names no offset) or Unix
+ * seconds; held as Unix seconds. It applies along with any VersionFilter.
+ */
+export type VersionRange = { from?: number; to?: number };
+
+/** An instant from a URL query value, in Unix seconds; undefined where it is not one. */
+export function parseInstant(raw: string | null): number | undefined {
+  if (!raw) return undefined;
+  // Date-time without an offset: UTC, not the reader's zone, so a link reads alike everywhere.
+  const iso = /^\d{4}-\d\d-\d\dT[\d:.]+$/.test(raw) ? `${raw}Z` : raw;
+  const ms = /^\d+$/.test(raw) ? Number(raw) * 1000 : Date.parse(iso);
+  // Beyond what Date holds, it could not be shown or linked to.
+  return Number.isFinite(new Date(ms).getTime()) ? Math.floor(ms / 1000) : undefined;
+}
+
+/** `1767225600` → `2026-01-01T00:00:00Z` */
+export function formatInstant(seconds: number): string {
+  return new Date(seconds * 1000).toISOString().replace(/\.000Z$/, "Z");
+}
+
+/** The date range in a page's query: undefined where there is none. */
+export function parseVersionRange(params: URLSearchParams): VersionRange | undefined {
+  const from = parseInstant(params.get("from"));
+  const to = parseInstant(params.get("to"));
+  return from !== undefined || to !== undefined ? { from, to } : undefined;
+}
+
+/** `path` (with any query) showing the versions in `range`, or of any date without one. */
+export function withVersionRange(path: string, range: VersionRange | undefined): string {
+  const [pathname, query = ""] = path.split("?");
+  const params = new URLSearchParams(query);
+  params.delete("from");
+  params.delete("to");
+  if (range?.from !== undefined) params.append("from", formatInstant(range.from));
+  if (range?.to !== undefined) params.append("to", formatInstant(range.to));
+  const qs = [...params].map(([k, v]) => `${k}=${queryValue(v)}`).join("&");
+  return qs ? `${pathname}?${qs}` : pathname;
+}

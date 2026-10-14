@@ -4,8 +4,8 @@ import { cn } from "src/lib/utils";
 import { useAccountVersions, useSearchBatchSize, useVersionsOrder } from "src/hooks/useTimeTravel";
 import { useRound, withRound } from "src/hooks/useRound";
 import { withTxnRound } from "src/hooks/useTxnRound";
-import { useVersionFilter } from "src/hooks/useVersionFilter";
-import { withVersionFilter } from "src/utils/versionFilter";
+import { useRangeRounds, useVersionFilter, useVersionRange } from "src/hooks/useVersionFilter";
+import { withVersionFilter, withVersionRange } from "src/utils/versionFilter";
 import { TTAccountVersion } from "src/utils/timeTravel";
 import {
   accountVersionTouches,
@@ -16,6 +16,7 @@ import {
 import LinkToAsset from "../Links/LinkToAsset";
 import LinkToApplication from "../Links/LinkToApplication";
 import { TxnsLink } from "../Versions/VersionChanges";
+import VersionRangeBar from "../Versions/VersionRangeBar";
 import VersionsList from "../Versions/VersionsList";
 
 function objectLabel(ref: ObjRef): React.ReactNode {
@@ -73,6 +74,8 @@ function AccountVersions(): JSX.Element {
   const { address } = useParams();
   // On a page at a past round, the versions up to it.
   const { round } = useRound();
+  const range = useVersionRange();
+  const { bounds, isLoading: boundsLoading, error: boundsError } = useRangeRounds(range, round);
   // Off by default: each global state change of an app this account created
   // would otherwise be a version of the account as well.
   const [includeParamsChecked, setIncludeParamsChecked] = useState(false);
@@ -83,7 +86,7 @@ function AccountVersions(): JSX.Element {
   // reload of it) must read them, whatever the box says.
   const paramsFiltered = !!filter?.fields.length && /^created-/.test(object ?? "");
   const includeCreatedParams = includeParamsChecked || paramsFiltered;
-  const listKey = `${includeCreatedParams}-${order}-${withVersionFilter("", filter)}`;
+  const listKey = `${includeCreatedParams}-${order}-${withVersionFilter(withVersionRange("", range), filter)}`;
   const [batchSize, keepSearching] = useSearchBatchSize(listKey, filter);
 
   const {
@@ -94,7 +97,7 @@ function AccountVersions(): JSX.Element {
     fetchNextPage,
     isFetchingNextPage,
     isFetchNextPageError,
-  } = useAccountVersions(address, includeCreatedParams, round, order, object, batchSize);
+  } = useAccountVersions(address, includeCreatedParams, bounds, order, object, batchSize);
   const stateHref = useMemo(() => stateHrefFor(address), [address]);
   const txnsLink = useMemo(() => txnsLinkFor(address), [address]);
 
@@ -113,39 +116,43 @@ function AccountVersions(): JSX.Element {
   );
 
   return (
-    <VersionsList
-      key={listKey}
-      filter={filter}
-      onKeepSearching={keepSearching}
-      ctx={ctx}
-      versions={versions}
-      touchesOf={touchesOf}
-      order={order}
-      onOrderChange={setOrder}
-      isLoading={isLoading}
-      error={data ? null : error}
-      hasMore={!!hasNextPage}
-      fetchMore={fetchNextPage}
-      isFetchingMore={isFetchingNextPage}
-      fetchMoreFailed={isFetchNextPageError}
-      label={objectLabel}
-      stateHref={stateHref}
-      txnsLink={txnsLink}
-      filenamePrefix={`account-${address}`}
-      emptyLabel="No versions"
-      toolbar={
-        <label className={cn("flex items-center gap-2 text-sm text-muted-foreground", paramsFiltered ? "opacity-60" : "cursor-pointer")}>
-          <input
-            type="checkbox"
-            className="accent-primary"
-            checked={includeCreatedParams}
-            disabled={paramsFiltered}
-            onChange={(e) => setIncludeParamsChecked(e.target.checked)}
-          />
-          Include created app and asset params
-        </label>
-      }
-    />
+    <>
+      <VersionRangeBar />
+      <VersionsList
+        key={listKey}
+        filter={filter}
+        onKeepSearching={keepSearching}
+        ctx={ctx}
+        versions={versions}
+        touchesOf={touchesOf}
+        order={order}
+        onOrderChange={setOrder}
+        isLoading={isLoading || boundsLoading}
+        error={boundsError ?? (data ? null : error)}
+        hasMore={!!hasNextPage}
+        fetchMore={fetchNextPage}
+        isFetchingMore={isFetchingNextPage}
+        fetchMoreFailed={isFetchNextPageError}
+        label={objectLabel}
+        stateHref={stateHref}
+        txnsLink={txnsLink}
+        filenamePrefix={`account-${address}`}
+        emptyLabel={range ? "No versions in this date range" : "No versions"}
+        minRound={bounds?.min}
+        toolbar={
+          <label className={cn("flex items-center gap-2 text-sm text-muted-foreground", paramsFiltered ? "opacity-60" : "cursor-pointer")}>
+            <input
+              type="checkbox"
+              className="accent-primary"
+              checked={includeCreatedParams}
+              disabled={paramsFiltered}
+              onChange={(e) => setIncludeParamsChecked(e.target.checked)}
+            />
+            Include created app and asset params
+          </label>
+        }
+      />
+    </>
   );
 }
 
