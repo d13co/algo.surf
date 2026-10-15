@@ -18,6 +18,7 @@ import {
   VersionsOrder,
 } from "src/utils/timeTravel";
 import {
+  accountVersionTouches,
   BaselineContext,
   BaselineNeed,
   Baselines,
@@ -25,6 +26,8 @@ import {
   baselineRequest,
   buildRows,
   extractBaseline,
+  ObjRef,
+  RowObject,
   Touch,
   VersionRow,
 } from "src/utils/versionDelta";
@@ -251,6 +254,97 @@ export function useAccountVersions(
   });
 }
 
+type AtRoundRequest = { path: string; query: Record<string, string | number> };
+
+/** Reads a baselineRequest; useBaselines and useObjectAt share what it caches. */
+function atRoundQuery(baseUrl: string | undefined, req: AtRoundRequest) {
+  return {
+    queryKey: ["timetravel-at-round", baseUrl, req.path, req.query],
+    queryFn: () => ttGet(req.path, req.query),
+    // State at a past round never changes.
+    staleTime: Infinity,
+    meta,
+  };
+}
+
+/** `ref`'s state at `round`; nothing is read while `round` is undefined. */
+export function useObjectAt(ctx: BaselineContext, ref: ObjRef, round: number | undefined) {
+  const baseUrl = getTimeTravelNode()?.baseUrl;
+  const { data, error, status } = useQuery({
+    ...atRoundQuery(baseUrl, baselineRequest(ctx, ref, round ?? 0)),
+    enabled: round !== undefined,
+  });
+  const state = useMemo(() => (status === "success" ? extractBaseline(ctx, ref, data) : undefined), [status, data, ctx, ref]);
+  return { state, error };
+}
+
+const everyRow = () => true;
+
+/**
+ * The whole of an account's versions at `rounds`, besides `object` (an
+ * objKey): what each did to every other object, with their previous states.
+ * For a list of one object's versions, which hold only its part. A round is
+ * in `byRound` once its version is; each object's previous state is read on
+ * its own, since the versions between them are not loaded.
+ */
+export function useAccountVersionsAt(
+  ctx: BaselineContext,
+  rounds: number[],
+  object: string | undefined,
+): { byRound: Map<number, RowObject[]>; errors: Map<number, Error> } {
+  const account = ctx.kind === "account" ? ctx : undefined;
+  const includeCreatedParams = !!account?.includeCreatedParams;
+  const { path, exclude } = accountVersionsRequest(account?.address ?? "", includeCreatedParams, undefined);
+  const baseUrl = getTimeTravelNode()?.baseUrl;
+  const results = useQueries({
+    queries: (account ? rounds : []).map((round) => ({
+      queryKey: ["timetravel-account-version-at", baseUrl, path, exclude, round],
+      queryFn: () => getVersionsPage<TTAccountVersion>(path, { "min-round": round, "max-round": round, exclude }),
+      staleTime: Infinity,
+      meta,
+    })),
+  });
+  const signature = results.map((r) => `${r.status}:${r.dataUpdatedAt}`).join(",");
+
+  // Each fetched round's touches, and what they need: `row` indexes `touched`.
+  const { touched, errors, needs } = useMemo(() => {
+    const touched: { round: number; touches: Touch[] }[] = [];
+    const errors = new Map<number, Error>();
+    results.forEach((r, i) => {
+      const round = rounds[i];
+      if (r.status === "error") errors.set(round, r.error as Error);
+      if (r.status !== "success") return;
+      const version = r.data.versions.find((v) => v.round === round);
+      const touches = version ? accountVersionTouches(version, includeCreatedParams).filter((t) => t.key !== object) : [];
+      touched.push({ round, touches });
+    });
+    const needs = touched.flatMap(({ round, touches }, row) =>
+      touches.map((t) => ({ key: t.key, ref: t.ref, round: round - 1, row })),
+    );
+    return { touched, errors, needs };
+    // results is a new array every render; signature captures what matters.
+  }, [signature, rounds.join(","), includeCreatedParams, object]);
+
+  const baselines = useBaselines(ctx, needs, everyRow);
+  const byRound = useMemo(() => {
+    const byRound = new Map<number, RowObject[]>();
+    for (const { round, touches } of touched) {
+      byRound.set(
+        round,
+        touches.map((touch) => {
+          const need = { key: touch.key, ref: touch.ref, round: round - 1, row: 0 };
+          const baseline = baselines.get(baselineId(need));
+          return baseline instanceof Error
+            ? { ...touch, before: undefined, baseline: need, baselineError: baseline.message }
+            : { ...touch, before: baseline, baseline: need };
+        }),
+      );
+    }
+    return byRound;
+  }, [touched, baselines]);
+  return { byRound, errors };
+}
+
 /**
  * Reads each needed object's state at its round, for the `shown` rows; the
  * same request is sent once. The others get any state an earlier read left in
@@ -272,17 +366,10 @@ function useBaselines(ctx: BaselineContext, needs: BaselineNeed[], shown: (row: 
     return { byKey, keyOf, wanted: [...byKey.entries()].filter(([, req]) => req.wanted) };
   }, [ctx, needs, shown]);
 
-  const queryKeyOf = (req: { path: string; query: Record<string, string | number> }) =>
-    ["timetravel-at-round", baseUrl, req.path, req.query];
+  const queryKeyOf = (req: AtRoundRequest) => atRoundQuery(baseUrl, req).queryKey;
 
   const results = useQueries({
-    queries: requests.wanted.map(([, req]) => ({
-      queryKey: queryKeyOf(req),
-      queryFn: () => ttGet(req.path, req.query),
-      // State at a past round never changes.
-      staleTime: Infinity,
-      meta,
-    })),
+    queries: requests.wanted.map(([, req]) => atRoundQuery(baseUrl, req)),
   });
 
   const signature = results.map((r) => `${r.status}:${r.dataUpdatedAt}`).join(",");

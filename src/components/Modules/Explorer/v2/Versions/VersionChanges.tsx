@@ -88,15 +88,33 @@ export function StatusChip({ summary }: { summary: ObjectSummary }) {
 
 const MAX_PATH_CHIPS = 4;
 
+/** Filtered, the rest of a version (see summarizeOthers); pending while it is read. */
+export type OtherChanges = { summaries: ObjectSummary[]; pending: boolean; error?: Error };
+
+/** The rest of a version, dimmed under what the filter picks: as `children` render it. */
+function Others({ others, children }: { others?: OtherChanges; children: (summaries: ObjectSummary[]) => React.ReactNode }) {
+  if (!others || !(others.summaries.length || others.pending || others.error)) return null;
+  return (
+    <div className="opacity-60 flex flex-col gap-1" title="Also in this version">
+      {children(others.summaries)}
+      {others.pending ? <Pending className="h-5 w-24" /> : null}
+      {others.error ? <span className="text-xs text-red-400">Rest of the version unavailable: {others.error.message}</span> : null}
+    </div>
+  );
+}
+
 /** The changed paths of each object, as chips; with `fieldHref`, each links to the versions that changed it. */
 export function ChangedKeys({
   summaries,
   label,
   fieldHref,
+  others,
 }: {
   summaries: ObjectSummary[];
   label: ObjectLabel;
   fieldHref?: FieldHref;
+  /** Filtered, the rest of the version, dimmed. */
+  others?: OtherChanges;
 }) {
   return (
     <div className="flex flex-col gap-1">
@@ -132,6 +150,7 @@ export function ChangedKeys({
           </div>
         );
       })}
+      <Others others={others}>{(rest) => <ChangedKeys summaries={rest} label={label} fieldHref={fieldHref} />}</Others>
     </div>
   );
 }
@@ -251,16 +270,22 @@ export function DeltaCell({
   summaries,
   label,
   fieldHref,
+  others,
+  labelled = !!label && summaries.length + (others?.summaries.length ?? 0) > 1,
 }: {
   summaries: ObjectSummary[];
   label: ObjectLabel;
   fieldHref?: FieldHref;
+  /** Filtered, the rest of the version, dimmed. */
+  others?: OtherChanges;
+  /** Whether each object is labelled: by default, where there are several. */
+  labelled?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-2 min-w-0 text-left">
       {summaries.map((s) => (
         <div key={s.key} className="min-w-0">
-          {label && summaries.length > 1 ? (
+          {label && labelled ? (
             <div className="text-muted-foreground text-xs">{label(s.ref)}</div>
           ) : null}
           {s.status === "pending" ? (
@@ -274,6 +299,9 @@ export function DeltaCell({
           )}
         </div>
       ))}
+      <Others others={others}>
+        {(rest) => <DeltaCell summaries={rest} label={label} fieldHref={fieldHref} labelled={labelled} />}
+      </Others>
     </div>
   );
 }

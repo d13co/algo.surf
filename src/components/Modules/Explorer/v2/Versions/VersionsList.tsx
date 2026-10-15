@@ -14,10 +14,19 @@ import MultiDateViewer, { formatDate } from "src/components/v2/MultiDateViewer";
 import { DateFormat, useDateFormat } from "src/contexts/DateFormatContext";
 import { cn } from "src/lib/utils";
 import { useStableHeight } from "src/hooks/useStableHeight";
-import { useVersionRows } from "src/hooks/useTimeTravel";
+import { useAccountVersionsAt, useVersionRows } from "src/hooks/useTimeTravel";
 import { useVersionFilterHref } from "src/hooks/useVersionFilter";
 import { getSearchDelayMs, VERSIONS_PAGE_SIZE, VersionsOrder } from "src/utils/timeTravel";
-import { BaselineContext, FieldPath, ObjectSummary, summarizeObject, Touch, VersionRow } from "src/utils/versionDelta";
+import { usePersistenBooleanState } from "src/utils/usePersistenBooleanState";
+import {
+  BaselineContext,
+  FieldPath,
+  ObjectSummary,
+  summarizeObject,
+  summarizeOthers,
+  Touch,
+  VersionRow,
+} from "src/utils/versionDelta";
 import { VersionFilter, versionMatches } from "src/utils/versionFilter";
 import Link from "../Links/Link";
 import LinkToBlock from "../Links/LinkToBlock";
@@ -194,6 +203,27 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
     return out;
   }, [rows, filter]);
 
+  // Filtered, what else each version did, for the rows on the page: filtered
+  // to an object, the list holds only its part, so the rest is read whole.
+  const [showOthersChecked, setShowOthers] = usePersistenBooleanState("versions-show-other-changes", true);
+  const showOthers = !!filter && showOthersChecked;
+  const readWhole = showOthers && !!filter?.object && ctx.kind === "account";
+  const { pageIndex: shownPage, pageSize: shownPageSize } = pagination;
+  const pageRounds = useMemo(
+    () => (readWhole ? data.slice(shownPage * shownPageSize, (shownPage + 1) * shownPageSize).map((r) => r.round) : []),
+    [readWhole, data, shownPage, shownPageSize],
+  );
+  const whole = useAccountVersionsAt(ctx, pageRounds, filter?.object);
+  const othersOf = useCallback(
+    (row: Row<V>) => {
+      if (!showOthers) return undefined;
+      const rest = readWhole ? whole.byRound.get(row.round) : [];
+      const error = whole.errors.get(row.round);
+      return { summaries: summarizeOthers(row.objects, filter.fields, rest ?? []), pending: !rest && !error, error };
+    },
+    [showOthers, readWhole, whole.byRound, whole.errors, filter],
+  );
+
   // Searching on lifts the limit until stopped or a match is found, and
   // retries a failed batch (the effect below does not).
   const searchOn = useCallback(() => {
@@ -228,12 +258,16 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
         id: "changed",
         header: "Changed",
         meta: { width: "25%" },
-        cell: ({ row }) => <ChangedKeys summaries={row.original.summaries} label={label} fieldHref={fieldHref} />,
+        cell: ({ row }) => (
+          <ChangedKeys summaries={row.original.summaries} label={label} fieldHref={fieldHref} others={othersOf(row.original)} />
+        ),
       },
       {
         id: "delta",
         header: "Delta",
-        cell: ({ row }) => <DeltaCell summaries={row.original.summaries} label={label} fieldHref={fieldHref} />,
+        cell: ({ row }) => (
+          <DeltaCell summaries={row.original.summaries} label={label} fieldHref={fieldHref} others={othersOf(row.original)} />
+        ),
       },
       {
         id: "details",
@@ -266,7 +300,7 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
         ),
       },
     ],
-    [label, stateHref, txnsLink, fieldHref],
+    [label, stateHref, txnsLink, fieldHref, othersOf],
   );
 
   const table = useReactTable({
@@ -381,6 +415,15 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
           {filter ? (
             <>
               <ActiveFilter filter={filter} label={label} filterHref={filterHref} />
+              <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="accent-primary"
+                  checked={showOthersChecked}
+                  onChange={(e) => setShowOthers(e.target.checked)}
+                />
+                Show other changes
+              </label>
               <span className="text-sm text-muted-foreground whitespace-nowrap">
                 {data.length.toLocaleString()} of {versions.length.toLocaleString()}
                 {hasMore ? "+" : ""} {versions.length === 1 && !hasMore ? "version" : "versions"}
@@ -420,6 +463,9 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
         cardsBelow="lg"
       />
       <VersionDetailsDialog
+        ctx={ctx}
+        filter={filter}
+        showOthers={showOthers}
         rows={data}
         index={detailsIndex}
         onIndexChange={onDetailsIndexChange}

@@ -381,6 +381,12 @@ export function diffFields(before: Snapshot | undefined, after: Snapshot | undef
   return fieldRoots(fields).flatMap((field) => diff(valueAt(before, field), valueAt(after, field), field));
 }
 
+/** The changes of `changes` away from `fields`: neither at or under one, nor above one. */
+export function changesOutside(changes: Change[], fields: FieldPath[]): Change[] {
+  const roots = fieldRoots(fields);
+  return changes.filter((c) => !roots.some((f) => isPrefix(f, c.path) || isPrefix(c.path, f)));
+}
+
 /** A changed leaf in a delta tree. */
 export type ChangeLeaf = { $change: Change };
 
@@ -504,4 +510,20 @@ export function summarizeObject(o: RowObject, fields?: FieldPath[]): ObjectSumma
   if (o.before === null && o.after !== null) return { ...base, status: "created", changes };
   if (o.before !== null && o.after === null) return { ...base, status: "deleted", changes };
   return { ...base, status: changes.length ? "changed" : "unchanged", changes };
+}
+
+/**
+ * What a filtered version did besides what the filter picks: the changes its
+ * `objects` made away from `fields` (with any), and each object in `rest` -
+ * those the version touched that the filtered list does not hold.
+ */
+export function summarizeOthers(objects: RowObject[], fields: FieldPath[], rest: RowObject[]): ObjectSummary[] {
+  const elsewhere = fields.length
+    ? objects.flatMap((o) => {
+        const s = summarizeObject(o);
+        const changes = changesOutside(s.changes, fields);
+        return changes.length ? [{ ...s, changes }] : [];
+      })
+    : [];
+  return [...elsewhere, ...rest.map((o) => summarizeObject(o))];
 }
