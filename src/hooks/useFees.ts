@@ -1,5 +1,5 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { surfIdxGet, surfIdxSupported } from "src/utils/surfIdx";
+import { surfIdxGet, surfIdxRetry, surfIdxSupported } from "src/utils/surfIdx";
 
 export interface FeeTotal {
   fees: number;
@@ -26,6 +26,7 @@ export type Interval = "block" | "minute" | "hour" | "day" | "week" | "month";
 
 export function useFeeTotal(period: "24h" | "7d" | "30d") {
   return useQuery({
+    ...surfIdxRetry,
     queryKey: ["fees-total", period],
     queryFn: () => surfIdxGet<FeeTotal>(`/v0/fees/${period}`),
     enabled: surfIdxSupported,
@@ -41,6 +42,7 @@ export function useFeeTotal(period: "24h" | "7d" | "30d") {
  */
 export function useSeries(interval: Interval, start?: number, end?: number) {
   return useQuery({
+    ...surfIdxRetry,
     queryKey: ["fees-series", { interval, start, end }],
     queryFn: async () => ({
       interval,

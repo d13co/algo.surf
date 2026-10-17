@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useValidator, useValidatorStats } from "src/hooks/useValidator";
-import { surfIdxSupported } from "src/utils/surfIdx";
+import { surfIdxOffMessage, useSurfIdxCaps } from "src/hooks/useSurfIdxCaps";
 import { useAccount } from "src/hooks/useAccount";
 import { useBlock } from "src/hooks/useBlock";
 import { useRound } from "src/hooks/useRound";
@@ -207,6 +207,7 @@ function AccountValidator(): JSX.Element {
 
   const endRound = round ?? lastRound;
   const minRound = timeframe && endRound ? Math.max(0, endRound - timeframe) : 0;
+  const caps = useSurfIdxCaps();
   const {
     data: stats,
     isLoading: statsLoading,
@@ -333,8 +334,8 @@ function AccountValidator(): JSX.Element {
             </div>
           </div>
 
-          {!surfIdxSupported ? (
-            <div className="text-muted-foreground">Network not supported</div>
+          {caps && !caps.proposers ? (
+            <div className="text-muted-foreground">{surfIdxOffMessage(caps)}</div>
           ) : hasData ? (
             <>
               <div className="w-full flex flex-col gap-4">
@@ -414,7 +415,7 @@ function AccountValidator(): JSX.Element {
                 </Button>
               </div>
             </>
-          ) : statsLoading ? (
+          ) : statsLoading || !caps ? (
             <div className="w-full">
               <LoadingTile
                 style={{ marginTop: "0" }}

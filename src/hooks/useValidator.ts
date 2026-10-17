@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { surfIdxGet, surfIdxSupported } from "src/utils/surfIdx";
+import { surfIdxGet, surfIdxRetry } from "src/utils/surfIdx";
+import { useSurfIdxCaps } from "src/hooks/useSurfIdxCaps";
 
 export type ProposalData = Array<{ rnd: number; pp: number; ts: number }>;
 
@@ -30,17 +31,21 @@ function roundQuery(minRound: number, maxRound?: number): string {
 
 /** Aggregate stats. minRound 0 = lifetime; with `maxRound`, only up to it (see useRound). */
 export function useValidatorStats(address: string, minRound = 0, maxRound?: number) {
+  const proposers = useSurfIdxCaps()?.proposers;
   return useQuery({
+    ...surfIdxRetry,
     queryKey: ["validator-stats", address, minRound, ...(maxRound === undefined ? [] : [{ maxRound }])],
     queryFn: () =>
       surfIdxGet<ValidatorStats>(`/v0/proposer/${address}/stats${roundQuery(minRound, maxRound)}`),
-    enabled: !!address && surfIdxSupported,
+    enabled: !!address && !!proposers,
   });
 }
 
 /** Full block/eviction lists, up to `maxRound` when given. Heavy; only enable when needed. */
 export function useValidator(address: string, enabled = true, maxRound?: number) {
+  const proposers = useSurfIdxCaps()?.proposers;
   return useQuery({
+    ...surfIdxRetry,
     queryKey: ["validator", address, ...(maxRound === undefined ? [] : [{ maxRound }])],
     queryFn: async (): Promise<ValidatorResult> => {
       const { exists } = await surfIdxGet<{ exists: boolean }>(`/v0/exists/${address}`);
@@ -51,7 +56,7 @@ export function useValidator(address: string, enabled = true, maxRound?: number)
       ]);
       return { address, proposals, suspensions };
     },
-    enabled: enabled && !!address && surfIdxSupported,
+    enabled: enabled && !!address && !!proposers,
     // Can be millions of rows: drop from memory soon after the dialog closes,
     // never persist to IndexedDB.
     gcTime: 60_000,
