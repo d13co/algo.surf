@@ -12,7 +12,11 @@ export default function DymNFD({ nfd, accounts }: DymProps): JSX.Element {
   const [_, setSearchParams] = useSearchParams();
 
   const dismiss = useCallback(() => {
-    setSearchParams({});
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete("alt");
+      return next;
+    });
   }, [setSearchParams]);
 
   return (

@@ -3,7 +3,7 @@ import { CellContext } from "@tanstack/react-table";
 import { indexerModels } from "algosdk";
 import { CoreTransaction } from "src/packages/core-sdk/classes/core/CoreTransaction";
 import MultiDateViewer from "src/components/v2/MultiDateViewer";
-import { useDateFormat, niceNames, nextFormat } from "src/contexts/DateFormatContext";
+import { useDateFormat, niceNames, nextFormat, DateFormat } from "src/contexts/DateFormatContext";
 import { RefreshCw } from "lucide-react";
 import {
   Tooltip,
@@ -12,13 +12,37 @@ import {
   TooltipTrigger,
 } from "src/components/v2/ui/tooltip";
 
-export function AgeHeader() {
-  const { format, cycle } = useDateFormat();
-  const label = format === "block" ? "Block" : format === "relative" ? "Age" : format === "epoch" ? "Unix" : "Date";
-  const next = nextFormat[format];
+/** What a time column holds in `format`. */
+export function ageLabel(format: DateFormat): string {
+  return format === "block" ? "Block" : format === "relative" ? "Age" : format === "epoch" ? "Unix" : "Date";
+}
+
+/** The date format a time column shows; "block" is relative where the block shows beside it (`noBlock`). */
+export function shownFormat(format: DateFormat, noBlock = false): DateFormat {
+  return noBlock && format === "block" ? "relative" : format;
+}
+
+/**
+ * A time column's header, with a switcher cycling the date format. `noBlock`:
+ * the column shows the block beside the time, so the cycle skips "block".
+ */
+export function AgeHeader({
+  switcherSide = "right",
+  noBlock = false,
+  label,
+}: {
+  switcherSide?: "left" | "right";
+  noBlock?: boolean;
+  /** In place of ageLabel, given the format shown. */
+  label?: (format: DateFormat) => string;
+}) {
+  const { format: chosen, setFormat } = useDateFormat();
+  const format = shownFormat(chosen, noBlock);
+  const next = noBlock && nextFormat[format] === "block" ? nextFormat.block : nextFormat[format];
+  const cycle = () => setFormat(next);
   return (
-    <span className="inline-flex items-center gap-1">
-      {label}
+    <span className={`inline-flex items-center gap-1${switcherSide === "left" ? " flex-row-reverse" : ""}`}>
+      {(label ?? ageLabel)(format)}
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>

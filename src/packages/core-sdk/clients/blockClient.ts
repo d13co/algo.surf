@@ -33,6 +33,12 @@ export class BlockClient {
         }
     }
 
+    /** The first round timestamped after `time` (Unix seconds), or null where there is none yet. */
+    async firstRoundAfter(time: number): Promise<number | null> {
+        const response = await this.indexer.searchForBlockHeaders().afterTime(new Date(time * 1000)).limit(1).do();
+        return response.blocks.length ? Number(response.blocks[0].round) : null;
+    }
+
     async statusAfterBlock(round: number): Promise<A_Status> {
         const response = await this.client.statusAfterBlock(round).do();
         return toA_Status(response);

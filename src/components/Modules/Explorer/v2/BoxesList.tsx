@@ -10,10 +10,13 @@ import { A_BoxName, A_BoxNames } from "src/packages/core-sdk/types";
 import MultiFormatViewer from "src/components/v2/MultiFormatViewer";
 import { Loader2, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { withRound } from "src/hooks/useRound";
 import { DataTable } from "src/components/v2/DataTable";
 import ListToolbar from "src/components/v2/ListToolbar";
 
 const PAGE_SIZE = 10;
+
+const buttonClassName = "h-7 px-2.5 text-xs -my-1 border-primary text-primary hover:bg-primary hover:text-background";
 
 const columnLabels: Record<string, string> = {
   name: "Box name",
@@ -22,6 +25,10 @@ const columnLabels: Record<string, string> = {
 
 interface BoxListProps {
   appId: number;
+  /** The past round the boxes are from (see useRound); box links keep it. */
+  round?: number;
+  /** Offer each box's version history (needs a time-travel node). */
+  history?: boolean;
   boxNames: A_BoxNames;
   hasMore?: boolean;
   loadMore?: () => void;
@@ -35,6 +42,8 @@ interface BoxListProps {
 
 function BoxList({
   appId,
+  round,
+  history = false,
   boxNames = [],
   hasMore = false,
   loadMore,
@@ -59,24 +68,28 @@ function BoxList({
       {
         id: "view",
         header: "",
-        cell: ({ row }) => (
-          <div className="text-right">
-            <Button
-              variant="muted"
-              className="h-7 px-2.5 text-xs -my-1 border-primary text-primary hover:bg-primary hover:text-background"
-              onClick={() =>
-                navigate(
-                  `/application/${appId}/boxes/${encodeURIComponent(row.original.name)}`
-                )
-              }
-            >
-              View
-            </Button>
-          </div>
-        ),
+        cell: ({ row }) => {
+          const href = `/application/${appId}/boxes/${encodeURIComponent(row.original.name)}`;
+          return (
+            <div className="flex justify-end gap-2">
+              {history ? (
+                <Button
+                  variant="muted"
+                  className={buttonClassName}
+                  onClick={() => navigate(withRound(`${href}?view=history`, round))}
+                >
+                  History
+                </Button>
+              ) : null}
+              <Button variant="muted" className={buttonClassName} onClick={() => navigate(withRound(href, round))}>
+                View
+              </Button>
+            </div>
+          );
+        },
       },
     ],
-    [appId, navigate],
+    [appId, history, navigate, round],
   );
 
   const table = useReactTable({

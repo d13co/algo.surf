@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { AccountClient, ACCOUNTS_PAGE_SIZE } from "src/packages/core-sdk/clients/accountClient";
 import explorer from "src/utils/dappflow";
+import { getAccountAt } from "src/utils/timeTravel";
+import { isEmptyTxnRound } from "src/hooks/useTxnRound";
 import { EscregSDK } from "@d13co/escreg-sdk";
 
 const escreg = new EscregSDK({});
@@ -12,11 +14,19 @@ const ESCROW_FAILURE_CACHE_MS = 10 * 60 * 1000; // 10 minutes
 const escrowCache = new Map<string, number | null>();
 const escrowPending = new Set<string>();
 
-export function useAccount(address: string) {
+/**
+ * The account at `round` (from the time-travel node; see useRound) when
+ * given, else as it is now. Past state is kept in memory only.
+ */
+export function useAccount(address: string, round?: number) {
   return useQuery({
-    queryKey: ["account", address],
+    ...(round === undefined
+      ? { queryKey: ["account", address] }
+      : { queryKey: ["account", address, { round }], meta: { noPersist: true }, retry: false }),
     queryFn: () =>
-      new AccountClient(explorer.network).getAccountInformation(address),
+      round === undefined
+        ? new AccountClient(explorer.network).getAccountInformation(address)
+        : getAccountAt(address, round),
     enabled: !!address,
   });
 }
@@ -105,27 +115,36 @@ export function useAccounts(prefixToken?: string) {
   });
 }
 
-export function useAccountTransactions(address: string) {
+/** With `round`, only the transactions up to it; with `txnRound`, only those in it (see useTxnRound). */
+export function useAccountTransactions(address: string, round?: number, txnRound?: number) {
   return useInfiniteQuery({
-    queryKey: ["account-transactions", address],
+    queryKey: [
+      "account-transactions",
+      address,
+      ...(txnRound === undefined ? [] : [{ txnRound }]),
+      ...(round === undefined ? [] : [{ round }]),
+    ],
     queryFn: ({ pageParam }) =>
       new AccountClient(explorer.network).getAccountTransactions(
         address,
-        pageParam
+        pageParam,
+        round,
+        txnRound
       ),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage["next-token"] || undefined,
-    enabled: !!address,
+    enabled: !!address && !isEmptyTxnRound(txnRound, round),
   });
 }
 
-export function useControllingAccounts(address: string) {
+/** Accounts rekeyed to `address`, as they are now; `enabled` false to skip asking. */
+export function useControllingAccounts(address: string, enabled = true) {
   return useInfiniteQuery({
     queryKey: ["controlling-accounts", address],
     queryFn: ({ pageParam }) =>
       new AccountClient(explorer.network).getAuthAddr(address, pageParam),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage["next-token"] || undefined,
-    enabled: !!address,
+    enabled: !!address && enabled,
   });
 }

@@ -1,5 +1,5 @@
 import { useCallback, useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useRoundNavigate } from "src/hooks/useRound";
 import { useGlobalUI } from "../../../../contexts/GlobalUIContext";
 import { Search as SearchIcon, ClipboardPaste, X } from "lucide-react";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -35,7 +35,7 @@ function Search(props: SearchProps): JSX.Element {
   useHotkeys("/", onHotkey);
   useHotkeys("ctrl+k", onHotkey);
 
-  const navigate = useNavigate();
+  const navigate = useRoundNavigate();
   const { showLoader, hideLoader, showSnack } = useGlobalUI();
   const { loading: abelLoading, loadedPromise } = useAbelAssetsContext();
 

@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { useAccount } from "src/hooks/useAccount";
+import { useRound } from "src/hooks/useRound";
 import { useTinyAssets } from "src/components/Common/UseTinyAsset";
 import { A_AssetTiny } from "src/packages/core-sdk/types";
 import {
@@ -55,7 +56,8 @@ const columnLabels: Record<string, string> = {
 
 function AccountCreatedAssets(): JSX.Element {
   const { address } = useParams();
-  const { data: accountInfo } = useAccount(address);
+  const { round } = useRound();
+  const { data: accountInfo } = useAccount(address, round);
 
   const createdAssetIds = useMemo(
     () =>

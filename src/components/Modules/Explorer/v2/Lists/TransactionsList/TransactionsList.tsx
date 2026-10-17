@@ -52,6 +52,9 @@ interface TransactionsListProps {
   recordId?: string;
   recordDef?: any;
   pageSize?: number;
+  /** Beside the pagination, e.g. the active filter. */
+  toolbar?: React.ReactNode;
+  emptyLabel?: string;
 }
 
 function TransactionsList({
@@ -65,6 +68,8 @@ function TransactionsList({
   recordId = "",
   recordDef = {},
   pageSize = 10,
+  toolbar,
+  emptyLabel = "No transactions",
 }: TransactionsListProps): JSX.Element {
   const [pageIndex, setPageIndex] = React.useState(0);
 
@@ -175,7 +180,9 @@ function TransactionsList({
       onLast={() => handlePageChange(pageCount - 1)}
       loading={loading}
       className="mt-3"
-    />
+    >
+      {toolbar}
+    </ListToolbar>
   );
 
   return (
@@ -236,7 +243,7 @@ function TransactionsList({
                       <Loader2 className="h-4 w-4 animate-spin" />
                       Loading transactions...
                     </span>
-                  ) : "No transactions"}
+                  ) : emptyLabel}
                 </TableCell>
               </TableRow>
             )}
@@ -260,7 +267,7 @@ function TransactionsList({
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Loading transactions...
               </span>
-            ) : "No transactions"}
+            ) : emptyLabel}
           </div>
         )}
       </div>

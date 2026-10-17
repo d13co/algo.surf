@@ -14,10 +14,11 @@ interface TabsUnderlineProps {
   defaultValue?: string
   value?: string
   onValueChange?: (value: string) => void
+  /** "manual": arrow keys only move focus between tabs, leaving them free for other shortcuts. */
+  activationMode?: 'automatic' | 'manual'
   className?: string
   listClassName?: string
   tabsRef?: React.Ref<HTMLDivElement>
-  activationMode?: 'automatic' | 'manual'
 }
 
 export default function TabsUnderline({
@@ -25,10 +26,10 @@ export default function TabsUnderline({
   defaultValue,
   value,
   onValueChange,
+  activationMode,
   className,
   listClassName,
   tabsRef,
-  activationMode,
 }: TabsUnderlineProps) {
   const hasContent = tabs.some(tab => tab.content !== undefined)
 
@@ -42,7 +43,7 @@ export default function TabsUnderline({
     >
       <TabsList
         ref={tabsRef}
-        className={cn('bg-transparent justify-start rounded-none border-b border-primary p-0 overflow-x-auto', listClassName)}
+        className={cn('bg-transparent justify-start rounded-none border-b border-primary p-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden', listClassName)}
       >
         {tabs.map(tab => (
           <TabsTrigger

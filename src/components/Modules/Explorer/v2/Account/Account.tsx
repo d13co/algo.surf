@@ -3,7 +3,6 @@ import {
   matchPath,
   Outlet,
   useLocation,
-  useNavigate,
   useParams,
   useSearchParams,
 } from "react-router-dom";
@@ -20,6 +19,9 @@ import {
   useControllingAccounts,
 } from "src/hooks/useAccount";
 import { useValidatorStats } from "src/hooks/useValidator";
+import { useTimeTravelSupport } from "src/hooks/useTimeTravel";
+import { useRound, useRoundHref, useRoundNavigate } from "src/hooks/useRound";
+import RoundNotice from "../Versions/RoundNotice";
 import { useReverseNFD, useReverseNFDs } from "src/components/Common/UseNFD";
 import { useTinyAssets } from "src/components/Common/UseTinyAsset";
 import LoadingTile from "src/components/v2/LoadingTile";
@@ -83,21 +85,26 @@ function plural(num: number): string {
 }
 
 function Account(): JSX.Element {
-  const navigate = useNavigate();
+  const navigate = useRoundNavigate();
+  const roundHref = useRoundHref();
   const params = useParams();
   const { address } = params;
+  // The account as it was at a past round, when the URL asks for one.
+  const { round } = useRound();
 
   const {
     data: accountInfo,
     isLoading,
     isError,
     error,
-  } = useAccount(address);
+  } = useAccount(address, round);
   const { data: escrowOf } = useEscrowOf(address);
-  const { data: validatorStats } = useValidatorStats(address);
+  const { data: validatorStats } = useValidatorStats(address, 0, round);
   const { data: nfd } = useReverseNFD(address);
-  const { data: txnData } = useAccountTransactions(address);
-  const { data: controllerData, fetchNextPage: fetchNextControllerPage, hasNextPage: hasNextControllerPage } = useControllingAccounts(address);
+  const { data: txnData } = useAccountTransactions(address, round);
+  // The indexer only knows which accounts are rekeyed to this one now, so
+  // there is no list to show for a past round.
+  const { data: controllerData, fetchNextPage: fetchNextControllerPage, hasNextPage: hasNextControllerPage } = useControllingAccounts(address, round === undefined);
 
   const { data: addressBookData } = useAddressBook();
 
@@ -170,12 +177,12 @@ function Account(): JSX.Element {
 
   // Fetch more controller pages if available
   React.useEffect(() => {
-    if (hasNextControllerPage) {
+    if (hasNextControllerPage && round === undefined) {
       fetchNextControllerPage();
     }
-  }, [hasNextControllerPage, fetchNextControllerPage]);
+  }, [hasNextControllerPage, fetchNextControllerPage, round]);
 
-  const numControlledAccounts = controllingAccounts.length;
+  const numControlledAccounts = round === undefined ? controllingAccounts.length : 0;
 
   const transactions = useMemo(
     () => txnData?.pages.flatMap((p) => p.transactions) ?? [],
@@ -241,6 +248,7 @@ function Account(): JSX.Element {
 
   let tabValue = "transactions";
   const { pathname } = useLocation();
+  const hasVersions = useTimeTravelSupport();
 
   if (hasOptedAssets && matchPath("/account/:address/assets", pathname)) {
     tabValue = "assets";
@@ -270,6 +278,11 @@ function Account(): JSX.Element {
     matchPath("/account/:address/validator", pathname)
   ) {
     tabValue = "validator";
+  } else if (
+    hasVersions &&
+    matchPath("/account/:address/versions", pathname)
+  ) {
+    tabValue = "versions";
   }
 
   useTitle(`Account ${address}`);
@@ -277,6 +290,8 @@ function Account(): JSX.Element {
   return (
     <div className="mt-5">
       <div>
+        <RoundNotice />
+
         {isError ? (
           <CustomError error={error?.message} />
         ) : (
@@ -294,9 +309,10 @@ function Account(): JSX.Element {
               jsonViewer={{
                 obj: () => accountInfo ? toPlainJson(accountInfo) : {},
                 dataKey: accountInfo,
-                filename: `account-${address}.json`,
-                title: `Account ${address?.slice(0, 16)}..`,
-                api: address
+                filename: round === undefined ? `account-${address}.json` : `account-${address}-block-${round}.json`,
+                title: `Account ${address?.slice(0, 16)}..${round === undefined ? "" : ` at block ${round}`}`,
+                // Neither serves a past round: that came from the time-travel node.
+                api: address && round === undefined
                   ? {
                       // algod has no such limit, so it always serves the
                       // arrays in full.
@@ -393,7 +409,7 @@ function Account(): JSX.Element {
 
                   {escrowOf ? (
                     <a
-                      href={`/application/${escrowOf}`}
+                      href={roundHref(`/application/${escrowOf}`)}
                       onClick={(e) => {
                         e.preventDefault();
                         navigate(`/application/${escrowOf}`);
@@ -416,7 +432,7 @@ function Account(): JSX.Element {
 
                   {isMultiSig && lastSent ? (
                     <a
-                      href={`/transaction/${lastSent.id}#multisig`}
+                      href={roundHref(`/transaction/${lastSent.id}#multisig`)}
                       onClick={(e) => {
                         e.preventDefault();
                         navigate(`/transaction/${lastSent.id}#multisig`);
@@ -439,7 +455,7 @@ function Account(): JSX.Element {
 
                   {isLogicSig && lastSent ? (
                     <a
-                      href={`/transaction/${lastSent.id}#logicsig`}
+                      href={roundHref(`/transaction/${lastSent.id}#logicsig`)}
                       onClick={(e) => {
                         e.preventDefault();
                         navigate(`/transaction/${lastSent.id}#logicsig`);
@@ -462,7 +478,7 @@ function Account(): JSX.Element {
 
                   {pqSig && lastSent ? (
                     <a
-                      href={`/transaction/${lastSent.id}#pqsig`}
+                      href={roundHref(`/transaction/${lastSent.id}#pqsig`)}
                       onClick={(e) => {
                         e.preventDefault();
                         navigate(`/transaction/${lastSent.id}#pqsig`);
@@ -636,6 +652,7 @@ function Account(): JSX.Element {
                       ...(hasOptedApps ? [{ name: "Opted applications", value: "opted-applications", onClick: () => navigate("/account/" + address + "/opted-applications") }] : []),
                       ...(numControlledAccounts ? [{ name: "Controlling accounts", value: "controlling-accounts", onClick: () => navigate("/account/" + address + "/controller") }] : []),
                       ...(hasValidatorData ? [{ name: "Validator Data", value: "validator", onClick: () => navigate("/account/" + address + "/validator") }] : []),
+                      ...(hasVersions ? [{ name: "Versions", value: "versions", onClick: () => navigate("/account/" + address + "/versions") }] : []),
                     ]}
                   />
 

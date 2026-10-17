@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
+import { useRoundNavigate } from "src/hooks/useRound";
 import { Button } from "src/components/v2/ui/button";
 import { Alert, AlertDescription } from "src/components/v2/ui/alert";
 import {
@@ -62,6 +63,15 @@ function getRetries(hash: string): number {
   return 0;
 }
 
+/** The query to carry to another network: without ?round= or ?txn-round=, which say nothing about it. */
+function searchForOtherNetwork(search: string): string {
+  const params = new URLSearchParams(search);
+  params.delete("round");
+  params.delete("txn-round");
+  const query = params.toString();
+  return query ? `?${query}` : "";
+}
+
 function CustomError({
   error,
   type,
@@ -72,7 +82,7 @@ function CustomError({
   id?: string;
 }): JSX.Element {
   const location = useLocation();
-  const navigate = useNavigate();
+  const navigate = useRoundNavigate();
   const [retry, setRetry] = useState(0);
   const [countdown, setCountdown] = useState(2);
 
@@ -223,7 +233,7 @@ function CustomError({
               {otherNetworks.map((otherNetwork, index) => (
                 <span key={otherNetwork}>
                   <a
-                    href={`${networkToDomainMap[otherNetwork]}${location.pathname}${location.search}`}
+                    href={`${networkToDomainMap[otherNetwork]}${location.pathname}${searchForOtherNetwork(location.search)}`}
                     className="text-yellow-500 hover:underline"
                   >
                     {otherNetwork}

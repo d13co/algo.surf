@@ -3,6 +3,8 @@ import { ApplicationClient, APPLICATIONS_PAGE_SIZE } from "src/packages/core-sdk
 import { BoxClient } from "src/packages/core-sdk/clients/boxClient";
 import { CoreApplication } from "src/packages/core-sdk/classes/core/CoreApplication";
 import explorer from "src/utils/dappflow";
+import { getApplicationAt, TimeTravelBoxClient, TimeTravelError } from "src/utils/timeTravel";
+import { isEmptyTxnRound } from "src/hooks/useTxnRound";
 import { indexerModels } from "algosdk";
 import sha512 from "js-sha512";
 import chunk from "lodash/chunk.js";
@@ -48,12 +50,48 @@ async function getProgramHashes(approvalB64: string, clearB64: string) {
   return { sha256, sha512_256 };
 }
 
-export function useApplication(id: number) {
+/**
+ * Options for a query of state at `round` (from the time-travel node) rather
+ * than the latest: a key of its own, kept in memory only, and no retries -
+ * a round the node cannot serve fails the same way every time.
+ */
+function atRound(key: unknown[], round: number | undefined) {
+  return round === undefined
+    ? { queryKey: key }
+    : { queryKey: [...key, { round }], meta: { noPersist: true }, retry: false };
+}
+
+/**
+ * The app at `round`, deleted by then: as the indexer has it now, deleted, as
+ * on the latest page. Where it was not yet created, the time-travel error.
+ */
+async function getApplicationOrDeletedAt(id: number, round: number): Promise<indexerModels.Application> {
+  try {
+    return await getApplicationAt(id, round);
+  } catch (e) {
+    if (e instanceof TimeTravelError && e.status === 404) {
+      const app = await new ApplicationClient(explorer.network).get(id).catch(() => undefined);
+      if (app?.deleted && app.deletedAtRound !== undefined && app.deletedAtRound <= BigInt(round)) return app;
+    }
+    throw e;
+  }
+}
+
+/** The app at `round` when given (see useRound), else as it is now. */
+export function useApplication(id: number, round?: number) {
   return useQuery({
-    queryKey: ["application", id],
-    queryFn: () => new ApplicationClient(explorer.network).get(id),
+    ...atRound(["application", id], round),
+    queryFn: () =>
+      round === undefined
+        ? new ApplicationClient(explorer.network).get(id)
+        : getApplicationOrDeletedAt(id, round),
     enabled: !!id,
   });
+}
+
+/** Box reads at `round` from the time-travel node, else the usual clients. */
+export function boxClientFor(round: number | undefined): Pick<BoxClient, "getBoxNamesPage" | "getBox"> {
+  return round === undefined ? new BoxClient(explorer.network) : new TimeTravelBoxClient(round);
 }
 
 export function useApplications() {
@@ -71,25 +109,27 @@ export function useApplications() {
   });
 }
 
-export function useApplicationTransactions(id: number) {
+/** With `round`, only the transactions up to it; with `txnRound`, only those in it (see useTxnRound). */
+export function useApplicationTransactions(id: number, round?: number, txnRound?: number) {
   return useInfiniteQuery({
-    queryKey: ["application-transactions", id],
+    ...atRound(["application-transactions", id, ...(txnRound === undefined ? [] : [{ txnRound }])], round),
     queryFn: ({ pageParam }) =>
       new ApplicationClient(explorer.network).getApplicationTransactions(
         id,
         pageParam,
+        round,
+        txnRound,
       ),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage["next-token"] || undefined,
-    enabled: !!id,
+    enabled: !!id && !isEmptyTxnRound(txnRound, round),
   });
 }
 
-export function useApplicationBoxNames(id: number) {
+export function useApplicationBoxNames(id: number, round?: number) {
   return useInfiniteQuery({
-    queryKey: ["application-box-names", id],
-    queryFn: ({ pageParam }) =>
-      new BoxClient(explorer.network).getBoxNamesPage(id, pageParam),
+    ...atRound(["application-box-names", id], round),
+    queryFn: ({ pageParam }) => boxClientFor(round).getBoxNamesPage(id, pageParam),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextToken || undefined,
     enabled: !!id,
@@ -97,15 +137,15 @@ export function useApplicationBoxNames(id: number) {
   });
 }
 
-export function useApplicationBox(id: number, name: string | undefined) {
+export function useApplicationBox(id: number, name: string | undefined, round?: number) {
   return useQuery({
-    queryKey: ["application-box", id, name],
-    queryFn: () => new BoxClient(explorer.network).getBox(id, name!),
+    ...atRound(["application-box", id, name], round),
+    queryFn: () => boxClientFor(round).getBox(id, name!),
     enabled: !!id && !!name,
   });
 }
 
-export function useApplicationHashes(appInfo: indexerModels.Application | undefined) {
+export function useApplicationHashes(appInfo: indexerModels.Application | undefined, round?: number) {
   const app = appInfo ? new CoreApplication(appInfo) : null;
   const approvalProgram = app?.getApprovalProgram() ?? "";
   const clearProgram = app?.getClearProgram() ?? "";
@@ -114,8 +154,8 @@ export function useApplicationHashes(appInfo: indexerModels.Application | undefi
     // Keyed by id rather than program bytes (which would persist the programs
     // twice, in the key and the queryHash). Local and cheap, so it is
     // recomputed on mount instead of persisted; an updated app never shows
-    // stale hashes.
-    queryKey: ["application-hashes", Number(appInfo?.id ?? 0)],
+    // stale hashes - nor one viewed at a past round.
+    queryKey: ["application-hashes", Number(appInfo?.id ?? 0), round],
     queryFn: () => getProgramHashes(approvalProgram, clearProgram),
     enabled: !!approvalProgram && !!clearProgram,
     meta: { noPersist: true },
