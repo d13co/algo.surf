@@ -1,4 +1,4 @@
-import { Bucket } from "src/hooks/useFeesApi";
+import { Bucket } from "src/hooks/useFees";
 import { microalgosToAlgos } from "src/utils/common";
 import { usePersistenBooleanState } from "src/utils/usePersistenBooleanState";
 import SeriesPage, { Stat, Toggle, formatSig } from "./SeriesPage";

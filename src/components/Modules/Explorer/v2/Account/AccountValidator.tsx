@@ -1,10 +1,7 @@
 import { useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import {
-  useValidator,
-  useValidatorStats,
-  validatorStatsSupported,
-} from "src/hooks/useValidator";
+import { useValidator, useValidatorStats } from "src/hooks/useValidator";
+import { surfIdxSupported } from "src/utils/surfIdx";
 import { useAccount } from "src/hooks/useAccount";
 import { useBlock } from "src/hooks/useBlock";
 import { useRound } from "src/hooks/useRound";
@@ -336,7 +333,7 @@ function AccountValidator(): JSX.Element {
             </div>
           </div>
 
-          {!validatorStatsSupported ? (
+          {!surfIdxSupported ? (
             <div className="text-muted-foreground">Network not supported</div>
           ) : hasData ? (
             <>

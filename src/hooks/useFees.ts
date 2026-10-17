@@ -1,5 +1,5 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { network } from "src/packages/core-sdk/constants";
+import { surfIdxGet, surfIdxSupported } from "src/utils/surfIdx";
 
 export interface FeeTotal {
   fees: number;
@@ -24,24 +24,11 @@ export interface Bucket {
 /** A block bucket is one block; ts is its timestamp. */
 export type Interval = "block" | "minute" | "hour" | "day" | "week" | "month";
 
-const FEES_HOSTS: Record<string, string> = {
-  Mainnet: "https://mainnet-fees.d13.co",
-};
-// REACT_APP_FEES_API points a build at another fees-api, e.g. one on the LAN.
-const feesHost = process.env.REACT_APP_FEES_API || FEES_HOSTS[network];
-export const feesSupported = !!feesHost;
-
-async function getJson<T>(path: string): Promise<T> {
-  const response = await fetch(`${feesHost}${path}`);
-  if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
-  return response.json();
-}
-
 export function useFeeTotal(period: "24h" | "7d" | "30d") {
   return useQuery({
     queryKey: ["fees-total", period],
-    queryFn: () => getJson<FeeTotal>(`/v0/fees/${period}`),
-    enabled: feesSupported,
+    queryFn: () => surfIdxGet<FeeTotal>(`/v0/fees/${period}`),
+    enabled: surfIdxSupported,
     refetchInterval: 60_000,
     // Persisted, each refetch would rewrite the whole IndexedDB cache blob every minute.
     meta: { noPersist: true },
@@ -59,11 +46,11 @@ export function useSeries(interval: Interval, start?: number, end?: number) {
       interval,
       start,
       end,
-      buckets: await getJson<Bucket[]>(
+      buckets: await surfIdxGet<Bucket[]>(
         `/v0/series?interval=${interval}${start ? `&start=${start}` : ""}${end ? `&end=${end}` : ""}`,
       ),
     }),
-    enabled: feesSupported,
+    enabled: surfIdxSupported,
     staleTime: 60_000,
     // Up to ~770 rows per view and a new key per zoom: drop left views after 5 min, not the client's hour.
     gcTime: 5 * 60_000,

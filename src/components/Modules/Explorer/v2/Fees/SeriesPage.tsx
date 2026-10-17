@@ -10,7 +10,8 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "src/components/v2/ui/dropdown-menu";
-import { Bucket, Interval, bucketEnd, bucketStart, feesSupported, useSeries } from "src/hooks/useFeesApi";
+import { Bucket, Interval, bucketEnd, bucketStart, useSeries } from "src/hooks/useFees";
+import { surfIdxSupported } from "src/utils/surfIdx";
 import { usePersistenBooleanState } from "src/utils/usePersistenBooleanState";
 import PeriodMenu from "./PeriodMenu";
 import SeriesChart from "./SeriesChart";
@@ -139,7 +140,7 @@ interface SeriesPageProps {
   stats: (totals: Totals, view: View) => ReactNode;
 }
 
-/** A fees-api series charted over a range, period or zoom, all in the URL. */
+/** A surf idx series charted over a range, period or zoom, all in the URL. */
 function SeriesPage({ title, y, format: formatValue, label, settings, note, stats }: SeriesPageProps): JSX.Element {
   useTitle(title);
   const [params, setParams] = useSearchParams();
@@ -198,7 +199,7 @@ function SeriesPage({ title, y, format: formatValue, label, settings, note, stat
     zoomTo(bucketStart(interval, Math.max(z.start - pad, GENESIS)), end);
   };
 
-  if (!feesSupported) return <div className="mt-6 text-muted-foreground">Network not supported</div>;
+  if (!surfIdxSupported) return <div className="mt-6 text-muted-foreground">Network not supported</div>;
 
   return (
     <div className="mt-6 flex flex-col gap-6">

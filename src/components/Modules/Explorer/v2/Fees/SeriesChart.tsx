@@ -4,7 +4,7 @@ import { barY, defineChart } from "@tanstack/charts";
 import { scaleBand } from "@tanstack/charts/scales/band";
 import { scaleLinear } from "@tanstack/charts/scales/linear";
 import { Chart } from "@tanstack/charts/react";
-import { Bucket, Interval, bucketEnd } from "src/hooks/useFeesApi";
+import { Bucket, Interval, bucketEnd } from "src/hooks/useFees";
 import { formatSpan, isoAt } from "./periods";
 
 interface SeriesChartProps {

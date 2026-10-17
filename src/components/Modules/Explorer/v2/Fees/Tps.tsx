@@ -1,4 +1,4 @@
-import { Bucket } from "src/hooks/useFeesApi";
+import { Bucket } from "src/hooks/useFees";
 import SeriesPage, { Stat, formatSig } from "./SeriesPage";
 import { GENESIS } from "./periods";
 

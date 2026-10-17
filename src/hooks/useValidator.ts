@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { network } from "src/packages/core-sdk/constants";
+import { surfIdxGet, surfIdxSupported } from "src/utils/surfIdx";
 
 export type ProposalData = Array<{ rnd: number; pp: number; ts: number }>;
 
@@ -19,19 +19,6 @@ export interface ValidatorStats {
   range: { firstRound: number; lastRound: number; firstTs: number; lastTs: number };
 }
 
-const ANALYTICS_HOSTS: Record<string, string> = {
-  Mainnet: "https://mainnet-analytics.d13.co",
-  Fnet: "https://fnet-analytics.d13.co",
-};
-const analyticsHost = ANALYTICS_HOSTS[network];
-export const validatorStatsSupported = !!analyticsHost;
-
-async function getJson<T>(path: string): Promise<T> {
-  const response = await fetch(`${analyticsHost}${path}`);
-  if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
-  return response.json();
-}
-
 /** `?minRound=&maxRound=` for the given bounds; maxRound undefined = up to now. */
 function roundQuery(minRound: number, maxRound?: number): string {
   const params = new URLSearchParams();
@@ -46,8 +33,8 @@ export function useValidatorStats(address: string, minRound = 0, maxRound?: numb
   return useQuery({
     queryKey: ["validator-stats", address, minRound, ...(maxRound === undefined ? [] : [{ maxRound }])],
     queryFn: () =>
-      getJson<ValidatorStats>(`/v0/proposer/${address}/stats${roundQuery(minRound, maxRound)}`),
-    enabled: !!address && validatorStatsSupported,
+      surfIdxGet<ValidatorStats>(`/v0/proposer/${address}/stats${roundQuery(minRound, maxRound)}`),
+    enabled: !!address && surfIdxSupported,
   });
 }
 
@@ -56,15 +43,15 @@ export function useValidator(address: string, enabled = true, maxRound?: number)
   return useQuery({
     queryKey: ["validator", address, ...(maxRound === undefined ? [] : [{ maxRound }])],
     queryFn: async (): Promise<ValidatorResult> => {
-      const { exists } = await getJson<{ exists: boolean }>(`/v0/exists/${address}`);
+      const { exists } = await surfIdxGet<{ exists: boolean }>(`/v0/exists/${address}`);
       if (!exists) return { address, proposals: [], suspensions: [] };
       const [proposals, suspensions] = await Promise.all([
-        getJson<ProposalData>(`/v0/proposer/${address}${roundQuery(0, maxRound)}`),
-        getJson<number[]>(`/v0/evictions/${address}${roundQuery(0, maxRound)}`),
+        surfIdxGet<ProposalData>(`/v0/proposer/${address}${roundQuery(0, maxRound)}`),
+        surfIdxGet<number[]>(`/v0/evictions/${address}${roundQuery(0, maxRound)}`),
       ]);
       return { address, proposals, suspensions };
     },
-    enabled: enabled && !!address && validatorStatsSupported,
+    enabled: enabled && !!address && surfIdxSupported,
     // Can be millions of rows: drop from memory soon after the dialog closes,
     // never persist to IndexedDB.
     gcTime: 60_000,

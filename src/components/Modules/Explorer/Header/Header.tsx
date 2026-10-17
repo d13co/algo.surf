@@ -3,7 +3,7 @@ import {useLocation} from "react-router-dom";
 import Search from "../Search/Search";
 import Logo from "./Logo";
 import Link from "../v2/Links/Link";
-import { feesSupported } from "src/hooks/useFeesApi";
+import { surfIdxSupported } from "src/utils/surfIdx";
 
 const networkLabel = process.env.REACT_APP_NETWORK;
 
@@ -16,7 +16,7 @@ const navItems: { href: string; label: React.ReactNode; value: string }[] = [
     { href: "/transactions", label: "Txns", value: "transactions" },
     { href: "/assets", label: "Assets", value: "assets" },
     { href: "/applications", label: "Apps", value: "applications" },
-    ...(feesSupported
+    ...(surfIdxSupported
         ? [
               { href: "/fees", label: "Fees", value: "fees" },
               { href: "/tps", label: "TPS", value: "tps" },

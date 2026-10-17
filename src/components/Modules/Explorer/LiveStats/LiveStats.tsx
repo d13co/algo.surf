@@ -12,7 +12,8 @@ import {
     TooltipTrigger,
 } from "src/components/v2/ui/tooltip";
 import { Link } from "react-router-dom";
-import { feesSupported, useFeeTotal } from "src/hooks/useFeesApi";
+import { useFeeTotal } from "src/hooks/useFees";
+import { surfIdxSupported } from "src/utils/surfIdx";
 import { microalgosToAlgos } from "src/utils/common";
 
 const NETWORK = process.env.REACT_APP_NETWORK;
@@ -76,7 +77,7 @@ function LiveStats(): JSX.Element {
                     <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                {feesSupported ? (
+                                {surfIdxSupported ? (
                                     <Link to="/tps" className="flex justify-between w-[90%] max-md:min-w-[80%] max-md:w-auto mb-2.5 text-muted-foreground hover:text-foreground">
                                         <span>Transactions per second</span>
                                         <span className="text-primary ml-2.5">{tps}</span>
@@ -89,7 +90,7 @@ function LiveStats(): JSX.Element {
                                 )}
                             </TooltipTrigger>
                             <TooltipContent side="top" className="bg-black text-white border-border">
-                                <p>{loading ? "Loading" : `TPS over the last ${blockCount} blocks (~${intervalMinutes} minutes)`}{feesSupported ? ". Click for charts." : ""}</p>
+                                <p>{loading ? "Loading" : `TPS over the last ${blockCount} blocks (~${intervalMinutes} minutes)`}{surfIdxSupported ? ". Click for charts." : ""}</p>
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
@@ -125,7 +126,7 @@ function LiveStats(): JSX.Element {
                         </Tooltip>
                     </TooltipProvider>
 
-                    {feesSupported ? FEE_PERIODS.map((p) => <FeeRow key={p.period} {...p} />) : null}
+                    {surfIdxSupported ? FEE_PERIODS.map((p) => <FeeRow key={p.period} {...p} />) : null}
 
                     <TooltipProvider>
                         <Tooltip>
