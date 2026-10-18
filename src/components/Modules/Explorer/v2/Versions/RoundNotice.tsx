@@ -1,7 +1,7 @@
 import { History } from "lucide-react";
 import dateFormat from "dateformat";
 import { useLocation } from "react-router-dom";
-import { useBlock } from "src/hooks/useBlock";
+import { useBlockHeader } from "src/hooks/useBlock";
 import { useRound } from "src/hooks/useRound";
 import { useTimeTravelStatus } from "src/hooks/useTimeTravel";
 import { TIMESTAMP_DISPLAY_FORMAT } from "src/packages/core-sdk/constants";
@@ -22,7 +22,7 @@ function useLatestHref(): string {
 
 /** When `round` was made, in local time; UTC in its title. */
 function RoundTime({ round }: { round: number }): JSX.Element | null {
-  const { data: block } = useBlock(round);
+  const { data: block } = useBlockHeader(round);
   if (!block?.timestamp) return null;
   const date = new Date(block.timestamp * 1000);
   return (

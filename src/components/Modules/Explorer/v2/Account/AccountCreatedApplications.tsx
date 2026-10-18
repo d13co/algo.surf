@@ -15,7 +15,7 @@ import { Loader2 } from "lucide-react";
 import ListToolbar from "src/components/v2/ListToolbar";
 import FilterInput from "src/components/v2/FilterInput";
 import { useApplication } from "src/hooks/useApplication";
-import { useBlock } from "src/hooks/useBlock";
+import { useBlockHeader } from "src/hooks/useBlock";
 import { CoreBlock } from "src/packages/core-sdk/classes/core/CoreBlock";
 import MultiDateViewer from "src/components/v2/MultiDateViewer";
 import { AgeHeader } from "../Lists/TransactionsList/cells/AgeCell";
@@ -38,7 +38,7 @@ function NameCell({ appId, onNameResolved }: { appId: number; onNameResolved?: (
 function CreatedAtCell({ appId }: { appId: number }) {
   const { data: appInfo } = useApplication(appId);
   const createdAtRound = appInfo?.createdAtRound != null ? Number(appInfo.createdAtRound) : undefined;
-  const { data: blockInfo } = useBlock(createdAtRound ?? 0);
+  const { data: blockInfo } = useBlockHeader(createdAtRound ?? 0);
   const timestamp = blockInfo ? new CoreBlock(blockInfo).getTimestamp() : undefined;
 
   if (!timestamp || !createdAtRound) return <span className="text-muted">&mdash;</span>;

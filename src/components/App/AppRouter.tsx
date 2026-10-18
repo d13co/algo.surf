@@ -5,10 +5,7 @@ import Loader from "../Common/Loader/Loader";
 import AppSnackbar from "./AppSnackbar";
 import Footer from "./Footer";
 import { queryClient } from "../../db/query-client";
-import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
-import type { Query } from "@tanstack/react-query";
-import { persister } from "../../db/query-persister";
-import { CACHE_BUSTER, ONE_WEEK, isPersistable } from "../../db/persist-policy";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { AbelAssetsProvider } from "../Common/AbelAssetsProvider";
 import { GlobalUIProvider } from "../../contexts/GlobalUIContext";
 import LoadingTile from "../v2/LoadingTile";
@@ -54,24 +51,11 @@ function NavigateKeepingSearch({ to }: { to: string }): JSX.Element {
   return <Navigate to={{ pathname: to, search }} replace />;
 }
 
-const PERSIST_OPTIONS = {
-  persister,
-  buster: CACHE_BUSTER,
-  // Whole-blob ceiling; per-entry retention is isPersistable (24h / 7d tiers).
-  maxAge: ONE_WEEK,
-  dehydrateOptions: {
-    shouldDehydrateQuery: (query: Query) => isPersistable(query, Date.now()),
-  },
-};
-
 function AppRouter(): JSX.Element {
   return (
     <div>
       <BrowserRouter>
-        <PersistQueryClientProvider
-          persistOptions={PERSIST_OPTIONS}
-          client={queryClient}
-        >
+        <QueryClientProvider client={queryClient}>
           <GlobalUIProvider>
           <AbelAssetsProvider>
             <TimeTravelBar />
@@ -252,7 +236,7 @@ function AppRouter(): JSX.Element {
             <AppSnackbar></AppSnackbar>
           </AbelAssetsProvider>
           </GlobalUIProvider>
-        </PersistQueryClientProvider>
+        </QueryClientProvider>
       </BrowserRouter>
     </div>
   );
