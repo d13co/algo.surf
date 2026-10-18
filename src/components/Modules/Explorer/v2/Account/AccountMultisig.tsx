@@ -7,6 +7,7 @@ import {
   ColumnDef,
 } from "@tanstack/react-table";
 import { Loader2, Pencil, PencilOff } from "lucide-react";
+import { useAccount, useControllingAccounts } from "src/hooks/useAccount";
 import { MSIG_LIMIT, MsigMember, useMsigSubsigners, useMsigsOf } from "src/hooks/useMsig";
 import { surfIdxOffMessage, useSurfIdxCaps } from "src/hooks/useSurfIdxCaps";
 import { useStableHeight } from "src/hooks/useStableHeight";
@@ -14,6 +15,8 @@ import ListToolbar from "src/components/v2/ListToolbar";
 import { DataTable } from "src/components/v2/DataTable";
 import LinkToAccount from "../Links/LinkToAccount";
 import LinkToBlockTxn from "../Links/LinkToBlockTxn";
+import Link from "../Links/Link";
+import WarningNotice from "../WarningNotice";
 
 /** "subsigners": the keys of the multisig at this address. "multisigs": the multisigs this key is in. */
 export type MsigView = "subsigners" | "multisigs";
@@ -96,6 +99,13 @@ function MsigTable({ view, address }: { view: MsigView; address: string | undefi
   const msigsOf = useMsigsOf(address, view === "multisigs");
   const { data: rows, isError, error } = view === "subsigners" ? subsigners : msigsOf;
   const columns = COLUMNS[view];
+  // A rekeyed multisig: its subsigners no longer sign for it. The account page's own query, no new request.
+  const { data: accountInfo } = useAccount(address!);
+  const authAddr = view === "subsigners" ? accountInfo?.authAddr?.toString() : undefined;
+  // Accounts rekeyed to the multisig are still the subsigners' to sign for: a rekey isn't transitive.
+  // The account page's query, which it pages to the end.
+  const { data: controllerData } = useControllingAccounts(address!, !!authAddr);
+  const numControlled = controllerData?.pages.reduce((n, p) => n + p.accounts.length, 0) ?? 0;
 
   const table = useReactTable({
     // The query's own array: stable across renders, so the table keeps its page.
@@ -124,6 +134,24 @@ function MsigTable({ view, address }: { view: MsigView; address: string | undefi
 
   return (
     <div>
+      {authAddr && rows.length ? (
+        // mb-3: the toolbar below is an empty spacer when the list fits one page.
+        <WarningNotice className="mt-3 mb-3">
+          <span>
+            This multisig has been rekeyed to <LinkToAccount address={authAddr} strip={20} copy="none" />{" "}
+            These are the multisig's original subsigners, who can no longer authorize its transactions.
+            {numControlled ? (
+              <>
+                {" "}They still control the{" "}
+                <Link href={`/account/${address}/controller`}>
+                  {numControlled === 1 ? "account" : `${numControlled} accounts`}
+                </Link>{" "}
+                rekeyed to this multisig, under Controlling accounts.
+              </>
+            ) : null}
+          </span>
+        </WarningNotice>
+      ) : null}
       {rows.length >= MSIG_LIMIT ? (
         <div className="mt-3 text-sm text-muted-foreground">The {MSIG_LIMIT.toLocaleString()} most recent.</div>
       ) : null}
