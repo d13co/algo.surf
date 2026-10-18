@@ -61,7 +61,15 @@ export const persister = experimental_createQueryPersister<PersistedQuery>({
   buster: CACHE_BUSTER,
   // Ceiling; per-entry retention is isPersistable (24h / 7d tiers).
   maxAge: ONE_WEEK,
-  serialize: (query) => serializeForIDB(query) as PersistedQuery,
+  serialize: (query) => {
+    try {
+      return serializeForIDB(query) as PersistedQuery
+    } catch (e) {
+      // The core doesn't catch this (it would be an unhandled rejection). Not a success, so setItem skips it.
+      console.warn('[query-persister] Failed to serialize query:', e)
+      return { ...query, state: { ...query.state, status: 'error' } }
+    }
+  },
   deserialize: (stored) => deserializeFromIDB(stored) as PersistedQuery,
   filters: {
     // Infinite queries run every page fetch through the persister: skip them before their pages are serialized.

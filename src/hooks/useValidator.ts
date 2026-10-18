@@ -38,6 +38,8 @@ export function useValidatorStats(address: string, minRound = 0, maxRound?: numb
     queryFn: () =>
       surfIdxGet<ValidatorStats>(`/v0/proposer/${address}/stats${roundQuery(minRound, maxRound)}`),
     enabled: !!address && !!proposers,
+    // A time frame's minRound moves with the tip, so each visit would leave a new entry in IndexedDB until it expires.
+    meta: minRound > 0 ? { noPersist: true } : undefined,
   });
 }
 
