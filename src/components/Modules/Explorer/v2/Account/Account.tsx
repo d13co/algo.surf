@@ -19,6 +19,8 @@ import {
   useControllingAccounts,
 } from "src/hooks/useAccount";
 import { useValidatorStats } from "src/hooks/useValidator";
+import { delegationLive, templateLabel, useDelegations, useLsig } from "src/hooks/useLsig";
+import { useMsigSubsigners, useMsigsOf } from "src/hooks/useMsig";
 import { useTimeTravelSupport } from "src/hooks/useTimeTravel";
 import { useRound, useRoundHref, useRoundNavigate } from "src/hooks/useRound";
 import RoundNotice from "../Versions/RoundNotice";
@@ -34,6 +36,7 @@ import useTitle from "src/components/Common/UseTitle/UseTitle";
 import LinkToAccount from "../Links/LinkToAccount";
 import LinkToApplication from "../Links/LinkToApplication";
 import LinkToBlockscan from "../Links/LinkToBlockscan";
+import LinkToLsigTemplate from "../Links/LinkToLsigTemplate";
 import DymNFD from "../DymNFD";
 import XChainBadge from "../XChainBadge";
 import { microalgosToAlgos } from "src/utils/common";
@@ -100,6 +103,13 @@ function Account(): JSX.Element {
   } = useAccount(address, round);
   const { data: escrowOf } = useEscrowOf(address);
   const { data: validatorStats } = useValidatorStats(address, 0, round);
+  // surf idx: the logic sig with this program address, and the ones this account delegated or was
+  // moved by. Neither has history, so delegations are only listed for the current round.
+  const { data: lsig } = useLsig(address);
+  const { data: delegations } = useDelegations(address, round === undefined);
+  // surf idx: the keys of this multisig, or the multisigs this key is in. Without history too.
+  const { data: subsigners } = useMsigSubsigners(address, round === undefined);
+  const { data: msigsOf } = useMsigsOf(address, round === undefined);
   const { data: nfd } = useReverseNFD(address);
   const { data: txnData } = useAccountTransactions(address, round);
   // The indexer only knows which accounts are rekeyed to this one now, so
@@ -202,6 +212,29 @@ function Account(): JSX.Element {
     return [lastSent, isMultiSig, isLogicSig, isClosed, isXEVM, pqSig] as const;
   }, [address, accountInfo, transactions]);
 
+  // The last sent txn's logic sig was delegated: a key signed the program.
+  const lastSentDelegated = useMemo(() => {
+    const ls = lastSent?.signature?.logicsig;
+    return !!(ls && (ls.signature || ls.multisigSignature || ls.logicMultisigSignature || ls.pqsig));
+  }, [lastSent]);
+  const authAddr = accountInfo?.authAddr?.toString();
+  // The account's last txn was authorized by a logic sig no key signed (escrow).
+  const escrowViaTxn = !!lastSent && isLogicSig && !lastSentDelegated;
+  // A logic sig escrow per surf idx: its program authorized its own address's txns, and the account
+  // isn't rekeyed away from it since.
+  const lsigEscrow = !!lsig?.uses.some((u) => u.lsig === address && !u.signer) && !authAddr;
+  const numDelegations = round === undefined ? delegations?.length ?? 0 : 0;
+  const numSubsigners = round === undefined ? subsigners?.length ?? 0 : 0;
+  const numMsigsOf = round === undefined ? msigsOf?.length ?? 0 : 0;
+  // Delegations this account's key signed that can still send its txns.
+  const liveDelegations = useMemo(
+    () =>
+      round === undefined && delegations && accountInfo
+        ? delegations.filter((u) => u.signer === address && delegationLive(u, address!, authAddr)).length
+        : 0,
+    [round, delegations, accountInfo, address, authAddr]
+  );
+
   const hasOptedAssets = accountInfo?.assets?.length ?? 0;
   const hasCreatedAssets = accountInfo?.createdAssets?.length ?? 0;
 
@@ -231,6 +264,15 @@ function Account(): JSX.Element {
   const scrollToControllerTo = useCallback(
     (e: React.MouseEvent) => {
       navigate(`/account/${address}/controller`);
+      if (tabsRef?.current) tabsRef.current.scrollIntoView();
+      e.preventDefault();
+    },
+    [tabsRef, address, navigate]
+  );
+
+  const scrollToDelegations = useCallback(
+    (e: React.MouseEvent) => {
+      navigate(`/account/${address}/delegations`);
       if (tabsRef?.current) tabsRef.current.scrollIntoView();
       e.preventDefault();
     },
@@ -273,6 +315,21 @@ function Account(): JSX.Element {
     matchPath("/account/:address/controller", pathname)
   ) {
     tabValue = "controlling-accounts";
+  } else if (
+    numDelegations &&
+    matchPath("/account/:address/delegations", pathname)
+  ) {
+    tabValue = "delegations";
+  } else if (
+    numSubsigners &&
+    matchPath("/account/:address/subsigners", pathname)
+  ) {
+    tabValue = "subsigners";
+  } else if (
+    numMsigsOf &&
+    matchPath("/account/:address/multisigs", pathname)
+  ) {
+    tabValue = "multisigs";
   } else if (
     hasValidatorData &&
     matchPath("/account/:address/validator", pathname)
@@ -453,12 +510,12 @@ function Account(): JSX.Element {
                     </a>
                   ) : null}
 
-                  {isLogicSig && lastSent ? (
+                  {escrowViaTxn || lsigEscrow ? (
                     <a
-                      href={roundHref(`/transaction/${lastSent.id}#logicsig`)}
+                      href={roundHref(escrowViaTxn ? `/transaction/${lastSent!.id}#logicsig` : `/lsigs/${lsig!.template}`)}
                       onClick={(e) => {
                         e.preventDefault();
-                        navigate(`/transaction/${lastSent.id}#logicsig`);
+                        navigate(escrowViaTxn ? `/transaction/${lastSent!.id}#logicsig` : `/lsigs/${lsig!.template}`);
                       }}
                     >
                       <TooltipProvider>
@@ -469,7 +526,39 @@ function Account(): JSX.Element {
                             </Chip>
                           </TooltipTrigger>
                           <TooltipContent className="bg-black text-white border-border">
-                            <p>This account is controlled by a stateless smart contract (logic sig). Click to view program source.</p>
+                            <p>
+                              This account is controlled by a stateless smart contract (logic sig).{" "}
+                              {escrowViaTxn ? "Click to view program source." : "Click to view its template."}
+                            </p>
+                            {lsig ? <p>Template: {templateLabel(lsig)}, shared by {lsig.programs.toLocaleString()} program{plural(lsig.programs)}.</p> : null}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </a>
+                  ) : null}
+
+                  {liveDelegations || lastSentDelegated ? (
+                    <a
+                      href={roundHref(liveDelegations ? `/account/${address}/delegations` : `/transaction/${lastSent!.id}#logicsig`)}
+                      onClick={(e) => {
+                        if (liveDelegations) return scrollToDelegations(e);
+                        e.preventDefault();
+                        navigate(`/transaction/${lastSent!.id}#logicsig`);
+                      }}
+                    >
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Chip variant={liveDelegations ? "warning" : "success"} onClick={() => {}}>
+                              Delegated LogicSig{liveDelegations > 1 ? ` (${liveDelegations})` : ""}
+                            </Chip>
+                          </TooltipTrigger>
+                          <TooltipContent className="bg-black text-white border-border">
+                            <p>
+                              {liveDelegations
+                                ? "This account signed logic sigs that can still send its txns. Click to view them."
+                                : "This account's last txn was authorized by a delegated logic sig. Click to view it."}
+                            </p>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
@@ -574,6 +663,20 @@ function Account(): JSX.Element {
                       </div>
                     ) : null}
 
+                    {lsig ? (
+                      <div className="mt-2.5">
+                        <div className="text-muted-foreground">
+                          LogicSig template
+                        </div>
+                        <div className="mt-2.5 inline-flex items-center gap-1.5 max-w-full min-w-0">
+                          <LinkToLsigTemplate template={lsig.template} name={lsig.name} />
+                          <span className="text-muted-foreground shrink-0">
+                            {lsig.programs.toLocaleString()} program{plural(lsig.programs)}
+                          </span>
+                        </div>
+                      </div>
+                    ) : null}
+
                     {isXEVM ? (
                       <div className="mt-2.5">
                         <div className="text-muted-foreground inline-flex items-center gap-1">
@@ -651,6 +754,9 @@ function Account(): JSX.Element {
                       ...(hasCreatedApps ? [{ name: "Created apps", value: "created-applications", onClick: () => navigate("/account/" + address + "/created-applications") }] : []),
                       ...(hasOptedApps ? [{ name: "Opted applications", value: "opted-applications", onClick: () => navigate("/account/" + address + "/opted-applications") }] : []),
                       ...(numControlledAccounts ? [{ name: "Controlling accounts", value: "controlling-accounts", onClick: () => navigate("/account/" + address + "/controller") }] : []),
+                      ...(numDelegations ? [{ name: "Delegations", value: "delegations", onClick: () => navigate("/account/" + address + "/delegations") }] : []),
+                      ...(numSubsigners ? [{ name: "Subsigners", value: "subsigners", onClick: () => navigate("/account/" + address + "/subsigners") }] : []),
+                      ...(numMsigsOf ? [{ name: "Multisigs", value: "multisigs", onClick: () => navigate("/account/" + address + "/multisigs") }] : []),
                       ...(hasValidatorData ? [{ name: "Validator Data", value: "validator", onClick: () => navigate("/account/" + address + "/validator") }] : []),
                       ...(hasVersions ? [{ name: "Versions", value: "versions", onClick: () => navigate("/account/" + address + "/versions") }] : []),
                     ]}

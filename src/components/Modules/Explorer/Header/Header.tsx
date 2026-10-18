@@ -4,10 +4,11 @@ import Search from "../Search/Search";
 import Logo from "./Logo";
 import Link from "../v2/Links/Link";
 import { surfIdxSupported } from "src/utils/surfIdx";
+import { useSurfIdxCaps } from "src/hooks/useSurfIdxCaps";
 
 const networkLabel = process.env.REACT_APP_NETWORK;
 
-const routes = ["home", "accounts", "transactions", "assets", "applications", "fees", "tps"];
+const routes = ["home", "accounts", "transactions", "assets", "applications", "fees", "tps", "lsigs"];
 const SERIES = ["fees", "tps"];
 
 const navItems: { href: string; label: React.ReactNode; value: string }[] = [
@@ -26,6 +27,8 @@ const navItems: { href: string; label: React.ReactNode; value: string }[] = [
 
 function Header(): JSX.Element {
     const location = useLocation();
+    const lsigs = useSurfIdxCaps()?.lsigs;
+    const items = lsigs ? [...navItems, { href: "/lsigs", label: "LSigs", value: "lsigs" }] : navItems;
 
     const route: string | false = React.useMemo(() => {
         const r = location.pathname.substring(1).split('/')[0];
@@ -40,7 +43,7 @@ function Header(): JSX.Element {
         <div className="mb-5">
             <div className="flex justify-between items-center max-header:flex-col max-header:items-stretch">
                 <nav className="flex items-center -ml-3 overflow-x-auto">
-                    {navItems.map((item) => (
+                    {items.map((item) => (
                         <Link
                             key={item.value}
                             // Fees and TPS chart the same view: switching keeps its range, interval and zoom.

@@ -27,6 +27,8 @@ const AccountCreatedApplications = lazy(() => import("../Modules/Explorer/v2/Acc
 const AccountOptedApplications = lazy(() => import("../Modules/Explorer/v2/Account/AccountOptedApplications"));
 const AccountControllerTo = lazy(() => import("../Modules/Explorer/v2/Account/AccountControllerTo"));
 const AccountValidator = lazy(() => import("../Modules/Explorer/v2/Account/AccountValidator"));
+const AccountDelegations = lazy(() => import("../Modules/Explorer/v2/Account/AccountDelegations"));
+const AccountMultisig = lazy(() => import("../Modules/Explorer/v2/Account/AccountMultisig"));
 const AccountVersions = lazy(() => import("../Modules/Explorer/v2/Account/AccountVersions"));
 const Block = lazy(() => import("../Modules/Explorer/v2/Block/Block"));
 const BlockTransactions = lazy(() => import("../Modules/Explorer/v2/Block/BlockTransactions"));
@@ -41,6 +43,8 @@ const Group = lazy(() => import("../Modules/Explorer/v2/Group/Group"));
 const GroupTransactions = lazy(() => import("../Modules/Explorer/v2/Group/GroupTransactions"));
 const Fees = lazy(() => import("../Modules/Explorer/v2/Fees/Fees"));
 const Tps = lazy(() => import("../Modules/Explorer/v2/Fees/Tps"));
+const LsigTemplates = lazy(() => import("../Modules/Explorer/v2/Lsig/LsigTemplates"));
+const LsigTemplate = lazy(() => import("../Modules/Explorer/v2/Lsig/LsigTemplate"));
 const StripExplorerFromPath = lazy(() => import("./StripExplorerFromPath"));
 const SearchFromPath = lazy(() => import("./SearchFromPath"));
 
@@ -98,6 +102,8 @@ function AppRouter(): JSX.Element {
                         />
                         <Route path="/fees" element={<Fees></Fees>} />
                         <Route path="/tps" element={<Tps></Tps>} />
+                        <Route path="/lsigs" element={<LsigTemplates />} />
+                        <Route path="/lsigs/:template" element={<LsigTemplate />} />
                         <Route
                           path="/account/:address"
                           element={<Account></Account>}
@@ -137,6 +143,18 @@ function AppRouter(): JSX.Element {
                           <Route
                             path="controller"
                             element={<AccountControllerTo />}
+                          />
+                          <Route
+                            path="delegations"
+                            element={<AccountDelegations />}
+                          />
+                          <Route
+                            path="subsigners"
+                            element={<AccountMultisig view="subsigners" />}
+                          />
+                          <Route
+                            path="multisigs"
+                            element={<AccountMultisig view="multisigs" />}
                           />
                           <Route
                             path="validator"
