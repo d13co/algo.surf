@@ -8,7 +8,8 @@ import {
 } from "@tanstack/react-table";
 import { Loader2, Pencil, PencilOff } from "lucide-react";
 import { useAccount, useControllingAccounts } from "src/hooks/useAccount";
-import { MSIG_LIMIT, MsigMember, useMsigSubsigners, useMsigsOf } from "src/hooks/useMsig";
+import { MsigMember, useMsigSubsigners, useMsigsOf } from "src/hooks/useMsig";
+import { cutNote, useAccountSummary } from "src/hooks/useAccountSummary";
 import { surfIdxOffMessage, useSurfIdxCaps } from "src/hooks/useSurfIdxCaps";
 import { useStableHeight } from "src/hooks/useStableHeight";
 import ListToolbar from "src/components/v2/ListToolbar";
@@ -99,6 +100,9 @@ function MsigTable({ view, address }: { view: MsigView; address: string | undefi
   const msigsOf = useMsigsOf(address, view === "multisigs");
   const { data: rows, isError, error } = view === "subsigners" ? subsigners : msigsOf;
   const columns = COLUMNS[view];
+  // The account page's summary, for the total when the list is cut.
+  const { data: summary } = useAccountSummary(address);
+  const note = rows ? cutNote(rows.length, view === "subsigners" ? summary?.signers : summary?.multisigs) : null;
   // A rekeyed multisig: its subsigners no longer sign for it. The account page's own query, no new request.
   const { data: accountInfo } = useAccount(address!);
   const authAddr = view === "subsigners" ? accountInfo?.authAddr?.toString() : undefined;
@@ -152,9 +156,7 @@ function MsigTable({ view, address }: { view: MsigView; address: string | undefi
           </span>
         </WarningNotice>
       ) : null}
-      {rows.length >= MSIG_LIMIT ? (
-        <div className="mt-3 text-sm text-muted-foreground">The {MSIG_LIMIT.toLocaleString()} most recent.</div>
-      ) : null}
+      {note ? <div className="mt-3 mb-3 text-sm text-muted-foreground">{note}</div> : null}
       <ListToolbar
         className="mt-3"
         pageIndex={pageIndex}

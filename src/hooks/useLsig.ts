@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { surfIdxGet, surfIdxGetOrNull, surfIdxRetry } from "src/utils/surfIdx";
 import { useSurfIdxCaps } from "src/hooks/useSurfIdxCaps";
+import { LIST_LIMIT } from "src/hooks/useAccountSummary";
 
 /**
  * One logic sig use, per program, delegator and rekeyed sender. surf idx keeps no per-round
@@ -55,12 +56,12 @@ export const USES_LIMIT = 1000;
 const live = { staleTime: 5 * 60_000, meta: { noPersist: true }, ...surfIdxRetry };
 
 /** The logic sig with this program address; null if it never authorized a txn. */
-export function useLsig(address: string | undefined) {
+export function useLsig(address: string | undefined, enabled = true) {
   const lsigs = useSurfIdxCaps()?.lsigs;
   return useQuery({
     queryKey: ["surf-lsig", address],
     queryFn: () => surfIdxGetOrNull<LsigInfo>(`/v0/lsig/${address}`),
-    enabled: !!address && !!lsigs,
+    enabled: enabled && !!address && !!lsigs,
     ...live,
   });
 }
@@ -70,7 +71,7 @@ export function useDelegations(address: string | undefined, enabled = true) {
   const lsigs = useSurfIdxCaps()?.lsigs;
   return useQuery({
     queryKey: ["surf-delegations", address],
-    queryFn: () => surfIdxGet<LsigUse[]>(`/v0/delegations/${address}`),
+    queryFn: () => surfIdxGet<LsigUse[]>(`/v0/delegations/${address}?limit=${LIST_LIMIT}`),
     enabled: enabled && !!address && !!lsigs,
     ...live,
   });
