@@ -31,7 +31,7 @@ export function useFeeTotal(period: "24h" | "7d" | "30d") {
     queryFn: () => surfIdxGet<FeeTotal>(`/v0/fees/${period}`),
     enabled: surfIdxSupported,
     refetchInterval: 60_000,
-    // Persisted, each refetch would rewrite the whole IndexedDB cache blob every minute.
+    // Refetched every minute: persisted, each refetch would be an IndexedDB write for data that's stale by the next visit.
     meta: { noPersist: true },
   });
 }
@@ -57,7 +57,7 @@ export function useSeries(interval: Interval, start?: number, end?: number) {
     // Up to ~770 rows per view and a new key per zoom: drop left views after 5 min, not the client's hour.
     gcTime: 5 * 60_000,
     placeholderData: keepPreviousData,
-    // Same reason: keep them out of the whole-cache IndexedDB blob.
+    // Same reason, and each zoom's key would leave its own entry in IndexedDB until it expires.
     meta: { noPersist: true },
   });
 }

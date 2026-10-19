@@ -55,9 +55,8 @@ function LinkToBlockTxn({
     setFinding(true);
     let to = href;
     try {
-      // Not persisted: a block can be MBs, wanted only for this txn id. The block page, if it shows
-      // the same block, makes it persist.
-      const block = await queryClient.fetchQuery({ ...blockQuery(round), meta: { noPersist: true } });
+      // Shares the block page's cache; never persisted (blockQuery is noPersist): a block can be MBs.
+      const block = await queryClient.fetchQuery(blockQuery(round));
       const txn = pick(block.transactions ?? []);
       if (txn?.id) to = `/transaction/${txn.id}${anchor(txn)}`;
     } catch {
