@@ -48,7 +48,7 @@ function LabelWithHint({ children, hint }: { children: React.ReactNode; hint: st
   return (
     <div className="text-muted-foreground flex items-center gap-1.5">
       {children}
-      <TooltipProvider delayDuration={0}>
+      <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
             <Info size={13} className="cursor-help opacity-60 hover:opacity-100" />

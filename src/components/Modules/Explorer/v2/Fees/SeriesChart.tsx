@@ -17,8 +17,6 @@ interface SeriesChartProps {
   y: (b: Bucket) => number;
   format: (v: number) => string;
   label: string;
-  /** Times in local time instead of UTC. Days and longer stay UTC days: the API buckets by them. */
-  local?: boolean;
   /** Called with [start, end) in unix seconds, covering the whole buckets clicked or dragged across. A block's click
    * opens its page instead. */
   onZoom?: (start: number, end: number) => void;
@@ -34,10 +32,10 @@ interface Row {
   partial: boolean;
 }
 
-// The round of a block, else the bucket start: "10-07 14:03" (local time when local), "2026-10-07", "2026-10" (UTC).
-function formatTick(interval: Interval, x: number, local: boolean): string {
+// The round of a block, else the bucket start in UTC: "10-07 14:03", "2026-10-07", "2026-10".
+function formatTick(interval: Interval, x: number): string {
   if (interval === "block") return String(x);
-  if (interval === "minute" || interval === "hour") return isoAt(x, local).slice(5, 16).replace("T", " ");
+  if (interval === "minute" || interval === "hour") return isoAt(x).slice(5, 16).replace("T", " ");
   return isoAt(x).slice(0, interval === "month" ? 7 : 10);
 }
 
@@ -53,7 +51,6 @@ function SeriesChart({
   y,
   format,
   label,
-  local = false,
   onZoom,
 }: SeriesChartProps): JSX.Element {
   const navigate = useNavigate();
@@ -81,7 +78,7 @@ function SeriesChart({
         scales: {
           x: {
             scale: () => scaleBand().padding(0.2),
-            axis: { ticks: { size: 0, format: (d) => formatTick(interval, d, local) } },
+            axis: { ticks: { size: 0, format: (d) => formatTick(interval, d) } },
           },
           y: {
             scale: scaleLinear,
@@ -91,11 +88,11 @@ function SeriesChart({
           },
         },
         // Any pointer x resolves to the bucket below it: easy hover on thin bars, and drag-to-zoom
-        // reads its endpoints from focus. The readout above the plot shows it, not a tooltip.
+        // reads its endpoints from focus. The readout below the plot shows it, not a tooltip.
         focus: "nearest-x",
         maxFocusDistance: Number.POSITIVE_INFINITY,
       }),
-    [rows, interval, label, format, local],
+    [rows, interval, label, format],
   );
 
   // The readout and the drag are written to the DOM directly: a render per pointermove would also
@@ -105,23 +102,32 @@ function SeriesChart({
   const readTitle = useRef<HTMLSpanElement>(null);
   const readValue = useRef<HTMLSpanElement>(null);
   const focused = useRef<Row | null>(null);
+  // Whether the chart has a bar under the pointer. focused keeps the last one after the pointer leaves.
+  const pointing = useRef(false);
+  // The bar the readout describes, if any.
+  const described = useRef<Row | null>(null);
   const dragging = useRef(false);
 
   const readout = (title: string, value = "") => {
     readTitle.current!.textContent = title;
     readValue.current!.textContent = value;
   };
-  const describe = (r: Row | null) =>
-    r
+  const describe = (r: Row | null) => {
+    described.current = r;
+    return r
       ? readout(
-          (interval === "block" ? `Round ${r.x} · ` : "") + formatSpan(r.ts, r.end, local) + (r.partial ? " (partial)" : ""),
+          (interval === "block" ? `Round ${r.x} · ` : "") + formatSpan(r.ts, r.end) + (r.partial ? " (partial)" : ""),
           format(r.value),
         )
       : readout("");
+  };
 
+  // New rows, e.g. a live update: the focused and described bars become their new rows, so a live bar's readout follows
+  // its value. A bar no longer there (another view) is dropped.
   useEffect(() => {
-    focused.current = null; // a bucket of the previous data
-    readout("");
+    const current = (r: Row | null) => (r && rows.find((n) => n.x === r.x)) ?? null;
+    focused.current = current(focused.current);
+    if (!dragging.current) describe(current(described.current));
   }, [rows]);
 
   const onPointerDown = (e: React.PointerEvent) => {
@@ -145,7 +151,7 @@ function SeriesChart({
       box.width = `${Math.abs(x1 - x0)}px`;
       host.dataset.dragging = "";
       dragging.current = true;
-      if (focused.current) readout(`Zoom to ${formatSpan(...selection(focused.current), local)}`);
+      if (focused.current) readout(`Zoom to ${formatSpan(...selection(focused.current))}`);
     };
     const up = (ev: PointerEvent) => {
       window.removeEventListener("pointermove", move);
@@ -153,11 +159,12 @@ function SeriesChart({
       window.removeEventListener("pointercancel", up);
       delete host.dataset.dragging;
       dragging.current = false;
-      describe(focused.current);
+      describe(pointing.current ? focused.current : null);
       // A click zooms into the bar pressed, a drag across the bars dragged over.
       const to = Math.abs(x1 - x0) < 5 ? from : focused.current;
       if (ev.type === "pointercancel" || !to) return;
-      if (to === from && interval === "block") {
+      // Rows are replaced on each update, e.g. live: the same bar is the same x.
+      if (to.x === from.x && interval === "block") {
         // No finer interval to zoom into: open the block, in a new tab with Ctrl or Cmd as a link would.
         if (ev.ctrlKey || ev.metaKey) window.open(`/block/${to.x}`, "_blank");
         else navigate(`/block/${to.x}`);
@@ -182,6 +189,7 @@ function SeriesChart({
           height={320}
           ariaLabel={`${label} by ${interval}`}
           onFocusChange={(p) => {
+            pointing.current = !!p;
             if (p) focused.current = p.datum;
             if (!dragging.current) describe(p?.datum ?? null);
           }}

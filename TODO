@@ -221,3 +221,10 @@ localnet optimizations
 
 [ ] inner app calls: no args / info in dialog
 [ ] itxn > json view > arrows: state does not update
+
+[ ] tps/fees live: a zoom that reaches the tip should slide with it
+  - now: a zoom is a fixed start/end in the URL; live only fills it until end, then freezes. A drag up to the right edge ends at the in-progress bar's end, so it stays live a minute or less
+  - want: a drag/click whose selection includes the in-progress (partial) bar becomes a sliding window of that width, e.g. ?span=17220; both ends follow the tip like the 24H tab
+  - a selection that stops short of the in-progress bar stays a fixed start/end zoom
+  - start = bucketStart(interval, now - span) so the query key holds per bucket, and the incremental fetch / extendsView slide path applies as for rolling ranges
+  - "Zoomed to …" text, Zoom out (widen the span) and Reset zoom need a span variant

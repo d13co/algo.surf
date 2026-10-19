@@ -48,7 +48,7 @@ function Footer(): JSX.Element {
                 </TooltipProvider>
             </div>
             <div className="flex items-center justify-center">
-                <TooltipProvider delayDuration={0}>
+                <TooltipProvider>
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <a href="https://nodely.io" className="inline-flex items-center gap-1.5">

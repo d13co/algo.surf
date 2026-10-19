@@ -1,16 +1,12 @@
-import { ReactNode, useMemo } from "react";
-import { Settings } from "lucide-react";
+import { ReactNode, useEffect, useMemo, useReducer } from "react";
+import { RotateCcw, ZoomOut } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import useTitle from "src/components/Common/UseTitle/UseTitle";
 import LoadingTile from "src/components/v2/LoadingTile";
 import TabsUnderline from "src/components/v2/shadcn-studio/tabs/tabs-11";
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "src/components/v2/ui/dropdown-menu";
-import { Bucket, Interval, bucketEnd, bucketStart, useSeries } from "src/hooks/useFees";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "src/components/v2/ui/tooltip";
+import { Bucket, Interval, LIVE_POLL_MS, bucketEnd, bucketStart, useSeries } from "src/hooks/useFees";
+import { cn } from "src/lib/utils";
 import { surfIdxSupported } from "src/utils/surfIdx";
 import { usePersistenBooleanState } from "src/utils/usePersistenBooleanState";
 import PeriodMenu from "./PeriodMenu";
@@ -22,7 +18,7 @@ const DAY = 24 * 3600;
 // Finest first.
 const INTERVALS: { value: Interval; name: string }[] = [
   { value: "block", name: "Per block" },
-  { value: "minute", name: "Minutely" },
+  { value: "minute", name: "By minute" },
   { value: "hour", name: "Hourly" },
   { value: "day", name: "Daily" },
   { value: "week", name: "Weekly" },
@@ -83,25 +79,78 @@ export function formatSig(v: number, max: number): string {
   return v.toLocaleString(undefined, { maximumFractionDigits: decimals });
 }
 
-/** A settings menu checkbox. Toggling keeps the menu open. */
-export function Toggle({
-  checked,
+const UNAVAILABLE = "Only for views that end now";
+
+/**
+ * Live mode's switch. Unavailable for a view that doesn't end now: aria-disabled rather than disabled, so it stays
+ * focusable and its reason is read out. Pressed when live is on and available.
+ */
+function LiveButton({
+  on,
+  available,
   onChange,
+}: {
+  on: boolean;
+  available: boolean;
+  onChange: (on: boolean) => void;
+}): JSX.Element {
+  const active = on && available;
+  return (
+    <Tip label={available ? (on ? "Updating as blocks come in" : "Update as blocks come in") : UNAVAILABLE}>
+      <button
+        type="button"
+        aria-pressed={active}
+        aria-disabled={!available}
+        onClick={() => available && onChange(!on)}
+        className={cn(
+          "inline-flex h-9 items-center gap-2 px-3 pt-1.5 pb-2 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          active ? "text-primary" : "text-muted-foreground",
+          available ? "hover:text-primary" : "opacity-50 cursor-not-allowed",
+        )}
+      >
+        <span className="relative flex size-2">
+          {active && (
+            <span className="absolute inline-flex size-full motion-safe:animate-ping rounded-full bg-primary opacity-75" />
+          )}
+          <span className={cn("relative inline-flex size-2 rounded-full", active ? "bg-primary" : "border border-current")} />
+        </span>
+        Live
+      </button>
+    </Tip>
+  );
+}
+
+/** A tooltip in the page's style. */
+function Tip({ label, children }: { label: string; children: ReactNode }): JSX.Element {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent className="bg-black text-white border-border">{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+/** An icon button named by its tooltip. */
+function IconButton({
+  label,
+  onClick,
   children,
 }: {
-  checked: boolean;
-  onChange: (checked: boolean) => void;
+  label: string;
+  onClick: () => void;
   children: ReactNode;
 }): JSX.Element {
   return (
-    <DropdownMenuCheckboxItem
-      className="cursor-pointer focus:bg-primary/10 focus:text-primary"
-      checked={checked}
-      onCheckedChange={onChange}
-      onSelect={(e) => e.preventDefault()}
-    >
-      {children}
-    </DropdownMenuCheckboxItem>
+    <Tip label={label}>
+      <button
+        type="button"
+        aria-label={label}
+        onClick={onClick}
+        className="inline-flex size-6 shrink-0 items-center justify-center rounded text-primary hover:bg-primary/10 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        {children}
+      </button>
+    </Tip>
   );
 }
 
@@ -132,19 +181,15 @@ interface SeriesPageProps {
   format: (v: number, max: number) => string;
   /** The y axis label. */
   label: string;
-  /** Settings menu items above Local time. */
-  settings?: ReactNode;
-  /** Under the "Showing …" line. */
-  note?: ReactNode;
   /** The Stats below the chart. */
   stats: (totals: Totals, view: View) => ReactNode;
 }
 
 /** A surf idx series charted over a range, period or zoom, all in the URL. */
-function SeriesPage({ title, y, format: formatValue, label, settings, note, stats }: SeriesPageProps): JSX.Element {
+function SeriesPage({ title, y, format: formatValue, label, stats }: SeriesPageProps): JSX.Element {
   useTitle(title);
   const [params, setParams] = useSearchParams();
-  const [local, setLocal] = usePersistenBooleanState("series.localTime", false);
+  const [liveOn, setLiveOn] = usePersistenBooleanState("series.live", true);
   const now = Math.floor(Date.now() / 1000);
   // A calendar period, else a rolling range.
   const period = parsePeriod(params.get("range") ?? "", now);
@@ -165,7 +210,38 @@ function SeriesPage({ title, y, format: formatValue, label, settings, note, stat
   // query key holds for a whole bucket.
   const bounds = zoom ?? period;
   const start = bounds ? bounds.start : range.days ? bucketStart(interval, now - range.days * DAY) : undefined;
-  const { data, isPlaceholderData, error } = useSeries(interval, start, bounds?.end);
+  const end = bounds?.end;
+  // A view ending now, or a zoom ending in the future. Past a zoom's end it stays live for two more polls, for blocks
+  // surf idx hadn't indexed yet.
+  const liveUntil = end === undefined ? Infinity : end + (2 * LIVE_POLL_MS[interval]) / 1000;
+  const endsNow = surfIdxSupported && now < liveUntil;
+  const live = liveOn && endsNow;
+  const { data, isPlaceholderData, error } = useSeries(interval, start, end, live);
+  // Placeholder data with other params is the previous view: dimmed until this one loads. With these params it's the
+  // shown view cut to this start, e.g. a live rolling range sliding forward a bucket.
+  const loading = isPlaceholderData && !(data?.interval === interval && data.start === start && data.end === end);
+
+  // While live, renders at the poll rate even when no new bucket came in, so a rolling range slides. Paused in a
+  // hidden tab, as the polls are: a render there could slide a rolling range onto a new query key, which fetches at
+  // once. Showing the tab again catches up.
+  const [, tick] = useReducer((n: number) => n + 1, 0);
+  useEffect(() => {
+    if (!live) return;
+    const id = setInterval(() => document.hidden || tick(), LIVE_POLL_MS[interval]);
+    const onVisible = () => document.hidden || tick();
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [live, interval]);
+  // A zoom stops ending now at liveUntil, live or not: render then, so polling stops and the Live button goes
+  // unavailable. Capped at setTimeout's ~24.8 day maximum; one firing early schedules the next.
+  useEffect(() => {
+    if (!endsNow || liveUntil === Infinity) return;
+    const id = setTimeout(tick, Math.min(2 ** 31 - 1, (liveUntil - Date.now() / 1000) * 1000 + 100));
+    return () => clearTimeout(id);
+  }, [endsNow, liveUntil, now]);
 
   const totals = useMemo(() => {
     const t = { fees: 0, txns: 0, blocks: 0 };
@@ -202,92 +278,80 @@ function SeriesPage({ title, y, format: formatValue, label, settings, note, stat
   if (!surfIdxSupported) return <div className="mt-6 text-muted-foreground">Network not supported</div>;
 
   return (
-    <div className="mt-6 flex flex-col gap-6">
-      <div className="flex flex-wrap items-end justify-between gap-x-6 border-b border-primary">
-        <div className="pb-2 text-xl text-primary">{title}</div>
-        <div className="flex flex-wrap gap-x-6 max-w-full">
-          <div className="flex max-w-full">
-            {/* Manual: with a period or zoom shown no tab is selected, and tabbing onto one would select it. */}
+    <TooltipProvider>
+      <div className="mt-6 flex flex-col gap-6">
+        <div className="flex flex-wrap items-end justify-between gap-x-6 border-b border-primary">
+          <div className="pb-2 text-xl text-primary">{title}</div>
+          <div className="flex flex-wrap gap-x-6 max-w-full">
+            <div className="flex max-w-full">
+              {/* Manual: with a period or zoom shown no tab is selected, and tabbing onto one would select it. */}
+              <TabsUnderline
+                listClassName="h-9 border-b-0"
+                activationMode="manual"
+                value={zoom ? "" : rangeValue}
+                onValueChange={select}
+                tabs={RANGES}
+              />
+              <PeriodMenu period={zoom ? undefined : period} now={now} onSelect={select} />
+            </div>
+            <LiveButton on={liveOn} available={endsNow} onChange={setLiveOn} />
+          </div>
+        </div>
+
+        {/* Pulled toward the header above and the chart below. */}
+        <div className="-mt-3 -mb-3 flex flex-col gap-1 text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-center justify-between gap-x-6">
+            <div>
+              {zoom ? (
+                <div className="flex items-center gap-1">
+                  <IconButton label="Zoom out" onClick={() => zoomOut(zoom)}>
+                    <ZoomOut className="size-4" />
+                  </IconButton>
+                  <IconButton label="Reset zoom" onClick={resetZoom}>
+                    <RotateCcw className="size-4" />
+                  </IconButton>
+                  <span className="ml-1">Zoomed to {formatSpan(zoom.start, zoom.end)}</span>
+                </div>
+              ) : (
+                <>
+                  Showing {period?.label ?? range.label}.{" "}
+                  <span className="text-muted">Click a bar or drag across the chart to zoom in.</span>
+                </>
+              )}
+            </div>
             <TabsUnderline
               listClassName="h-9 border-b-0"
-              activationMode="manual"
-              value={zoom ? "" : rangeValue}
-              onValueChange={select}
-              tabs={RANGES}
+              value={interval}
+              onValueChange={selectInterval}
+              tabs={INTERVALS.filter((i) => intervals.includes(i.value))}
             />
-            <PeriodMenu period={zoom ? undefined : period} now={now} onSelect={select} />
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger className="inline-flex h-9 items-center gap-1.5 px-3 pt-1.5 pb-2 text-sm font-medium text-muted-foreground hover:text-primary outline-none focus-visible:ring-2 focus-visible:ring-ring">
-              <Settings className="size-4" />
-              Settings
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-background border-border text-primary">
-              {settings}
-              <Toggle checked={local} onChange={setLocal}>
-                Local time
-              </Toggle>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {error && data && <div className="text-xs text-muted">Could not update: {String(error)}</div>}
         </div>
-      </div>
 
-      {/* Pulled toward the header above and the chart below. */}
-      <div className="-mt-3 -mb-3 flex flex-col gap-1 text-sm text-muted-foreground">
-        <div className="flex flex-wrap items-center justify-between gap-x-6">
-          <div>
-            {zoom ? (
-              <>
-                Zoomed to {formatSpan(zoom.start, zoom.end, local)} ·{" "}
-                <button type="button" className="text-primary hover:underline" onClick={() => zoomOut(zoom)}>
-                  Zoom out
-                </button>{" "}
-                ·{" "}
-                <button type="button" className="text-primary hover:underline" onClick={resetZoom}>
-                  Reset zoom
-                </button>
-              </>
-            ) : (
-              <>
-                {/* Calendar periods are UTC days whatever the time setting. */}
-                Showing {period?.label ?? range.label}
-                {local && period ? " (UTC)" : ""}.{" "}
-                <span className="text-muted">Click a bar or drag across the chart to zoom in.</span>
-              </>
-            )}
+        {/* A failed fetch with a view to show, e.g. a rate-limited live poll, keeps it up: the next poll may succeed. */}
+        {error && !data ? (
+          <div className="text-muted-foreground">Could not load data: {String(error)}</div>
+        ) : !data ? (
+          <LoadingTile />
+        ) : (
+          // The previous view stays mounted, dimmed, while the next one loads.
+          <div className={`flex flex-col gap-6 transition-opacity ${loading ? "opacity-50" : ""}`}>
+            <SeriesChart
+              buckets={data.buckets}
+              interval={data.interval}
+              start={data.start}
+              end={data.end}
+              y={y}
+              format={format}
+              label={label}
+              onZoom={zoomTo}
+            />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">{stats(totals, data)}</div>
           </div>
-          <TabsUnderline
-            listClassName="h-9 border-b-0"
-            value={interval}
-            onValueChange={selectInterval}
-            tabs={INTERVALS.filter((i) => intervals.includes(i.value))}
-          />
-        </div>
-        {note}
+        )}
       </div>
-
-      {error ? (
-        <div className="text-muted-foreground">Could not load data: {String(error)}</div>
-      ) : !data ? (
-        <LoadingTile />
-      ) : (
-        // The previous view stays mounted, dimmed, while the next one loads.
-        <div className={`flex flex-col gap-6 transition-opacity ${isPlaceholderData ? "opacity-50" : ""}`}>
-          <SeriesChart
-            buckets={data.buckets}
-            interval={data.interval}
-            start={data.start}
-            end={data.end}
-            y={y}
-            format={format}
-            label={label}
-            local={local}
-            onZoom={zoomTo}
-          />
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">{stats(totals, data)}</div>
-        </div>
-      )}
-    </div>
+    </TooltipProvider>
   );
 }
 

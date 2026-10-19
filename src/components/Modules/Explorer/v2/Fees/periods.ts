@@ -53,27 +53,23 @@ function bounds(value: string, now: number): [number, number, string] | undefine
   return [start, Date.UTC(year, month + months) / 1000, label];
 }
 
-/** ts as an ISO string, read as local time when local: shifted by the offset at that instant, so its Z is then wrong. */
-export const isoAt = (ts: number, local = false) =>
-  new Date((local ? ts - new Date(ts * 1000).getTimezoneOffset() * 60 : ts) * 1000).toISOString();
+/** ts as a UTC ISO string. */
+export const isoAt = (ts: number) => new Date(ts * 1000).toISOString();
 
 /**
  * A UTC [start, end) in unix seconds for display. Whole days as dates, the last inclusive: "2024-03-05" for one day,
  * "2024-03-05 – 2024-04-10" for more. Anything else as times, to the second if a bound is off the minute: one for a
  * whole hour, minute or second ("2024-03-05 14:00 UTC"), else "… 14:00 – 2024-03-05 18:00 UTC".
- * local shows the times in local time, unmarked. Whole days stay UTC dates, the API's buckets, marked "UTC".
  */
-export function formatSpan(start: number, end: number, local = false): string {
+export function formatSpan(start: number, end: number): string {
   if (start % DAY === 0 && end % DAY === 0) {
     const from = isoAt(start).slice(0, 10);
     const to = isoAt(end - DAY).slice(0, 10);
-    const days = from === to ? from : `${from} – ${to}`;
-    return local ? `${days} UTC` : days;
+    return from === to ? from : `${from} – ${to}`;
   }
-  const time = (ts: number) => isoAt(ts, local).slice(0, start % 60 || end % 60 ? 19 : 16).replace("T", " ");
+  const time = (ts: number) => isoAt(ts).slice(0, start % 60 || end % 60 ? 19 : 16).replace("T", " ");
   const one = [3600, 60, 1].some((unit) => end - start === unit && start % unit === 0);
-  const zone = local ? "" : " UTC";
-  return one ? `${time(start)}${zone}` : `${time(start)} – ${time(end)}${zone}`;
+  return one ? `${time(start)} UTC` : `${time(start)} – ${time(end)} UTC`;
 }
 
 /**
