@@ -6,7 +6,8 @@ import {
   getSortedRowModel,
   ColumnDef,
 } from "@tanstack/react-table";
-import { Loader2 } from "lucide-react";
+import { ChevronDown, Loader2 } from "lucide-react";
+import { cn } from "src/lib/utils";
 import useTitle from "src/components/Common/UseTitle/UseTitle";
 import { surfIdxOffMessage, useSurfIdxCaps } from "src/hooks/useSurfIdxCaps";
 import { LsigTemplateSummary, templateLabel, useLsigTemplates } from "src/hooks/useLsig";
@@ -71,6 +72,7 @@ function LsigTemplates(): JSX.Element {
   const caps = useSurfIdxCaps();
   const { data, isError, error } = useLsigTemplates();
   const [filter, setFilter] = useState("");
+  const [showHow, setShowHow] = useState(false);
 
   const rows = useMemo(() => {
     const f = filter.trim().toLowerCase();
@@ -97,11 +99,22 @@ function LsigTemplates(): JSX.Element {
 
   return (
     <div>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Logic sigs that are one program filled in with different values, such as per-user or per-pool escrows, share a
-        template. Listed are templates with 2 or more programs, or delegated by 2 or more accounts. Anyone can fill a
-        template with their own values, so a shared template doesn't make a logic sig genuine.
-      </p>
+      <button
+        type="button"
+        onClick={() => setShowHow((o) => !o)}
+        className="mt-1 py-1 inline-flex items-center gap-1 text-sm text-primary hover:underline"
+        aria-expanded={showHow}
+      >
+        How logic sig templates work
+        <ChevronDown size={14} className={cn("transition-transform", showHow && "rotate-180")} />
+      </button>
+      {showHow ? (
+        <p className="mt-2 text-sm text-muted-foreground">
+          Logic sigs that are one program filled in with different values, such as per-user or per-pool escrows, share
+          a template. Listed are templates with 2 or more programs, or delegated by 2 or more accounts. Anyone can fill
+          a template with their own values, so a shared template doesn't make a logic sig genuine.
+        </p>
+      ) : null}
       <ListToolbar
         className="mt-3"
         pageIndex={pageIndex}
