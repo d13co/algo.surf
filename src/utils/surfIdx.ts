@@ -1,12 +1,10 @@
-import { network } from "src/packages/core-sdk/constants";
-
-/** surf idx serves fee/TPS series and block proposer analytics. */
-const SURF_IDX_HOSTS: Record<string, string> = {
-  Mainnet: "https://surf-mainnet-idx.d13.co",
-};
-// REACT_APP_SURF_IDX points a build at another surf idx, e.g. one on the LAN.
-const surfIdxHost = process.env.REACT_APP_SURF_IDX || SURF_IDX_HOSTS[network];
-/** A surf idx exists for this network. Fees and TPS are always served; check useSurfIdxCaps for the rest. */
+/**
+ * surf idx serves fee/TPS series, upgrade history and block proposer analytics. Its URL comes only
+ * from REACT_APP_SURF_IDX, set per build like REACT_APP_NETWORK: a build without it has no surf idx
+ * features.
+ */
+const surfIdxHost = process.env.REACT_APP_SURF_IDX?.replace(/\/+$/, "");
+/** This build has a surf idx. Fees and TPS are always served; check useSurfIdxCaps for the rest. */
 export const surfIdxSupported = !!surfIdxHost;
 
 /** A non-2xx reply from surf idx. */

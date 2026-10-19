@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import ConsensusVersion from "src/components/v2/ConsensusVersion";
 import { useConsensusUpgrade } from "src/hooks/useConsensusUpgrade";
 import { useConsensusVersionLookup } from "src/hooks/useConsensusVersions";
+import { useUpgradeAttempt } from "src/hooks/useUpgrades";
+import VoteBar from "src/components/v2/VoteBar";
 import ConsensusUpgradeDialog from "./ConsensusUpgradeDialog";
 import UpgradeEta from "./UpgradeEta";
 import { verdictClassName, votePercent, voteStatus } from "./voteStatus";
@@ -15,6 +17,8 @@ export default function LiveUpgrade(): JSX.Element | null {
     const upgrade = useConsensusUpgrade();
     const lookup = useConsensusVersionLookup();
     const [open, setOpen] = useState(false);
+    // From surf idx: earlier proposals of this protocol make this a re-vote.
+    const attempt = useUpgradeAttempt(upgrade?.nextProtocolVoteBefore)?.attempt ?? 1;
 
     if (!upgrade) return null;
 
@@ -22,14 +26,6 @@ export default function LiveUpgrade(): JSX.Element | null {
     const current = lookup(upgrade.currentProtocol);
     // The vote runs under the current protocol's rules, so its params set the bar.
     const vote = voteStatus(upgrade, current.voteRounds, current.threshold);
-
-    const votePct = vote.voteRounds ? Math.min(100, (vote.approvals / vote.voteRounds) * 100) : null;
-    const noPct = vote.voteRounds && vote.noVotes != null && votePct != null
-        ? Math.min(100 - votePct, (vote.noVotes / vote.voteRounds) * 100)
-        : null;
-    const thresholdPct = vote.voteRounds && vote.threshold
-        ? Math.min(100, (vote.threshold / vote.voteRounds) * 100)
-        : null;
 
     return (
         <>
@@ -44,6 +40,7 @@ export default function LiveUpgrade(): JSX.Element | null {
                     <div>
                         <div className="text-muted-foreground text-[13px] mb-1">
                             {upgrade.phase === "voting" ? "Upgrade Vote" : "Upgrade Countdown"}
+                            {attempt > 1 ? ` · attempt ${attempt}` : ""}
                         </div>
                         <ConsensusVersion info={next} size="lg" />
                     </div>
@@ -86,30 +83,13 @@ export default function LiveUpgrade(): JSX.Element | null {
                                 )}
                             </div>
 
-                            {votePct != null ? (
-                                <div className="relative mt-2 h-1.5 w-full rounded bg-background-muted overflow-hidden">
-                                    <div
-                                        className="absolute inset-y-0 left-0 bg-primary"
-                                        style={{ width: `${votePct}%` }}
-                                    />
-                                    {noPct ? (
-                                        /* Anchored to the far end: no votes consume the window
-                                           from the right, so the unvoted middle gap is the runway
-                                           the yes tally has left to reach the threshold tick. */
-                                        <div
-                                            className="absolute inset-y-0 right-0 bg-secondary"
-                                            style={{ width: `${noPct}%` }}
-                                        />
-                                    ) : null}
-                                    {thresholdPct != null ? (
-                                        <div
-                                            className="absolute inset-y-0 w-px bg-foreground/60"
-                                            style={{ left: `${thresholdPct}%` }}
-                                            title={`${vote.threshold?.toLocaleString()} votes needed`}
-                                        />
-                                    ) : null}
-                                </div>
-                            ) : null}
+                            <VoteBar
+                                className="mt-2"
+                                approvals={vote.approvals}
+                                noVotes={vote.noVotes}
+                                voteRounds={vote.voteRounds}
+                                threshold={vote.threshold}
+                            />
 
                             <div className="text-muted-foreground text-[13px] mt-2">
                                 <span className={verdictClassName(vote.verdict)}>{vote.label}</span>
@@ -124,7 +104,7 @@ export default function LiveUpgrade(): JSX.Element | null {
                                     strips trailing zeros so mainnet reads "90", not "90.00". */}
                                 {vote.voteRounds && vote.threshold
                                     ? `${Number(((vote.threshold / vote.voteRounds) * 100).toFixed(2))}% Yes needed`
-                                    : `${upgrade.roundsRemaining.toLocaleString()} rounds left`}
+                                    : `${upgrade.roundsRemaining.toLocaleString()} ${upgrade.roundsRemaining === 1 ? "round" : "rounds"} left`}
                             </div>
                         </div>
                     ) : (
@@ -133,7 +113,7 @@ export default function LiveUpgrade(): JSX.Element | null {
                                 <span className="text-primary text-xl">
                                     {upgrade.roundsRemaining.toLocaleString()}
                                 </span>
-                                <span className="text-muted-foreground">rounds</span>
+                                <span className="text-muted-foreground">{upgrade.roundsRemaining === 1 ? "round" : "rounds"}</span>
                             </div>
                             <div className="text-[13px] mt-2">
                                 <UpgradeEta targetEpoch={upgrade.targetEpoch} />
