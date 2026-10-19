@@ -188,7 +188,11 @@ export function ActiveFilter({
         return (
           <Chip key={text} variant="success" className="font-mono" title={text}>
             <span className="max-w-[24ch] truncate">{text}</span>
-            {remove(filterHref({ ...filter, fields: filter.fields.filter((_, j) => j !== i) }), text)}
+            {remove(
+              // With no object label, the object is implied, so it goes with the last field.
+              filterHref({ ...filter, object: label ? filter.object : undefined, fields: filter.fields.filter((_, j) => j !== i) }),
+              text,
+            )}
           </Chip>
         );
       })}
@@ -293,7 +297,7 @@ export function DeltaCell({
           ) : s.status === "error" ? (
             <span className="text-red-400 text-xs">Previous state unavailable: {s.error}</span>
           ) : s.changes.length ? (
-            <ObjectDiffTree summary={s} fieldHref={fieldHref} collapseDepth={0} maxChildren={6} truncateAt={40} />
+            <ObjectDiffTree summary={s} fieldHref={fieldHref} collapseDepth={0} maxChildren={6} truncateAt={40} truncateBytes={64} />
           ) : (
             <span className="text-muted-foreground text-xs">—</span>
           )}

@@ -13,6 +13,7 @@ import {
  * Filters for version lists, as the URL carries them:
  *
  *   ?object=asset:31566704             one object's versions (account pages)
+ *   ?object=box:bmFtZQ==               ...or of a box (app pages, with boxes)
  *   ?field=global.counter              the versions that changed a field
  *   ?object=local:123&field=local.foo  ...of one object
  *
@@ -20,7 +21,7 @@ import {
  * as the Changed chips spell it, and may repeat: any of them changing
  * matches. A field covers everything under it: `global` is any global state
  * change. On a page of several objects, a field without an object is about
- * the account itself (`base`).
+ * the account itself (`base`), or on an app's, the app (`app`).
  */
 export type VersionFilter = {
   /** The object (objKey) the versions must touch; undefined on single-object pages. */
@@ -74,27 +75,47 @@ export function parseField(s: string): FieldPath | undefined {
   return path.length ? path : undefined;
 }
 
-const accountObjectKinds = new Set<ObjKind>(["base", "asset", "local", "created-asset", "created-app"]);
+/** The pages that list several objects: an account's, and an app's with its boxes. */
+export type VersionObjects = "account" | "app";
 
-/** An account object's ref from its objKey (`base`, `asset:31566704`, ...); undefined where it is not one. */
+const objectKinds: Record<VersionObjects, Set<ObjKind>> = {
+  account: new Set(["base", "asset", "local", "created-asset", "created-app"]),
+  app: new Set(["app", "box"]),
+};
+
+/** What a field without an object is about: the account itself, or the app. */
+const defaultObject: Record<VersionObjects, string> = { account: "base", app: "app" };
+
+/**
+ * An object's ref from its objKey (`base`, `asset:31566704`, `app`,
+ * `box:<base64 name>`, ...); undefined where it is not one. A `+` in a box
+ * name typed into a query unescaped reads back as a space.
+ */
 export function parseObjKey(key: string): ObjRef | undefined {
   const [kind, id, ...extra] = key.split(":");
-  if (extra.length || !accountObjectKinds.has(kind as ObjKind)) return undefined;
-  if (kind === "base") return id === undefined ? { kind } : undefined;
+  if (extra.length) return undefined;
+  if (kind === "base" || kind === "app") return id === undefined ? { kind } : undefined;
+  if (kind === "box") {
+    const b64 = id?.replace(/ /g, "+");
+    if (!b64 || !/^[A-Za-z0-9+/]+={0,2}$/.test(b64)) return undefined;
+    return { kind, id: Buffer.from(b64, "base64").toString("base64") };
+  }
+  if (!objectKinds.account.has(kind as ObjKind)) return undefined;
   return id !== undefined && /^\d+$/.test(id) ? { kind: kind as ObjKind, id: Number(id) } : undefined;
 }
 
 /**
  * The filter in a page's query: undefined where there is none. `objects`:
- * whether the page lists several objects (an account's), so `object` applies.
+ * which objects the page lists, where it lists several, so `object` applies.
  */
-export function parseVersionFilter(params: URLSearchParams, objects: boolean): VersionFilter | undefined {
+export function parseVersionFilter(params: URLSearchParams, objects?: VersionObjects): VersionFilter | undefined {
   const fields = params.getAll("field").map(parseField).filter((f): f is FieldPath => !!f);
   let object: string | undefined;
   if (objects) {
-    const ref = parseObjKey(params.get("object") ?? "");
+    const parsed = parseObjKey(params.get("object") ?? "");
+    const ref = parsed && objectKinds[objects].has(parsed.kind) ? parsed : undefined;
     // As the touches key it: `asset:007` is `asset:7`.
-    object = ref ? objKey(ref) : fields.length ? "base" : undefined;
+    object = ref ? objKey(ref) : fields.length ? defaultObject[objects] : undefined;
   }
   return object || fields.length ? { object, fields } : undefined;
 }

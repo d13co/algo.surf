@@ -161,7 +161,7 @@ function AppRouter(): JSX.Element {
                             element={<AccountValidator />}
                           />
                           <Route
-                            path="versions"
+                            path="versions/*"
                             element={<AccountVersions />}
                           />
                           <Route
@@ -206,7 +206,7 @@ function AppRouter(): JSX.Element {
                             element={<ApplicationBoxes></ApplicationBoxes>}
                           />
                           <Route
-                            path="versions"
+                            path="versions/*"
                             element={<ApplicationVersions />}
                           />
                           <Route

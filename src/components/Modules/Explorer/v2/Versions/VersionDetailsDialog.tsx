@@ -6,13 +6,15 @@ import { Button } from "src/components/v2/ui/button";
 import JsonViewer from "src/components/v2/JsonViewer";
 import MultiDateViewer from "src/components/v2/MultiDateViewer";
 import TabsUnderline from "src/components/v2/shadcn-studio/tabs/tabs-11";
-import { useAccountVersionsAt, useObjectAt } from "src/hooks/useTimeTravel";
+import { readsWholeVersions, useObjectAt, useVersionsAt } from "src/hooks/useTimeTravel";
 import { toPlainJson } from "src/packages/core-sdk/utils/serialize";
 import type { VersionsOrder } from "src/utils/timeTravel";
-import { BaselineContext, objKindLabel, ObjectSummary, ObjRef, summarizeOthers } from "src/utils/versionDelta";
+import { BaselineContext, isBytesLeaf, objKindLabel, ObjectSummary, ObjRef, summarizeOthers } from "src/utils/versionDelta";
 import type { VersionFilter } from "src/utils/versionFilter";
 import Link from "../Links/Link";
 import LinkToBlock from "../Links/LinkToBlock";
+import { BoxValueTypesInput, useBoxValueTypes } from "../Application/BoxValue";
+import { BoxValueDiff, DecodedDiff, SizeNote, useDecodedBoxValues } from "../Application/BoxValueDiff";
 import {
   FieldHref,
   FilterLink,
@@ -30,7 +32,41 @@ type View = "changes" | "full";
 
 const ACCOUNT: ObjRef = { kind: "base" };
 
-/** One object in a version: its changes, or its whole state with them. */
+/** A box's value (base64) before and after a version, from its summary; null where it had none. */
+function boxValues(s: ObjectSummary): { before: string | null; after: string | null } {
+  const now = s.state && isBytesLeaf(s.state.value) ? s.state.value.$bytes : null;
+  if (s.status === "created") return { before: null, after: now };
+  if (s.status === "deleted") return { before: now, after: null };
+  const change = s.changes.find((c) => c.kind === "changed" && c.path.length === 1 && c.path[0] === "value");
+  return { before: change && isBytesLeaf(change.before) ? change.before.$bytes : now, after: now };
+}
+
+/**
+ * A box in a version, decoded with the app's box value types where they fit:
+ * its changes (the changed hex lines of a long value they do not fit), or
+ * its whole value with them.
+ */
+function BoxSummaryBody({ summary: s, round, view, types, fieldHref }: {
+  summary: ObjectSummary;
+  round: number;
+  view: View;
+  types?: string[];
+  fieldHref?: FieldHref;
+}) {
+  const { before, after } = useMemo(() => boxValues(s), [s]);
+  const decoded = useDecodedBoxValues(before, after, types);
+  if (view === "full") {
+    return decoded ? (
+      <DecodedDiff key={round} before={decoded.before} after={decoded.after} full />
+    ) : (
+      <ObjectDiffTree key={round} summary={s} full fieldHref={fieldHref} collapseDepth={1} maxChildren={Infinity} truncateAt={120} />
+    );
+  }
+  if (s.status === "unchanged") return <span className="text-muted-foreground">No field changes</span>;
+  return <BoxValueDiff key={round} before={before} after={after} types={types} />;
+}
+
+/** One object in a version: its changes, or its whole state with them; a box decoded with `boxTypes`. */
 function SummarySection({
   summary: s,
   round,
@@ -39,6 +75,7 @@ function SummarySection({
   stateHref,
   txnsLink,
   fieldHref,
+  boxTypes,
 }: {
   summary: ObjectSummary;
   round: number;
@@ -47,12 +84,16 @@ function SummarySection({
   stateHref: StateHref;
   txnsLink: TxnsLink;
   fieldHref?: FieldHref;
+  boxTypes?: string[];
 }) {
+  const isBox = s.ref.kind === "box" && (s.status === "created" || s.status === "deleted" || s.status === "changed" || s.status === "unchanged");
+  const box = isBox ? boxValues(s) : undefined;
   return (
     <section>
       <div className="flex flex-wrap items-center gap-2 mb-1">
         <span className="text-muted-foreground">{label ? label(s.ref) : objKindLabel[s.ref.kind]}</span>
         <StatusChip summary={s} />
+        {box ? <SizeNote before={box.before} after={box.after} /> : null}
         {label && fieldHref ? <FilterLink href={fieldHref(s.key)} title="Only the versions that changed this" /> : null}
         {label ? (
           <Link href={stateHref(round, s.ref)} className="text-xs" title="Where the page shows this, as it was at this block">
@@ -66,6 +107,8 @@ function SummarySection({
         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
       ) : s.status === "error" ? (
         <span className="text-red-400">Previous state unavailable: {s.error}</span>
+      ) : isBox ? (
+        <BoxSummaryBody summary={s} round={round} view={view} types={boxTypes} fieldHref={fieldHref} />
       ) : view === "changes" ? (
         s.changes.length ? (
           <ObjectDiffTree key={round} summary={s} fieldHref={fieldHref} collapseDepth={2} maxChildren={Infinity} truncateAt={120} />
@@ -140,6 +183,8 @@ export default function VersionDetailsDialog<V>({
   showOthers,
   rows,
   index,
+  openRound = null,
+  openMissing = false,
   onIndexChange,
   hasMore,
   fetchMore,
@@ -159,6 +204,10 @@ export default function VersionDetailsDialog<V>({
   showOthers: boolean;
   rows: SummarizedRow<V>[];
   index: number | null;
+  /** The round the route opens, where `rows` may not hold it yet: the dialog waits for it. */
+  openRound?: number | null;
+  /** The list holds no version at `openRound`. */
+  openMissing?: boolean;
   onIndexChange: (index: number | null) => void;
   hasMore: boolean;
   fetchMore: () => void;
@@ -182,9 +231,9 @@ export default function VersionDetailsDialog<V>({
   const summaries = row?.summaries ?? [];
 
   // Filtered to an object, a version holds only its part: the rest is read whole.
-  const readWhole = showOthers && !!filter?.object && ctx.kind === "account";
+  const readWhole = showOthers && !!filter?.object && readsWholeVersions(ctx);
   const wholeRounds = useMemo(() => (readWhole && row ? [row.round] : []), [readWhole, row?.round]);
-  const whole = useAccountVersionsAt(ctx, wholeRounds, filter?.object);
+  const whole = useVersionsAt(ctx, wholeRounds, filter?.object);
   const wholeObjects = row ? whole.byRound.get(row.round) : undefined;
   const wholeError = row ? whole.errors.get(row.round) : undefined;
   // What the filter leaves out: changes to other fields of its objects (their
@@ -241,7 +290,11 @@ export default function VersionDetailsDialog<V>({
   useHotkeys("left", prev, { enabled: index !== null }, [index, canPrev, onIndexChange]);
   useHotkeys("right", next, { enabled: index !== null }, [index, rows.length, hasMore, isFetchingMore, fetchMore, onIndexChange]);
 
-  const sectionProps = { round: row?.round ?? 0, view, label, stateHref, txnsLink, fieldHref };
+  // The app's box value types, shared with its box view, where the version has a box to decode.
+  const boxValueTypes = useBoxValueTypes(ctx.kind === "app" ? ctx.appId : 0);
+  const hasBoxes = ctx.kind === "app" && [...summaries, ...others].some((s) => s.ref.kind === "box");
+
+  const sectionProps = { round: row?.round ?? 0, view, label, stateHref, txnsLink, fieldHref, boxTypes: boxValueTypes.types };
 
   function close() {
     setAwaitingMore(false);
@@ -249,11 +302,28 @@ export default function VersionDetailsDialog<V>({
   }
 
   return (
-    <Dialog open={!!row} onOpenChange={(open) => !open && close()}>
+    <Dialog open={!!row || openRound !== null} onOpenChange={(open) => !open && close()}>
       <DialogContent aria-describedby={undefined} className="max-w-4xl max-h-[90vh] flex flex-col bg-background-muted text-foreground">
         <DialogHeader>
-          <DialogTitle className="text-lg font-normal">Version at block {row ? <LinkToBlock id={row.round} /> : null}</DialogTitle>
+          <DialogTitle className="text-lg font-normal">
+            Version at block {row ? <LinkToBlock id={row.round} /> : openRound !== null ? <LinkToBlock id={openRound} /> : null}
+          </DialogTitle>
         </DialogHeader>
+
+        {!row && openRound !== null ? (
+          openMissing ? (
+            <div className="text-muted-foreground text-sm">
+              {filter ? "No version this list shows is at this block." : "No version at this block."}
+            </div>
+          ) : fetchMoreFailed && !isFetchingMore ? (
+            <div className="text-red-400 text-sm">Could not load the versions up to this block.</div>
+          ) : (
+            <div className="flex items-center gap-2 text-muted-foreground text-sm">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Finding the version…
+            </div>
+          )
+        ) : null}
 
         {row ? (
           <div className="text-[13px] flex flex-col min-h-0 gap-3">
@@ -306,6 +376,13 @@ export default function VersionDetailsDialog<V>({
             />
 
             <div className="overflow-y-auto min-h-0 flex flex-col gap-4">
+              {hasBoxes ? (
+                <BoxValueTypesInput
+                  value={boxValueTypes.filter}
+                  onChange={boxValueTypes.setFilter}
+                  parsed={boxValueTypes.parsed}
+                />
+              ) : null}
               {showAccount ? (
                 <AccountAt
                   ctx={ctx}

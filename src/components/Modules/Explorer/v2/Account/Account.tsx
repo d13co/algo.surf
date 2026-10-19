@@ -337,7 +337,7 @@ function Account(): JSX.Element {
     tabValue = "validator";
   } else if (
     hasVersions &&
-    matchPath("/account/:address/versions", pathname)
+    matchPath("/account/:address/versions/*", pathname)
   ) {
     tabValue = "versions";
   }

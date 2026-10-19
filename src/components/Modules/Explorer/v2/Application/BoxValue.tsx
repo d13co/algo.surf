@@ -1,8 +1,106 @@
-import React, { useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { ABIType } from "algosdk";
 import { getABIDecodedValue } from "@algorandfoundation/algokit-utils/types/app-arc56";
 import MultiFormatViewer from "src/components/v2/MultiFormatViewer";
 import Copyable from "src/components/v2/Copyable";
+import { Input } from "src/components/v2/ui/input";
+
+// --- Value types: the ARC-4 types to decode an app's box values as ---
+
+export interface ParsedTypes {
+  types: string[];
+  error?: string;
+}
+
+/** Space separated ARC-4 types (a tuple's spaces aside); null where there are none. */
+export function parseTypeFilter(filter: string): ParsedTypes | null {
+  const trimmed = filter.trim();
+  if (!trimmed) return null;
+  const types: string[] = [];
+  let depth = 0;
+  let current = "";
+  for (const char of trimmed) {
+    if (char === "(") depth++;
+    if (char === ")") depth--;
+    if (char === " " && depth === 0) {
+      if (current) types.push(current);
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+  if (current) types.push(current);
+  if (types.length === 0) return null;
+
+  for (const t of types) {
+    try {
+      ABIType.from(t);
+    } catch {
+      return { types, error: `Invalid ARC4 type: ${t}` };
+    }
+  }
+  return { types };
+}
+
+function readStorage(key: string): string {
+  try {
+    return localStorage.getItem(key) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+function writeStorage(key: string, value: string) {
+  try {
+    if (value) localStorage.setItem(key, value);
+    else localStorage.removeItem(key);
+  } catch {
+    // not remembered, then
+  }
+}
+
+/**
+ * The value types set for an app's boxes, remembered per app: the box view
+ * and the version details share them. `types` is undefined while none are
+ * set or one is invalid.
+ */
+export function useBoxValueTypes(appId: number) {
+  const storageKey = `box-value-filter:${appId}`;
+  // Kept with the key it is for, so another app (same component, new id) reads its own.
+  const [state, setState] = useState(() => ({ key: storageKey, value: readStorage(storageKey) }));
+  const filter = state.key === storageKey ? state.value : readStorage(storageKey);
+  const setFilter = useCallback(
+    (v: string) => {
+      setState({ key: storageKey, value: v });
+      writeStorage(storageKey, v);
+    },
+    [storageKey],
+  );
+  const parsed = useMemo(() => parseTypeFilter(filter), [filter]);
+  const types = parsed?.types && !parsed.error ? parsed.types : undefined;
+  return { filter, setFilter, parsed, types };
+}
+
+/** The field to set an app's box value types in (see useBoxValueTypes). */
+export function BoxValueTypesInput({ value, onChange, parsed }: {
+  value: string;
+  onChange: (value: string) => void;
+  parsed: ParsedTypes | null;
+}) {
+  return (
+    <div>
+      <div className="text-sm text-muted-foreground mb-1">Value Types</div>
+      <Input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Space separated ARC4 types for Values (e.g. 'string uint64 (address,bool)')"
+        className={`font-mono text-sm h-8 ${parsed?.error ? "!border-secondary" : ""}`}
+      />
+      {parsed?.error && <div className="text-secondary text-xs mt-1">{parsed.error}</div>}
+    </div>
+  );
+}
 
 // --- Decoded value rendering ---
 

@@ -75,7 +75,7 @@ function Application(): JSX.Element {
   let tabValue = "transactions";
   if (matchPath("/application/:id/boxes/*", pathname)) {
     tabValue = "boxes";
-  } else if (hasVersions && matchPath("/application/:id/versions", pathname)) {
+  } else if (hasVersions && matchPath("/application/:id/versions/*", pathname)) {
     tabValue = "versions";
   }
 

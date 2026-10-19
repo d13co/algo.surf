@@ -7,7 +7,9 @@ import {
   TimeTravelError,
   ttGet,
   TTAccountVersion,
+  TTAppStateVersion,
   TTAppVersion,
+  TTBoxesVersion,
   TTBoxVersion,
   TTVersionsPage,
   BOX_VERSIONS_BATCH_SIZE,
@@ -19,6 +21,7 @@ import {
 } from "src/utils/timeTravel";
 import {
   accountVersionTouches,
+  appVersionTouches,
   BaselineContext,
   BaselineNeed,
   Baselines,
@@ -32,6 +35,7 @@ import {
   VersionRow,
 } from "src/utils/versionDelta";
 import { parseObjKey, VersionFilter } from "src/utils/versionFilter";
+import { FeedReader, MergedCursor, MergedPage, readMergedPage } from "src/utils/mergeVersionFeeds";
 
 const ZERO_ADDRESS = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ";
 
@@ -94,6 +98,7 @@ async function getVersionsPage<V>(
   path: string,
   query: Record<string, string | number | undefined>,
   batchSize = VERSIONS_BATCH_SIZE,
+  notServed = "This node does not serve version histories",
 ) {
   const page = await ttGet<TTVersionsPage<V>>(path, {
     include: "values",
@@ -101,7 +106,7 @@ async function getVersionsPage<V>(
     ...query,
   });
   if (!page) {
-    throw new TimeTravelError("This node does not serve version histories", 404);
+    throw new TimeTravelError(notServed, 404);
   }
   return page;
 }
@@ -156,23 +161,80 @@ export function useVersionsOrder(): [VersionsOrder, (order: VersionsOrder) => vo
   return [oldestFirst ? "asc" : "desc", (order) => setOldestFirst(order === "asc")];
 }
 
+/** A version feed of an app's: its params, the changes of all its boxes, or one box's versions. */
+type AppFeed = { kind: "params" } | { kind: "boxes" } | { kind: "box"; name: string };
+
+/**
+ * The feeds an app's version list reads: of `object` (an objKey) alone where
+ * it names one, else the params, and with `includeBoxes` the box changes too.
+ */
+function appFeeds(includeBoxes: boolean, object: string | undefined): AppFeed[] {
+  const ref = object ? parseObjKey(object) : undefined;
+  if (ref?.kind === "box") return [{ kind: "box", name: String(ref.id) }];
+  if (ref?.kind === "app" || !includeBoxes) return [{ kind: "params" }];
+  return [{ kind: "params" }, { kind: "boxes" }];
+}
+
+/** A page of one feed, its versions as TTAppStateVersions. */
+async function getAppFeedPage(
+  appId: number,
+  feed: AppFeed,
+  query: Record<string, string | number | undefined>,
+  batchSize: number | undefined,
+): Promise<TTVersionsPage<TTAppStateVersion>> {
+  const app = `/v2/applications/${appId}`;
+  switch (feed.kind) {
+    case "params":
+      return getVersionsPage<TTAppVersion>(`${app}/versions`, query, batchSize);
+    case "boxes":
+      return getVersionsPage<TTBoxesVersion>(`${app}/boxes/versions`, query, batchSize, "This node does not serve box change histories");
+    case "box": {
+      const page = await getVersionsPage<TTBoxVersion>(`${app}/box/versions`, { ...query, name: `b64:${feed.name}` }, batchSize);
+      return {
+        ...page,
+        versions: page.versions.map(({ round, timestamp, deleted, value }) => ({
+          round,
+          timestamp,
+          boxes: [{ name: feed.name, deleted, value }],
+        })),
+      };
+    }
+  }
+}
+
+type AppVersionsCursor = MergedCursor<TTAppStateVersion>;
+
 /**
  * An application's versions in the rounds of `bounds` (default: all of them;
  * none while undefined), in `order`, a batch at a time; after the first,
- * `batchSize` (default: the usual).
+ * `batchSize` (default: the usual). With `includeBoxes`, each version holds
+ * the box changes of its round too, and rounds that changed only boxes are
+ * versions as well; with `object` (an objKey: `app`, or `box:<name>`), only
+ * that object's versions.
  */
-export function useAppVersions(id: number, bounds: RoundBounds | undefined, order: VersionsOrder, batchSize?: number) {
+export function useAppVersions(
+  id: number,
+  bounds: RoundBounds | undefined,
+  order: VersionsOrder,
+  batchSize?: number,
+  includeBoxes = false,
+  object?: string,
+) {
   const batchSizeRef = useLatestBatchSize(batchSize);
+  const feeds = appFeeds(includeBoxes, object);
   return useInfiniteQuery({
     ...versionsQueryOptions,
-    queryKey: ["timetravel-app-versions", getTimeTravelNode()?.baseUrl, id, boundsKey(bounds), order],
+    initialPageParam: undefined as AppVersionsCursor | undefined,
+    getNextPageParam: (lastPage: MergedPage<TTAppStateVersion>) => (lastPage.more ? lastPage.cursor : undefined),
+    queryKey: ["timetravel-app-versions", getTimeTravelNode()?.baseUrl, id, boundsKey(bounds), order, feeds],
     queryFn: ({ pageParam }) =>
-      getVersionsPage<TTAppVersion>(`/v2/applications/${id}/versions`, {
-        next: pageParam,
-        "min-round": bounds?.min,
-        "max-round": bounds?.max,
+      readMergedPage(
+        feeds.length,
+        (feed, query) => getAppFeedPage(id, feeds[feed], query, batchSizeRef.current),
+        bounds!,
         order,
-      }, batchSizeRef.current),
+        pageParam,
+      ),
     enabled: !!id && !!bounds,
   });
 }
@@ -281,28 +343,60 @@ export function useObjectAt(ctx: BaselineContext, ref: ObjRef, round: number | u
 const everyRow = () => true;
 
 /**
- * The whole of an account's versions at `rounds`, besides `object` (an
+ * Whether a version list of `ctx` can read the whole of a version, for one
+ * filtered to an object: an account's, or an app's with its boxes (without
+ * them, the app is all there is).
+ */
+export function readsWholeVersions(ctx: BaselineContext): boolean {
+  return ctx.kind === "account" || (ctx.kind === "app" && ctx.includeBoxes);
+}
+
+/** Reads every object `ctx`'s version at `round` touched; none where it has no version then. */
+function versionAtQuery(ctx: BaselineContext, baseUrl: string | undefined, round: number) {
+  const common = { staleTime: Infinity, meta };
+  if (ctx.kind === "account") {
+    const { path, exclude } = accountVersionsRequest(ctx.address, ctx.includeCreatedParams, undefined);
+    return {
+      ...common,
+      queryKey: ["timetravel-account-version-at", baseUrl, path, exclude, round],
+      queryFn: async (): Promise<Touch[]> => {
+        const page = await getVersionsPage<TTAccountVersion>(path, { "min-round": round, "max-round": round, exclude });
+        const version = page.versions.find((v) => v.round === round);
+        return version ? accountVersionTouches(version, ctx.includeCreatedParams) : [];
+      },
+    };
+  }
+  const appId = ctx.kind === "app" ? ctx.appId : 0;
+  const feeds = appFeeds(true, undefined);
+  return {
+    ...common,
+    queryKey: ["timetravel-app-version-at", baseUrl, appId, round],
+    queryFn: async (): Promise<Touch[]> => {
+      const read = (feed: number, query: Parameters<FeedReader<TTAppStateVersion>>[1]) =>
+        getAppFeedPage(appId, feeds[feed], query, undefined);
+      const page = await readMergedPage(feeds.length, read, { min: round, max: round }, "desc", undefined);
+      const version = page.versions.find((v) => v.round === round);
+      return version ? appVersionTouches(version) : [];
+    },
+  };
+}
+
+/**
+ * The whole of a record's versions at `rounds`, besides `object` (an
  * objKey): what each did to every other object, with their previous states.
  * For a list of one object's versions, which hold only its part. A round is
  * in `byRound` once its version is; each object's previous state is read on
- * its own, since the versions between them are not loaded.
+ * its own, since the versions between them are not loaded. Reads nothing
+ * where `ctx` has no whole versions to read (see readsWholeVersions).
  */
-export function useAccountVersionsAt(
+export function useVersionsAt(
   ctx: BaselineContext,
   rounds: number[],
   object: string | undefined,
 ): { byRound: Map<number, RowObject[]>; errors: Map<number, Error> } {
-  const account = ctx.kind === "account" ? ctx : undefined;
-  const includeCreatedParams = !!account?.includeCreatedParams;
-  const { path, exclude } = accountVersionsRequest(account?.address ?? "", includeCreatedParams, undefined);
   const baseUrl = getTimeTravelNode()?.baseUrl;
   const results = useQueries({
-    queries: (account ? rounds : []).map((round) => ({
-      queryKey: ["timetravel-account-version-at", baseUrl, path, exclude, round],
-      queryFn: () => getVersionsPage<TTAccountVersion>(path, { "min-round": round, "max-round": round, exclude }),
-      staleTime: Infinity,
-      meta,
-    })),
+    queries: (readsWholeVersions(ctx) ? rounds : []).map((round) => versionAtQuery(ctx, baseUrl, round)),
   });
   const signature = results.map((r) => `${r.status}:${r.dataUpdatedAt}`).join(",");
 
@@ -314,16 +408,14 @@ export function useAccountVersionsAt(
       const round = rounds[i];
       if (r.status === "error") errors.set(round, r.error as Error);
       if (r.status !== "success") return;
-      const version = r.data.versions.find((v) => v.round === round);
-      const touches = version ? accountVersionTouches(version, includeCreatedParams).filter((t) => t.key !== object) : [];
-      touched.push({ round, touches });
+      touched.push({ round, touches: r.data.filter((t) => t.key !== object) });
     });
     const needs = touched.flatMap(({ round, touches }, row) =>
       touches.map((t) => ({ key: t.key, ref: t.ref, round: round - 1, row })),
     );
     return { touched, errors, needs };
     // results is a new array every render; signature captures what matters.
-  }, [signature, rounds.join(","), includeCreatedParams, object]);
+  }, [signature, rounds.join(","), object]);
 
   const baselines = useBaselines(ctx, needs, everyRow);
   const byRound = useMemo(() => {

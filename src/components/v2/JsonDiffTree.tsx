@@ -34,6 +34,7 @@ type Options = {
   collapseDepth: number;
   maxChildren: number;
   truncateAt: number;
+  truncateBytes?: number;
   numberFormat?: NumberFormatOf;
   keyAction?: (path: string[]) => React.ReactNode;
 };
@@ -127,7 +128,7 @@ function IntDelta({ before, after, format }: { before: number | bigint; after: n
 function Leaf({ value, path, opts, unit }: { value: DJson; path: string[]; opts: Options; unit?: boolean }) {
   if (isBytesLeaf(value)) {
     if (!value.$bytes) return <span>""</span>;
-    return <MultiFormatViewer view="auto" includeNum="auto" side="left" value={value.$bytes} />;
+    return <MultiFormatViewer view="auto" includeNum="auto" side="left" value={value.$bytes} truncateAt={opts.truncateBytes} />;
   }
   if (isProgramLeaf(value)) return <Program b64={value.$program} />;
   if (typeof value === "string") return <Str value={value} truncateAt={opts.truncateAt} />;
@@ -332,6 +333,7 @@ export default function JsonDiffTree({
   collapseDepth = 2,
   maxChildren = 8,
   truncateAt = 64,
+  truncateBytes,
   numberFormat,
   keyAction,
   className,
@@ -344,13 +346,15 @@ export default function JsonDiffTree({
   maxChildren?: number;
   /** Strings longer than this are cut, and expand on click. */
   truncateAt?: number;
+  /** Bytes values shown longer than this are cut likewise; by default, none are. */
+  truncateBytes?: number;
   /** Integers to read as amounts, by path. */
   numberFormat?: NumberFormatOf;
   /** Shown after each key, on hover: an action on the value at `path`. */
   keyAction?: (path: string[]) => React.ReactNode;
   className?: string;
 }): JSX.Element {
-  const opts = { collapseDepth, maxChildren, truncateAt, numberFormat, keyAction };
+  const opts = { collapseDepth, maxChildren, truncateAt, truncateBytes, numberFormat, keyAction };
   return (
     <div className={cn("font-mono text-[12px] leading-5 pl-3.5 min-w-0 wrap-anywhere", className)}>
       {isBranch(value) ? (

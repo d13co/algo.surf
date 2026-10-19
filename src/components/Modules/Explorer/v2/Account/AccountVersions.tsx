@@ -80,7 +80,7 @@ function AccountVersions(): JSX.Element {
   // would otherwise be a version of the account as well.
   const [includeParamsChecked, setIncludeParamsChecked] = useState(false);
   const [order, setOrder] = useVersionsOrder();
-  const filter = useVersionFilter(true);
+  const filter = useVersionFilter("account");
   const object = filter?.object;
   // A field of a created app or asset is in its params: a link to one (or a
   // reload of it) must read them, whatever the box says.

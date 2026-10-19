@@ -3,7 +3,7 @@ import type {
   TTAccountVersion,
   TTAppLocalState,
   TTAppParams,
-  TTAppVersion,
+  TTAppStateVersion,
   TTAssetHolding,
   TTBoxVersion,
   TTInt,
@@ -55,7 +55,8 @@ export function isPlainObject(v: unknown): v is { [key: string]: DJson } {
 
 export type ObjKind = "app" | "base" | "asset" | "local" | "created-asset" | "created-app" | "box";
 
-export type ObjRef = { kind: ObjKind; id?: TTInt };
+/** `id`: an asset or app id, or a box's name in base64. */
+export type ObjRef = { kind: ObjKind; id?: TTInt | string };
 
 export function objKey(ref: ObjRef): string {
   return ref.id === undefined ? ref.kind : `${ref.kind}:${ref.id}`;
@@ -135,20 +136,23 @@ function normalizeAssetParams(p: Record<string, unknown> | undefined): DObject {
 
 export type Touch = { key: string; ref: ObjRef; after: Snapshot };
 
-export function appVersionTouches(v: TTAppVersion): Touch[] {
-  const ref: ObjRef = { kind: "app" };
-  return [
-    {
-      key: objKey(ref),
-      ref,
-      after: v.deleted || !v.application ? null : normalizeAppParams(v.application.params),
-    },
-  ];
-}
-
 /** A box's state is its value, as one bytes leaf. */
 function normalizeBox(value: string): DObject {
   return { value: { $bytes: value } };
+}
+
+/** The app where its params changed (`deleted` is there), then each box that changed, as `box:<name>`. */
+export function appVersionTouches(v: TTAppStateVersion): Touch[] {
+  const touches: Touch[] = [];
+  if (v.deleted !== undefined) {
+    const ref: ObjRef = { kind: "app" };
+    touches.push({ key: objKey(ref), ref, after: v.deleted || !v.application ? null : normalizeAppParams(v.application.params) });
+  }
+  for (const b of v.boxes ?? []) {
+    const ref: ObjRef = { kind: "box", id: b.name };
+    touches.push({ key: objKey(ref), ref, after: b.deleted || b.value === undefined ? null : normalizeBox(b.value) });
+  }
+  return touches;
 }
 
 export function boxVersionTouches(v: TTBoxVersion): Touch[] {
@@ -192,7 +196,7 @@ export function accountVersionTouches(v: TTAccountVersion, includeCreatedParams:
 // Baselines: an object's state at a round, from the `?round=` lookups
 
 export type BaselineContext =
-  | { kind: "app"; appId: number }
+  | { kind: "app"; appId: number; includeBoxes: boolean }
   | { kind: "account"; address: string; includeCreatedParams: boolean }
   | { kind: "box"; appId: number; name: string };
 
@@ -206,11 +210,12 @@ export function baselineRequest(
   ref: ObjRef,
   round: number,
 ): { path: string; query: Record<string, string | number> } {
+  const boxAt = (appId: number, name: string) => ({ path: `/v2/applications/${appId}/box`, query: { name: `b64:${name}`, round } });
   if (ctx.kind === "app") {
-    return { path: `/v2/applications/${ctx.appId}`, query: { round } };
+    return ref.kind === "box" ? boxAt(ctx.appId, String(ref.id)) : { path: `/v2/applications/${ctx.appId}`, query: { round } };
   }
   if (ctx.kind === "box") {
-    return { path: `/v2/applications/${ctx.appId}/box`, query: { name: `b64:${ctx.name}`, round } };
+    return boxAt(ctx.appId, ctx.name);
   }
   const account = `/v2/accounts/${ctx.address}`;
   switch (ref.kind) {

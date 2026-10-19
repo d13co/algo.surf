@@ -60,6 +60,25 @@ export type TTBoxVersion = {
   value?: string;
 };
 
+/** A box's change in a round of an application's box feed: its new value (base64), none where deleted. */
+export type TTBoxChange = { name: string; deleted: boolean; value?: string };
+
+/** One round's changes to an application's boxes, in name order. */
+export type TTBoxesVersion = { round: number; timestamp: number; boxes: TTBoxChange[] };
+
+/**
+ * One round's changes to an application, from its params feed and (where
+ * asked for) its box feed: `deleted` and `application` where the params
+ * changed, as in TTAppVersion; `boxes` where boxes did.
+ */
+export type TTAppStateVersion = {
+  round: number;
+  timestamp: number;
+  deleted?: boolean;
+  application?: TTApplication;
+  boxes?: TTBoxChange[];
+};
+
 /** One round's changes to an account: only the constituents that changed, each in full. */
 export type TTAccountVersion = {
   round: number;

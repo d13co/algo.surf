@@ -8,6 +8,7 @@ import {
   parseVersionFilter,
   parseVersionRange,
   VersionFilter,
+  VersionObjects,
   VersionRange,
   withVersionFilter,
   withVersionRange,
@@ -15,9 +16,10 @@ import {
 
 /**
  * The version filter in the URL (see versionFilter); undefined where there is
- * none. `objects`: whether the page lists several objects, so `object` applies.
+ * none. `objects`: which objects the page lists, where it lists several, so
+ * `object` applies.
  */
-export function useVersionFilter(objects: boolean): VersionFilter | undefined {
+export function useVersionFilter(objects?: VersionObjects): VersionFilter | undefined {
   const [searchParams] = useSearchParams();
   const signature = [searchParams.get("object"), ...searchParams.getAll("field")].join("\n");
   // searchParams is a new object on any query change; signature is the part that matters.

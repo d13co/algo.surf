@@ -18,6 +18,8 @@ interface MultiFormatViewerProps {
   includeNum?: true | "auto";
   outerStyle?: Record<string, any>;
   side?: "left" | "right";
+  /** Values shown longer than this many characters are cut, and expand on click; copying takes them whole. */
+  truncateAt?: number;
 }
 
 const niceNames: Record<string, string> = {
@@ -68,7 +70,9 @@ export default function MultiFormatViewer(
     view: defaultView = "auto",
     includeNum = false,
     outerStyle,
+    truncateAt,
   } = props;
+  const [full, setFull] = useState(false);
 
   const hasNum = useMemo(() => {
     if (includeNum === true) return true;
@@ -143,12 +147,24 @@ export default function MultiFormatViewer(
   if (!value) return null;
 
   const rside = side === "right";
+  // Unset until the effect above first runs.
+  const cut = truncateAt !== undefined && (displayValue?.length ?? 0) > truncateAt;
+  const shown = cut ? (
+    <span
+      className="cursor-pointer"
+      style={{ wordBreak: "break-all" }}
+      title={`${full ? "Click to shorten" : "Click to show all"} (${Buffer.from(value, "base64").length.toLocaleString()} bytes)`}
+      onClick={() => setFull((f) => !f)}
+    >
+      {full ? displayValue : `${displayValue.slice(0, truncateAt)}…`}
+    </span>
+  ) : (
+    <span style={{ wordBreak: "break-all" }}>{displayValue}</span>
+  );
 
   return (
     <div className="group inline-flex items-center gap-0.5 whitespace-normal" style={outerStyle}>
-      {rside ? (
-        <span style={{ wordBreak: "break-all" }}>{displayValue}</span>
-      ) : null}
+      {rside ? shown : null}
       {!rside ? (
         <Copyable
           className="opacity-60 group-hover:opacity-100"
@@ -185,9 +201,7 @@ export default function MultiFormatViewer(
           value={displayValue}
         />
       ) : null}
-      {!rside ? (
-        <span style={{ wordBreak: "break-all" }}>{displayValue}</span>
-      ) : null}
+      {!rside ? shown : null}
     </div>
   );
 }

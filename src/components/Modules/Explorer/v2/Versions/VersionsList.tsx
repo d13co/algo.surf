@@ -14,7 +14,8 @@ import MultiDateViewer, { formatDate } from "src/components/v2/MultiDateViewer";
 import { DateFormat, useDateFormat } from "src/contexts/DateFormatContext";
 import { cn } from "src/lib/utils";
 import { useStableHeight } from "src/hooks/useStableHeight";
-import { useAccountVersionsAt, useVersionRows } from "src/hooks/useTimeTravel";
+import { readsWholeVersions, useVersionRows, useVersionsAt } from "src/hooks/useTimeTravel";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useVersionFilterHref } from "src/hooks/useVersionFilter";
 import { getSearchDelayMs, VERSIONS_PAGE_SIZE, VersionsOrder } from "src/utils/timeTravel";
 import { usePersistenBooleanState } from "src/utils/usePersistenBooleanState";
@@ -154,7 +155,17 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
   /** The first round `versions` can be of (a date range's), if not the first ever. */
   minRound?: number;
 }) {
-  const [detailsIndex, setDetailsIndex] = useState<number | null>(null);
+  // The version open in the dialog is in the route (`versions/<round>`), so
+  // it can be linked to and survives a reload; the query stays as it is.
+  const { "*": openSplat } = useParams();
+  const openRound = openSplat && /^\d+$/.test(openSplat) ? Number(openSplat) : null;
+  const { pathname, search } = useLocation();
+  const navigate = useNavigate();
+  const detailsHref = useCallback(
+    (round: number | null) => `${pathname.replace(/\/versions(\/.*)?$/, "/versions")}${round === null ? "" : `/${round}`}${search}`,
+    [pathname, search],
+  );
+  const openVersion = openRound === null ? -1 : versions.findIndex((v) => v.round === openRound);
   const { format } = useDateFormat();
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: VERSIONS_PAGE_SIZE });
 
@@ -183,37 +194,69 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
       filter
         ? !(batchesSupply && moreComing)
         : !(batchesSupply && batchComing) &&
-          (Math.floor(row / pagination.pageSize) === pagination.pageIndex || row === detailsIndex),
-    [filter, batchesSupply, moreComing, batchComing, pagination, detailsIndex],
+          (Math.floor(row / pagination.pageSize) === pagination.pageIndex || row === openVersion),
+    [filter, batchesSupply, moreComing, batchComing, pagination, openVersion],
   );
   const rows = useVersionRows(ctx, versions, touchesOf, hasMore, shown, order, minRound);
 
-  const data = useMemo<Row<V>[]>(() => {
+  // `settled`: how many of `rows` are known to match or not; the rest wait on a previous state.
+  const { data, settled } = useMemo(() => {
     const out: Row<V>[] = [];
+    let settled = 0;
     for (const row of rows) {
       const summaries = row.objects.map((o) => summarizeObject(o, filter?.fields));
       if (filter) {
         const match = versionMatches(summaries, filter.fields);
         // Until its previous state is in, the versions after it wait too.
         if (match === undefined) break;
+        settled++;
         if (!match) continue;
+      } else {
+        settled++;
       }
       out.push({ ...row, index: out.length, summaries });
     }
-    return out;
+    return { data: out, settled };
   }, [rows, filter]);
+
+  // The open version's row: -1 while it is not (or not yet) in the list.
+  const detailsIndex = openRound === null ? null : data.findIndex((r) => r.round === openRound);
+  // The list holds no version at that round: it reached past it, or never had
+  // it, or holds it but it is not one the filter picks.
+  const lastRound = versions.length ? versions[versions.length - 1].round : undefined;
+  const passedOpen =
+    openRound !== null &&
+    ((minRound !== undefined && openRound < minRound) ||
+      openVersion >= 0 ||
+      (lastRound !== undefined && (order === "desc" ? lastRound < openRound : lastRound > openRound)));
+  const openMissing =
+    detailsIndex === -1 &&
+    ((passedOpen && (openVersion < 0 || openVersion < settled)) || (!hasMore && !isLoading && openVersion < 0));
+  // Linked to a version not loaded yet, read on until it is (or is passed) -
+  // or, loaded but not yet known to match, until its previous state is in.
+  const seekingOpen =
+    detailsIndex === -1 && hasMore && !fetchMoreFailed && (!passedOpen || (openVersion >= 0 && openVersion >= settled));
+
+  const setDetailsIndex = useCallback(
+    (index: number | null, replace = false) => {
+      const round = index === null ? null : data[index]?.round;
+      if (round === undefined) return;
+      navigate(detailsHref(round), { replace });
+    },
+    [data, navigate, detailsHref],
+  );
 
   // Filtered, what else each version did, for the rows on the page: filtered
   // to an object, the list holds only its part, so the rest is read whole.
   const [showOthersChecked, setShowOthers] = usePersistenBooleanState("versions-show-other-changes", true);
   const showOthers = !!filter && showOthersChecked;
-  const readWhole = showOthers && !!filter?.object && ctx.kind === "account";
+  const readWhole = showOthers && !!filter?.object && readsWholeVersions(ctx);
   const { pageIndex: shownPage, pageSize: shownPageSize } = pagination;
   const pageRounds = useMemo(
     () => (readWhole ? data.slice(shownPage * shownPageSize, (shownPage + 1) * shownPageSize).map((r) => r.round) : []),
     [readWhole, data, shownPage, shownPageSize],
   );
-  const whole = useAccountVersionsAt(ctx, pageRounds, filter?.object);
+  const whole = useVersionsAt(ctx, pageRounds, filter?.object);
   const othersOf = useCallback(
     (row: Row<V>) => {
       if (!showOthers) return undefined;
@@ -288,19 +331,16 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
                 <span className="lg:max-xl:sr-only">Find txns</span>
               </Link>
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className={actionClassName}
-              onClick={() => setDetailsIndex(row.original.index)}
-            >
-              Details
+            <Button variant="outline" size="sm" className={actionClassName} asChild>
+              <Link noStyle href={detailsHref(row.original.round)} title="This version in full">
+                Details
+              </Link>
             </Button>
           </div>
         ),
       },
     ],
-    [label, stateHref, txnsLink, fieldHref, othersOf],
+    [label, stateHref, txnsLink, fieldHref, othersOf, detailsHref],
   );
 
   const table = useReactTable({
@@ -341,6 +381,13 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
     const timer = setTimeout(fetchMore, delay);
     return () => clearTimeout(timer);
   }, [scanning, isFetchingMore, searching, fetchMore]);
+  // Linked to a version not loaded yet, read on until it is (or is passed),
+  // where the effect above does not already; spaced out like a search.
+  useEffect(() => {
+    if (!seekingOpen || scanning || isFetchingMore) return;
+    const timer = setTimeout(fetchMore, Math.max(0, lastFetchEnd.current + getSearchDelayMs() - Date.now()));
+    return () => clearTimeout(timer);
+  }, [seekingOpen, scanning, isFetchingMore, fetchMore]);
 
   function onPageChange(newPage: number) {
     table.setPageIndex(newPage);
@@ -370,14 +417,18 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
     // On mount only.
   }, []);
 
-  // Keep the table on the page of the version open in the dialog.
+  // Stepping from version to version replaces the route; opening and closing add to the history.
   const onDetailsIndexChange = useCallback(
     (index: number | null) => {
-      setDetailsIndex(index);
-      if (index !== null) table.setPageIndex(Math.floor(index / pageSize));
+      if (index === null) navigate(detailsHref(null));
+      else setDetailsIndex(index, detailsIndex !== null);
     },
-    [table, pageSize],
+    [navigate, detailsHref, setDetailsIndex, detailsIndex],
   );
+  // Keep the table on the page of the version open in the dialog, however it was opened.
+  useEffect(() => {
+    if (detailsIndex !== null && detailsIndex >= 0) table.setPageIndex(Math.floor(detailsIndex / pageSize));
+  }, [detailsIndex, table, pageSize]);
 
   if (isLoading) {
     return (
@@ -389,8 +440,10 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
 
   if (error) {
     return (
-      <div ref={rootRef} className={cn("py-6 text-muted-foreground", fillScreen)}>
-        Version history unavailable: {error.message}
+      <div ref={rootRef} className={fillScreen}>
+        {/* The toolbar stays, so an option that broke the list can be turned off. */}
+        {toolbar ? <div className="mt-3 flex flex-wrap items-center gap-3">{toolbar}</div> : null}
+        <div className="py-6 text-muted-foreground">Version history unavailable: {error.message}</div>
       </div>
     );
   }
@@ -467,7 +520,9 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
         filter={filter}
         showOthers={showOthers}
         rows={data}
-        index={detailsIndex}
+        index={detailsIndex === -1 ? null : detailsIndex}
+        openRound={openRound}
+        openMissing={openMissing}
         onIndexChange={onDetailsIndexChange}
         hasMore={hasMore}
         fetchMore={fetchMoreForDialog}

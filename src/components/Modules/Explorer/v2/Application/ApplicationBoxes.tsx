@@ -11,18 +11,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "src/components/v2/ui/dialog";
-import { Input } from "src/components/v2/ui/input";
 import Copyable from "src/components/v2/Copyable";
 import { ArrowLeftFromLine, ArrowRightFromLine, Loader2 } from "lucide-react";
 import { useHotkeys } from "react-hotkeys-hook";
-import { ABIType, isValidAddress, decodeAddress } from "algosdk";
+import { isValidAddress, decodeAddress } from "algosdk";
 import { A_BoxName } from "src/packages/core-sdk/types";
 import NumberFormat from "react-number-format";
 import AlgoIcon from "../../AlgoIcon/AlgoIcon";
 import { microalgosToAlgos } from "src/utils/common";
 import TabsUnderline from "src/components/v2/shadcn-studio/tabs/tabs-11";
 import { useTimeTravelSupport } from "src/hooks/useTimeTravel";
-import { DecodedValueView } from "./BoxValue";
+import { BoxValueTypesInput, DecodedValueView, useBoxValueTypes } from "./BoxValue";
 import BoxHistory from "./BoxHistory";
 
 /** The box dialog shows the value, or with a time-travel node its history (`?view=history`). */
@@ -30,42 +29,6 @@ type BoxView = "value" | "history";
 
 const BOX_FLAT_COST = 2500;
 const BOX_BYTE_COST = 400;
-
-// --- Value type filter parsing ---
-
-interface ParsedTypes {
-  types: string[];
-  error?: string;
-}
-
-function parseTypeFilter(filter: string): ParsedTypes | null {
-  const trimmed = filter.trim();
-  if (!trimmed) return null;
-  const types: string[] = [];
-  let depth = 0;
-  let current = "";
-  for (const char of trimmed) {
-    if (char === "(") depth++;
-    if (char === ")") depth--;
-    if (char === " " && depth === 0) {
-      if (current) types.push(current);
-      current = "";
-    } else {
-      current += char;
-    }
-  }
-  if (current) types.push(current);
-  if (types.length === 0) return null;
-
-  for (const t of types) {
-    try {
-      ABIType.from(t);
-    } catch {
-      return { types, error: `Invalid ARC4 type: ${t}` };
-    }
-  }
-  return { types };
-}
 
 // --- Search helpers ---
 
@@ -115,19 +78,7 @@ function ApplicationBoxes(): JSX.Element {
   const boxName = boxNameRaw ? decodeURIComponent(boxNameRaw) : undefined;
   const dialogOpen = !!boxName;
 
-  const storageKey = `box-value-filter:${numId}`;
-  const [valueFilter, setValueFilter] = useState(() => localStorage.getItem(storageKey) ?? "");
-
-  const handleFilterChange = (v: string) => {
-    setValueFilter(v);
-    if (v) {
-      localStorage.setItem(storageKey, v);
-    } else {
-      localStorage.removeItem(storageKey);
-    }
-  };
-
-  const parsedFilter = useMemo(() => parseTypeFilter(valueFilter), [valueFilter]);
+  const { filter: valueFilter, setFilter: handleFilterChange, parsed: parsedFilter, types: valueTypes } = useBoxValueTypes(numId);
 
   const {
     data,
@@ -334,22 +285,7 @@ function ApplicationBoxes(): JSX.Element {
   useHotkeys("left", goToPrev, { enabled: dialogOpen && hasPrev }, [currentIndex, displayedBoxNames, id, round, view]);
   useHotkeys("right", goToNext, { enabled: dialogOpen && hasNext }, [currentIndex, displayedBoxNames, id, round, view]);
 
-  const valueTypes = parsedFilter?.types && !parsedFilter.error ? parsedFilter.types : undefined;
-  const valueTypesInput = (
-          <div>
-            <div className="text-sm text-muted-foreground mb-1">Value Types</div>
-            <Input
-              type="text"
-              value={valueFilter}
-              onChange={(e) => handleFilterChange(e.target.value)}
-              placeholder="Space separated ARC4 types for Values (e.g. 'string uint64 (address,bool)')"
-              className={`font-mono text-sm h-8 ${parsedFilter?.error ? "!border-secondary" : ""}`}
-            />
-            {parsedFilter?.error && (
-              <div className="text-secondary text-xs mt-1">{parsedFilter.error}</div>
-            )}
-          </div>
-  );
+  const valueTypesInput = <BoxValueTypesInput value={valueFilter} onChange={handleFilterChange} parsed={parsedFilter} />;
 
   const handleClose = () => {
     navigate(withRound(`/application/${id}/boxes`, round));
