@@ -8,7 +8,7 @@ import { useSurfIdxCaps } from "src/hooks/useSurfIdxCaps";
 
 const networkLabel = process.env.REACT_APP_NETWORK;
 
-const routes = ["home", "accounts", "transactions", "assets", "applications", "fees", "tps", "lsigs"];
+const routes = ["home", "accounts", "transactions", "assets", "applications", "fees", "tps", "upgrades", "lsigs"];
 const SERIES = ["fees", "tps"];
 
 const navItems: { href: string; label: React.ReactNode; value: string }[] = [
@@ -21,6 +21,7 @@ const navItems: { href: string; label: React.ReactNode; value: string }[] = [
         ? [
               { href: "/fees", label: "Fees", value: "fees" },
               { href: "/tps", label: "TPS", value: "tps" },
+              { href: "/upgrades", label: "Upgrades", value: "upgrades" },
           ]
         : []),
 ];

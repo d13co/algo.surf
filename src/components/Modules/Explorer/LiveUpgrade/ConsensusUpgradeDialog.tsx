@@ -10,6 +10,8 @@ import Copyable from "src/components/v2/Copyable";
 import ConsensusVersion from "src/components/v2/ConsensusVersion";
 import MultiDateViewer from "src/components/v2/MultiDateViewer";
 import LinkToBlock from "src/components/Modules/Explorer/v2/Links/LinkToBlock";
+import Link from "src/components/Modules/Explorer/v2/Links/Link";
+import { useUpgradeAttempt } from "src/hooks/useUpgrades";
 import { ConsensusUpgrade } from "src/hooks/useConsensusUpgrade";
 import { useConsensusVersionLookup } from "src/hooks/useConsensusVersions";
 import UpgradeEta from "./UpgradeEta";
@@ -28,6 +30,9 @@ function RawProtocol({ protocol, name }: { protocol: string; name: string }): JS
         </div>
     );
 }
+
+// Enough to show the trend; the history page has the rest.
+const EARLIER_SHOWN = 5;
 
 function Row({ label, children }: { label: string; children: React.ReactNode }): JSX.Element {
     return (
@@ -54,6 +59,10 @@ export default function ConsensusUpgradeDialog({
     const vote = voteStatus(upgrade, current.voteRounds, current.threshold);
 
     const avmChanged = current.avm != null && next.avm != null && current.avm !== next.avm;
+
+    // From surf idx: earlier proposals of this protocol, newest first.
+    const found = useUpgradeAttempt(upgrade.nextProtocolVoteBefore);
+    const earlier = found ? found.group.attempts.slice(0, found.attempt - 1).reverse() : [];
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -182,6 +191,26 @@ export default function ConsensusUpgradeDialog({
                         </div>
                     </Row>
 
+                    {earlier.length > 0 ? (
+                        <Row label={`Earlier attempts (this is #${found!.attempt})`}>
+                            {earlier.slice(0, EARLIER_SHOWN).map((u, i) => (
+                                <div key={u.voteBefore} className="flex justify-between gap-2">
+                                    <span>
+                                        <span className="text-muted-foreground mr-2">#{found!.attempt - 1 - i}</span>
+                                        <LinkToBlock id={u.round} />
+                                    </span>
+                                    <span className="text-muted-foreground">
+                                        {u.approvals?.toLocaleString() ?? "?"}
+                                        {current.voteRounds ? ` / ${current.voteRounds.toLocaleString()}` : ""}
+                                    </span>
+                                </div>
+                            ))}
+                            {earlier.length > EARLIER_SHOWN ? (
+                                <div className="text-muted-foreground">+{earlier.length - EARLIER_SHOWN} more</div>
+                            ) : null}
+                        </Row>
+                    ) : null}
+
                     <Row label="Average round time">
                         {upgrade.avgRoundTime.toFixed(2)}s
                         <span className="text-muted-foreground">
@@ -193,6 +222,13 @@ export default function ConsensusUpgradeDialog({
                         </span>
                     </Row>
 
+                    {found ? (
+                        <div className="pt-3 text-[13px]">
+                            <Link href={`/upgrades#${found.group.anchor}`} keepRound={false}>
+                                Upgrade history
+                            </Link>
+                        </div>
+                    ) : null}
                 </div>
             </DialogContent>
         </Dialog>

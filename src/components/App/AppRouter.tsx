@@ -40,6 +40,7 @@ const Group = lazy(() => import("../Modules/Explorer/v2/Group/Group"));
 const GroupTransactions = lazy(() => import("../Modules/Explorer/v2/Group/GroupTransactions"));
 const Fees = lazy(() => import("../Modules/Explorer/v2/Fees/Fees"));
 const Tps = lazy(() => import("../Modules/Explorer/v2/Fees/Tps"));
+const Upgrades = lazy(() => import("../Modules/Explorer/v2/Upgrades/Upgrades"));
 const LsigTemplates = lazy(() => import("../Modules/Explorer/v2/Lsig/LsigTemplates"));
 const LsigTemplate = lazy(() => import("../Modules/Explorer/v2/Lsig/LsigTemplate"));
 const StripExplorerFromPath = lazy(() => import("./StripExplorerFromPath"));
@@ -86,6 +87,7 @@ function AppRouter(): JSX.Element {
                         />
                         <Route path="/fees" element={<Fees></Fees>} />
                         <Route path="/tps" element={<Tps></Tps>} />
+                        <Route path="/upgrades" element={<Upgrades />} />
                         <Route path="/lsigs" element={<LsigTemplates />} />
                         <Route path="/lsigs/:template" element={<LsigTemplate />} />
                         <Route
