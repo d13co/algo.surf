@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useInfiniteQuery, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { network, Networks } from "src/packages/core-sdk/constants";
-import { usePersistenBooleanState } from "src/utils/usePersistenBooleanState";
 import {
   getTimeTravelNode,
   TimeTravelError,
@@ -153,12 +152,6 @@ export function useSearchBatchSize(
   const batchSize = searchedOn === listKey && filter?.fields.length ? VERSIONS_SEARCH_BATCH_SIZE : undefined;
   const keepSearching = useCallback(() => setSearchedOn(listKey), [listKey]);
   return [batchSize, keepSearching];
-}
-
-/** The order version lists show in: newest first unless switched, remembered across visits. */
-export function useVersionsOrder(): [VersionsOrder, (order: VersionsOrder) => void] {
-  const [oldestFirst, setOldestFirst] = usePersistenBooleanState("versions-oldest-first", false);
-  return [oldestFirst ? "asc" : "desc", (order) => setOldestFirst(order === "asc")];
 }
 
 /** A version feed of an app's: its params, the changes of all its boxes, or one box's versions. */

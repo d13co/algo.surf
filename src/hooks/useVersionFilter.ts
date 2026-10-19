@@ -1,17 +1,19 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useLocation, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { BlockClient } from "src/packages/core-sdk/clients/blockClient";
 import explorer from "src/utils/dappflow";
-import { RoundBounds } from "src/utils/timeTravel";
+import { RoundBounds, VersionsOrder } from "src/utils/timeTravel";
 import {
   parseVersionFilter,
   parseVersionRange,
+  parseVersionsOrder,
   VersionFilter,
   VersionObjects,
   VersionRange,
   withVersionFilter,
   withVersionRange,
+  withVersionsOrder,
 } from "src/utils/versionFilter";
 
 /**
@@ -44,6 +46,42 @@ export function useVersionRange(): VersionRange | undefined {
 export function useVersionRangeHref(): (range: VersionRange | undefined) => string {
   const { pathname, search } = useLocation();
   return useCallback((range: VersionRange | undefined) => withVersionRange(`${pathname}${search}`, range), [pathname, search]);
+}
+
+/** The order version lists show in, from the URL (see parseVersionsOrder), and a way to switch it. */
+export function useVersionsOrder(): [VersionsOrder, (order: VersionsOrder) => void] {
+  const [searchParams] = useSearchParams();
+  const { pathname, search } = useLocation();
+  const navigate = useNavigate();
+  const order = parseVersionsOrder(searchParams);
+  const setOrder = useCallback(
+    (next: VersionsOrder) => navigate(withVersionsOrder(`${pathname}${search}`, next)),
+    [navigate, pathname, search],
+  );
+  return [order, setOrder];
+}
+
+/**
+ * Where a version list opened at a version starts, so the version is in its
+ * first batch: paging to it from the far end of a long history would take
+ * hundreds of requests. Opened at `versions/<round>` (a link, or a reload),
+ * the list is pinned there: newest first, to that round and before; oldest
+ * first, to that round and after. Opening a version from the list does not
+ * pin it, nor does a round outside `bounds`. `unpin` lists them all again.
+ */
+export function useVersionPin(
+  bounds: RoundBounds | undefined,
+  order: VersionsOrder,
+): { bounds: RoundBounds | undefined; pinned: number | undefined; unpin: () => void } {
+  const { "*": openSplat } = useParams();
+  // As the list was opened: stepping to other versions, or closing, keeps the pin.
+  const [pin, setPin] = useState(() => (openSplat && /^\d+$/.test(openSplat) ? Number(openSplat) : undefined));
+  const unpin = useCallback(() => setPin(undefined), []);
+  return useMemo(() => {
+    const inBounds = pin !== undefined && bounds && (bounds.min ?? 0) <= pin && pin <= (bounds.max ?? Infinity);
+    if (!inBounds) return { bounds, pinned: undefined, unpin };
+    return { bounds: order === "desc" ? { ...bounds, max: pin } : { ...bounds, min: pin }, pinned: pin, unpin };
+  }, [bounds, order, pin, unpin]);
 }
 
 /** The first round timestamped after `time` (Unix seconds), per the indexer; null where none is yet. */

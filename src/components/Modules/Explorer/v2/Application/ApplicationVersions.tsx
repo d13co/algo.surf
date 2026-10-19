@@ -2,12 +2,12 @@ import React, { useCallback, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { cn } from "src/lib/utils";
 import { usePersistenBooleanState } from "src/utils/usePersistenBooleanState";
-import { useAppVersions, useSearchBatchSize, useVersionsOrder } from "src/hooks/useTimeTravel";
+import { useAppVersions, useSearchBatchSize } from "src/hooks/useTimeTravel";
 import { useRound, withRound } from "src/hooks/useRound";
 import { withTxnRound } from "src/hooks/useTxnRound";
-import { useRangeRounds, useVersionFilter, useVersionRange } from "src/hooks/useVersionFilter";
+import { useRangeRounds, useVersionFilter, useVersionPin, useVersionRange, useVersionsOrder } from "src/hooks/useVersionFilter";
 import { TTAppStateVersion } from "src/utils/timeTravel";
-import { withVersionFilter, withVersionRange } from "src/utils/versionFilter";
+import { withVersionFilter, withVersionRange, withVersionsOrder } from "src/utils/versionFilter";
 import { appVersionTouches, BaselineContext, displayTealKey, objKindLabel, ObjRef } from "src/utils/versionDelta";
 import Link from "../Links/Link";
 import { ObjectLabel, StateHref, TxnsLink } from "../Versions/VersionChanges";
@@ -25,18 +25,19 @@ function ApplicationVersions(): JSX.Element {
   // On a page at a past round, the versions up to it.
   const { round } = useRound();
   const range = useVersionRange();
-  const { bounds, isLoading: boundsLoading, error: boundsError } = useRangeRounds(range, round);
+  const { bounds: rangeBounds, isLoading: boundsLoading, error: boundsError } = useRangeRounds(range, round);
   // Off by default: an app that writes boxes on every call would have its
   // params' versions buried among its boxes'. Remembered, so a reload of a
   // filtered list still shows the box changes beside what it picks.
   const [includeBoxesChecked, setIncludeBoxesChecked] = usePersistenBooleanState("app-versions-include-boxes", false);
   const [order, setOrder] = useVersionsOrder();
+  const { bounds, pinned, unpin } = useVersionPin(rangeBounds, order);
   const filter = useVersionFilter("app");
   const object = filter?.object;
   // A link to a box's versions (or a reload of it) must list them, whatever the box says.
   const boxFiltered = /^box:/.test(object ?? "");
   const includeBoxes = includeBoxesChecked || boxFiltered;
-  const listKey = `${includeBoxes}-${order}-${withVersionFilter(withVersionRange("", range), filter)}`;
+  const listKey = `${includeBoxes}-${order}-${pinned ?? ""}-${withVersionFilter(withVersionRange("", range), filter)}`;
   const [batchSize, keepSearching] = useSearchBatchSize(listKey, filter);
 
   const {
@@ -67,7 +68,7 @@ function ApplicationVersions(): JSX.Element {
             ref.kind === "box" ? (
               <span>
                 {objKindLabel.box}{" "}
-                <Link href={`${boxHref(appId, String(ref.id))}?view=history`} title="This box's history">
+                <Link href={withVersionsOrder(`${boxHref(appId, String(ref.id))}?view=history`, order)} title="This box's history">
                   <span className="font-mono inline-block max-w-[24ch] truncate align-bottom">{displayTealKey(String(ref.id))}</span>
                 </Link>
               </span>
@@ -75,7 +76,7 @@ function ApplicationVersions(): JSX.Element {
               objKindLabel[ref.kind]
             )
         : null,
-    [includeBoxes, appId],
+    [includeBoxes, appId, order],
   );
   const stateHref = useCallback<StateHref>(
     (at, ref) => withRound(ref?.kind === "box" ? boxHref(appId, String(ref.id)) : `/application/${appId}`, at),
@@ -110,6 +111,7 @@ function ApplicationVersions(): JSX.Element {
         filenamePrefix={`app-${appId}`}
         emptyLabel={range ? "No versions in this date range" : "No versions"}
         minRound={bounds?.min}
+        pin={pinned === undefined ? undefined : { round: pinned, onUnpin: unpin }}
         toolbar={
           <label className={cn("flex items-center gap-2 text-sm text-muted-foreground", boxFiltered ? "opacity-60" : "cursor-pointer")}>
             <input

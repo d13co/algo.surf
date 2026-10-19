@@ -1,4 +1,5 @@
 import { isUtf8 } from "src/utils/isUtf8";
+import type { VersionsOrder } from "src/utils/timeTravel";
 import {
   FieldPath,
   ObjectSummary,
@@ -193,6 +194,24 @@ export function withVersionRange(path: string, range: VersionRange | undefined):
   params.delete("to");
   if (range?.from !== undefined) params.append("from", formatInstant(range.from));
   if (range?.to !== undefined) params.append("to", formatInstant(range.to));
+  const qs = [...params].map(([k, v]) => `${k}=${queryValue(v)}`).join("&");
+  return qs ? `${pathname}?${qs}` : pathname;
+}
+
+/**
+ * A version list's order, as the URL carries it: `?order=asc` for oldest
+ * first; newest first without it, so a link lists alike for every reader.
+ */
+export function parseVersionsOrder(params: URLSearchParams): VersionsOrder {
+  return params.get("order") === "asc" ? "asc" : "desc";
+}
+
+/** `path` (with any query) listing its versions in `order`. */
+export function withVersionsOrder(path: string, order: VersionsOrder): string {
+  const [pathname, query = ""] = path.split("?");
+  const params = new URLSearchParams(query);
+  params.delete("order");
+  if (order === "asc") params.append("order", "asc");
   const qs = [...params].map(([k, v]) => `${k}=${queryValue(v)}`).join("&");
   return qs ? `${pathname}?${qs}` : pathname;
 }

@@ -4,6 +4,7 @@ import BoxesList from "../BoxesList";
 import BoxSearchBar, { BoxSearchMode } from "../BoxSearchBar";
 import { useApplicationBoxNames, useApplicationBox, boxClientFor } from "src/hooks/useApplication";
 import { useRound, withRound } from "src/hooks/useRound";
+import { parseVersionsOrder, withVersionsOrder } from "src/utils/versionFilter";
 import MultiFormatViewer from "src/components/v2/MultiFormatViewer";
 import {
   Dialog,
@@ -267,9 +268,11 @@ function ApplicationBoxes(): JSX.Element {
   const hasPrev = currentIndex > 0;
   const hasNext = currentIndex >= 0 && currentIndex < displayedBoxNames.length - 1;
 
-  // Stepping between boxes keeps the view.
-  const boxHref = (name: string, v: BoxView = view) =>
-    withRound(`/application/${id}/boxes/${encodeURIComponent(name)}${v === "history" ? "?view=history" : ""}`, round);
+  // Stepping between boxes keeps the view, and the history's order.
+  const boxHref = (name: string, v: BoxView = view) => {
+    const path = `/application/${id}/boxes/${encodeURIComponent(name)}`;
+    return withRound(v === "history" ? withVersionsOrder(`${path}?view=history`, parseVersionsOrder(searchParams)) : path, round);
+  };
 
   const goTo = (name: string) => {
     navigate(boxHref(name), { replace: true });

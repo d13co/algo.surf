@@ -94,6 +94,20 @@ export function OrderButton({ order, onChange }: { order: VersionsOrder; onChang
   );
 }
 
+/** A list pinned to a round (see useVersionPin): which part of the history it holds, and a way to list it all. */
+function PinnedNotice({ round, order, onUnpin }: { round: number; order: VersionsOrder; onUnpin: () => void }) {
+  return (
+    <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+      <span className="whitespace-nowrap">
+        Block <LinkToBlock id={round} /> and {order === "desc" ? "older" : "newer"}
+      </span>
+      <Button variant="outline" size="sm" className={actionClassName} onClick={onUnpin} title="List every version">
+        Show all
+      </Button>
+    </span>
+  );
+}
+
 /**
  * A version history, in `order`: what changed at each round, as chips and as
  * a JSON delta, with the whole version a click away. Paging to the last
@@ -122,6 +136,7 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
   filter,
   onKeepSearching,
   minRound,
+  pin,
 }: {
   ctx: BaselineContext;
   /** Loaded versions, in `order`. */
@@ -154,6 +169,8 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
   onKeepSearching?: () => void;
   /** The first round `versions` can be of (a date range's), if not the first ever. */
   minRound?: number;
+  /** The round the list is pinned to (see useVersionPin), and how to list them all. */
+  pin?: { round: number; onUnpin: () => void };
 }) {
   // The version open in the dialog is in the route (`versions/<round>`), so
   // it can be linked to and survives a reload; the query stays as it is.
@@ -464,6 +481,7 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
       >
         <div className="flex flex-wrap items-center gap-3">
           <OrderButton order={order} onChange={onOrderChange} />
+          {pin ? <PinnedNotice round={pin.round} order={order} onUnpin={pin.onUnpin} /> : null}
           {toolbar}
           {filter ? (
             <>

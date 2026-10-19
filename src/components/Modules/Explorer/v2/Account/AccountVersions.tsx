@@ -1,10 +1,10 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { cn } from "src/lib/utils";
-import { useAccountVersions, useSearchBatchSize, useVersionsOrder } from "src/hooks/useTimeTravel";
+import { useAccountVersions, useSearchBatchSize } from "src/hooks/useTimeTravel";
 import { useRound, withRound } from "src/hooks/useRound";
 import { withTxnRound } from "src/hooks/useTxnRound";
-import { useRangeRounds, useVersionFilter, useVersionRange } from "src/hooks/useVersionFilter";
+import { useRangeRounds, useVersionFilter, useVersionPin, useVersionRange, useVersionsOrder } from "src/hooks/useVersionFilter";
 import { withVersionFilter, withVersionRange } from "src/utils/versionFilter";
 import { TTAccountVersion } from "src/utils/timeTravel";
 import {
@@ -75,18 +75,19 @@ function AccountVersions(): JSX.Element {
   // On a page at a past round, the versions up to it.
   const { round } = useRound();
   const range = useVersionRange();
-  const { bounds, isLoading: boundsLoading, error: boundsError } = useRangeRounds(range, round);
+  const { bounds: rangeBounds, isLoading: boundsLoading, error: boundsError } = useRangeRounds(range, round);
   // Off by default: each global state change of an app this account created
   // would otherwise be a version of the account as well.
   const [includeParamsChecked, setIncludeParamsChecked] = useState(false);
   const [order, setOrder] = useVersionsOrder();
+  const { bounds, pinned, unpin } = useVersionPin(rangeBounds, order);
   const filter = useVersionFilter("account");
   const object = filter?.object;
   // A field of a created app or asset is in its params: a link to one (or a
   // reload of it) must read them, whatever the box says.
   const paramsFiltered = !!filter?.fields.length && /^created-/.test(object ?? "");
   const includeCreatedParams = includeParamsChecked || paramsFiltered;
-  const listKey = `${includeCreatedParams}-${order}-${withVersionFilter(withVersionRange("", range), filter)}`;
+  const listKey = `${includeCreatedParams}-${order}-${pinned ?? ""}-${withVersionFilter(withVersionRange("", range), filter)}`;
   const [batchSize, keepSearching] = useSearchBatchSize(listKey, filter);
 
   const {
@@ -139,6 +140,7 @@ function AccountVersions(): JSX.Element {
         filenamePrefix={`account-${address}`}
         emptyLabel={range ? "No versions in this date range" : "No versions"}
         minRound={bounds?.min}
+        pin={pinned === undefined ? undefined : { round: pinned, onUnpin: unpin }}
         toolbar={
           <label className={cn("flex items-center gap-2 text-sm text-muted-foreground", paramsFiltered ? "opacity-60" : "cursor-pointer")}>
             <input
