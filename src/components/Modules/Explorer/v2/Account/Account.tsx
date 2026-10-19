@@ -21,6 +21,7 @@ import {
 import { useValidatorStats } from "src/hooks/useValidator";
 import { delegationLive, templateLabel, useDelegations, useLsig } from "src/hooks/useLsig";
 import { useMsigSubsigners, useMsigsOf } from "src/hooks/useMsig";
+import { useAccountSummary } from "src/hooks/useAccountSummary";
 import { useTimeTravelSupport } from "src/hooks/useTimeTravel";
 import { useRound, useRoundHref, useRoundNavigate } from "src/hooks/useRound";
 import RoundNotice from "../Versions/RoundNotice";
@@ -102,14 +103,21 @@ function Account(): JSX.Element {
     error,
   } = useAccount(address, round);
   const { data: escrowOf } = useEscrowOf(address);
-  const { data: validatorStats } = useValidatorStats(address, 0, round);
-  // surf idx: the logic sig with this program address, and the ones this account delegated or was
-  // moved by. Neither has history, so delegations are only listed for the current round.
-  const { data: lsig } = useLsig(address);
-  const { data: delegations } = useDelegations(address, round === undefined);
-  // surf idx: the keys of this multisig, or the multisigs this key is in. Without history too.
-  const { data: subsigners } = useMsigSubsigners(address, round === undefined);
-  const { data: msigsOf } = useMsigsOf(address, round === undefined);
+  // surf idx: one request for the tabs and chips below; each list loads only when it's needed. null
+  // from an older surf idx without it, or when it fails, which falls back to fetching every list up front.
+  const { data: summary } = useAccountSummary(address);
+  const legacy = summary === null;
+  // The summary is the current state: a past round still asks the (ranged) stats whether to show the tab.
+  const { data: validatorStats } = useValidatorStats(address, 0, round, legacy || round !== undefined);
+  // The logic sig with this program address, and the ones this account delegated or was moved by.
+  // Neither has history, so delegations are only listed for the current round. The delegations list
+  // is still needed up front for the live-delegation chip.
+  const { data: lsig } = useLsig(address, legacy || !!summary?.lsig);
+  const { data: delegations } = useDelegations(address, round === undefined && (legacy || !!summary?.delegations));
+  // The keys of this multisig, or the multisigs this key is in. Without history too. With the
+  // summary, only their tabs fetch them.
+  const { data: subsigners } = useMsigSubsigners(address, round === undefined && legacy);
+  const { data: msigsOf } = useMsigsOf(address, round === undefined && legacy);
   const { data: nfd } = useReverseNFD(address);
   const { data: txnData } = useAccountTransactions(address, round);
   // The indexer only knows which accounts are rekeyed to this one now, so
@@ -223,9 +231,9 @@ function Account(): JSX.Element {
   // A logic sig escrow per surf idx: its program authorized its own address's txns, and the account
   // isn't rekeyed away from it since.
   const lsigEscrow = !!lsig?.uses.some((u) => u.lsig === address && !u.signer) && !authAddr;
-  const numDelegations = round === undefined ? delegations?.length ?? 0 : 0;
-  const numSubsigners = round === undefined ? subsigners?.length ?? 0 : 0;
-  const numMsigsOf = round === undefined ? msigsOf?.length ?? 0 : 0;
+  const numDelegations = round === undefined ? (legacy ? delegations?.length : summary?.delegations) ?? 0 : 0;
+  const numSubsigners = round === undefined ? (legacy ? subsigners?.length : summary?.signers) ?? 0 : 0;
+  const numMsigsOf = round === undefined ? (legacy ? msigsOf?.length : summary?.multisigs) ?? 0 : 0;
   // Delegations this account's key signed that can still send its txns.
   const liveDelegations = useMemo(
     () =>
@@ -256,8 +264,9 @@ function Account(): JSX.Element {
     hasOptedAssets || hasCreatedAssets || hasOptedApps || hasCreatedApps;
   const hasValidatorData =
     (accountInfo?.status === "Online" && !!accountInfo.participation) ||
-    (validatorStats?.blocks ?? 0) > 0 ||
-    (validatorStats?.suspensions ?? 0) > 0;
+    (legacy || round !== undefined
+      ? (validatorStats?.blocks ?? 0) > 0 || (validatorStats?.suspensions ?? 0) > 0
+      : !!(summary?.proposed || summary?.evicted || summary?.voted));
 
   const tabsRef = useRef<HTMLDivElement>(null);
 

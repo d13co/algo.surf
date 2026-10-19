@@ -30,14 +30,14 @@ function roundQuery(minRound: number, maxRound?: number): string {
 }
 
 /** Aggregate stats. minRound 0 = lifetime; with `maxRound`, only up to it (see useRound). */
-export function useValidatorStats(address: string, minRound = 0, maxRound?: number) {
+export function useValidatorStats(address: string, minRound = 0, maxRound?: number, enabled = true) {
   const proposers = useSurfIdxCaps()?.proposers;
   return useQuery({
     ...surfIdxRetry,
     queryKey: ["validator-stats", address, minRound, ...(maxRound === undefined ? [] : [{ maxRound }])],
     queryFn: () =>
       surfIdxGet<ValidatorStats>(`/v0/proposer/${address}/stats${roundQuery(minRound, maxRound)}`),
-    enabled: !!address && !!proposers,
+    enabled: enabled && !!address && !!proposers,
     // A time frame's minRound moves with the tip, so each visit would leave a new entry in IndexedDB until it expires.
     meta: minRound > 0 ? { noPersist: true } : undefined,
   });

@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-table";
 import { Loader2 } from "lucide-react";
 import { useAccount } from "src/hooks/useAccount";
+import { cutNote, useAccountSummary } from "src/hooks/useAccountSummary";
 import { DelegationRole, LsigUse, delegationLive, delegationRole, useDelegations } from "src/hooks/useLsig";
 import { surfIdxOffMessage, useSurfIdxCaps } from "src/hooks/useSurfIdxCaps";
 import { useStableHeight } from "src/hooks/useStableHeight";
@@ -129,6 +130,9 @@ function AccountDelegations(): JSX.Element {
   const { address } = useParams();
   const caps = useSurfIdxCaps();
   const { data: uses, isError, error } = useDelegations(address);
+  // The account page's summary, for the total when the list is cut.
+  const { data: summary } = useAccountSummary(address);
+  const note = uses ? cutNote(uses.length, summary?.delegations) : null;
   const { data: accountInfo } = useAccount(address!);
   const hasAccount = !!accountInfo;
   const authAddr = accountInfo?.authAddr?.toString();
@@ -174,6 +178,7 @@ function AccountDelegations(): JSX.Element {
 
   return (
     <div>
+      {note ? <div className="mt-3 mb-3 text-sm text-muted-foreground">{note}</div> : null}
       {liveDelegations ? (
         // mb-3: the toolbar below is an empty spacer when the list fits one page.
         <WarningNotice className="mt-3 mb-3">
