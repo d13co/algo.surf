@@ -9,7 +9,8 @@ import { useSurfIdxCaps } from "src/hooks/useSurfIdxCaps";
 const networkLabel = process.env.REACT_APP_NETWORK;
 
 const routes = ["home", "accounts", "transactions", "assets", "applications", "fees", "tps", "upgrades", "lsigs"];
-const SERIES = ["fees", "tps"];
+// Pages under Metrics.
+const METRICS = ["tps", "fees"];
 
 const navItems: { href: string; label: React.ReactNode; value: string }[] = [
     { href: "/", label: <Logo />, value: "home" },
@@ -19,8 +20,7 @@ const navItems: { href: string; label: React.ReactNode; value: string }[] = [
     { href: "/applications", label: "Apps", value: "applications" },
     ...(surfIdxSupported
         ? [
-              { href: "/fees", label: "Fees", value: "fees" },
-              { href: "/tps", label: "TPS", value: "tps" },
+              { href: "/tps", label: "Metrics", value: "metrics" },
               { href: "/upgrades", label: "Upgrades", value: "upgrades" },
           ]
         : []),
@@ -37,7 +37,7 @@ function Header(): JSX.Element {
             if (r === "") return "home";
             return false;
         }
-        return r;
+        return METRICS.includes(r) ? "metrics" : r;
     }, [location.pathname]);
 
     return (
@@ -47,8 +47,8 @@ function Header(): JSX.Element {
                     {items.map((item) => (
                         <Link
                             key={item.value}
-                            // Fees and TPS chart the same view: switching keeps its range, interval and zoom.
-                            href={item.href + (SERIES.includes(route as string) && SERIES.includes(item.value) ? location.search : "")}
+                            // On a metrics page, Metrics stays on it.
+                            href={route === "metrics" && item.value === "metrics" ? location.pathname + location.search : item.href}
                             noStyle
                             className={`px-3 py-2 text-base whitespace-nowrap text-muted-foreground ${
                                 route === item.value

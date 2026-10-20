@@ -3,6 +3,7 @@ import { RotateCcw, ZoomOut } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import useTitle from "src/components/Common/UseTitle/UseTitle";
 import LoadingTile from "src/components/v2/LoadingTile";
+import Link from "../Links/Link";
 import TabsUnderline from "src/components/v2/shadcn-studio/tabs/tabs-11";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "src/components/v2/ui/tooltip";
 import { Bucket, Interval, LIVE_POLL_MS, bucketEnd, bucketStart, useSeries } from "src/hooks/useFees";
@@ -78,6 +79,12 @@ export function formatSig(v: number, max: number): string {
   const decimals = max > 0 ? Math.max(0, 2 - Math.floor(Math.log10(max))) : 0;
   return v.toLocaleString(undefined, { maximumFractionDigits: decimals });
 }
+
+// The series pages, switched between in the heading.
+const SERIES = [
+  { title: "TPS", href: "/tps" },
+  { title: "Fees", href: "/fees" },
+];
 
 const UNAVAILABLE = "Only for views that end now";
 
@@ -281,7 +288,25 @@ function SeriesPage({ title, y, format: formatValue, label, stats }: SeriesPageP
     <TooltipProvider>
       <div className="mt-6 flex flex-col gap-6">
         <div className="flex flex-wrap items-end justify-between gap-x-6 border-b border-primary">
-          <div className="pb-2 text-xl text-primary">{title}</div>
+          <nav aria-label="Metrics" className="pb-2 text-xl text-muted">
+            {SERIES.map((s, i) => (
+              <span key={s.href}>
+                {i > 0 && (
+                  <span className="mx-2" aria-hidden>
+                    |
+                  </span>
+                )}
+                {s.title === title ? (
+                  <span className="text-primary" aria-current="page">{s.title}</span>
+                ) : (
+                  // They chart the same view: switching keeps its range, interval and zoom.
+                  <Link href={s.href + (params.toString() ? `?${params}` : "")} noStyle className="text-muted hover:text-muted-foreground">
+                    {s.title}
+                  </Link>
+                )}
+              </span>
+            ))}
+          </nav>
           <div className="flex flex-wrap gap-x-6 max-w-full">
             <div className="flex max-w-full">
               {/* Manual: with a period or zoom shown no tab is selected, and tabbing onto one would select it. */}
