@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useAlgoMetricsContext } from "@d13co/algo-metrics-react";
 import { surfIdxGet, surfIdxRetry, surfIdxSupported } from "src/utils/surfIdx";
 import { ConsensusUpgrade, useConsensusUpgrade } from "src/hooks/useConsensusUpgrade";
 import { useConsensusVersionLookup } from "src/hooks/useConsensusVersions";
@@ -107,6 +108,77 @@ export function withLive(rows: SurfUpgrade[], live: LiveVote | null, voteRounds:
   ];
 }
 
+/** How a closed vote ended, read from the chain. */
+export interface ClosedVote {
+  voteBefore: number;
+  /** The final tally, from the header of the last round that voted. */
+  approvals: number;
+  /** The header of the close round kept the proposal pending: it passed. */
+  passed: boolean;
+}
+
+/**
+ * Settles what the chain has decided but surf idx doesn't have yet: a vote it has open that closed
+ * (from the close round's headers), and an approved upgrade whose switch round has passed.
+ */
+export function withClosed(rows: SurfUpgrade[], latestRound: number, closed: ClosedVote | null | undefined): SurfUpgrade[] {
+  if (!latestRound) return rows;
+  let out = rows;
+  rows.forEach((u, i) => {
+    let next: SurfUpgrade | null = null;
+    if (u.status === "voting" && closed?.voteBefore === u.voteBefore) {
+      next = {
+        ...u,
+        approvals: closed.approvals,
+        asOf: undefined,
+        status: !closed.passed ? "rejected" : u.switchOn <= latestRound ? "applied" : "approved",
+      };
+    } else if (u.status === "approved" && u.switchOn <= latestRound) {
+      // An approved switch can't be undone: past its round, it happened.
+      next = { ...u, status: "applied" };
+    }
+    if (next) {
+      if (out === rows) out = rows.slice();
+      out[i] = next;
+    }
+  });
+  return out;
+}
+
+/**
+ * The outcome of the newest vote the list has open that closed by latestRound, from the headers
+ * either side of its close. Fetched once: a closed vote never changes. null while there's none.
+ */
+function useClosedVote(rows: SurfUpgrade[] | undefined, latestRound: number): ClosedVote | null | undefined {
+  const { sdk } = useAlgoMetricsContext();
+  const voteBefore = latestRound
+    ? rows
+        ?.filter((u) => u.status === "voting" && u.voteBefore <= latestRound)
+        .reduce((max, u) => Math.max(max, u.voteBefore), 0)
+    : 0;
+  const { data } = useQuery({
+    queryKey: ["closed-vote", voteBefore],
+    queryFn: async (): Promise<ClosedVote> => {
+      const algod = sdk.algorand.client.algod;
+      // The last round that voted carries the final tally, its own vote included. The close round
+      // keeps the proposal pending if it passed, and clears it if not.
+      const [last, close] = await Promise.all([
+        algod.block(voteBefore! - 1).headerOnly(true).do(),
+        algod.block(voteBefore!).headerOnly(true).do(),
+      ]);
+      const pending = close.block.header.upgradeState;
+      return {
+        voteBefore: voteBefore!,
+        approvals: Number(last.block.header.upgradeState?.nextProtocolApprovals ?? 0),
+        passed: !!pending?.nextProtocol && Number(pending.nextProtocolVoteBefore) === voteBefore,
+      };
+    },
+    enabled: !!voteBefore,
+    staleTime: Infinity,
+  });
+  return voteBefore ? data : null;
+}
+
 /** Runs of consecutive proposals of the same protocol, oldest first. */
 export function groupUpgrades(rows: SurfUpgrade[]): UpgradeGroup[] {
   const groups: UpgradeGroup[] = [];
@@ -190,7 +262,13 @@ export function useUpgradeGroups(enabled = true): { groups: UpgradeGroup[] | und
     ? [live.nextProtocolVoteBefore, live.nextProtocolApprovals, live.phase, live.round, live.currentProtocol, live.nextProtocol, live.nextProtocolSwitchOn].join("|")
     : "";
   const liveVote = useMemo((): LiveVote | null => live, [liveKey]);
-  const merged = useMemo(() => (data ? withLive(data, liveVote, VOTE_ROUNDS) : undefined), [data, liveVote]);
+  const withLiveRows = useMemo(() => (data ? withLive(data, liveVote, VOTE_ROUNDS) : undefined), [data, liveVote]);
+  // Between a vote closing (or a switch) and surf idx catching up, the live header no longer has it.
+  const closed = useClosedVote(withLiveRows, latestRound);
+  const merged = useMemo(
+    () => (withLiveRows ? withClosed(withLiveRows, latestRound, closed) : undefined),
+    [withLiveRows, latestRound, closed],
+  );
   const groups = useMemo(
     () => (merged ? setAnchors(groupUpgrades(merged), (p) => lookup(p).name) : undefined),
     [merged, lookup],

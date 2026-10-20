@@ -1,4 +1,5 @@
 import React from "react";
+import { History } from "lucide-react";
 import {
     Dialog,
     DialogContent,
@@ -7,6 +8,7 @@ import {
     DialogTitle,
 } from "src/components/v2/ui/dialog";
 import Copyable from "src/components/v2/Copyable";
+import { Button } from "src/components/v2/ui/button";
 import ConsensusVersion from "src/components/v2/ConsensusVersion";
 import MultiDateViewer from "src/components/v2/MultiDateViewer";
 import LinkToBlock from "src/components/Modules/Explorer/v2/Links/LinkToBlock";
@@ -66,7 +68,7 @@ export default function ConsensusUpgradeDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col bg-background-muted text-foreground">
+            <DialogContent className="max-w-2xl max-h-[90vh] sm:max-h-[calc(100vh-2rem)] flex flex-col bg-background-muted text-foreground">
                 <DialogHeader>
                     <DialogTitle>
                         {upgrade.phase === "voting" ? "Consensus Upgrade Vote" : "Consensus Upgrade"}
@@ -223,10 +225,18 @@ export default function ConsensusUpgradeDialog({
                     </Row>
 
                     {found ? (
-                        <div className="pt-3 text-[13px]">
-                            <Link href={`/upgrades#${found.group.anchor}`} keepRound={false}>
-                                Upgrade history
-                            </Link>
+                        <div className="pt-3">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="border-border text-primary hover:bg-primary/10"
+                                asChild
+                            >
+                                <Link noStyle href={`/upgrades#${found.group.anchor}`} keepRound={false}>
+                                    <History />
+                                    Upgrade history
+                                </Link>
+                            </Button>
                         </div>
                     ) : null}
                 </div>

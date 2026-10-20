@@ -32,7 +32,7 @@ export interface VoteStatus {
  * voteRounds/threshold come from the *current* protocol, since the vote runs under its rules.
  */
 export function voteStatus(
-    upgrade: ConsensusUpgrade,
+    upgrade: Pick<ConsensusUpgrade, "nextProtocolApprovals" | "phase" | "roundsRemaining">,
     voteRounds: number | null,
     threshold: number | null,
 ): VoteStatus {
@@ -108,6 +108,11 @@ export function voteStatus(
         label: "On track",
         explainer: pacePct != null ? `at least ${pacePct}% Yes so far` : null,
     };
+}
+
+/** "1 round left", "2,626 rounds left". */
+export function roundsLeft(n: number): string {
+    return `${n.toLocaleString()} ${n === 1 ? "round" : "rounds"} left`;
 }
 
 /** A vote tally as a percentage of the votes cast so far, e.g. "7.75". */

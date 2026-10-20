@@ -1,5 +1,6 @@
 import React from "react";
-import { Info } from "lucide-react";
+import { History, Info } from "lucide-react";
+import { Button } from "src/components/v2/ui/button";
 import {
     Tooltip,
     TooltipContent,
@@ -14,6 +15,8 @@ import { useLiveBlocks } from "src/hooks/useLiveBlocks";
 import dateFormat from "dateformat";
 import LinkToBlock from "../Links/LinkToBlock";
 import Link from "../Links/Link";
+import VoteProgress from "../../LiveUpgrade/VoteProgress";
+import { voteStatus } from "../../LiveUpgrade/voteStatus";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }): JSX.Element {
     return (
@@ -33,14 +36,30 @@ function day(ts: number): string {
     return dateFormat(new Date(ts * 1000), "d mmm yyyy");
 }
 
-/** "Attempt 3 of 5 · Upgrade history", from surf idx. */
+function HistoryButton({ found, className }: { found: UpgradeAttempt; className?: string }): JSX.Element {
+    return (
+        <div className={className}>
+            <Button variant="outline" size="sm" className="border-border text-primary hover:bg-primary/10" asChild>
+                <Link noStyle href={`/upgrades#${found.group.anchor}`} keepRound={false}>
+                    <History />
+                    Upgrade history
+                </Link>
+            </Button>
+        </div>
+    );
+}
+
+/**
+ * "Attempt 3 of 5" and, from sm up, an Upgrade history button. On a phone, where the fields stack,
+ * the button ends the card instead.
+ */
 function AttemptLine({ found }: { found: UpgradeAttempt }): JSX.Element {
     const total = found.group.attempts.length;
     return (
-        <div className="text-muted-foreground">
-            {total > 1 ? `Attempt ${found.attempt} of ${total} · ` : ""}
-            <Link href={`/upgrades#${found.group.anchor}`} keepRound={false}>Upgrade history</Link>
-        </div>
+        <>
+            {total > 1 ? <div className="text-muted-foreground">Attempt {found.attempt} of {total}</div> : null}
+            <HistoryButton found={found} className="mt-2 hidden sm:block" />
+        </>
     );
 }
 
@@ -104,11 +123,19 @@ export default function BlockUpgradeCard({ block }: { block: CoreBlock }): JSX.E
     const threshold = current.threshold;
 
     const { nextProtocolVoteBefore: voteBefore, nextProtocolSwitchOn: switchOn } = state;
+    // Rounds after this one that could still vote, as of this block: the close round casts none.
+    const votingRoundsLeft = Math.max(0, voteBefore - 1 - round);
     // The header keeps a proposal pending after its vote only if it passed: a rejected one clears.
     const switchPending = !!next && voteBefore > 0 && round >= voteBefore;
     // An approved switch can't be undone, so a passed switch round means it happened.
     const applied = found?.upgrade.status === "applied" || (switchPending && switchOn > 0 && switchOn <= latestRound);
     const switchTs = found?.upgrade.switchTs;
+    // The vote passed: only then is the pending protocol what the chain is upgrading to.
+    const passed = switchPending || found?.upgrade.status === "approved" || found?.upgrade.status === "applied";
+    // Closed by now, so its close round's block exists.
+    const voteClosed = voteBefore <= latestRound || (!!found && found.upgrade.status !== "voting");
+    // The block that proposed it already shows it as proposed.
+    const shownNext = state.nextProtocol !== vote.upgradePropose ? next : null;
 
     const tally = (
         <>
@@ -145,10 +172,10 @@ export default function BlockUpgradeCard({ block }: { block: CoreBlock }): JSX.E
                 </div>
 
                 <div className="grid grid-cols-12 gap-4">
-                    {next ? (
+                    {shownNext ? (
                         <Cell>
-                            <Field label="Upgrading to">
-                                <ConsensusVersion info={next} showLink />
+                            <Field label={passed ? "Upgrading to" : "Voting on"}>
+                                <ConsensusVersion info={shownNext} showLink />
                             </Field>
                         </Cell>
                     ) : null}
@@ -213,17 +240,23 @@ export default function BlockUpgradeCard({ block }: { block: CoreBlock }): JSX.E
                             {next ? (
                                 <>
                                     <Cell>
-                                        <Field label="Approvals at this block">{tally}</Field>
+                                        <Field label="Vote tally at this block">
+                                            <VoteProgress
+                                                vote={voteStatus(
+                                                    { nextProtocolApprovals: state.nextProtocolApprovals, phase: "voting", roundsRemaining: votingRoundsLeft },
+                                                    voteRounds,
+                                                    threshold,
+                                                )}
+                                                roundsRemaining={votingRoundsLeft}
+                                                verdict={false}
+                                            />
+                                        </Field>
                                     </Cell>
 
                                     {voteBefore > 0 ? (
                                         <Cell>
-                                            <Field label="Voting closes">
-                                                <RoundRef
-                                                    round={voteBefore}
-                                                    exists={voteBefore <= latestRound || (!!found && found.upgrade.status !== "voting")}
-                                                />
-                                                <span className="text-muted-foreground ml-2">(open)</span>
+                                            <Field label="Voting close round">
+                                                <RoundRef round={voteBefore} exists={voteClosed} />
                                             </Field>
                                         </Cell>
                                     ) : null}
@@ -239,7 +272,9 @@ export default function BlockUpgradeCard({ block }: { block: CoreBlock }): JSX.E
                                     {/* Hidden once surf idx says the vote failed: it never switched. */}
                                     {switchOn > 0 && found?.upgrade.status !== "rejected" ? (
                                         <Cell>
-                                            <Field label={applied ? "Switched on" : "Switches on"}>
+                                            <Field
+                                                label={applied ? "Switched on" : passed ? "Switches on" : "Switch round if approved"}
+                                            >
                                                 <RoundRef round={switchOn} exists={switchOn <= latestRound || applied} />
                                                 {switchTs ? (
                                                     <span className="text-muted-foreground ml-2">{day(switchTs)}</span>
@@ -252,6 +287,7 @@ export default function BlockUpgradeCard({ block }: { block: CoreBlock }): JSX.E
                         </>
                     )}
                 </div>
+                {found ? <HistoryButton found={found} className="mt-4 sm:hidden" /> : null}
             </div>
         </div>
     );

@@ -19,17 +19,20 @@ export default function ConsensusVersion({
     showAvm = true,
     showLink = false,
     size = "default",
+    descriptionShown = false,
     className,
 }: {
     info: ConsensusVersionInfo;
     showAvm?: boolean;
     showLink?: boolean;
     size?: "default" | "lg";
+    /** The description is on screen already, so hovering doesn't repeat it. */
+    descriptionShown?: boolean;
     className?: string;
 }): JSX.Element {
     // Unrecognised protocols show the raw string on hover — the truncated name alone isn't enough
     // to identify which upgrade it is.
-    const tooltip = info.known ? info.description : info.protocol;
+    const tooltip = info.known ? (descriptionShown ? null : info.description) : info.protocol;
 
     const name = (
         <span className={cn("text-primary", size === "lg" ? "text-xl" : undefined)}>
