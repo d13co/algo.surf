@@ -1,12 +1,12 @@
 {
   "schema": 1,
-  "generatedAt": "2026-08-12T15:15:38Z",
+  "generatedAt": "2026-10-20T19:20:34Z",
   "source": {
     "repo": "algorand/go-algorand",
     "ref": "master",
-    "commit": "68e036affd9e62d0a64dcdb3f252eb0ee2e052d3"
+    "commit": "c72ae3ca2a4e47054057760916a7f2e4585b5256"
   },
-  "current": "https://github.com/algorandfoundation/specs/tree/268b63433a907455d439995bf916f6b296018f4f",
+  "current": "https://github.com/algorandfoundation/specs/tree/73c43b4a9699390884c51e2a9598d49e28373d10",
   "versions": {
     "v7": {
       "name": "v7",
@@ -315,6 +315,15 @@
       "threshold": 9000,
       "description": "Enables app size updates, Falcon1024 post-quantum signatures, load tracking, a per-byte transaction surcharge, and TEAL v13."
     },
+    "https://github.com/algorandfoundation/specs/tree/73c43b4a9699390884c51e2a9598d49e28373d10": {
+      "name": "v43",
+      "avm": 13,
+      "goConst": "ConsensusV43",
+      "spec": "https://github.com/algorandfoundation/specs/tree/73c43b4a9699390884c51e2a9598d49e28373d10",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Prevents closing an account whose minimum balance requirement exceeds the base."
+    },
     "future": {
       "name": "vFuture",
       "avm": 14,
@@ -394,6 +403,14 @@
       "voteRounds": 10000,
       "threshold": 9000,
       "description": "Re-enables challenges and brings heartbeats; upgrades to ConsensusV40."
+    },
+    "fnet5": {
+      "name": "fnet5",
+      "avm": 13,
+      "goConst": "ConsensusVFnet5",
+      "voteRounds": 10000,
+      "threshold": 9000,
+      "description": "Is the protocol AF's FNet runs, with the same parameters as ConsensusV42"
     }
   }
 }
