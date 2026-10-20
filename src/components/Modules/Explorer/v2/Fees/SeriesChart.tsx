@@ -41,7 +41,8 @@ function formatTick(interval: Interval, x: number): string {
 
 /**
  * One bar per bucket. Partial buckets (in progress, or cut by the range) are drawn hollow so their
- * smaller value doesn't read as a dip. Clicking a bar or dragging across bars calls onZoom.
+ * smaller value doesn't read as a dip. Clicking a bar or dragging across bars calls onZoom. On touch a
+ * tap only shows the bar, and a horizontal drag zooms.
  */
 function SeriesChart({
   buckets,
@@ -130,39 +131,74 @@ function SeriesChart({
     if (!dragging.current) describe(current(described.current));
   }, [rows]);
 
+  // A touch tap only shows the bar, through the chart's own click. Set on a touch press to the bar shown before it, so
+  // a second tap on the same block opens it; undefined once the press becomes a drag, or with no touch press.
+  const tapFrom = useRef<Row | null | undefined>(undefined);
+  // The press being followed, and how to end it. Other fingers, or a mouse during a touch drag, neither start another
+  // nor move this one.
+  const active = useRef<{ id: number; stop: () => void } | null>(null);
+
   const onPointerDown = (e: React.PointerEvent) => {
-    const from = focused.current;
-    // Touch keeps scrolling the page; zoom is mouse and pen only.
-    if (!onZoom || e.pointerType === "touch" || e.button !== 0 || !from) return;
+    if (!e.isPrimary || (active.current && active.current.id !== e.pointerId)) return;
+    // The same pointer pressed again: its release was lost, e.g. outside the window.
+    active.current?.stop();
+    // A touch press has no focus yet: the chart focuses on move or click. The drag takes its start from the first move.
+    const touch = e.pointerType === "touch";
+    let from = touch ? null : focused.current;
+    tapFrom.current = touch ? described.current : undefined;
+    if (!onZoom || e.button !== 0 || (!touch && !from)) return;
     const host = wrapper.current!;
     const rect = host.getBoundingClientRect();
     const box = overlay.current!.style;
     const toX = (clientX: number) => Math.max(0, Math.min(rect.width, clientX - rect.left));
     const x0 = toX(e.clientX);
     let x1 = x0;
+    // Under this a press is a click or tap, not a drag. A finger wobbles more than a mouse.
+    const slop = touch ? 12 : 5;
+    const dragged = () => Math.abs(x1 - x0) >= slop;
+    // Whether a touch press has been a drag: once past the slop, coming back doesn't make it a tap.
+    let started = false;
     // The whole buckets from..to, cut to the shown range: what releasing there zooms to.
-    const selection = (to: Row): [number, number] => {
-      const [lo, hi] = from.ts < to.ts ? [from, to] : [to, from];
+    const selection = (lo: Row, hi: Row): [number, number] => {
+      if (lo.ts > hi.ts) [lo, hi] = [hi, lo];
       return [Math.max(lo.ts, start ?? lo.ts), Math.min(hi.end, end ?? Infinity)];
     };
     const move = (ev: PointerEvent) => {
+      if (ev.pointerId !== e.pointerId) return;
       x1 = toX(ev.clientX);
+      // The chart's own pointermove has already focused the bar under the pointer.
+      from ??= focused.current;
+      if (!from) return;
+      if (dragged()) {
+        started = true;
+        tapFrom.current = undefined;
+      }
+      // Touch shows a selection only where releasing would zoom: once a drag, and off the bar it started on.
+      if (touch && (!started || focused.current?.x === from.x)) {
+        if (dragging.current) {
+          delete host.dataset.dragging;
+          dragging.current = false;
+          describe(focused.current);
+        }
+        return;
+      }
       box.left = `${Math.min(x0, x1)}px`;
       box.width = `${Math.abs(x1 - x0)}px`;
       host.dataset.dragging = "";
       dragging.current = true;
-      if (focused.current) readout(`Zoom to ${formatSpan(...selection(focused.current))}`);
+      if (focused.current) readout(`Zoom to ${formatSpan(...selection(from, focused.current))}`);
     };
     const up = (ev: PointerEvent) => {
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", up);
-      window.removeEventListener("pointercancel", up);
-      delete host.dataset.dragging;
-      dragging.current = false;
-      describe(pointing.current ? focused.current : null);
+      if (ev.pointerId !== e.pointerId) return;
+      const wasDragging = dragging.current;
+      stop();
+      if (wasDragging || !touch) describe(pointing.current ? focused.current : null);
+      if (ev.type === "pointercancel" || !from) return;
+      // A tap, or a drag back onto the bar it started on, is left to the chart's click and onClick below.
+      if (touch && (!started || !focused.current || focused.current.x === from.x)) return;
       // A click zooms into the bar pressed, a drag across the bars dragged over.
-      const to = Math.abs(x1 - x0) < 5 ? from : focused.current;
-      if (ev.type === "pointercancel" || !to) return;
+      const to = touch || dragged() ? focused.current : from;
+      if (!to) return;
       // Rows are replaced on each update, e.g. live: the same bar is the same x.
       if (to.x === from.x && interval === "block") {
         // No finer interval to zoom into: open the block, in a new tab with Ctrl or Cmd as a link would.
@@ -170,11 +206,28 @@ function SeriesChart({
         else navigate(`/block/${to.x}`);
         return;
       }
-      onZoom(...selection(to));
+      onZoom(...selection(from, to));
     };
+    const stop = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+      active.current = null;
+      delete host.dataset.dragging;
+      dragging.current = false;
+    };
+    active.current = { id: e.pointerId, stop };
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
     window.addEventListener("pointercancel", up);
+  };
+
+  // After the chart's click has focused the tapped bar: a second tap on the block already shown opens it.
+  const onClick = () => {
+    const before = tapFrom.current;
+    tapFrom.current = undefined;
+    const tapped = focused.current;
+    if (onZoom && interval === "block" && before && tapped && before.x === tapped.x) navigate(`/block/${tapped.x}`);
   };
 
   return (
@@ -182,7 +235,9 @@ function SeriesChart({
       <div
         ref={wrapper}
         onPointerDown={onPointerDown}
-        className={`group relative select-none text-muted-foreground ${onZoom ? (interval === "block" ? "cursor-pointer" : "cursor-crosshair") : ""}`}
+        onClick={onClick}
+        // Touch: the page keeps vertical scrolling and pinch zoom, and a horizontal drag selects.
+        className={`group relative select-none text-muted-foreground ${onZoom ? `touch-pan-y touch-pinch-zoom ${interval === "block" ? "cursor-pointer" : "cursor-crosshair"}` : ""}`}
       >
         <Chart
           definition={definition}

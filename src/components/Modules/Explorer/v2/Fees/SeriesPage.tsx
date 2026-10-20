@@ -340,7 +340,8 @@ function SeriesPage({ title, y, format: formatValue, label, stats }: SeriesPageP
               ) : (
                 <>
                   Showing {period?.label ?? range.label}.{" "}
-                  <span className="text-muted">Click a bar or drag across the chart to zoom in.</span>
+                  <span className="text-muted pointer-coarse:hidden">Click a bar or drag across the chart to zoom in.</span>
+                  <span className="hidden text-muted pointer-coarse:inline">Drag across the chart to zoom in.</span>
                 </>
               )}
             </div>
