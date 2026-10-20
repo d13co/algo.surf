@@ -228,3 +228,8 @@ localnet optimizations
   - a selection that stops short of the in-progress bar stays a fixed start/end zoom
   - start = bucketStart(interval, now - span) so the query key holds per bucket, and the incremental fetch / extendsView slide path applies as for rolling ranges
   - "Zoomed to …" text, Zoom out (widen the span) and Reset zoom need a span variant
+
+- Version history unavailable: too many objects to merge: account LFTYNHQEOZYYIFFLPA246HYX3ZIPZHDL3GZTHHKQVJB6DQGHF2ZMB5QEEU has had more than 100000 resources: use exclude or the per-resource versions endpoints - http://localhost:5173/account/LFTYNHQEOZYYIFFLPA246HYX3ZIPZHDL3GZTHHKQVJB6DQGHF2ZMB5QEEU/versions
+    - error containers
+
+- Add average block time to tps page
