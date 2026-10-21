@@ -33,6 +33,7 @@ import { Chip, BadgesRow } from "src/components/v2/Chips";
 import { countInnerTxns } from "./Types/AppCall/AppCallTxnInnerTxns";
 import { getXChainOwner } from "./Sections/XChainOwner";
 import XChainBadge from "../XChainBadge";
+import { rememberTransactions } from "src/hooks/useKnownNames";
 
 function Transaction(): JSX.Element {
   const params = useParams();
@@ -61,6 +62,9 @@ function Transaction(): JSX.Element {
   );
 
   const xChainOwner = useMemo(() => getXChainOwner(txnObj), [txnObj]);
+
+  // Names its logic sig account and the apps it (or its inner transactions) created.
+  useEffect(() => rememberTransactions(txnObj ? [txnObj] : undefined), [txnObj]);
 
   useTitle(`Txn ${id}`);
 

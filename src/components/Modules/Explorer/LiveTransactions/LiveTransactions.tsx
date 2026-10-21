@@ -6,6 +6,7 @@ import { CSSTransition, TransitionGroup } from 'react-transition-group';
 import { ellipseString } from "src/packages/core-sdk/utils";
 import { TransactionType } from "algosdk";
 import type { modelsv2, Transaction } from "algosdk";
+import { useKnownAddressName, useKnownAppName } from "src/hooks/useKnownNames";
 
 type SignedTxnInBlock = modelsv2.BlockResponse["block"]["payset"][number];
 
@@ -58,6 +59,20 @@ function getAppId(txn: Transaction): number {
     return 0;
 }
 
+/** A known app account or logic sig account by name (address on hover), else the shortened address. */
+function AddressName({ address }: { address: string }) {
+    const name = useKnownAddressName(address);
+    return name
+        ? <span className="text-xs truncate" title={address}>{name}</span>
+        : <span className="font-mono text-xs">{ellipseString(address, 8)}</span>;
+}
+
+/** A known app by name (ID on hover), else its ID. */
+function AppName({ appId }: { appId: number }) {
+    const name = useKnownAppName(appId);
+    return name ? <span className="truncate" title={String(appId)}>{name}</span> : <span>{appId}</span>;
+}
+
 function TransactionItem({ stib, ...transitionProps }: { stib: SignedTxnInBlock } & Record<string, unknown>) {
     const nodeRef = useRef<HTMLAnchorElement>(null);
     const roundHref = useRoundHref();
@@ -76,18 +91,18 @@ function TransactionItem({ stib, ...transitionProps }: { stib: SignedTxnInBlock 
                 </div>
                 <div className="mt-1.5 text-[13px] flex justify-between items-center">
                     <span>From:</span>
-                    <span className="font-mono text-xs">{ellipseString(txn.sender.toString(), 8)}</span>
+                    <AddressName address={txn.sender.toString()} />
                 </div>
                 {type === TransactionType.pay || type === TransactionType.axfer ? (
                     <div className="mt-1.5 text-[13px] flex justify-between items-center">
                         <span>To:</span>
-                        <span className="font-mono text-xs">{ellipseString(to, 8)}</span>
+                        <AddressName address={to} />
                     </div>
                 ) : null}
                 {type === TransactionType.appl ? (
                     <div className="mt-1.5 text-[13px] flex justify-between items-center">
                         <span>Application:</span>
-                        <span>{appId}</span>
+                        <AppName appId={appId} />
                     </div>
                 ) : null}
             </Link>

@@ -23,6 +23,7 @@ import {
   useApplicationBoxNames,
 } from "src/hooks/useApplication";
 import { useCreatorSuppliedAppInfo } from "src/hooks/useCreatorSuppliedAppInfo";
+import { useKnownAppName } from "src/hooks/useKnownNames";
 import { useTimeTravelSupport } from "src/hooks/useTimeTravel";
 import { useRound, useRoundNavigate, withRound } from "src/hooks/useRound";
 import RoundNotice from "../Versions/RoundNotice";
@@ -94,6 +95,8 @@ function Application(): JSX.Element {
   } = useApplicationBoxNames(numId, round);
 
   const creatorSupplied = useCreatorSuppliedAppInfo(numId);
+  // What @node-toolkit/programs recognises the app as (deleted apps from their creating txn).
+  const knownName = useKnownAppName(numId);
 
   const applicationInstance = useMemo(
     () => (appInfo ? new CoreApplication(appInfo) : null),
@@ -212,6 +215,17 @@ function Application(): JSX.Element {
                         />
                       </div>
                     </div>
+
+                    {knownName ? (
+                      <div className="mt-2.5">
+                        <LabelWithHint hint="Recognised from the app's ID, creator, programs or global state by @node-toolkit/programs. A label, not proof: anyone can deploy a copy of a known contract.">
+                          Known as
+                        </LabelWithHint>
+                        <div className="mt-2.5 text-[13px] break-words overflow-hidden">
+                          {knownName}
+                        </div>
+                      </div>
+                    ) : null}
 
                     {creatorSupplied?.name ? (
                       <div className="mt-2.5">
