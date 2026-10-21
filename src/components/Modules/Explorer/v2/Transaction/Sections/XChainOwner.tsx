@@ -1,6 +1,6 @@
 import React from "react";
 import { CoreTransaction } from "src/packages/core-sdk/classes/core/CoreTransaction";
-import { AlgoXEvmSdk } from "algo-x-evm-sdk";
+import { getEvmAddressFromXChainProgram } from "@node-toolkit/programs/lsig";
 import LinkToBlockscan from "../../Links/LinkToBlockscan";
 import { CircleHelp } from "lucide-react";
 
@@ -10,7 +10,7 @@ export function getXChainOwner(transaction: any): `0x${string}` | null {
   if (!txnInstance.isLogicSig()) return null;
   const logic = txnInstance.getSig()?.logicsig?.logic;
   if (!logic) return null;
-  return AlgoXEvmSdk.getEvmAddressFromProgram(logic);
+  return getEvmAddressFromXChainProgram(logic);
 }
 
 function XChainOwnerField({

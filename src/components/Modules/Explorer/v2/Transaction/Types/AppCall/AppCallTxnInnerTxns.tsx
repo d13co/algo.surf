@@ -285,6 +285,7 @@ function InnerTxnNode({
             <LinkToApplication
               id={txnInstance.getAppId()}
               name={"App " + txnInstance.getAppId()}
+              lookup
             />
           ) : null}
           {type === TXN_TYPES.ASSET_CONFIG && txnInstance.getAssetId() ? (

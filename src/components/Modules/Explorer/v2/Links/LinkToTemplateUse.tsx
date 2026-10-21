@@ -1,4 +1,4 @@
-import { lsigTemplate } from "src/utils/lsigTemplate";
+import { templateId } from "@node-toolkit/core";
 import LinkToBlockTxn, { BlockTxn } from "./LinkToBlockTxn";
 
 /**
@@ -8,7 +8,7 @@ import LinkToBlockTxn, { BlockTxn } from "./LinkToBlockTxn";
 function LinkToTemplateUse({ round, template, last = false }: { round: number; template: string; last?: boolean }): JSX.Element {
   const matches = (t: BlockTxn) => {
     const logic = t.signature?.logicsig?.logic;
-    return !!logic?.length && lsigTemplate(logic) === template;
+    return !!logic?.length && templateId(logic) === template;
   };
   return (
     <LinkToBlockTxn

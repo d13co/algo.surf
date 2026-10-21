@@ -76,6 +76,7 @@ function AppCallTransaction({
                 id={txnInstance.getAppId()}
                 copy="right"
                 copySize="s"
+                lookup
               />
             </div>
           </div>

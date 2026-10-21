@@ -15,6 +15,7 @@ import {
   TableRow,
 } from "src/components/v2/ui/table";
 import { indexerModels } from "algosdk";
+import { rememberTransactions } from "src/hooks/useKnownNames";
 import {
   columns,
   columnClassName,
@@ -72,6 +73,9 @@ function TransactionsList({
   emptyLabel = "No transactions",
 }: TransactionsListProps): JSX.Element {
   const [pageIndex, setPageIndex] = React.useState(0);
+
+  // Names the logic sig accounts and created apps in them wherever they are linked.
+  React.useEffect(() => rememberTransactions(transactions), [transactions]);
 
   const columnVisibility: VisibilityState = useMemo(() => {
     const vis: VisibilityState = {};

@@ -43,7 +43,7 @@ export function ToCellMain({
 
   if (type === TXN_TYPES.APP_CALL) {
     const appId = txn.getAppId();
-    return <LinkToApplication id={appId} name={"App " + appId} copySize="m" />;
+    return <LinkToApplication id={appId} name={"App " + appId} copySize="m" lookup />;
   }
 
   if (type === TXN_TYPES.ASSET_CONFIG) {

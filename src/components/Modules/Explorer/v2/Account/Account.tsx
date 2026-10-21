@@ -51,7 +51,10 @@ import {
   TooltipTrigger,
 } from "src/components/v2/ui/tooltip";
 import { Chip, BadgesRow } from "src/components/v2/Chips";
-import { AlgoXEvmSdk } from "algo-x-evm-sdk";
+import { getEvmAddressFromXChainProgram } from "@node-toolkit/programs/lsig";
+import KnownLogicsigFields from "../Lsig/KnownLogicsigFields";
+import { rememberLogicsigProgram } from "src/hooks/useKnownNames";
+import { logicsigAddress } from "src/utils/knownPrograms";
 import { CircleHelp } from "lucide-react";
 
 const isMainnet = network === "Mainnet";
@@ -215,10 +218,20 @@ function Account(): JSX.Element {
     const isMultiSig = !!lastSent?.signature?.multisig;
     const isLogicSig = !!lastSent?.signature?.logicsig;
     const isClosed = accountInfo.amount === 0n && !!lastSent;
-    const isXEVM = isLogicSig ? AlgoXEvmSdk.getEvmAddressFromProgram(lastSent!.signature!.logicsig!.logic) : null;
+    const isXEVM = isLogicSig ? getEvmAddressFromXChainProgram(lastSent!.signature!.logicsig!.logic) : null;
     const pqSig = lastSent ? getAttachedPqSig(lastSent) : undefined;
     return [lastSent, isMultiSig, isLogicSig, isClosed, isXEVM, pqSig] as const;
   }, [address, accountInfo, transactions]);
+
+  // The account's own program: the last sent txn's logic sig, when its address is this account's
+  // (not a delegated program, nor one the account is rekeyed to).
+  const accountLogic = useMemo(() => {
+    const logic = lastSent?.signature?.logicsig?.logic;
+    return logic && address && logicsigAddress(logic) === address ? logic : undefined;
+  }, [lastSent, address]);
+  React.useEffect(() => {
+    if (accountLogic && address) rememberLogicsigProgram(address, accountLogic);
+  }, [accountLogic, address]);
 
   // The last sent txn's logic sig was delegated: a key signed the program.
   const lastSentDelegated = useMemo(() => {
@@ -634,7 +647,7 @@ function Account(): JSX.Element {
                           Application Escrow
                         </div>
                         <div className="mt-2.5">
-                          <LinkToApplication id={escrowOf} copy="left" />
+                          <LinkToApplication id={escrowOf} copy="left" lookup />
                         </div>
                       </div>
                     ) : null}
@@ -685,6 +698,9 @@ function Account(): JSX.Element {
                         </div>
                       </div>
                     ) : null}
+
+                    {/* The xChain EVM owner has its own field below. */}
+                    <KnownLogicsigFields logic={accountLogic} className="mt-2.5" omit={["EVM address"]} />
 
                     {isXEVM ? (
                       <div className="mt-2.5">

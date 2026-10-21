@@ -4,6 +4,7 @@ import { useAlgoMetricsContext } from "@d13co/algo-metrics-react";
 import type { TsTcWatcherBlockCallback, TsTcWatcherSimpleCallback } from "@d13co/algo-metrics-sdk";
 import type { modelsv2, Transaction } from "algosdk";
 import { surfIdxSupported } from "src/utils/surfIdx";
+import { rememberBlock } from "src/hooks/useKnownNames";
 
 const BLOCKS_TO_KEEP = 11;
 const TRANSACTIONS_TO_KEEP = BLOCKS_TO_KEEP;
@@ -78,6 +79,8 @@ export function LiveBlocksProvider({ children }: { children: React.ReactNode }) 
       headerOnlyBlocks.add(block);
     } else {
       patchBlockTxns(block);
+      // Names its logic sig accounts and the apps it created (short-lived ones too).
+      rememberBlock(block);
     }
     return block;
   };
@@ -182,6 +185,7 @@ export function LiveBlocksProvider({ children }: { children: React.ReactNode }) 
       // On register the SDK calls back with cached data only, and no block.
       if (!lastBlock?.block) return;
       patchBlockTxns(lastBlock.block);
+      rememberBlock(lastBlock.block);
       pushBlock(lastBlock.block);
     };
     const headerCallback: TsTcWatcherSimpleCallback = (data) => {

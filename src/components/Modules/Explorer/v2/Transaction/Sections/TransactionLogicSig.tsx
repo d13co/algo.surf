@@ -8,6 +8,7 @@ import ApplicationProgram from "../../ApplicationProgram";
 import LinkToAccount from "../../Links/LinkToAccount";
 import LinkToLsigTemplate from "../../Links/LinkToLsigTemplate";
 import { useLsig } from "src/hooks/useLsig";
+import KnownLogicsigFields from "../../Lsig/KnownLogicsigFields";
 
 import MultiFormatViewer from "src/components/v2/MultiFormatViewer";
 
@@ -99,6 +100,7 @@ function TransactionLogicSig({
                 </div>
               </div>
             ) : null}
+            <KnownLogicsigFields logic={logic} />
           </div>
           <ApplicationProgram
             id={0}

@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useInfiniteQuery, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { probeTimeTravel } from "@node-toolkit/timetravel";
 import { network, Networks } from "src/packages/core-sdk/constants";
 import {
   getTimeTravelNode,
@@ -36,8 +37,6 @@ import {
 import { parseObjKey, VersionFilter } from "src/utils/versionFilter";
 import { FeedReader, MergedCursor, MergedPage, readMergedPage } from "src/utils/mergeVersionFeeds";
 
-const ZERO_ADDRESS = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ";
-
 // History is append-only, but kept in memory only: it is experimental, and big.
 const meta = { noPersist: true };
 
@@ -54,26 +53,13 @@ export function useTimeTravelStatus(): TimeTravelStatus {
   const { data } = useQuery({
     queryKey: ["timetravel-support", node?.baseUrl],
     queryFn: async () => {
-      let versions: unknown;
-      let params: { "genesis-id": string } | null;
-      try {
-        [versions, params] = await Promise.all([
-          ttGet(`/v2/accounts/${ZERO_ADDRESS}/versions`, { limit: 1 }),
-          ttGet<{ "genesis-id": string }>("/v2/transactions/params"),
-        ]);
-      } catch (e) {
-        // Resolved rather than thrown: a failed query would be retried by
-        // every component that mounts next.
-        console.warn(`${node.baseUrl} is unreachable: ${(e as Error).message}`);
-        return false;
-      }
-      if (!versions) {
-        console.warn(`${node.baseUrl} does not serve version histories (is EnableTimeTravel on?)`);
-        return false;
-      }
-      const genesisId = params?.["genesis-id"] ?? "";
-      if (network !== Networks.Localnet && !genesisId.toLowerCase().startsWith(network.toLowerCase())) {
-        console.warn(`${node.baseUrl} follows ${genesisId}, not ${network}: ignoring it`);
+      // Never throws (an unreachable node is a status): a failed query would
+      // be retried by every component that mounts next.
+      const support = await probeTimeTravel(node, {
+        genesisIdPrefix: network === Networks.Localnet ? undefined : network,
+      });
+      if (support.status !== "supported") {
+        console.warn(support.status === "wrong-network" ? `${support.reason}: ignoring it` : support.reason);
         return false;
       }
       return true;
@@ -105,7 +91,7 @@ async function getVersionsPage<V>(
     ...query,
   });
   if (!page) {
-    throw new TimeTravelError(notServed, 404);
+    throw new TimeTravelError(notServed, 404, path);
   }
   return page;
 }

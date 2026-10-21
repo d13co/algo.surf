@@ -29,6 +29,15 @@ importers:
       '@d13co/open-in':
         specifier: 0.1.2
         version: 0.1.2
+      '@node-toolkit/core':
+        specifier: ^0.2.0
+        version: 0.2.0(algosdk@3.8.0)
+      '@node-toolkit/programs':
+        specifier: ^0.3.1
+        version: 0.3.1(algosdk@3.8.0)
+      '@node-toolkit/timetravel':
+        specifier: ^0.1.0
+        version: 0.1.0
       '@radix-ui/react-dialog':
         specifier: ^1.1.15
         version: 1.1.15(@types/react-dom@17.0.26(@types/react@17.0.91))(@types/react@17.0.91)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -523,6 +532,23 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
+
+  '@noble/hashes@2.4.0':
+    resolution: {integrity: sha512-X5XaVWZIBCT7HHZGm5I7ZQXDwLG+bGXuSrMQAW+7Zvl87h1kmc1ZB1VSRJcpUfoUrGQp4Fkoxm5kZ+Ms+aW+eA==}
+    engines: {node: '>= 20.19.0'}
+
+  '@node-toolkit/core@0.2.0':
+    resolution: {integrity: sha512-URKdbgEFbADSP8On3vLGurqlBuwqiE89x/MdjPoZbeEAcIaVQlJyehegNHqf02b2AW7XPR/pvrFAWNNDJ+rS2Q==}
+    peerDependencies:
+      algosdk: ^3.7.0
+
+  '@node-toolkit/programs@0.3.1':
+    resolution: {integrity: sha512-OprB9ujKolZheJIMH/OJbY6nTtZEDZFN1U0G6wYM7UDzaNf+lb52m5fB43WZpaHvjtTZCiEIiS8TiUUZ1PuMDA==}
+    peerDependencies:
+      algosdk: ^3.7.0
+
+  '@node-toolkit/timetravel@0.1.0':
+    resolution: {integrity: sha512-4E1lun/0E+cP939VX9OS/gp7ag20mxpSrvZfMyUYhx9Xwzk38Fk0Wn58adKDhFi4g4oMjug1ysPtpT35Icx9dg==}
 
   '@parcel/watcher-android-arm64@2.5.6':
     resolution: {integrity: sha512-YQxSS34tPF/6ZG7r/Ih9xy+kP/WwediEUsqmtf0cuCV5TPPKw/PQHRhueUo6JdeFJaqV3pyjm0GdYjZotbRt/A==}
@@ -3060,6 +3086,20 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
+
+  '@noble/hashes@2.4.0': {}
+
+  '@node-toolkit/core@0.2.0(algosdk@3.8.0)':
+    dependencies:
+      '@noble/hashes': 2.4.0
+      algosdk: 3.8.0
+
+  '@node-toolkit/programs@0.3.1(algosdk@3.8.0)':
+    dependencies:
+      '@node-toolkit/core': 0.2.0(algosdk@3.8.0)
+      algosdk: 3.8.0
+
+  '@node-toolkit/timetravel@0.1.0': {}
 
   '@parcel/watcher-android-arm64@2.5.6':
     optional: true
