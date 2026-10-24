@@ -7,7 +7,6 @@ import * as mfsha2 from 'multiformats/hashes/sha2'
 import * as digest from 'multiformats/hashes/digest'
 import type { CIDVersion } from 'multiformats/cid'
 import {IPFS_GATEWAY} from "../../utils";
-import axios, {AxiosResponse} from "axios";
 
 export class ARC19 {
     assetInstance: CoreAsset
@@ -87,8 +86,9 @@ export class ARC19 {
         if (this.hasValidUrl()) {
             const url = this.getMetadataUrl();
             try {
-                const response: AxiosResponse = await axios.get(url);
-                return response.data;
+                const response = await fetch(url);
+                if (!response.ok) return;
+                return await response.json();
             }
             catch (e) {
 

@@ -47,7 +47,7 @@ function ApplicationProgram(props: {
         setDecompiling(true);
         const client = new ApplicationClient(explorer.network);
         const result = await client.decompileProgram(program);
-        setPrg(result.data.result);
+        setPrg(result.result);
         setEncoding(enc);
       } catch {
         // decompilation failed — stay on current encoding

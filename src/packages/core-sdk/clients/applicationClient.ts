@@ -2,7 +2,6 @@ import { Algodv2, indexerModels } from 'algosdk';
 import type { Indexer } from "algosdk";
 import { A_Application, A_ApplicationResult, } from "../types";
 import {Network} from "../network";
-import axios from 'axios';
 import {A_TransactionsResponse} from "./transactionClient";
 import { toA_Application, toA_ApplicationsResponse } from "../utils/v3Adapters";
 
@@ -73,21 +72,9 @@ export class ApplicationClient{
         return { 'next-token': response['nextToken'] ?? '', transactions };
     }
 
-    async decompileProgram(program: string) {
+    async decompileProgram(program: string): Promise<{ result: string }> {
         const bytes = Buffer.from(program, 'base64');
-
-        const baseUrl = this.network.getAlgodUrl();
-        const url = baseUrl + '/v2/teal/disassemble';
-
-        // @ts-ignore
-        return axios({
-            method: 'post',
-            url,
-            data: bytes,
-            headers: {
-                'x-algo-api-token': this.network.getAlgodToken()
-            }
-        });
+        return this.client.disassemble(bytes).do();
     }
 
     async compileProgram(programSource: string): Promise<CompileResponse> {
