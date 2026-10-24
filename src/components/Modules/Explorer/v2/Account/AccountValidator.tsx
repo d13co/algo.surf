@@ -1,11 +1,10 @@
 import { useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import {
-  useValidator,
-  useValidatorStats,
-  validatorStatsSupported,
-} from "src/hooks/useValidator";
+import { useValidator, useValidatorStats } from "src/hooks/useValidator";
+import { surfIdxOffMessage, useSurfIdxCaps } from "src/hooks/useSurfIdxCaps";
 import { useAccount } from "src/hooks/useAccount";
+import { useBlockHeader } from "src/hooks/useBlock";
+import { useRound } from "src/hooks/useRound";
 import { useLiveBlocks } from "src/hooks/useLiveBlocks";
 import { useAverageRoundTime } from "@d13co/algo-metrics-react";
 import { BLOCK_TIME } from "src/packages/core-sdk/constants";
@@ -96,12 +95,20 @@ function KeyRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function ValidatorInfo({ address }: { address: string }): JSX.Element {
+/** Participation keys at `round` (see useRound), else as they are now. */
+function ValidatorInfo({ address, round }: { address: string; round?: number }): JSX.Element {
   const { data: account, isLoading } = useAccount(address);
   const { blocks } = useLiveBlocks();
   const avgRoundTime = useAverageRoundTime() ?? BLOCK_TIME;
   const latest = blocks[0]?.header;
   const part = account?.participation;
+  const lastValid = Number(part?.voteLastValid ?? 0);
+  const latestRound = latest ? Number(latest.round) : 0;
+  // Keys valid at a past round that have run out since expired at a known
+  // time: their last valid block's.
+  const expiredSince =
+    round !== undefined && lastValid >= round && !!latestRound && lastValid <= latestRound;
+  const { data: lastValidBlock } = useBlockHeader(expiredSince ? lastValid : 0);
 
   if (isLoading) {
     return (
@@ -117,12 +124,12 @@ function ValidatorInfo({ address }: { address: string }): JSX.Element {
     return <div className="text-muted-foreground">Account is offline</div>;
   }
 
-  const lastValid = Number(part.voteLastValid);
-  const round = latest ? Number(latest.round) : 0;
-  const roundsLeft = lastValid - round;
-  const expiresAt = latest
-    ? Number(latest.timestamp) + roundsLeft * avgRoundTime
-    : 0;
+  const roundsLeft = lastValid - (round ?? latestRound);
+  const expiresAt = expiredSince
+    ? Number(lastValidBlock?.timestamp ?? 0)
+    : latest
+      ? Number(latest.timestamp) + (lastValid - latestRound) * avgRoundTime
+      : 0;
   const integrityHash = latest?.genesisHash
     ? partkeyIntegrityHash({
         genesisHash: latest.genesisHash,
@@ -160,12 +167,14 @@ function ValidatorInfo({ address }: { address: string }): JSX.Element {
           copy={false}
         />
         <Row
-          label="Estimated expiration"
+          label={expiredSince ? "Expiration" : "Estimated expiration"}
           value={
             !latest ? (
               "-"
-            ) : roundsLeft <= 0 ? (
+            ) : roundsLeft < 0 ? (
               "Expired"
+            ) : !expiresAt ? (
+              "-"
             ) : (
               <MultiDateViewer timestamp={Math.floor(expiresAt)} switcherSide="right" noCopy />
             )
@@ -189,22 +198,26 @@ function ValidatorInfo({ address }: { address: string }): JSX.Element {
 
 function AccountValidator(): JSX.Element {
   const { address } = useParams();
+  // At a past round, stats, lists and time frames all end there.
+  const { round } = useRound();
   const [timeframe, setTimeframe] = useState<number>(0);
   const [lastRound, setLastRound] = useState(0);
   const [dialog, setDialog] = useState<"blocks" | "suspensions" | undefined>();
   const [page, setPage] = useState(0);
 
-  const minRound = timeframe && lastRound ? Math.max(0, lastRound - timeframe) : 0;
+  const endRound = round ?? lastRound;
+  const minRound = timeframe && endRound ? Math.max(0, endRound - timeframe) : 0;
+  const caps = useSurfIdxCaps();
   const {
     data: stats,
     isLoading: statsLoading,
     error: statsError,
-  } = useValidatorStats(address, minRound);
+  } = useValidatorStats(address, minRound, round);
   const {
     data: validatorData,
     isLoading: validatorLoading,
     error: validatorError,
-  } = useValidator(address, !!dialog);
+  } = useValidator(address, !!dialog, round);
 
   const { proposals, suspensions } = useMemo(() => {
     let proposals = validatorData?.proposals ?? [];
@@ -273,7 +286,7 @@ function AccountValidator(): JSX.Element {
           <div className="flex items-end border-b border-primary pb-2 text-sm text-primary h-9">
             Participation
           </div>
-          <ValidatorInfo address={address!} />
+          <ValidatorInfo address={address!} round={round} />
         </div>
 
         {/* Stats */}
@@ -321,8 +334,8 @@ function AccountValidator(): JSX.Element {
             </div>
           </div>
 
-          {!validatorStatsSupported ? (
-            <div className="text-muted-foreground">Network not supported</div>
+          {caps && !caps.proposers ? (
+            <div className="text-muted-foreground">{surfIdxOffMessage(caps)}</div>
           ) : hasData ? (
             <>
               <div className="w-full flex flex-col gap-4">
@@ -402,7 +415,7 @@ function AccountValidator(): JSX.Element {
                 </Button>
               </div>
             </>
-          ) : statsLoading ? (
+          ) : statsLoading || !caps ? (
             <div className="w-full">
               <LoadingTile
                 style={{ marginTop: "0" }}

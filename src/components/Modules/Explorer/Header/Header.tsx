@@ -3,10 +3,14 @@ import {useLocation} from "react-router-dom";
 import Search from "../Search/Search";
 import Logo from "./Logo";
 import Link from "../v2/Links/Link";
+import { surfIdxSupported } from "src/utils/surfIdx";
+import { useSurfIdxCaps } from "src/hooks/useSurfIdxCaps";
 
 const networkLabel = process.env.REACT_APP_NETWORK;
 
-const routes = ["home", "accounts", "transactions", "assets", "applications"];
+const routes = ["home", "accounts", "transactions", "assets", "applications", "fees", "tps", "upgrades", "lsigs"];
+// Pages under Metrics.
+const METRICS = ["tps", "fees"];
 
 const navItems: { href: string; label: React.ReactNode; value: string }[] = [
     { href: "/", label: <Logo />, value: "home" },
@@ -14,10 +18,18 @@ const navItems: { href: string; label: React.ReactNode; value: string }[] = [
     { href: "/transactions", label: "Txns", value: "transactions" },
     { href: "/assets", label: "Assets", value: "assets" },
     { href: "/applications", label: "Apps", value: "applications" },
+    ...(surfIdxSupported
+        ? [
+              { href: "/tps", label: "Metrics", value: "metrics" },
+              { href: "/upgrades", label: "Upgrades", value: "upgrades" },
+          ]
+        : []),
 ];
 
 function Header(): JSX.Element {
     const location = useLocation();
+    const lsigs = useSurfIdxCaps()?.lsigs;
+    const items = lsigs ? [...navItems, { href: "/lsigs", label: "LSigs", value: "lsigs" }] : navItems;
 
     const route: string | false = React.useMemo(() => {
         const r = location.pathname.substring(1).split('/')[0];
@@ -25,17 +37,18 @@ function Header(): JSX.Element {
             if (r === "") return "home";
             return false;
         }
-        return r;
+        return METRICS.includes(r) ? "metrics" : r;
     }, [location.pathname]);
 
     return (
         <div className="mb-5">
             <div className="flex justify-between items-center max-header:flex-col max-header:items-stretch">
                 <nav className="flex items-center -ml-3 overflow-x-auto">
-                    {navItems.map((item) => (
+                    {items.map((item) => (
                         <Link
                             key={item.value}
-                            href={item.href}
+                            // On a metrics page, Metrics stays on it.
+                            href={route === "metrics" && item.value === "metrics" ? location.pathname + location.search : item.href}
                             noStyle
                             className={`px-3 py-2 text-base whitespace-nowrap text-muted-foreground ${
                                 route === item.value

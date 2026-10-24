@@ -1,8 +1,9 @@
 import React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
+import { useRoundNavigate } from 'src/hooks/useRound';
 
 export default function StripExplorerFromPath(): JSX.Element {
-    const navigate = useNavigate();
+    const navigate = useRoundNavigate();
     const location = useLocation();
 
     React.useEffect(() => {

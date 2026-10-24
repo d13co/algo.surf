@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import {
   Outlet,
-  useNavigate,
   useParams,
 } from "react-router-dom";
 import { CoreAsset } from "src/packages/core-sdk/classes/core/CoreAsset";
@@ -20,24 +19,27 @@ import MultiDateViewer, {
   DateSwitcher,
 } from "src/components/v2/MultiDateViewer";
 import { useAsset } from "src/hooks/useAsset";
+import { useRound, useRoundNavigate } from "src/hooks/useRound";
 import { useAssetLabels } from "src/hooks/useAssetLabels";
-import { useBlock } from "src/hooks/useBlock";
+import { useBlockHeader } from "src/hooks/useBlock";
 import { CoreBlock } from "src/packages/core-sdk/classes/core/CoreBlock";
 import TabsUnderline from "src/components/v2/shadcn-studio/tabs/tabs-11";
 import { BadgesRow } from "src/components/v2/Chips";
 
 function Asset(): JSX.Element {
-  const navigate = useNavigate();
+  const navigate = useRoundNavigate();
   const params = useParams();
   const { id } = params;
   const numId = Number(id);
+  // The asset as it was at a past round, when the URL asks for one.
+  const { round } = useRound();
 
   const { data: assetInfo, isLoading, isError, error } = useAsset(numId);
   const { data: labels } = useAssetLabels(numId);
 
   const assetInstance = assetInfo ? new CoreAsset(assetInfo) : null;
   const createdAtRound = assetInstance?.getCreatedAtRound();
-  const { data: createdBlock } = useBlock(createdAtRound ?? 0);
+  const { data: createdBlock } = useBlockHeader(createdAtRound ?? 0);
   const createdBlockTimestamp = createdBlock
     ? new CoreBlock(createdBlock).getTimestamp()
     : undefined;
@@ -70,13 +72,14 @@ function Asset(): JSX.Element {
               }
               copyValue={Number(id)}
               jsonViewer={{
-                filename: `asset-${id}.json`,
+                filename: round === undefined ? `asset-${id}.json` : `asset-${id}-block-${round}.json`,
                 obj: () => assetInstance?.toJSON() ?? {},
                 dataKey: assetInfo,
-                title: `Asset ${id}`,
+                title: round === undefined ? `Asset ${id}` : `Asset ${id} at block ${round}`,
                 // A destroyed asset is gone from algod - only the indexer
-                // still has it, and only with include-all=true.
-                api: assetInstance
+                // still has it, and only with include-all=true. Neither serves
+                // a past round: that came from the time-travel node.
+                api: assetInstance && round === undefined
                   ? {
                       ...(assetInstance.isDeleted()
                         ? {}

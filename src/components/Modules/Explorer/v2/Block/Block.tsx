@@ -1,5 +1,6 @@
 import React, { Suspense } from "react";
-import { Outlet, useNavigate, useParams } from "react-router-dom";
+import { Outlet, useParams } from "react-router-dom";
+import { useRoundHref, useRoundNavigate } from "src/hooks/useRound";
 import { useHotkeys } from "react-hotkeys-hook";
 import { CoreBlock } from "src/packages/core-sdk/classes/core/CoreBlock";
 import { useBlock, useBlockHash } from "src/hooks/useBlock";
@@ -17,6 +18,7 @@ import { microalgosToAlgos } from "src/utils/common";
 import { ArrowLeftFromLine, ArrowRightFromLine, TriangleAlert, Info } from "lucide-react";
 import TabsUnderline from "src/components/v2/shadcn-studio/tabs/tabs-11";
 import BlockUpgradeCard from "./BlockUpgradeCard";
+import BlockProtocol from "./BlockProtocol";
 import {
   Tooltip,
   TooltipContent,
@@ -35,8 +37,12 @@ const txnTypeMap: Record<string, [string, string]> = {
   hb: ["heartbeat", "heartbeat"],
 };
 
+/** Blocks a Shift+arrow jumps. */
+const BLOCK_JUMP = 100;
+
 function Block(): JSX.Element {
-  const navigate = useNavigate();
+  const navigate = useRoundNavigate();
+  const roundHref = useRoundHref();
   const params = useParams();
   const { id } = params;
   const numId = Number(id);
@@ -51,13 +57,16 @@ function Block(): JSX.Element {
   // Block 1 is the floor: stepping back from it would only reach the
   // genesis round and then negative rounds, neither of which is a page.
   const hasPrev = numId > 1;
-  const goToPrev = () => {
-    if (hasPrev) navigate(`/block/${numId - 1}/transactions`);
+  const goToPrev = (step = 1) => {
+    if (hasPrev) navigate(`/block/${Math.max(1, numId - step)}/transactions`);
   };
-  const goToNext = () => navigate(`/block/${numId + 1}/transactions`);
+  const goToNext = (step = 1) => navigate(`/block/${numId + step}/transactions`);
 
-  useHotkeys("left", goToPrev, [numId]);
-  useHotkeys("right", goToNext, [numId]);
+  useHotkeys("left", () => goToPrev(), [numId]);
+  useHotkeys("right", () => goToNext(), [numId]);
+  // Shift jumps further. v4 matches modifiers exactly, so plain arrows don't fire these.
+  useHotkeys("shift+left", () => goToPrev(BLOCK_JUMP), [numId]);
+  useHotkeys("shift+right", () => goToNext(BLOCK_JUMP), [numId]);
 
   const txnTypes = blockInstance ? blockInstance.getTransactionsTypesCount() : {};
   const txnTypesList = Object.keys(txnTypes);
@@ -94,7 +103,7 @@ function Block(): JSX.Element {
             >
               <div className="flex items-center gap-1 shrink-0 ml-auto md:ml-0">
                 <a
-                  href={hasPrev ? `/block/${numId - 1}/transactions` : undefined}
+                  href={hasPrev ? roundHref(`/block/${numId - 1}/transactions`) : undefined}
                   onClick={(e) => {
                     e.preventDefault();
                     goToPrev();
@@ -105,18 +114,18 @@ function Block(): JSX.Element {
                       : "text-muted-foreground opacity-40 pointer-events-none rounded p-1.5"
                   }
                   aria-disabled={!hasPrev}
-                  title={hasPrev ? "Previous block (←)" : "First block"}
+                  title={hasPrev ? "Previous block (←, Shift+← for 100 back)" : "First block"}
                 >
                   <ArrowLeftFromLine size={20} />
                 </a>
                 <a
-                  href={`/block/${numId + 1}/transactions`}
+                  href={roundHref(`/block/${numId + 1}/transactions`)}
                   onClick={(e) => {
                     e.preventDefault();
                     goToNext();
                   }}
                   className="text-primary hover:bg-primary/10 rounded p-1.5"
-                  title="Next block (→)"
+                  title="Next block (→, Shift+→ for 100 ahead)"
                 >
                   <ArrowRightFromLine size={20} />
                 </a>
@@ -192,6 +201,10 @@ function Block(): JSX.Element {
                           {blockHash ? <Copyable value={blockHash} /> : null}
                         </div>
                       </div>
+                    </div>
+
+                    <div className="col-span-12 sm:col-span-6">
+                      <BlockProtocol protocol={blockInstance.getUpgradeState().currentProtocol} />
                     </div>
                   </div>
                 </div>

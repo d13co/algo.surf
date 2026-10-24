@@ -3,7 +3,7 @@ import {
     AlgodTokenHeader,
     CustomTokenHeader,
     IndexerTokenHeader, KMDTokenHeader
-} from "algosdk/dist/types/client/urlTokenBaseHTTPClient";
+} from "algosdk";
 
 export interface A_AccountInformation {
     address: string

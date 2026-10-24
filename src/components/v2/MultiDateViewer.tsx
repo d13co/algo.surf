@@ -18,7 +18,7 @@ function relative(date: Date, largest: number): string {
   return diff >= 0 ? `${text} ago` : `in ${text}`;
 }
 
-function formatDate(timestamp: number, format: DateFormat): string {
+export function formatDate(timestamp: number, format: DateFormat): string {
   if (!timestamp) return "-";
   const date = new Date(timestamp * 1000);
   if (isNaN(date.getTime())) return "-";
@@ -97,6 +97,7 @@ export default function MultiDateViewer({
   variant = "default",
   fixedView,
   noCopy = false,
+  noBlock = false,
 }: {
   timestamp: number;
   block?: number;
@@ -104,16 +105,18 @@ export default function MultiDateViewer({
   variant?: "default" | "short" | "value";
   fixedView?: DateFormat;
   noCopy?: boolean;
+  /** Shown beside its block already: "block" shows as relative and is skipped, and the chosen format stays. */
+  noBlock?: boolean;
 }): JSX.Element {
   const { format: contextFormat, cycle: contextCycle, setFormat } = useDateFormat();
   const format = fixedView ?? contextFormat;
-  const hasBlock = block != null;
+  const hasBlock = block != null && !noBlock;
 
   useEffect(() => {
-    if (!fixedView && format === "block" && !hasBlock) {
+    if (!fixedView && !noBlock && format === "block" && !hasBlock) {
       setFormat(nextFormat["block"]);
     }
-  }, [format, hasBlock, fixedView, setFormat]);
+  }, [format, hasBlock, fixedView, noBlock, setFormat]);
 
   const effectiveFormat = useMemo(
     () => format === "block" && !hasBlock ? "relative" : format,

@@ -5,7 +5,7 @@ import {decodeAddress, indexerModels} from "algosdk";
 import { CID } from 'multiformats/cid'
 import * as mfsha2 from 'multiformats/hashes/sha2'
 import * as digest from 'multiformats/hashes/digest'
-import { CIDVersion } from 'multiformats/types/src/cid'
+import type { CIDVersion } from 'multiformats/cid'
 import {IPFS_GATEWAY} from "../../utils";
 import axios, {AxiosResponse} from "axios";
 

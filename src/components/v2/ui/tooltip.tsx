@@ -3,7 +3,10 @@ import * as TooltipPrimitive from "@radix-ui/react-tooltip"
 
 import { cn } from "src/lib/utils"
 
-const TooltipProvider = TooltipPrimitive.Provider
+// Tooltips open as soon as they're hovered.
+const TooltipProvider = ({ delayDuration = 0, ...props }: React.ComponentProps<typeof TooltipPrimitive.Provider>) => (
+  <TooltipPrimitive.Provider delayDuration={delayDuration} {...props} />
+)
 
 const Tooltip = TooltipPrimitive.Root
 

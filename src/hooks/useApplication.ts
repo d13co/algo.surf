@@ -3,6 +3,7 @@ import { ApplicationClient, APPLICATIONS_PAGE_SIZE } from "src/packages/core-sdk
 import { BoxClient } from "src/packages/core-sdk/clients/boxClient";
 import { CoreApplication } from "src/packages/core-sdk/classes/core/CoreApplication";
 import explorer from "src/utils/dappflow";
+import { isEmptyTxnRound } from "src/hooks/useTxnRound";
 import { indexerModels } from "algosdk";
 import sha512 from "js-sha512";
 import chunk from "lodash/chunk.js";
@@ -71,17 +72,25 @@ export function useApplications() {
   });
 }
 
-export function useApplicationTransactions(id: number) {
+/** With `round`, only the transactions up to it; with `txnRound`, only those in it (see useTxnRound). */
+export function useApplicationTransactions(id: number, round?: number, txnRound?: number) {
   return useInfiniteQuery({
-    queryKey: ["application-transactions", id],
+    queryKey: [
+      "application-transactions",
+      id,
+      ...(txnRound === undefined ? [] : [{ txnRound }]),
+      ...(round === undefined ? [] : [{ round }]),
+    ],
     queryFn: ({ pageParam }) =>
       new ApplicationClient(explorer.network).getApplicationTransactions(
         id,
         pageParam,
+        round,
+        txnRound,
       ),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage["next-token"] || undefined,
-    enabled: !!id,
+    enabled: !!id && !isEmptyTxnRound(txnRound, round),
   });
 }
 

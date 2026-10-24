@@ -1,5 +1,6 @@
 import React from "react";
-import { flexRender, Table, ColumnDef } from "@tanstack/react-table";
+import { flexRender, Table, ColumnDef, Header } from "@tanstack/react-table";
+import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import {
   Table as ShadTable,
   TableBody,
@@ -20,6 +21,32 @@ interface DataTableProps<T> {
   tableRef?: React.Ref<HTMLDivElement>;
   tableStyle?: React.CSSProperties;
   mobileCellItemsCenter?: boolean;
+  /** Below this breakpoint rows show as cards; "lg" for tables too wide for a tablet. */
+  cardsBelow?: "md" | "lg";
+}
+
+const layoutClasses = {
+  md: { table: "hidden md:block", cards: "md:hidden space-y-2" },
+  lg: { table: "hidden lg:block", cards: "lg:hidden space-y-2" },
+};
+
+/** A header's label, a button toggling the sort where the column can sort (it has an accessor and the table a sorted row model). */
+function HeaderLabel<T>({ header }: { header: Header<T, unknown> }): JSX.Element {
+  const label = flexRender(header.column.columnDef.header, header.getContext());
+  if (!header.column.getCanSort()) return <>{label}</>;
+  const sorted = header.column.getIsSorted();
+  const Icon = sorted === "asc" ? ArrowUp : sorted === "desc" ? ArrowDown : ArrowUpDown;
+  return (
+    <button
+      type="button"
+      className="inline-flex items-center gap-1 cursor-pointer hover:text-foreground"
+      onClick={header.column.getToggleSortingHandler()}
+      aria-sort={sorted === "asc" ? "ascending" : sorted === "desc" ? "descending" : undefined}
+    >
+      {label}
+      <Icon className={`h-3.5 w-3.5 ${sorted ? "" : "opacity-40"}`} />
+    </button>
+  );
 }
 
 export function DataTable<T>({
@@ -32,6 +59,7 @@ export function DataTable<T>({
   tableRef,
   tableStyle,
   mobileCellItemsCenter = false,
+  cardsBelow = "md",
 }: DataTableProps<T>) {
   const rows = table.getRowModel().rows;
   const cellRowClass = `flex justify-between gap-2${mobileCellItemsCenter ? " items-center" : ""}`;
@@ -39,7 +67,7 @@ export function DataTable<T>({
   return (
     <>
       {/* Desktop table */}
-      <div ref={tableRef as React.RefObject<HTMLDivElement>} style={tableStyle} className="hidden md:block">
+      <div ref={tableRef as React.RefObject<HTMLDivElement>} style={tableStyle} className={layoutClasses[cardsBelow].table}>
         <ShadTable className="table-fixed">
           <TableHeader className="[&_tr]:border-primary">
             {table.getHeaderGroups().map((headerGroup) => (
@@ -48,10 +76,9 @@ export function DataTable<T>({
                   <TableHead
                     key={header.id}
                     style={(header.column.columnDef.meta as any)?.width ? { width: (header.column.columnDef.meta as any).width } : undefined}
+                    className={(header.column.columnDef.meta as any)?.className}
                   >
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
+                    {header.isPlaceholder ? null : <HeaderLabel header={header} />}
                   </TableHead>
                 ))}
               </TableRow>
@@ -88,7 +115,7 @@ export function DataTable<T>({
       </div>
 
       {/* Mobile cards */}
-      <div className="md:hidden space-y-2">
+      <div className={layoutClasses[cardsBelow].cards}>
         {rows.length > 0 ? (
           <>
             {rows.map((row) => (

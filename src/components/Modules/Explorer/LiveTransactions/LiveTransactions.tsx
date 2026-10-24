@@ -1,5 +1,6 @@
 import React, { useRef } from "react";
 import { Link } from "react-router-dom";
+import { useRoundHref } from "src/hooks/useRound";
 import { useLiveBlocks } from "../../../../hooks/useLiveBlocks";
 import { CSSTransition, TransitionGroup } from 'react-transition-group';
 import { ellipseString } from "src/packages/core-sdk/utils";
@@ -59,6 +60,7 @@ function getAppId(txn: Transaction): number {
 
 function TransactionItem({ stib, ...transitionProps }: { stib: SignedTxnInBlock } & Record<string, unknown>) {
     const nodeRef = useRef<HTMLAnchorElement>(null);
+    const roundHref = useRoundHref();
     const txn = stib.signedTxn.signedTxn.txn;
     const txId = txn.txID();
     const type = txn.type;
@@ -67,7 +69,7 @@ function TransactionItem({ stib, ...transitionProps }: { stib: SignedTxnInBlock 
 
     return (
         <CSSTransition {...transitionProps} timeout={700} classNames="item" nodeRef={nodeRef}>
-            <Link ref={nodeRef} to={"/transaction/" + txId} className="block bg-background-card text-muted-foreground p-4 my-3 border-l-[6px] border-primary rounded overflow-hidden hover:bg-background-card/80">
+            <Link ref={nodeRef} to={roundHref("/transaction/" + txId)} className="block bg-background-card text-muted-foreground p-4 my-3 border-l-[6px] border-primary rounded overflow-hidden hover:bg-background-card/80">
                 <div className="flex justify-between items-center">
                     <span>{getTypeDisplayValue(txn)}</span>
                     <span className="text-primary font-mono text-sm">{ellipseString(txId, 8)}</span>

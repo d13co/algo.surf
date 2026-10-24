@@ -1,5 +1,6 @@
 import React, { Suspense } from "react";
-import { Outlet, useNavigate, useParams } from "react-router-dom";
+import { Outlet, useParams } from "react-router-dom";
+import { useRoundNavigate } from "src/hooks/useRound";
 import { useQuery } from "@tanstack/react-query";
 import { CoreGroup } from "src/packages/core-sdk/classes/core/CoreGroup";
 import { useGroup } from "src/hooks/useGroup";
@@ -34,7 +35,7 @@ const txnTypeMap: Record<string, [string, string]> = {
 };
 
 function Group(): JSX.Element {
-  const navigate = useNavigate();
+  const navigate = useRoundNavigate();
   const params = useParams();
   const { id, blockId } = params;
   const numBlockId = Number(blockId);

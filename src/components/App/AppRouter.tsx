@@ -1,14 +1,11 @@
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import Explorer from "../Modules/Explorer/Explorer/Explorer";
 import Loader from "../Common/Loader/Loader";
 import AppSnackbar from "./AppSnackbar";
 import Footer from "./Footer";
 import { queryClient } from "../../db/query-client";
-import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
-import type { Query } from "@tanstack/react-query";
-import { persister } from "../../db/query-persister";
-import { CACHE_BUSTER, ONE_WEEK, isPersistable } from "../../db/persist-policy";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { AbelAssetsProvider } from "../Common/AbelAssetsProvider";
 import { GlobalUIProvider } from "../../contexts/GlobalUIContext";
 import LoadingTile from "../v2/LoadingTile";
@@ -26,6 +23,8 @@ const AccountCreatedApplications = lazy(() => import("../Modules/Explorer/v2/Acc
 const AccountOptedApplications = lazy(() => import("../Modules/Explorer/v2/Account/AccountOptedApplications"));
 const AccountControllerTo = lazy(() => import("../Modules/Explorer/v2/Account/AccountControllerTo"));
 const AccountValidator = lazy(() => import("../Modules/Explorer/v2/Account/AccountValidator"));
+const AccountDelegations = lazy(() => import("../Modules/Explorer/v2/Account/AccountDelegations"));
+const AccountMultisig = lazy(() => import("../Modules/Explorer/v2/Account/AccountMultisig"));
 const Block = lazy(() => import("../Modules/Explorer/v2/Block/Block"));
 const BlockTransactions = lazy(() => import("../Modules/Explorer/v2/Block/BlockTransactions"));
 const Asset = lazy(() => import("../Modules/Explorer/v2/Asset/Asset"));
@@ -36,27 +35,25 @@ const ApplicationBoxes = lazy(() => import("../Modules/Explorer/v2/Application/A
 const Transaction = lazy(() => import("../Modules/Explorer/v2/Transaction/Transaction"));
 const Group = lazy(() => import("../Modules/Explorer/v2/Group/Group"));
 const GroupTransactions = lazy(() => import("../Modules/Explorer/v2/Group/GroupTransactions"));
+const Fees = lazy(() => import("../Modules/Explorer/v2/Fees/Fees"));
+const Tps = lazy(() => import("../Modules/Explorer/v2/Fees/Tps"));
+const Upgrades = lazy(() => import("../Modules/Explorer/v2/Upgrades/Upgrades"));
+const LsigTemplates = lazy(() => import("../Modules/Explorer/v2/Lsig/LsigTemplates"));
+const LsigTemplate = lazy(() => import("../Modules/Explorer/v2/Lsig/LsigTemplate"));
 const StripExplorerFromPath = lazy(() => import("./StripExplorerFromPath"));
 const SearchFromPath = lazy(() => import("./SearchFromPath"));
 
-const PERSIST_OPTIONS = {
-  persister,
-  buster: CACHE_BUSTER,
-  // Whole-blob ceiling; per-entry retention is isPersistable (24h / 7d tiers).
-  maxAge: ONE_WEEK,
-  dehydrateOptions: {
-    shouldDehydrateQuery: (query: Query) => isPersistable(query, Date.now()),
-  },
-};
+/** A redirect that keeps the query string, so filters such as `?txn-round=` survive it. */
+function NavigateKeepingSearch({ to }: { to: string }): JSX.Element {
+  const { search } = useLocation();
+  return <Navigate to={{ pathname: to, search }} replace />;
+}
 
 function AppRouter(): JSX.Element {
   return (
     <div>
       <BrowserRouter>
-        <PersistQueryClientProvider
-          persistOptions={PERSIST_OPTIONS}
-          client={queryClient}
-        >
+        <QueryClientProvider client={queryClient}>
           <GlobalUIProvider>
           <AbelAssetsProvider>
             <div className="flex flex-col items-center justify-start">
@@ -69,7 +66,7 @@ function AppRouter(): JSX.Element {
                         <Route index element={<Home></Home>} />
                         <Route
                           path="/explorer/home"
-                          element={<Navigate to="/" replace />}
+                          element={<NavigateKeepingSearch to="/" />}
                         />
                         <Route
                           path="/accounts"
@@ -84,6 +81,11 @@ function AppRouter(): JSX.Element {
                           path="/applications"
                           element={<Applications></Applications>}
                         />
+                        <Route path="/fees" element={<Fees></Fees>} />
+                        <Route path="/tps" element={<Tps></Tps>} />
+                        <Route path="/upgrades" element={<Upgrades />} />
+                        <Route path="/lsigs" element={<LsigTemplates />} />
+                        <Route path="/lsigs/:template" element={<LsigTemplate />} />
                         <Route
                           path="/account/:address"
                           element={<Account></Account>}
@@ -94,7 +96,7 @@ function AppRouter(): JSX.Element {
                           />
                           <Route
                             path="transactions"
-                            element={<Navigate to=".." replace />}
+                            element={<NavigateKeepingSearch to=".." />}
                           />
                           <Route
                             path="created-assets"
@@ -125,6 +127,18 @@ function AppRouter(): JSX.Element {
                             element={<AccountControllerTo />}
                           />
                           <Route
+                            path="delegations"
+                            element={<AccountDelegations />}
+                          />
+                          <Route
+                            path="subsigners"
+                            element={<AccountMultisig view="subsigners" />}
+                          />
+                          <Route
+                            path="multisigs"
+                            element={<AccountMultisig view="multisigs" />}
+                          />
+                          <Route
                             path="validator"
                             element={<AccountValidator />}
                           />
@@ -142,7 +156,7 @@ function AppRouter(): JSX.Element {
                           />
                           <Route
                             path=""
-                            element={<Navigate to="transactions" replace />}
+                            element={<NavigateKeepingSearch to="transactions" />}
                           />
                         </Route>
                         <Route path="/asset/:id" element={<Asset></Asset>}>
@@ -152,7 +166,7 @@ function AppRouter(): JSX.Element {
                           />
                           <Route
                             path=""
-                            element={<Navigate to="transactions" replace />}
+                            element={<NavigateKeepingSearch to="transactions" />}
                           />
                         </Route>
                         <Route
@@ -171,7 +185,7 @@ function AppRouter(): JSX.Element {
                           />
                           <Route
                             path=""
-                            element={<Navigate to="transactions" replace />}
+                            element={<NavigateKeepingSearch to="transactions" />}
                           />
                         </Route>
                         <Route
@@ -192,7 +206,7 @@ function AppRouter(): JSX.Element {
                           />
                           <Route
                             path=""
-                            element={<Navigate to="transactions" replace />}
+                            element={<NavigateKeepingSearch to="transactions" />}
                           />
                         </Route>
                         <Route
@@ -212,7 +226,7 @@ function AppRouter(): JSX.Element {
             <AppSnackbar></AppSnackbar>
           </AbelAssetsProvider>
           </GlobalUIProvider>
-        </PersistQueryClientProvider>
+        </QueryClientProvider>
       </BrowserRouter>
     </div>
   );

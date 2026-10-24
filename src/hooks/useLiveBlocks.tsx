@@ -1,8 +1,9 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useAlgoMetricsContext } from "@d13co/algo-metrics-react";
-import type { TsTcWatcherBlockCallback, BlockRoundTimeAndTc } from "@d13co/algo-metrics-sdk";
+import type { TsTcWatcherBlockCallback, TsTcWatcherSimpleCallback } from "@d13co/algo-metrics-sdk";
 import type { modelsv2, Transaction } from "algosdk";
+import { surfIdxSupported } from "src/utils/surfIdx";
 
 const BLOCKS_TO_KEEP = 11;
 const TRANSACTIONS_TO_KEEP = BLOCKS_TO_KEEP;
@@ -43,6 +44,20 @@ const initialState: LiveBlocksState = {
 
 const LiveBlocksContext = createContext<LiveBlocksState>(initialState);
 
+/** Who needs what: the homepage lists each block's transactions; the upgrades page reads headers only. */
+type WatchMode = "full" | "header";
+
+function watchMode(pathname: string): WatchMode | null {
+  if (pathname === "/") return "full";
+  // The upgrades page follows a vote or switch countdown from the latest header, and needs the next
+  // header to see one end or a new one start, so it always watches.
+  if (surfIdxSupported && pathname.replace(/\/+$/, "") === "/upgrades") return "header";
+  return null;
+}
+
+/** Blocks fetched without their transactions; the homepage must not list them. */
+const headerOnlyBlocks = new WeakSet<Block>();
+
 export function LiveBlocksProvider({ children }: { children: React.ReactNode }) {
   const { sdk } = useAlgoMetricsContext();
   const [state, setState] = useState<LiveBlocksState>(initialState);
@@ -50,26 +65,59 @@ export function LiveBlocksProvider({ children }: { children: React.ReactNode }) 
   stateRef.current = state;
 
   const { pathname } = useLocation();
-  const isHome = pathname === "/";
+  const mode = watchMode(pathname);
+  const modeRef = useRef(mode);
+  modeRef.current = mode;
 
-  // Initial fetch: runs once when sdk is ready
+  const fetchBlock = async (round: number | bigint, headerOnly: boolean): Promise<Block> => {
+    const resp = await sdk.algorand.client.algod.block(round).headerOnly(headerOnly).do();
+    const block = (resp as modelsv2.BlockResponse).block;
+    if (headerOnly) {
+      // Typed as always present, but omitted from a header-only response.
+      block.payset ??= [];
+      headerOnlyBlocks.add(block);
+    } else {
+      patchBlockTxns(block);
+    }
+    return block;
+  };
+
+  /** Adds a new head block, ignoring one that is not newer than the current head. */
+  const pushBlock = (block: Block) => {
+    setState((prev) => {
+      if (prev.blocks.length && block.header.round <= prev.currentBlock) return prev;
+      const blocks = [block, ...prev.blocks];
+      if (blocks.length > BLOCKS_TO_KEEP) {
+        blocks.length = BLOCKS_TO_KEEP;
+      }
+
+      const blockTxns = block.payset ?? [];
+      let transactions = prev.transactions;
+      if (blockTxns.length) {
+        if (blockTxns.length >= TRANSACTIONS_TO_KEEP) {
+          transactions = blockTxns.slice(0, TRANSACTIONS_TO_KEEP);
+        } else {
+          transactions = [...blockTxns, ...transactions].slice(0, TRANSACTIONS_TO_KEEP);
+        }
+      }
+
+      return { currentBlock: block.header.round, blocks, transactions };
+    });
+  };
+
+  // Initial fetch: runs once when sdk is ready. Only the homepage needs transactions; elsewhere the
+  // latest header is enough.
   useEffect(() => {
-    const algod = sdk.algorand.client.algod;
-    algod.status().do().then(async (status) => {
+    const headerOnly = modeRef.current !== "full";
+    sdk.algorand.client.algod.status().do().then(async (status) => {
       const lastRound = Number(status.lastRound);
       const numToFetch = IS_LOCALNET ? BLOCKS_TO_KEEP : 1;
       const firstRound = Math.max(0, lastRound - numToFetch + 1);
-      const responses = await Promise.all(
-        Array.from({ length: lastRound - firstRound + 1 }, (_, i) =>
-          algod.block(firstRound + i).do()
+      const blocks = (
+        await Promise.all(
+          Array.from({ length: lastRound - firstRound + 1 }, (_, i) => fetchBlock(firstRound + i, headerOnly))
         )
-      );
-      const blocks = responses
-        .map((r) => (r as modelsv2.BlockResponse).block)
-        .reverse();
-      for (const block of blocks) {
-        patchBlockTxns(block);
-      }
+      ).reverse();
       setState((prev) => {
         if (prev.blocks.length > 0) return prev;
         return {
@@ -83,45 +131,37 @@ export function LiveBlocksProvider({ children }: { children: React.ReactNode }) 
     });
   }, [sdk]);
 
-  // Watcher: register only when on the home page
+  // Watcher: register only on the pages that follow the chain
   useEffect(() => {
-    if (!isHome) return;
-
-    const algod = sdk.algorand.client.algod;
+    if (!mode) return;
+    const headerOnly = mode === "header";
+    let active = true;
 
     // Backfill any blocks we missed while away
     const prev = stateRef.current;
     if (prev.blocks.length > 0) {
-      algod.status().do().then(async (status) => {
+      sdk.algorand.client.algod.status().do().then(async (status) => {
         const latestRound = Number(status.lastRound);
         const ourLatest = Number(prev.currentBlock);
         const gap = latestRound - ourLatest;
+        // Blocks kept from a header-only page have no transactions to list.
+        const missingTxns = !headerOnly && prev.blocks.some((b) => headerOnlyBlocks.has(b));
 
-        if (gap <= 0) return; // already current
-
-        if (gap > BLOCKS_TO_KEEP) {
-          // Too stale — reset with just the latest block
-          const resp = await algod.block(latestRound).do();
-          const block = (resp as modelsv2.BlockResponse).block;
-          patchBlockTxns(block);
+        if (gap > BLOCKS_TO_KEEP || missingTxns) {
+          // Too stale, or not the blocks needed: reset with just the latest block
+          const block = await fetchBlock(latestRound, headerOnly);
+          if (!active) return;
           setState({
             currentBlock: block.header.round,
             blocks: [block],
             transactions: deriveTransactions([block]),
           });
-        } else {
+        } else if (gap > 0) {
           // Fetch only the missing blocks
-          const responses = await Promise.all(
-            Array.from({ length: gap }, (_, i) =>
-              algod.block(ourLatest + 1 + i).do()
-            )
-          );
-          const newBlocks = responses
-            .map((r) => (r as modelsv2.BlockResponse).block)
-            .reverse();
-          for (const block of newBlocks) {
-            patchBlockTxns(block);
-          }
+          const newBlocks = (
+            await Promise.all(Array.from({ length: gap }, (_, i) => fetchBlock(ourLatest + 1 + i, headerOnly)))
+          ).reverse();
+          if (!active) return;
           setState((cur) => {
             const merged = [...newBlocks, ...cur.blocks].slice(0, BLOCKS_TO_KEEP);
             return {
@@ -136,43 +176,35 @@ export function LiveBlocksProvider({ children }: { children: React.ReactNode }) 
       });
     }
 
-    const callback: TsTcWatcherBlockCallback = (
-      _data: BlockRoundTimeAndTc[],
-      lastBlock: modelsv2.BlockResponse,
-    ) => {
-      if (!lastBlock) return;
-      const block = lastBlock.block;
-      patchBlockTxns(block);
-      setState((prev) => {
-        const blocks = [block, ...prev.blocks];
-        if (blocks.length > BLOCKS_TO_KEEP) {
-          blocks.length = BLOCKS_TO_KEEP;
-        }
-
-        const blockTxns = block.payset ?? [];
-        let transactions = prev.transactions;
-        if (blockTxns.length) {
-          if (blockTxns.length >= TRANSACTIONS_TO_KEEP) {
-            transactions = blockTxns.slice(0, TRANSACTIONS_TO_KEEP);
-          } else {
-            transactions = [...blockTxns, ...transactions].slice(0, TRANSACTIONS_TO_KEEP);
-          }
-        }
-
-        return {
-          currentBlock: block.header.round,
-          blocks,
-          transactions,
-        };
-      });
+    // With includeBlock the SDK hands over the full block it fetched. Without it, the SDK fetches
+    // only the header but does not pass it on, so fetch the (small) header here.
+    const fullCallback: TsTcWatcherBlockCallback = (_data, lastBlock?: modelsv2.BlockResponse) => {
+      // On register the SDK calls back with cached data only, and no block.
+      if (!lastBlock?.block) return;
+      patchBlockTxns(lastBlock.block);
+      pushBlock(lastBlock.block);
     };
-
-    void sdk.register(callback, { includeBlock: true, numBlocks: BLOCKS_TO_KEEP });
+    const headerCallback: TsTcWatcherSimpleCallback = (data) => {
+      const round = data[data.length - 1]?.rnd;
+      if (round == null || (stateRef.current.blocks.length && round <= stateRef.current.currentBlock)) return;
+      fetchBlock(round, true)
+        .then((block) => active && pushBlock(block))
+        .catch(() => {
+          // Ignore — the next round retries
+        });
+    };
+    const callback = headerOnly ? headerCallback : fullCallback;
+    if (headerOnly) {
+      void sdk.register(headerCallback, { numBlocks: BLOCKS_TO_KEEP });
+    } else {
+      void sdk.register(fullCallback, { includeBlock: true, numBlocks: BLOCKS_TO_KEEP });
+    }
 
     return () => {
+      active = false;
       sdk.unregister(callback);
     };
-  }, [sdk, isHome]);
+  }, [sdk, mode]);
 
   return (
     <LiveBlocksContext.Provider value={state}>{children}</LiveBlocksContext.Provider>

@@ -3,11 +3,11 @@ import {
   matchPath,
   Outlet,
   useLocation,
-  useNavigate,
   useParams,
 } from "react-router-dom";
 import { CoreApplication } from "src/packages/core-sdk/classes/core/CoreApplication";
 import LinkToAccount from "../Links/LinkToAccount";
+import LinkToBlock from "../Links/LinkToBlock";
 import LoadingTile from "src/components/v2/LoadingTile";
 import CustomError from "../CustomError";
 import Copyable from "src/components/v2/Copyable";
@@ -22,6 +22,7 @@ import {
   useApplicationBoxNames,
 } from "src/hooks/useApplication";
 import { useCreatorSuppliedAppInfo } from "src/hooks/useCreatorSuppliedAppInfo";
+import { useRound, useRoundNavigate } from "src/hooks/useRound";
 import {
   Tooltip,
   TooltipContent,
@@ -43,7 +44,7 @@ function LabelWithHint({ children, hint }: { children: React.ReactNode; hint: st
   return (
     <div className="text-muted-foreground flex items-center gap-1.5">
       {children}
-      <TooltipProvider delayDuration={0}>
+      <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
             <Info size={13} className="cursor-help opacity-60 hover:opacity-100" />
@@ -58,15 +59,16 @@ function LabelWithHint({ children, hint }: { children: React.ReactNode; hint: st
 }
 
 function Application(): JSX.Element {
-  const navigate = useNavigate();
+  const navigate = useRoundNavigate();
   const params = useParams();
   const { id } = params;
   const numId = Number(id);
 
   const { pathname } = useLocation();
+  const { round } = useRound();
 
   let tabValue = "transactions";
-  if (matchPath("/application/:id/boxes", pathname)) {
+  if (matchPath("/application/:id/boxes/*", pathname)) {
     tabValue = "boxes";
   }
 
@@ -124,7 +126,15 @@ function Application(): JSX.Element {
         ) : (
           <div>
             {applicationInstance?.isDeleted() ? (
-              <DeletedNotice>This application has been deleted</DeletedNotice>
+              <DeletedNotice>
+                {round !== undefined && appInfo?.deletedAtRound !== undefined ? (
+                  <>
+                    This application was deleted in block <LinkToBlock id={Number(appInfo.deletedAtRound)} />
+                  </>
+                ) : (
+                  "This application has been deleted"
+                )}
+              </DeletedNotice>
             ) : null}
 
             <RecordPageHeader
@@ -132,13 +142,14 @@ function Application(): JSX.Element {
               id={<><span className="select-none">#</span>{id}</>}
               copyValue={Number(id)}
               jsonViewer={{
-                filename: `app-${id}.json`,
+                filename: round === undefined ? `app-${id}.json` : `app-${id}-block-${round}.json`,
                 obj: () => applicationInstance?.toJSON() ?? {},
                 dataKey: appInfo,
-                title: `Application ${id}`,
+                title: round === undefined ? `Application ${id}` : `Application ${id} at block ${round}`,
                 // A deleted application is gone from algod - only the indexer
-                // still has it, and only with include-all=true.
-                api: applicationInstance
+                // still has it, and only with include-all=true. Neither serves
+                // a past round: that came from the time-travel node.
+                api: applicationInstance && round === undefined
                   ? {
                       ...(applicationInstance.isDeleted()
                         ? {}

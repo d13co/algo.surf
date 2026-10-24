@@ -20,6 +20,10 @@ export class BlockClient {
         return response as indexerModels.Block;
     }
 
+    async getHeader(id: number): Promise<indexerModels.Block> {
+        return this.indexer.lookupBlock(id).headerOnly(true).do();
+    }
+
     async search(id: number): Promise<A_BlockResult> {
         try {
             const response = await this.indexer.lookupBlock(id).do();

@@ -224,5 +224,10 @@ export function getPreservedRoute({ pathname, search = '', hash = '' }: { pathna
         return '';
     }
 
-    return `/account/${address}${tab ? `/${tab}` : ''}${search}${hash}`;
+    // So does ?round=: a round on one network says nothing about another.
+    const params = new URLSearchParams(search);
+    params.delete('round');
+    const query = params.toString();
+
+    return `/account/${address}${tab ? `/${tab}` : ''}${query ? `?${query}` : ''}${hash}`;
 }
