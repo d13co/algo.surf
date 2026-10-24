@@ -20,8 +20,11 @@ import {
 import MultiFormatViewer from "src/components/v2/MultiFormatViewer";
 import NumberFormatCopy from "src/components/v2/NumberFormatCopy";
 import TablePagination from "src/components/v2/TablePagination";
+import { useTimeTravelSupport } from "src/hooks/useTimeTravel";
+import VersionsLink from "../Versions/VersionsLink";
 
-const columns: ColumnDef<A_GlobalStateDecrypted, any>[] = [
+/** With `appId`, each key links to the versions that changed it. */
+const columnsFor = (appId: number | undefined): ColumnDef<A_GlobalStateDecrypted, any>[] => [
   {
     id: "type",
     header: "Type",
@@ -38,7 +41,16 @@ const columns: ColumnDef<A_GlobalStateDecrypted, any>[] = [
     id: "key",
     header: "Key",
     cell: ({ row }) => (
-      <MultiFormatViewer view="auto" value={row.original.key} side="left" />
+      <span className="inline-flex items-center gap-1.5 min-w-0">
+        <MultiFormatViewer view="auto" value={row.original.key} side="left" />
+        {appId ? (
+          <VersionsLink
+            path={`/application/${appId}/versions`}
+            filter={{ fields: [["global-state", row.original.key]] }}
+            title="Versions that changed this key"
+          />
+        ) : null}
+      </span>
     ),
   },
   {
@@ -81,6 +93,10 @@ function ApplicationGlobalState({
     const app = new CoreApplication(appInfo);
     return app.getGlobalStorageDecrypted(true);
   }, [appInfo]);
+
+  const hasVersions = useTimeTravelSupport();
+  const appId = Number(appInfo.id);
+  const columns = useMemo(() => columnsFor(hasVersions ? appId : undefined), [hasVersions, appId]);
 
   const table = useReactTable({
     data: globalStorage,

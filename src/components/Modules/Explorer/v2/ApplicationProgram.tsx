@@ -2,7 +2,8 @@ import React, { Suspense, useMemo, useState } from "react";
 import { PROGRAM_ENCODING } from "src/packages/core-sdk/constants";
 import { ApplicationClient } from "src/packages/core-sdk/clients/applicationClient";
 import explorer from "src/utils/dappflow";
-import { Loader2 } from "lucide-react";
+import { History, Loader2 } from "lucide-react";
+import Link from "./Links/Link";
 
 const LazyTealViewer = React.lazy(() => import("./TealViewer"));
 
@@ -22,8 +23,10 @@ function ApplicationProgram(props: {
   name: string;
   program: string;
   id: number;
+  /** The app's versions that changed this program, where there is a version history. */
+  versionsHref?: string;
 }): JSX.Element {
-  const { name, program, id } = props;
+  const { name, program, id, versionsHref } = props;
 
   const [encoding, setEncoding] = useState(PROGRAM_ENCODING.BASE64);
   const [prg, setPrg] = useState(program);
@@ -183,6 +186,17 @@ function ApplicationProgram(props: {
         >
           {copiedSrc ? "Copied" : "Copy source"}
         </button>
+        {versionsHref ? (
+          <Link
+            noStyle
+            href={versionsHref}
+            title={`Versions that changed the ${name.toLowerCase()}`}
+            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded border border-border bg-transparent text-primary hover:bg-primary/20"
+          >
+            <History size={12} />
+            History
+          </Link>
+        ) : null}
         {decompiling ? (
           <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
         ) : null}

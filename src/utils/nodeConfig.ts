@@ -202,6 +202,7 @@ const accountSubRoutes = new Set([
     "opted-applications",
     "controller",
     "validator",
+    "versions",
 ]);
 
 /**

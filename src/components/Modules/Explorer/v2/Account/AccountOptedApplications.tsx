@@ -1,6 +1,8 @@
 import { useMemo } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useAccount } from "src/hooks/useAccount";
+import { useRound, useRoundNavigate } from "src/hooks/useRound";
+import { useTimeTravelSupport } from "src/hooks/useTimeTravel";
 import { CoreAccount } from "src/packages/core-sdk/classes/core/CoreAccount";
 import { modelsv2 } from "algosdk";
 import {
@@ -13,6 +15,7 @@ import { Button } from "src/components/v2/ui/button";
 import LinkToApplication from "../Links/LinkToApplication";
 import LinkToAccount from "../Links/LinkToAccount";
 import ApplicationLocalState from "../Application/ApplicationLocalState";
+import VersionsLink from "../Versions/VersionsLink";
 import {
   Dialog,
   DialogContent,
@@ -32,8 +35,9 @@ const columnLabels: Record<string, string> = {
 
 function AccountOptedApplications(): JSX.Element {
   const { address, id } = useParams();
-  const navigate = useNavigate();
-  const { data: accountInfo, isLoading } = useAccount(address);
+  const { round } = useRound();
+  const navigate = useRoundNavigate();
+  const { data: accountInfo, isLoading } = useAccount(address, round);
 
   const optedApplications = useMemo(() => {
     if (!accountInfo) return [];
@@ -61,9 +65,7 @@ function AccountOptedApplications(): JSX.Element {
               variant="muted"
               className="h-7 px-2.5 text-xs -my-1 border-primary text-primary hover:bg-primary hover:text-background"
               onClick={() =>
-                navigate(
-                  `/account/${address}/opted-applications/${Number(row.original.id)}`
-                )
+                navigate(`/account/${address}/opted-applications/${Number(row.original.id)}`)
               }
             >
               View State
@@ -84,6 +86,12 @@ function AccountOptedApplications(): JSX.Element {
       ({ id: i }) => Number(i) === Number(id)
     );
   }, [id, accountInfo]);
+
+  const hasVersions = useTimeTravelSupport();
+  const versions = useMemo(
+    () => (hasVersions && id ? { path: `/account/${address}/versions`, object: `local:${Number(id)}` } : undefined),
+    [hasVersions, address, id]
+  );
 
   const table = useReactTable({
     data: filtered,
@@ -142,8 +150,17 @@ function AccountOptedApplications(): JSX.Element {
       <Dialog open={!!id} onOpenChange={(open) => !open && handleClose()}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto overflow-x-hidden" onOpenAutoFocus={(e) => e.preventDefault()}>
           <DialogHeader className="text-left">
-            <DialogTitle>
-              App <LinkToApplication id={Number(id)} /> Local State
+            <DialogTitle className="flex items-center gap-2">
+              <span>
+                App <LinkToApplication id={Number(id)} /> Local State
+              </span>
+              {versions ? (
+                <VersionsLink
+                  path={versions.path}
+                  filter={{ object: versions.object, fields: [] }}
+                  title="Versions of this local state"
+                />
+              ) : null}
             </DialogTitle>
           </DialogHeader>
           <div>
@@ -156,7 +173,7 @@ function AccountOptedApplications(): JSX.Element {
                 strip={20}
               />
             </div>
-            <ApplicationLocalState state={localState} />
+            <ApplicationLocalState state={localState} versions={versions} />
           </div>
         </DialogContent>
       </Dialog>

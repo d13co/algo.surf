@@ -3,3 +3,8 @@ export const REACT_APP_MAINNET_HASH: string = process.env.REACT_APP_MAINNET_HASH
 export const REACT_APP_BETANET_HASH: string = process.env.REACT_APP_MAINNET_HASH || 'mFgazF+2uRS1tMiL9dsj01hJGySEmPN28B/TjjvpVW0=';
 
 export const REACT_APP_SANDNET_GENESIS_ID: string = process.env.REACT_APP_SANDNET_GENESIS_ID || 'sandnet-v1';
+
+// Experimental time-travel algod (version histories); see src/utils/timeTravel.ts
+export const REACT_APP_TIMETRAVEL_ALGOD_URL: string = process.env.REACT_APP_TIMETRAVEL_ALGOD_URL || '';
+export const REACT_APP_TIMETRAVEL_ALGOD_TOKEN: string = process.env.REACT_APP_TIMETRAVEL_ALGOD_TOKEN || '';
+export const REACT_APP_TIMETRAVEL_SEARCH_DELAY_MS: string = process.env.REACT_APP_TIMETRAVEL_SEARCH_DELAY_MS || '';
