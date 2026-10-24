@@ -115,4 +115,4 @@ Or pass the env var directly: `REACT_APP_NETWORK="Localnet" npm start`
 
 ### surf idx
 
-Fees, TPS, upgrade history, logic sigs, multisigs and validator stats come from a [surf idx](https://github.com/d13co/surf-indexer). Set its URL at build time with `REACT_APP_SURF_IDX`, e.g. `REACT_APP_SURF_IDX=https://mainnet-surf-idx.d13.co` for a Mainnet build. A build without it hides those features. `dev:mainnet` expects one on `http://127.0.0.1:8118`, `dev:mainnet:surf` uses the public one.
+Fees, TPS, upgrade history, logic sigs, multisigs and validator stats come from a [surf idx](https://github.com/d13co/surf-indexer). Set its URL at build time with `REACT_APP_SURF_IDX`, e.g. `REACT_APP_SURF_IDX=https://mainnet-surf-idx.d13.co` for a Mainnet build. A build without it hides those features. `dev:mainnet` uses the public one.

@@ -4,7 +4,6 @@ import Search from "../Search/Search";
 import Logo from "./Logo";
 import Link from "../v2/Links/Link";
 import { surfIdxSupported } from "src/utils/surfIdx";
-import { useSurfIdxCaps } from "src/hooks/useSurfIdxCaps";
 
 const networkLabel = process.env.REACT_APP_NETWORK;
 
@@ -28,8 +27,8 @@ const navItems: { href: string; label: React.ReactNode; value: string }[] = [
 
 function Header(): JSX.Element {
     const location = useLocation();
-    const lsigs = useSurfIdxCaps()?.lsigs;
-    const items = lsigs ? [...navItems, { href: "/lsigs", label: "LSigs", value: "lsigs" }] : navItems;
+    // LSigs (/lsigs) is left out of the menu for now; its pages are still linked from accounts and txns.
+    const items = navItems;
 
     const route: string | false = React.useMemo(() => {
         const r = location.pathname.substring(1).split('/')[0];
