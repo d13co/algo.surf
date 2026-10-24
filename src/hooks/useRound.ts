@@ -1,6 +1,5 @@
-import { useCallback, useMemo } from "react";
-import { NavigateOptions, useNavigate, useSearchParams } from "react-router-dom";
-import { useTimeTravelStatus } from "src/hooks/useTimeTravel";
+import { useCallback } from "react";
+import { NavigateOptions, useNavigate } from "react-router-dom";
 
 /** `path` (with any query and hash) showing the state at `round`, or as it is when there is none. */
 export function withRound(path: string, round: number | undefined): string {
@@ -27,24 +26,15 @@ export function parseRound(raw: string | null): number | undefined {
   return raw && /^\d+$/.test(raw) && Number.isSafeInteger(Number(raw)) ? Number(raw) : undefined;
 }
 
+const NO_ROUND = { round: undefined, requested: undefined };
+
 /**
  * The past round a record page shows, from `?round=R`; undefined for the
- * latest state. Only the time-travel node serves past state, so without one
- * that serves this network `round` is undefined and `requested` holds what
- * the URL asked for. While the node is being checked, it is taken at its word.
+ * latest state. This build has no time travel, so pages always show the
+ * latest state and links carry no round.
  */
 export function useRound(): { round: number | undefined; requested: number | undefined } {
-  const [searchParams] = useSearchParams();
-  const raw = searchParams.get("round");
-  const status = useTimeTravelStatus();
-  const usable = status === "checking" || status === "supported";
-  return useMemo(() => {
-    const requested = parseRound(raw);
-    return {
-      requested,
-      round: requested !== undefined && usable ? requested : undefined,
-    };
-  }, [raw, usable]);
+  return NO_ROUND;
 }
 
 /** Internal links, carrying the round the current page shows (see keepsRound). */

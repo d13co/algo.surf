@@ -22,9 +22,7 @@ import { useValidatorStats } from "src/hooks/useValidator";
 import { delegationLive, templateLabel, useDelegations, useLsig } from "src/hooks/useLsig";
 import { useMsigSubsigners, useMsigsOf } from "src/hooks/useMsig";
 import { useAccountSummary } from "src/hooks/useAccountSummary";
-import { useTimeTravelSupport } from "src/hooks/useTimeTravel";
 import { useRound, useRoundHref, useRoundNavigate } from "src/hooks/useRound";
-import RoundNotice from "../Versions/RoundNotice";
 import { useReverseNFD, useReverseNFDs } from "src/components/Common/UseNFD";
 import { useTinyAssets } from "src/components/Common/UseTinyAsset";
 import LoadingTile from "src/components/v2/LoadingTile";
@@ -101,7 +99,7 @@ function Account(): JSX.Element {
     isLoading,
     isError,
     error,
-  } = useAccount(address, round);
+  } = useAccount(address);
   const { data: escrowOf } = useEscrowOf(address);
   // surf idx: one request for the tabs and chips below; each list loads only when it's needed. null
   // from an older surf idx without it, or when it fails, which falls back to fetching every list up front.
@@ -299,7 +297,6 @@ function Account(): JSX.Element {
 
   let tabValue = "transactions";
   const { pathname } = useLocation();
-  const hasVersions = useTimeTravelSupport();
 
   if (hasOptedAssets && matchPath("/account/:address/assets", pathname)) {
     tabValue = "assets";
@@ -344,11 +341,6 @@ function Account(): JSX.Element {
     matchPath("/account/:address/validator", pathname)
   ) {
     tabValue = "validator";
-  } else if (
-    hasVersions &&
-    matchPath("/account/:address/versions/*", pathname)
-  ) {
-    tabValue = "versions";
   }
 
   useTitle(`Account ${address}`);
@@ -356,8 +348,6 @@ function Account(): JSX.Element {
   return (
     <div className="mt-5">
       <div>
-        <RoundNotice />
-
         {isError ? (
           <CustomError error={error?.message} />
         ) : (
@@ -767,7 +757,6 @@ function Account(): JSX.Element {
                       ...(numSubsigners ? [{ name: "Subsigners", value: "subsigners", onClick: () => navigate("/account/" + address + "/subsigners") }] : []),
                       ...(numMsigsOf ? [{ name: "Multisigs", value: "multisigs", onClick: () => navigate("/account/" + address + "/multisigs") }] : []),
                       ...(hasValidatorData ? [{ name: "Validator Data", value: "validator", onClick: () => navigate("/account/" + address + "/validator") }] : []),
-                      ...(hasVersions ? [{ name: "Versions", value: "versions", onClick: () => navigate("/account/" + address + "/versions") }] : []),
                     ]}
                   />
 

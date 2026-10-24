@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { AccountClient, ACCOUNTS_PAGE_SIZE } from "src/packages/core-sdk/clients/accountClient";
 import explorer from "src/utils/dappflow";
-import { getAccountAt } from "src/utils/timeTravel";
 import { isEmptyTxnRound } from "src/hooks/useTxnRound";
 import { EscregSDK } from "@d13co/escreg-sdk";
 
@@ -14,19 +13,11 @@ const ESCROW_FAILURE_CACHE_MS = 10 * 60 * 1000; // 10 minutes
 const escrowCache = new Map<string, number | null>();
 const escrowPending = new Set<string>();
 
-/**
- * The account at `round` (from the time-travel node; see useRound) when
- * given, else as it is now. Past state is kept in memory only.
- */
-export function useAccount(address: string, round?: number) {
+export function useAccount(address: string) {
   return useQuery({
-    ...(round === undefined
-      ? { queryKey: ["account", address] }
-      : { queryKey: ["account", address, { round }], meta: { noPersist: true }, retry: false }),
+    queryKey: ["account", address],
     queryFn: () =>
-      round === undefined
-        ? new AccountClient(explorer.network).getAccountInformation(address)
-        : getAccountAt(address, round),
+      new AccountClient(explorer.network).getAccountInformation(address),
     enabled: !!address,
   });
 }

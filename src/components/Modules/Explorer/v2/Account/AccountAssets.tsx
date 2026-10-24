@@ -1,9 +1,6 @@
 import { useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { useAccount } from "src/hooks/useAccount";
-import { useRound } from "src/hooks/useRound";
-import { useTimeTravelSupport } from "src/hooks/useTimeTravel";
-import VersionsLink from "../Versions/VersionsLink";
 import { useTinyAssets } from "src/components/Common/UseTinyAsset";
 import { A_AssetHoldingTiny } from "src/packages/core-sdk/types";
 import {
@@ -27,8 +24,7 @@ import {
 import { DataTable } from "src/components/v2/DataTable";
 import { useFilteredAssets } from "src/hooks/useFilteredAssets";
 
-/** With `versionsPath` (the account's version list), each balance links to the holding's versions. */
-const columnsFor = (versionsPath: string | undefined): ColumnDef<A_AssetHoldingTiny, any>[] => [
+const columns: ColumnDef<A_AssetHoldingTiny, any>[] = [
   {
     id: "index",
     header: "ID",
@@ -81,15 +77,6 @@ const columnsFor = (versionsPath: string | undefined): ColumnDef<A_AssetHoldingT
               {params["unit-name"]}
             </span>
           ) : null}
-          {versionsPath ? (
-            <span className="ml-1 inline-flex">
-              <VersionsLink
-                path={versionsPath}
-                filter={{ object: `asset:${row.original.index}`, fields: [] }}
-                title="Versions of this holding"
-              />
-            </span>
-          ) : null}
         </span>
       );
     },
@@ -104,13 +91,7 @@ const columnLabels: Record<string, string> = {
 
 function AccountAssets(): JSX.Element {
   const { address } = useParams();
-  const { round } = useRound();
-  const { data: accountInfo } = useAccount(address, round);
-  const hasVersions = useTimeTravelSupport();
-  const columns = useMemo(
-    () => columnsFor(hasVersions ? `/account/${address}/versions` : undefined),
-    [hasVersions, address]
-  );
+  const { data: accountInfo } = useAccount(address);
 
   const optedAssetIds = useMemo(() => {
     return (accountInfo?.assets ?? []).map((a) => Number(a.assetId));

@@ -97,7 +97,7 @@ function KeyRow({ label, value }: { label: string; value: string }) {
 
 /** Participation keys at `round` (see useRound), else as they are now. */
 function ValidatorInfo({ address, round }: { address: string; round?: number }): JSX.Element {
-  const { data: account, isLoading } = useAccount(address, round);
+  const { data: account, isLoading } = useAccount(address);
   const { blocks } = useLiveBlocks();
   const avgRoundTime = useAverageRoundTime() ?? BLOCK_TIME;
   const latest = blocks[0]?.header;

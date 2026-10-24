@@ -12,7 +12,7 @@ function AssetTransactions(): JSX.Element {
   const { round } = useRound();
   const { txnRound, toolbar, emptyLabel } = useTxnRoundFilter("this asset");
 
-  const { data: assetInfo } = useAsset(numId, round);
+  const { data: assetInfo } = useAsset(numId);
   const {
     data,
     isLoading,

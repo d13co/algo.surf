@@ -16,8 +16,6 @@ import ListToolbar from "src/components/v2/ListToolbar";
 
 const PAGE_SIZE = 10;
 
-const buttonClassName = "h-7 px-2.5 text-xs -my-1 border-primary text-primary hover:bg-primary hover:text-background";
-
 const columnLabels: Record<string, string> = {
   name: "Box name",
   view: "",
@@ -27,8 +25,6 @@ interface BoxListProps {
   appId: number;
   /** The past round the boxes are from (see useRound); box links keep it. */
   round?: number;
-  /** Offer each box's version history (needs a time-travel node). */
-  history?: boolean;
   boxNames: A_BoxNames;
   hasMore?: boolean;
   loadMore?: () => void;
@@ -43,7 +39,6 @@ interface BoxListProps {
 function BoxList({
   appId,
   round,
-  history = false,
   boxNames = [],
   hasMore = false,
   loadMore,
@@ -68,28 +63,24 @@ function BoxList({
       {
         id: "view",
         header: "",
-        cell: ({ row }) => {
-          const href = `/application/${appId}/boxes/${encodeURIComponent(row.original.name)}`;
-          return (
-            <div className="flex justify-end gap-2">
-              {history ? (
-                <Button
-                  variant="muted"
-                  className={buttonClassName}
-                  onClick={() => navigate(withRound(`${href}?view=history`, round))}
-                >
-                  History
-                </Button>
-              ) : null}
-              <Button variant="muted" className={buttonClassName} onClick={() => navigate(withRound(href, round))}>
-                View
-              </Button>
-            </div>
-          );
-        },
+        cell: ({ row }) => (
+          <div className="text-right">
+            <Button
+              variant="muted"
+              className="h-7 px-2.5 text-xs -my-1 border-primary text-primary hover:bg-primary hover:text-background"
+              onClick={() =>
+                navigate(
+                  withRound(`/application/${appId}/boxes/${encodeURIComponent(row.original.name)}`, round)
+                )
+              }
+            >
+              View
+            </Button>
+          </div>
+        ),
       },
     ],
-    [appId, history, navigate, round],
+    [appId, navigate, round],
   );
 
   const table = useReactTable({

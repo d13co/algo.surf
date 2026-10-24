@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useAccount } from "src/hooks/useAccount";
-import { useRound } from "src/hooks/useRound";
 import { CoreAccount } from "src/packages/core-sdk/classes/core/CoreAccount";
 import { modelsv2 } from "algosdk";
 import {
@@ -55,8 +54,7 @@ const columnLabels: Record<string, string> = {
 
 function AccountCreatedApplications(): JSX.Element {
   const { address } = useParams();
-  const { round } = useRound();
-  const { data: accountInfo, isLoading } = useAccount(address, round);
+  const { data: accountInfo, isLoading } = useAccount(address);
 
   const [resolvedNames, setResolvedNames] = useState<Map<number, string>>(() => new Map());
 

@@ -20,7 +20,6 @@ import MultiDateViewer, {
 } from "src/components/v2/MultiDateViewer";
 import { useAsset } from "src/hooks/useAsset";
 import { useRound, useRoundNavigate } from "src/hooks/useRound";
-import RoundNotice from "../Versions/RoundNotice";
 import { useAssetLabels } from "src/hooks/useAssetLabels";
 import { useBlockHeader } from "src/hooks/useBlock";
 import { CoreBlock } from "src/packages/core-sdk/classes/core/CoreBlock";
@@ -35,7 +34,7 @@ function Asset(): JSX.Element {
   // The asset as it was at a past round, when the URL asks for one.
   const { round } = useRound();
 
-  const { data: assetInfo, isLoading, isError, error } = useAsset(numId, round);
+  const { data: assetInfo, isLoading, isError, error } = useAsset(numId);
   const { data: labels } = useAssetLabels(numId);
 
   const assetInstance = assetInfo ? new CoreAsset(assetInfo) : null;
@@ -54,7 +53,6 @@ function Asset(): JSX.Element {
     <div className="mt-5">
       <div>
         <Dym />
-        <RoundNotice />
 
         {isError ? (
           <CustomError error={error?.message} />

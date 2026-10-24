@@ -35,11 +35,6 @@ export const abel = new AbelGhostSDK({
   cacheParamsTimeout: 5000,
 });
 
-const DELETED_ASSET_NAME = "(deleted)";
-
-/** abelTinyToAssetTiny's stand-in for a destroyed asset, whose decimals and unit are not known. */
-export const isDeletedAssetTiny = (asset: A_AssetTiny): boolean => asset.params.name === DELETED_ASSET_NAME;
-
 export const abelTinyToAssetTiny = (tiny: AssetTinyLabels): A_AssetTiny => {
   // @ts-ignore
   if ("deleted" in tiny && tiny.deleted) {
@@ -47,7 +42,7 @@ export const abelTinyToAssetTiny = (tiny: AssetTinyLabels): A_AssetTiny => {
       index: Number(tiny.id),
       params: {
         decimals: 0,
-        name: DELETED_ASSET_NAME,
+        name: "(deleted)",
         "unit-name": "(none)",
       },
       peraVerified: false,

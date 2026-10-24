@@ -1,10 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import BoxesList from "../BoxesList";
 import BoxSearchBar, { BoxSearchMode } from "../BoxSearchBar";
-import { useApplicationBoxNames, useApplicationBox, boxClientFor } from "src/hooks/useApplication";
+import { useApplicationBoxNames, useApplicationBox } from "src/hooks/useApplication";
 import { useRound, withRound } from "src/hooks/useRound";
-import { parseVersionsOrder, withVersionsOrder } from "src/utils/versionFilter";
 import MultiFormatViewer from "src/components/v2/MultiFormatViewer";
 import {
   Dialog,
@@ -16,17 +15,13 @@ import Copyable from "src/components/v2/Copyable";
 import { ArrowLeftFromLine, ArrowRightFromLine, Loader2 } from "lucide-react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { isValidAddress, decodeAddress } from "algosdk";
+import { BoxClient } from "src/packages/core-sdk/clients/boxClient";
+import explorer from "src/utils/dappflow";
 import { A_BoxName } from "src/packages/core-sdk/types";
 import NumberFormat from "react-number-format";
 import AlgoIcon from "../../AlgoIcon/AlgoIcon";
 import { microalgosToAlgos } from "src/utils/common";
-import TabsUnderline from "src/components/v2/shadcn-studio/tabs/tabs-11";
-import { useTimeTravelSupport } from "src/hooks/useTimeTravel";
 import { BoxValueTypesInput, DecodedValueView, useBoxValueTypes } from "./BoxValue";
-import BoxHistory from "./BoxHistory";
-
-/** The box dialog shows the value, or with a time-travel node its history (`?view=history`). */
-type BoxView = "value" | "history";
 
 const BOX_FLAT_COST = 2500;
 const BOX_BYTE_COST = 400;
@@ -72,9 +67,6 @@ function ApplicationBoxes(): JSX.Element {
   const numId = Number(id);
   // Boxes as they were at a past round, when the URL asks for one.
   const { round } = useRound();
-  const hasHistory = useTimeTravelSupport();
-  const [searchParams] = useSearchParams();
-  const view: BoxView = hasHistory && searchParams.get("view") === "history" ? "history" : "value";
 
   const boxName = boxNameRaw ? decodeURIComponent(boxNameRaw) : undefined;
   const dialogOpen = !!boxName;
@@ -87,9 +79,9 @@ function ApplicationBoxes(): JSX.Element {
     hasNextPage,
     fetchNextPage,
     isFetchingNextPage,
-  } = useApplicationBoxNames(numId, round);
+  } = useApplicationBoxNames(numId);
 
-  const { data: boxData, isLoading: boxLoading, error: boxValueError } = useApplicationBox(numId, boxName, round);
+  const { data: boxData, isLoading: boxLoading, error: boxValueError } = useApplicationBox(numId, boxName);
 
   // A box raises the app account's minimum balance by 2500 + 400 per byte of
   // key + value (microAlgos).
@@ -128,7 +120,7 @@ function ApplicationBoxes(): JSX.Element {
       return boxNames;
     }
 
-    const client = boxClientFor(round);
+    const client = new BoxClient(explorer.network);
     const allBoxes: A_BoxName[] = [];
     let token: string | undefined;
     do {
@@ -180,7 +172,7 @@ function ApplicationBoxes(): JSX.Element {
         // Exact keys resolve against algod directly, no need to page through names
         setSearchProgress("Looking up box...");
         const nameB64 = Buffer.from(getSearchBytes(term, isBase64)).toString("base64");
-        const client = boxClientFor(round);
+        const client = new BoxClient(explorer.network);
         try {
           await client.getBox(numId, nameB64);
           if (abort.signal.aborted) return;
@@ -199,7 +191,7 @@ function ApplicationBoxes(): JSX.Element {
         if (abort.signal.aborted) return;
 
         const needle = getSearchBytes(term, isBase64);
-        const client = boxClientFor(round);
+        const client = new BoxClient(explorer.network);
         const results: A_BoxName[] = [];
 
         for (let i = 0; i < allNames.length; i++) {
@@ -268,11 +260,7 @@ function ApplicationBoxes(): JSX.Element {
   const hasPrev = currentIndex > 0;
   const hasNext = currentIndex >= 0 && currentIndex < displayedBoxNames.length - 1;
 
-  // Stepping between boxes keeps the view, and the history's order.
-  const boxHref = (name: string, v: BoxView = view) => {
-    const path = `/application/${id}/boxes/${encodeURIComponent(name)}`;
-    return withRound(v === "history" ? withVersionsOrder(`${path}?view=history`, parseVersionsOrder(searchParams)) : path, round);
-  };
+  const boxHref = (name: string) => withRound(`/application/${id}/boxes/${encodeURIComponent(name)}`, round);
 
   const goTo = (name: string) => {
     navigate(boxHref(name), { replace: true });
@@ -285,10 +273,8 @@ function ApplicationBoxes(): JSX.Element {
     if (hasNext) goTo(displayedBoxNames[currentIndex + 1].name);
   };
 
-  useHotkeys("left", goToPrev, { enabled: dialogOpen && hasPrev }, [currentIndex, displayedBoxNames, id, round, view]);
-  useHotkeys("right", goToNext, { enabled: dialogOpen && hasNext }, [currentIndex, displayedBoxNames, id, round, view]);
-
-  const valueTypesInput = <BoxValueTypesInput value={valueFilter} onChange={handleFilterChange} parsed={parsedFilter} />;
+  useHotkeys("left", goToPrev, { enabled: dialogOpen && hasPrev }, [currentIndex, displayedBoxNames, id, round]);
+  useHotkeys("right", goToNext, { enabled: dialogOpen && hasNext }, [currentIndex, displayedBoxNames, id, round]);
 
   const handleClose = () => {
     navigate(withRound(`/application/${id}/boxes`, round));
@@ -305,7 +291,6 @@ function ApplicationBoxes(): JSX.Element {
           <BoxesList
             appId={numId}
             round={round}
-            history={hasHistory}
             boxNames={displayedBoxNames}
             hasMore={searchResults ? false : !!hasNextPage}
             loadMore={searchResults ? undefined : fetchNextPage}
@@ -375,33 +360,13 @@ function ApplicationBoxes(): JSX.Element {
               </a>
             </div>
           </DialogHeader>
-          {hasHistory ? (
-            <TabsUnderline
-              value={view}
-              onValueChange={(v) => navigate(boxHref(boxName, v as BoxView), { replace: true })}
-              activationMode="manual"
-              tabs={[
-                { name: "Value", value: "value" },
-                { name: "History", value: "history" },
-              ]}
-            />
-          ) : null}
-          {view === "history" ? (
-            <div className="space-y-4 min-w-0">
-              {valueTypesInput}
-              <div>
-                <div className="text-sm text-muted-foreground mb-1">Key</div>
-                <MultiFormatViewer view="auto" includeNum="auto" value={boxName} />
-              </div>
-              <BoxHistory appId={numId} name={boxName} round={round} types={valueTypes} />
-            </div>
-          ) : boxLoading ? (
+          {boxLoading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
           ) : boxData ? (
             <div className="space-y-4">
-              {valueTypesInput}
+              <BoxValueTypesInput value={valueFilter} onChange={handleFilterChange} parsed={parsedFilter} />
               <div>
                 <div className="text-sm text-muted-foreground mb-1">Key</div>
                 <MultiFormatViewer view="auto" includeNum="auto" value={boxData.name} />

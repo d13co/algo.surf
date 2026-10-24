@@ -19,7 +19,6 @@ import {
 import MultiFormatViewer from "src/components/v2/MultiFormatViewer";
 import NumberFormatCopy from "src/components/v2/NumberFormatCopy";
 import TablePagination from "src/components/v2/TablePagination";
-import VersionsLink from "../Versions/VersionsLink";
 
 type KeyValue = {
   key: string;
@@ -37,11 +36,7 @@ function toKeyValue(kv: modelsv2.TealKeyValue): KeyValue {
   };
 }
 
-/** Where the account's version list is, and the local state's objKey in it. */
-type VersionsOf = { path: string; object: string };
-
-/** With `versions`, each key links to the versions that changed it. */
-const columnsFor = (versions: VersionsOf | undefined): ColumnDef<KeyValue, any>[] => [
+const columns: ColumnDef<KeyValue, any>[] = [
   {
     id: "type",
     header: "Type",
@@ -58,21 +53,12 @@ const columnsFor = (versions: VersionsOf | undefined): ColumnDef<KeyValue, any>[
     id: "key",
     header: "Key",
     cell: ({ row }) => (
-      <span className="inline-flex items-center gap-1.5 min-w-0">
-        <MultiFormatViewer
-          view="auto"
-          includeNum="auto"
-          value={row.original.key}
-          side="left"
-        />
-        {versions ? (
-          <VersionsLink
-            path={versions.path}
-            filter={{ object: versions.object, fields: [["key-value", row.original.key]] }}
-            title="Versions that changed this key"
-          />
-        ) : null}
-      </span>
+      <MultiFormatViewer
+        view="auto"
+        includeNum="auto"
+        value={row.original.key}
+        side="left"
+      />
     ),
   },
   {
@@ -108,17 +94,13 @@ const columnLabels: Record<string, string> = {
 
 function ApplicationLocalState({
   state,
-  versions,
 }: {
   state: modelsv2.ApplicationLocalState;
-  /** Stable. */
-  versions?: VersionsOf;
 }): JSX.Element {
   const data = useMemo(
     () => (state?.keyValue ?? []).map(toKeyValue),
     [state?.keyValue]
   );
-  const columns = useMemo(() => columnsFor(versions), [versions]);
 
   const table = useReactTable({
     data,

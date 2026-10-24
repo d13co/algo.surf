@@ -7,7 +7,6 @@ import {
 } from "react-router-dom";
 import { CoreApplication } from "src/packages/core-sdk/classes/core/CoreApplication";
 import LinkToAccount from "../Links/LinkToAccount";
-import Link from "../Links/Link";
 import LinkToBlock from "../Links/LinkToBlock";
 import LoadingTile from "src/components/v2/LoadingTile";
 import CustomError from "../CustomError";
@@ -23,9 +22,7 @@ import {
   useApplicationBoxNames,
 } from "src/hooks/useApplication";
 import { useCreatorSuppliedAppInfo } from "src/hooks/useCreatorSuppliedAppInfo";
-import { useTimeTravelSupport } from "src/hooks/useTimeTravel";
-import { useRound, useRoundNavigate, withRound } from "src/hooks/useRound";
-import RoundNotice from "../Versions/RoundNotice";
+import { useRound, useRoundNavigate } from "src/hooks/useRound";
 import {
   Tooltip,
   TooltipContent,
@@ -33,7 +30,6 @@ import {
   TooltipTrigger,
 } from "src/components/v2/ui/tooltip";
 import { usePersistenBooleanState } from "src/utils/usePersistenBooleanState";
-import { withVersionFilter } from "src/utils/versionFilter";
 import ApplicationProgram from "../ApplicationProgram";
 import ApplicationGlobalState from "./ApplicationGlobalState";
 import TabsUnderline from "src/components/v2/shadcn-studio/tabs/tabs-11";
@@ -69,14 +65,11 @@ function Application(): JSX.Element {
   const numId = Number(id);
 
   const { pathname } = useLocation();
-  const hasVersions = useTimeTravelSupport();
   const { round } = useRound();
 
   let tabValue = "transactions";
   if (matchPath("/application/:id/boxes/*", pathname)) {
     tabValue = "boxes";
-  } else if (hasVersions && matchPath("/application/:id/versions/*", pathname)) {
-    tabValue = "versions";
   }
 
   const [codeTabValue, setCodeTabValue] = React.useState("global");
@@ -86,12 +79,12 @@ function Application(): JSX.Element {
     isDevNet,
   );
 
-  const { data: appInfo, isLoading, isError, error } = useApplication(numId, round);
-  const { data: hashes, isLoading: hashesLoading, isError: hashesError } = useApplicationHashes(appInfo, round);
+  const { data: appInfo, isLoading, isError, error } = useApplication(numId);
+  const { data: hashes, isLoading: hashesLoading, isError: hashesError } = useApplicationHashes(appInfo);
   const {
     data: boxData,
     error: boxError,
-  } = useApplicationBoxNames(numId, round);
+  } = useApplicationBoxNames(numId);
 
   const creatorSupplied = useCreatorSuppliedAppInfo(numId);
 
@@ -121,24 +114,12 @@ function Application(): JSX.Element {
     ];
   }, [applicationInstance]);
 
-  // The round before a deleted app's deletion, where the time-travel node
-  // still has its programs and state; none where it was created that round.
-  const lastStateRound =
-    hasVersions && appInfo?.deletedAtRound !== undefined && appInfo.deletedAtRound !== appInfo.createdAtRound
-      ? Number(appInfo.deletedAtRound) - 1
-      : undefined;
-
   const hasBoxes = (boxData?.pages?.[0]?.boxes?.length > 0) || !!boxError;
-
-  /** The versions that changed a program (`approval-program`, `clear-state-program`). */
-  const programVersionsHref = (field: string) =>
-    hasVersions ? withVersionFilter(`/application/${numId}/versions`, { fields: [[field]] }) : undefined;
 
   return (
     <div className="mt-5">
       <div>
         <Dym />
-        <RoundNotice />
 
         {isError ? (
           <CustomError error={error?.message} />
@@ -153,11 +134,6 @@ function Application(): JSX.Element {
                 ) : (
                   "This application has been deleted"
                 )}
-                {lastStateRound !== undefined ? (
-                  <>
-                    . <Link href={withRound(`/application/${numId}`, lastStateRound)}>See its last state</Link>
-                  </>
-                ) : null}
               </DeletedNotice>
             ) : null}
 
@@ -274,7 +250,6 @@ function Application(): JSX.Element {
                                   name="Approval program"
                                   id={numId}
                                   program={applicationInstance.getApprovalProgram()}
-                                  versionsHref={programVersionsHref("approval-program")}
                                 />
                               </div>
                             ),
@@ -288,7 +263,6 @@ function Application(): JSX.Element {
                                   name="Clear state program"
                                   id={numId}
                                   program={applicationInstance.getClearProgram()}
-                                  versionsHref={programVersionsHref("clear-state-program")}
                                 />
                               </div>
                             ),
@@ -411,14 +385,13 @@ function Application(): JSX.Element {
                 </div>
                 )}
 
-                {/* Bottom tabs: Transactions / Boxes / Versions */}
+                {/* Bottom tabs: Transactions / Boxes */}
                 <div className="mt-6">
                   <TabsUnderline
                     value={tabValue}
                     tabs={[
                       { name: "Transactions", value: "transactions", onClick: () => navigate("/application/" + id + "/transactions") },
                       ...(hasBoxes ? [{ name: "Boxes", value: "boxes", onClick: () => navigate("/application/" + id + "/boxes") }] : []),
-                      ...(hasVersions ? [{ name: "Versions", value: "versions", onClick: () => navigate("/application/" + id + "/versions") }] : []),
                     ]}
                   />
 
