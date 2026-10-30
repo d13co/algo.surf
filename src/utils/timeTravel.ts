@@ -53,6 +53,14 @@ export type TTAppVersion = {
   application?: TTApplication;
 };
 
+/** An asset's params from this round on; none where the round destroyed it. */
+export type TTAssetVersion = {
+  round: number;
+  timestamp: number;
+  deleted: boolean;
+  asset?: TTAsset;
+};
+
 /** A box's value from this round on (base64); none where the round deleted it. */
 export type TTBoxVersion = {
   round: number;

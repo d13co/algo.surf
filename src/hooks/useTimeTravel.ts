@@ -13,6 +13,7 @@ import {
   TTAccountVersion,
   TTAppStateVersion,
   TTAppVersion,
+  TTAssetVersion,
   TTBoxesVersion,
   TTBoxVersion,
   TTVersionsPage,
@@ -28,6 +29,7 @@ import {
 import {
   accountVersionTouches,
   appVersionTouches,
+  assetVersionTouches,
   BaselineContext,
   BaselineNeed,
   Baselines,
@@ -241,6 +243,27 @@ export function useAppVersions(
         order,
         pageParam,
       ),
+    enabled: !!id && !!bounds,
+  });
+}
+
+/**
+ * An asset's versions (its params' changes, creation and destruction) in the
+ * rounds of `bounds` (default: all of them; none while undefined), in
+ * `order`, a batch at a time; after the first, `batchSize` (default: the usual).
+ */
+export function useAssetVersions(id: number, bounds: RoundBounds | undefined, order: VersionsOrder, batchSize?: number) {
+  const batchSizeRef = useLatestBatchSize(batchSize);
+  return useInfiniteQuery({
+    ...versionsQueryOptions,
+    queryKey: ["timetravel-asset-versions", getTimeTravelNode()?.baseUrl, id, boundsKey(bounds), order],
+    queryFn: ({ pageParam }) =>
+      readVersions<TTAssetVersion>((algod) => algod.getAssetVersions(id), {
+        next: pageParam,
+        minRound: bounds?.min,
+        maxRound: bounds?.max,
+        order,
+      }, batchSizeRef.current),
     enabled: !!id && !!bounds,
   });
 }
@@ -472,6 +495,10 @@ function asOfList(
   if (ctx.kind === "account") {
     const { id, source } = accountVersionsRequest(ctx.address, ctx.includeCreatedParams, key);
     return { id, source, touches: (v: TTAccountVersion) => accountVersionTouches(v, ctx.includeCreatedParams) };
+  }
+  if (ctx.kind === "asset") {
+    const { assetId } = ctx;
+    return { id: `asset:${assetId}`, source: (algod) => algod.getAssetVersions(assetId), touches: assetVersionTouches };
   }
   const { appId } = ctx;
   const ref = parseObjKey(key);

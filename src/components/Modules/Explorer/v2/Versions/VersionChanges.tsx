@@ -204,14 +204,14 @@ const algoFormat: NumberFormat = { decimals: 6, unit: "ALGO" };
 
 /**
  * How `ref`'s amounts read (see amountUnit): in ALGO, or in the asset's
- * decimals and unit. A holding's come from abel; a created asset's from its
- * own params, which outlive the asset - and without them (params excluded)
- * it has no amount to read.
+ * decimals and unit. A holding's come from abel; an asset's (created, or the
+ * asset page's own) from its params, which outlive the asset - and without
+ * them (params excluded) it has no amount to read.
  */
 function useNumberFormat(ref: ObjRef, state: Snapshot): NumberFormatOf {
   const { data: tiny } = useTinyAsset(ref.kind === "asset" ? Number(ref.id) : 0);
   const asset =
-    ref.kind === "created-asset"
+    ref.kind === "created-asset" || ref.kind === "asset-params"
       ? state && "total" in state
         ? { decimals: Number(state.decimals ?? 0), unit: state["unit-name"] as string | undefined }
         : undefined

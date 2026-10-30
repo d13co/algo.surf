@@ -31,6 +31,7 @@ const Block = lazy(() => import("../Modules/Explorer/v2/Block/Block"));
 const BlockTransactions = lazy(() => import("../Modules/Explorer/v2/Block/BlockTransactions"));
 const Asset = lazy(() => import("../Modules/Explorer/v2/Asset/Asset"));
 const AssetTransactions = lazy(() => import("../Modules/Explorer/v2/Asset/AssetTransactions"));
+const AssetVersions = lazy(() => import("../Modules/Explorer/v2/Asset/AssetVersions"));
 const Application = lazy(() => import("../Modules/Explorer/v2/Application/Application"));
 const ApplicationTransactions = lazy(() => import("../Modules/Explorer/v2/Application/ApplicationTransactions"));
 const ApplicationBoxes = lazy(() => import("../Modules/Explorer/v2/Application/ApplicationBoxes"));
@@ -171,6 +172,10 @@ function AppRouter(): JSX.Element {
                           <Route
                             path="transactions"
                             element={<AssetTransactions></AssetTransactions>}
+                          />
+                          <Route
+                            path="versions/*"
+                            element={<AssetVersions />}
                           />
                           <Route
                             path=""

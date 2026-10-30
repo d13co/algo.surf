@@ -6,6 +6,7 @@ import type {
   TTAppParams,
   TTAppStateVersion,
   TTAssetHolding,
+  TTAssetVersion,
   TTBoxVersion,
   TTInt,
   TTKeyValue,
@@ -54,7 +55,7 @@ export function isPlainObject(v: unknown): v is { [key: string]: DJson } {
 // ---------------------------------------------------------------------------
 // Objects
 
-export type ObjKind = "app" | "base" | "asset" | "local" | "created-asset" | "created-app" | "box";
+export type ObjKind = "app" | "asset-params" | "base" | "asset" | "local" | "created-asset" | "created-app" | "box";
 
 /** `id`: an asset or app id, or a box's name in base64. */
 export type ObjRef = { kind: ObjKind; id?: TTInt | string };
@@ -65,6 +66,7 @@ export function objKey(ref: ObjRef): string {
 
 export const objKindLabel: Record<ObjKind, string> = {
   app: "Application",
+  "asset-params": "Asset",
   base: "Account",
   asset: "Asset holding",
   local: "Local state",
@@ -156,6 +158,12 @@ export function appVersionTouches(v: TTAppStateVersion): Touch[] {
   return touches;
 }
 
+/** The asset's params; null where the version destroyed it. */
+export function assetVersionTouches(v: TTAssetVersion): Touch[] {
+  const ref: ObjRef = { kind: "asset-params" };
+  return [{ key: objKey(ref), ref, after: v.deleted || !v.asset ? null : normalizeAssetParams(v.asset.params) }];
+}
+
 export function boxVersionTouches(v: TTBoxVersion): Touch[] {
   const ref: ObjRef = { kind: "box" };
   return [{ key: objKey(ref), ref, after: v.deleted || v.value === undefined ? null : normalizeBox(v.value) }];
@@ -199,6 +207,7 @@ export function accountVersionTouches(v: TTAccountVersion, includeCreatedParams:
 export type BaselineContext =
   | { kind: "app"; appId: number; includeBoxes: boolean }
   | { kind: "account"; address: string; includeCreatedParams: boolean }
+  | { kind: "asset"; assetId: number }
   | { kind: "box"; appId: number; name: string };
 
 /**
@@ -214,6 +223,9 @@ export function baselineRequest(ctx: BaselineContext, ref: ObjRef, round: number
   }
   if (ctx.kind === "box") {
     return { read: "box", appId: ctx.appId, name: ctx.name, round };
+  }
+  if (ctx.kind === "asset") {
+    return { read: "asset", assetId: ctx.assetId, round };
   }
   const { address } = ctx;
   switch (ref.kind) {
@@ -234,6 +246,8 @@ export function extractBaseline(ctx: BaselineContext, ref: ObjRef, response: any
   switch (ref.kind) {
     case "app":
       return normalizeAppParams(response.params);
+    case "asset-params":
+      return normalizeAssetParams(response.params);
     case "base":
       return normalizeAccountBase(response);
     case "asset":
@@ -493,7 +507,7 @@ export function amountUnit(ref: ObjRef, path: string[]): "algo" | "asset" | unde
   if (path.length !== 1) return undefined;
   const [field] = path;
   if (ref.kind === "base" && algoFields.has(field)) return "algo";
-  if ((ref.kind === "asset" && field === "amount") || (ref.kind === "created-asset" && field === "total")) {
+  if ((ref.kind === "asset" && field === "amount") || ((ref.kind === "created-asset" || ref.kind === "asset-params") && field === "total")) {
     return "asset";
   }
   return undefined;

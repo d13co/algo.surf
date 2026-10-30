@@ -1,6 +1,8 @@
 import { Suspense } from "react";
 import {
+  matchPath,
   Outlet,
+  useLocation,
   useParams,
 } from "react-router-dom";
 import { CoreAsset } from "src/packages/core-sdk/classes/core/CoreAsset";
@@ -21,6 +23,7 @@ import MultiDateViewer, {
 import { useAsset } from "src/hooks/useAsset";
 import { useRound, useRoundNavigate } from "src/hooks/useRound";
 import RoundNotice from "../Versions/RoundNotice";
+import { useTimeTravelSupport } from "src/hooks/useTimeTravel";
 import { useAssetLabels } from "src/hooks/useAssetLabels";
 import { useBlockHeader } from "src/hooks/useBlock";
 import { CoreBlock } from "src/packages/core-sdk/classes/core/CoreBlock";
@@ -34,6 +37,10 @@ function Asset(): JSX.Element {
   const numId = Number(id);
   // The asset as it was at a past round, when the URL asks for one.
   const { round } = useRound();
+  const { pathname } = useLocation();
+  const hasVersions = useTimeTravelSupport();
+  const tabValue =
+    hasVersions && matchPath("/asset/:id/versions/*", pathname) ? "versions" : "transactions";
 
   const { data: assetInfo, isLoading, isError, error } = useAsset(numId, round);
   const { data: labels } = useAssetLabels(numId);
@@ -346,7 +353,7 @@ function Asset(): JSX.Element {
 
                 <div className="mt-6">
                   <TabsUnderline
-                    value="transactions"
+                    value={tabValue}
                     tabs={[
                       {
                         name: "Transactions",
@@ -354,6 +361,16 @@ function Asset(): JSX.Element {
                         onClick: () =>
                           navigate("/asset/" + id + "/transactions"),
                       },
+                      ...(hasVersions
+                        ? [
+                            {
+                              name: "Versions",
+                              value: "versions",
+                              onClick: () =>
+                                navigate("/asset/" + id + "/versions"),
+                            },
+                          ]
+                        : []),
                     ]}
                   />
 
