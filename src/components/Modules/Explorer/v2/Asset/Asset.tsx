@@ -23,7 +23,7 @@ import MultiDateViewer, {
 import { useAsset } from "src/hooks/useAsset";
 import { useRound, useRoundNavigate } from "src/hooks/useRound";
 import RoundNotice from "../Versions/RoundNotice";
-import { useTimeTravelSupport } from "src/hooks/useTimeTravel";
+import { useHoldersSupport, useTimeTravelSupport } from "src/hooks/useTimeTravel";
 import { useAssetLabels } from "src/hooks/useAssetLabels";
 import { useBlockHeader } from "src/hooks/useBlock";
 import { CoreBlock } from "src/packages/core-sdk/classes/core/CoreBlock";
@@ -39,8 +39,13 @@ function Asset(): JSX.Element {
   const { round } = useRound();
   const { pathname } = useLocation();
   const hasVersions = useTimeTravelSupport();
+  const hasHolders = useHoldersSupport();
   const tabValue =
-    hasVersions && matchPath("/asset/:id/versions/*", pathname) ? "versions" : "transactions";
+    hasHolders && matchPath("/asset/:id/holders", pathname)
+      ? "holders"
+      : hasVersions && matchPath("/asset/:id/versions/*", pathname)
+        ? "versions"
+        : "transactions";
 
   const { data: assetInfo, isLoading, isError, error } = useAsset(numId, round);
   const { data: labels } = useAssetLabels(numId);
@@ -361,6 +366,16 @@ function Asset(): JSX.Element {
                         onClick: () =>
                           navigate("/asset/" + id + "/transactions"),
                       },
+                      ...(hasHolders
+                        ? [
+                            {
+                              name: "Holders",
+                              value: "holders",
+                              onClick: () =>
+                                navigate("/asset/" + id + "/holders"),
+                            },
+                          ]
+                        : []),
                       ...(hasVersions
                         ? [
                             {

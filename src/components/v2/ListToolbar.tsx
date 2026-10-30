@@ -14,6 +14,8 @@ interface ListToolbarProps {
   onLast: () => void;
   loading?: boolean;
   children?: React.ReactNode;
+  /** Buttons beside the page counter: on its left on desktop; on mobile, on its row at the left. */
+  actions?: React.ReactNode;
 }
 
 export default function ListToolbar({
@@ -28,24 +30,36 @@ export default function ListToolbar({
   onNext,
   onLast,
   loading,
+  actions,
 }: ListToolbarProps) {
-  if (!children && pageCount <= 1) return <div className="mb-4 md:mb-0"></div>;
+  if (!children && !actions && pageCount <= 1) return <div className="mb-4 md:mb-0"></div>;
+
+  const pagination = (className: string) => (
+    <TablePagination
+      className={className}
+      pageIndex={pageIndex}
+      pageCount={pageCount}
+      canPreviousPage={canPreviousPage}
+      canNextPage={canNextPage}
+      onFirst={onFirst}
+      onPrev={onPrev}
+      onNext={onNext}
+      onLast={onLast}
+      loading={loading}
+    />
+  );
 
   return (
     <div className={cx("flex flex-wrap items-center justify-between gap-2 mb-3", className)}>
       {children}
-      <TablePagination
-        className="flex items-center justify-end gap-2 ml-auto"
-        pageIndex={pageIndex}
-        pageCount={pageCount}
-        canPreviousPage={canPreviousPage}
-        canNextPage={canNextPage}
-        onFirst={onFirst}
-        onPrev={onPrev}
-        onNext={onNext}
-        onLast={onLast}
-        loading={loading}
-      />
+      {actions ? (
+        <div className="flex w-full items-center justify-between gap-2 md:ml-auto md:w-auto md:justify-end">
+          {actions}
+          {pagination("flex items-center justify-end gap-2")}
+        </div>
+      ) : (
+        pagination("flex items-center justify-end gap-2 ml-auto")
+      )}
     </div>
   );
 }

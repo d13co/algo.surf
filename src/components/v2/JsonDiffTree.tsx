@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import sha512 from "js-sha512";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "src/lib/utils";
+import { formatUnits } from "src/utils/formatUnits";
 import MultiFormatViewer from "src/components/v2/MultiFormatViewer";
 import {
   Change,
@@ -65,16 +66,6 @@ function isBranch(v: unknown): boolean {
 
 function isInteger(v: unknown): v is number | bigint {
   return typeof v === "bigint" || (typeof v === "number" && Number.isInteger(v));
-}
-
-/** A count of 10^-decimals units, exact at any size: (1234500, 6) → "1.2345". */
-function formatUnits(v: number | bigint, decimals: number): string {
-  const n = BigInt(v);
-  const digits = (n < 0n ? -n : n).toString().padStart(decimals + 1, "0");
-  const cut = digits.length - decimals;
-  const whole = digits.slice(0, cut).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  const fraction = digits.slice(cut).replace(/0+$/, "");
-  return `${n < 0n ? "-" : ""}${whole}${fraction ? `.${fraction}` : ""}`;
 }
 
 function Program({ b64 }: { b64: string }) {

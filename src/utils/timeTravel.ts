@@ -389,6 +389,56 @@ export async function probeVersions(address: string): Promise<boolean> {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Asset holders
+
+/** An account holding an asset (opted in: the amount can be 0). */
+export type TTAssetHolder = { address: string; amount: TTInt; "is-frozen": boolean };
+
+/** A page of an asset's holders at `round`, in address order. */
+export type TTAssetHoldersPage = { round: number; holders: TTAssetHolder[]; "next-token"?: string };
+
+/** Holders per request: the node's default. */
+export const HOLDERS_BATCH_SIZE = 1000;
+
+/**
+ * A page of an asset's holders at `round` (default: the latest), after
+ * `next` (the previous page's `next-token`, with its `round`). The node
+ * examines at most 100,000 accounts per page, so a page can be short or empty
+ * while more remain: only a missing `next-token` ends the list.
+ */
+export async function getAssetHoldersPage(
+  assetId: number,
+  { round, next, limit = HOLDERS_BATCH_SIZE }: { round?: number; next?: string; limit?: number },
+  signal?: AbortSignal,
+): Promise<TTAssetHoldersPage> {
+  const req = requireDTAlgod().getAssetHolders(assetId).limit(limit).next(next);
+  if (round !== undefined) req.round(round);
+  const page = await ttRaw<TTAssetHoldersPage>(req, signal);
+  if (!page) {
+    throw new TimeTravelError(
+      round === undefined ? `Asset ${assetId} does not exist` : `Asset ${assetId} did not exist at block ${round}`,
+      404,
+    );
+  }
+  return page;
+}
+
+/**
+ * Whether the node lists asset holders: asset 0 never exists, so a node with
+ * a holders index answers 404. Without the endpoint or the index (400), or
+ * while the index is missing or stale (503), it does not.
+ */
+export async function probeHolders(): Promise<boolean> {
+  try {
+    await ttRaw(requireDTAlgod().getAssetHolders(0).limit(1));
+    return true;
+  } catch (e) {
+    if (e instanceof TimeTravelError) return false;
+    throw e;
+  }
+}
+
 /** The node's genesis ID, from its suggested params. */
 export async function getGenesisId(): Promise<string> {
   const params = await ttRaw<{ "genesis-id": string }>(requireDTAlgod().getTransactionParams());

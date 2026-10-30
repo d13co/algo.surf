@@ -3,16 +3,19 @@ import { useInfiniteQuery, useQueries, useQuery, useQueryClient } from "@tanstac
 import { network, Networks } from "src/packages/core-sdk/constants";
 import {
   AtRoundRead,
+  getAssetHoldersPage,
   getGenesisId,
   getTimeTravelNode,
   getVersionsPage,
   nameBytes,
+  probeHolders,
   probeVersions,
   readAtRound,
   readVersionAsOf,
   TTAccountVersion,
   TTAppStateVersion,
   TTAppVersion,
+  TTAssetHoldersPage,
   TTAssetVersion,
   TTBoxesVersion,
   TTBoxVersion,
@@ -99,6 +102,58 @@ export function useTimeTravelStatus(): TimeTravelStatus {
 /** Whether the configured time-travel node serves version histories, for this network. */
 export function useTimeTravelSupport(): boolean {
   return useTimeTravelStatus() === "supported";
+}
+
+/**
+ * Whether the configured time-travel node lists asset holders (see
+ * probeHolders); asked only of a node that serves this network's histories.
+ */
+export function useHoldersSupport(): boolean {
+  const supported = useTimeTravelSupport();
+  const { data } = useQuery({
+    queryKey: ["timetravel-holders-support", getTimeTravelNode()?.baseUrl],
+    queryFn: async () => {
+      try {
+        return await probeHolders();
+      } catch (e) {
+        // Resolved rather than thrown, as for useTimeTravelStatus.
+        console.warn(`Asset holders unavailable: ${(e as Error).message}`);
+        return false;
+      }
+    },
+    enabled: supported,
+    // A no can be a passing one (the index being built, a network blip): asked again after a minute.
+    staleTime: (query) => (query.state.data ? Infinity : 60_000),
+    retry: false,
+    meta,
+  });
+  return supported && !!data;
+}
+
+/**
+ * An asset's holders at `round` (default: the latest), in address order, a
+ * batch at a time. Every batch is read at the first one's round, so paging on
+ * while new blocks come in still lists one round's holders.
+ */
+export function useAssetHolders(id: number, round: number | undefined) {
+  const queryClient = useQueryClient();
+  const queryKey = ["timetravel-asset-holders", getTimeTravelNode()?.baseUrl, id, round ?? null];
+  const query = useInfiniteQuery({
+    queryKey,
+    initialPageParam: { round } as { round?: number; next?: string },
+    getNextPageParam: (last: TTAssetHoldersPage) =>
+      last["next-token"] ? { round: last.round, next: last["next-token"] } : undefined,
+    queryFn: ({ pageParam }) => getAssetHoldersPage(id, pageParam),
+    // Refetching would re-read every loaded batch; the latest round shows on reload, or on reset.
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    retry: false,
+    meta,
+    enabled: !!id,
+  });
+  /** Drops the loaded batches and reads the first again: without `round`, at the latest block. */
+  const reset = useCallback(() => queryClient.resetQueries({ queryKey, exact: true }), [queryClient, queryKey.join("|")]);
+  return { ...query, reset };
 }
 
 /** A page of `source`'s versions, with their values: the first batch, else `batchSize`, unless `query` says. */
