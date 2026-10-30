@@ -136,6 +136,23 @@ export function withVersionFilter(path: string, filter: VersionFilter | undefine
 }
 
 /**
+ * The state key (base64) `filter` picks the versions of, where the node can
+ * pick them itself (its `key` filter): one field, a single key of the app's
+ * global state (`global.<key>` on an app's page) or of one app's local state
+ * (`local.<key>` of `local:<id>` on an account's). Undefined for any other
+ * filter, which is applied here alone.
+ */
+export function filterStateKey(filter: VersionFilter | undefined): string | undefined {
+  if (filter?.fields.length !== 1) return undefined;
+  const [map, key, ...rest] = filter.fields[0];
+  if (key === undefined || rest.length) return undefined;
+  const kind = filter.object ? parseObjKey(filter.object)?.kind : undefined;
+  if (map === "global-state" && kind === "app") return key;
+  if (map === "key-value" && kind === "local") return key;
+  return undefined;
+}
+
+/**
  * Whether a version did what the filter looks for, from its objects' summaries
  * (made with the filter's fields, and of its object only): changed one of the
  * fields, or without fields, changed at all. Undefined while that depends on

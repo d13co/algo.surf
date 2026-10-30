@@ -7,3 +7,6 @@ overrides:
   # would keep a second copy of the SDK around: two GhostBase instances mean two
   # separate suggested-params caches, and its copy lacks the in-flight dedupe.
   abel-ghost-sdk: 0.0.10
+  # dtalgosdk: algosdk with time-travel support (reads at past rounds,
+  # versions), one copy everywhere. Vendored until published.
+  algosdk: file:vendor/dtalgosdk-3.9.0-dt.3.0.0.1.tgz

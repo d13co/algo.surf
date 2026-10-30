@@ -7,7 +7,7 @@ import { useRound, withRound } from "src/hooks/useRound";
 import { withTxnRound } from "src/hooks/useTxnRound";
 import { useRangeRounds, useVersionFilter, useVersionPin, useVersionRange, useVersionsOrder } from "src/hooks/useVersionFilter";
 import { TTAppStateVersion } from "src/utils/timeTravel";
-import { withVersionFilter, withVersionRange, withVersionsOrder } from "src/utils/versionFilter";
+import { filterStateKey, withVersionFilter, withVersionRange, withVersionsOrder } from "src/utils/versionFilter";
 import { appVersionTouches, BaselineContext, displayTealKey, objKindLabel, ObjRef } from "src/utils/versionDelta";
 import Link from "../Links/Link";
 import { ObjectLabel, StateHref, TxnsLink } from "../Versions/VersionChanges";
@@ -37,7 +37,10 @@ function ApplicationVersions(): JSX.Element {
   // A link to a box's versions (or a reload of it) must list them, whatever the box says.
   const boxFiltered = /^box:/.test(object ?? "");
   const includeBoxes = includeBoxesChecked || boxFiltered;
-  const listKey = `${includeBoxes}-${order}-${pinned ?? ""}-${withVersionFilter(withVersionRange("", range), filter)}`;
+  // Filtered to a global state key, the node picks the versions that changed it.
+  const nodeKey = filterStateKey(filter);
+  const gapped = nodeKey !== undefined;
+  const listKey = `${includeBoxes}-${order}-${pinned ?? ""}-${gapped}-${withVersionFilter(withVersionRange("", range), filter)}`;
   const [batchSize, keepSearching] = useSearchBatchSize(listKey, filter);
 
   const {
@@ -48,7 +51,7 @@ function ApplicationVersions(): JSX.Element {
     fetchNextPage,
     isFetchingNextPage,
     isFetchNextPageError,
-  } = useAppVersions(appId, bounds, order, batchSize, includeBoxes, object);
+  } = useAppVersions(appId, bounds, order, batchSize, includeBoxes, object, nodeKey);
 
   const versions = useMemo(() => data?.pages.flatMap((p) => p.versions) ?? [], [data]);
   const ctx = useMemo<BaselineContext>(() => ({ kind: "app", appId, includeBoxes }), [appId, includeBoxes]);
@@ -94,6 +97,7 @@ function ApplicationVersions(): JSX.Element {
         key={listKey}
         filter={filter}
         onKeepSearching={keepSearching}
+        gapped={gapped}
         ctx={ctx}
         versions={versions}
         touchesOf={touchesOf}

@@ -2,9 +2,14 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { useInfiniteQuery, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { network, Networks } from "src/packages/core-sdk/constants";
 import {
+  AtRoundRead,
+  getGenesisId,
   getTimeTravelNode,
-  TimeTravelError,
-  ttGet,
+  getVersionsPage,
+  nameBytes,
+  probeVersions,
+  readAtRound,
+  readVersionAsOf,
   TTAccountVersion,
   TTAppStateVersion,
   TTAppVersion,
@@ -17,6 +22,8 @@ import {
   VERSIONS_SEARCH_BATCH_SIZE,
   RoundBounds,
   VersionsOrder,
+  VersionsQuery,
+  VersionsSource,
 } from "src/utils/timeTravel";
 import {
   accountVersionTouches,
@@ -26,10 +33,13 @@ import {
   Baselines,
   baselineId,
   baselineRequest,
+  boxVersionTouches,
   buildRows,
   extractBaseline,
+  Gaps,
   ObjRef,
   RowObject,
+  Snapshot,
   Touch,
   VersionRow,
 } from "src/utils/versionDelta";
@@ -54,13 +64,10 @@ export function useTimeTravelStatus(): TimeTravelStatus {
   const { data } = useQuery({
     queryKey: ["timetravel-support", node?.baseUrl],
     queryFn: async () => {
-      let versions: unknown;
-      let params: { "genesis-id": string } | null;
+      let versions: boolean;
+      let genesisId: string;
       try {
-        [versions, params] = await Promise.all([
-          ttGet(`/v2/accounts/${ZERO_ADDRESS}/versions`, { limit: 1 }),
-          ttGet<{ "genesis-id": string }>("/v2/transactions/params"),
-        ]);
+        [versions, genesisId] = await Promise.all([probeVersions(ZERO_ADDRESS), getGenesisId()]);
       } catch (e) {
         // Resolved rather than thrown: a failed query would be retried by
         // every component that mounts next.
@@ -71,7 +78,6 @@ export function useTimeTravelStatus(): TimeTravelStatus {
         console.warn(`${node.baseUrl} does not serve version histories (is EnableTimeTravel on?)`);
         return false;
       }
-      const genesisId = params?.["genesis-id"] ?? "";
       if (network !== Networks.Localnet && !genesisId.toLowerCase().startsWith(network.toLowerCase())) {
         console.warn(`${node.baseUrl} follows ${genesisId}, not ${network}: ignoring it`);
         return false;
@@ -93,21 +99,13 @@ export function useTimeTravelSupport(): boolean {
   return useTimeTravelStatus() === "supported";
 }
 
-async function getVersionsPage<V>(
-  path: string,
-  query: Record<string, string | number | undefined>,
-  batchSize = VERSIONS_BATCH_SIZE,
-  notServed = "This node does not serve version histories",
-) {
-  const page = await ttGet<TTVersionsPage<V>>(path, {
-    include: "values",
+/** A page of `source`'s versions, with their values: the first batch, else `batchSize`, unless `query` says. */
+function readVersions<V>(source: VersionsSource, query: VersionsQuery, batchSize = VERSIONS_BATCH_SIZE) {
+  return getVersionsPage<V>(source, {
+    values: true,
     limit: query.next === undefined ? VERSIONS_FIRST_BATCH_SIZE : batchSize,
     ...query,
   });
-  if (!page) {
-    throw new TimeTravelError(notServed, 404);
-  }
-  return page;
 }
 
 const versionsQueryOptions = {
@@ -154,17 +152,23 @@ export function useSearchBatchSize(
   return [batchSize, keepSearching];
 }
 
-/** A version feed of an app's: its params, the changes of all its boxes, or one box's versions. */
-type AppFeed = { kind: "params" } | { kind: "boxes" } | { kind: "box"; name: string };
+/**
+ * A version feed of an app's: its params (those that changed global state
+ * key `key` alone, where set), the changes of all its boxes, or one box's
+ * versions.
+ */
+type AppFeed = { kind: "params"; key?: string } | { kind: "boxes" } | { kind: "box"; name: string };
 
 /**
  * The feeds an app's version list reads: of `object` (an objKey) alone where
  * it names one, else the params, and with `includeBoxes` the box changes too.
+ * `key`: the params' versions that changed that global state key (base64), for
+ * a list of the app's alone.
  */
-function appFeeds(includeBoxes: boolean, object: string | undefined): AppFeed[] {
+function appFeeds(includeBoxes: boolean, object: string | undefined, key?: string): AppFeed[] {
   const ref = object ? parseObjKey(object) : undefined;
   if (ref?.kind === "box") return [{ kind: "box", name: String(ref.id) }];
-  if (ref?.kind === "app" || !includeBoxes) return [{ kind: "params" }];
+  if (ref?.kind === "app" || !includeBoxes) return [key === undefined ? { kind: "params" } : { kind: "params", key }];
   return [{ kind: "params" }, { kind: "boxes" }];
 }
 
@@ -172,17 +176,23 @@ function appFeeds(includeBoxes: boolean, object: string | undefined): AppFeed[] 
 async function getAppFeedPage(
   appId: number,
   feed: AppFeed,
-  query: Record<string, string | number | undefined>,
+  query: VersionsQuery,
   batchSize: number | undefined,
 ): Promise<TTVersionsPage<TTAppStateVersion>> {
-  const app = `/v2/applications/${appId}`;
   switch (feed.kind) {
-    case "params":
-      return getVersionsPage<TTAppVersion>(`${app}/versions`, query, batchSize);
+    case "params": {
+      const { key } = feed;
+      return readVersions<TTAppVersion>(
+        (algod) => (key === undefined ? algod.getApplicationVersions(appId) : algod.getApplicationVersions(appId).key(nameBytes(key))),
+        query,
+        batchSize,
+      );
+    }
     case "boxes":
-      return getVersionsPage<TTBoxesVersion>(`${app}/boxes/versions`, query, batchSize, "This node does not serve box change histories");
+      return readVersions<TTBoxesVersion>((algod) => algod.getApplicationBoxesVersions(appId), query, batchSize);
     case "box": {
-      const page = await getVersionsPage<TTBoxVersion>(`${app}/box/versions`, { ...query, name: `b64:${feed.name}` }, batchSize);
+      const name = nameBytes(feed.name);
+      const page = await readVersions<TTBoxVersion>((algod) => algod.getApplicationBoxVersions(appId, name), query, batchSize);
       return {
         ...page,
         versions: page.versions.map(({ round, timestamp, deleted, value }) => ({
@@ -203,7 +213,9 @@ type AppVersionsCursor = MergedCursor<TTAppStateVersion>;
  * `batchSize` (default: the usual). With `includeBoxes`, each version holds
  * the box changes of its round too, and rounds that changed only boxes are
  * versions as well; with `object` (an objKey: `app`, or `box:<name>`), only
- * that object's versions.
+ * that object's versions. With `key` (base64; see filterStateKey), on a
+ * list of the app's alone, only the versions that changed that global state
+ * key: with gaps between them (see buildRows).
  */
 export function useAppVersions(
   id: number,
@@ -212,9 +224,10 @@ export function useAppVersions(
   batchSize?: number,
   includeBoxes = false,
   object?: string,
+  key?: string,
 ) {
   const batchSizeRef = useLatestBatchSize(batchSize);
-  const feeds = appFeeds(includeBoxes, object);
+  const feeds = appFeeds(includeBoxes, object, key);
   return useInfiniteQuery({
     ...versionsQueryOptions,
     initialPageParam: undefined as AppVersionsCursor | undefined,
@@ -238,11 +251,10 @@ export function useBoxVersions(appId: number, name: string | undefined, maxRound
     ...versionsQueryOptions,
     queryKey: ["timetravel-box-versions", getTimeTravelNode()?.baseUrl, appId, name, maxRound, order],
     queryFn: ({ pageParam }) =>
-      getVersionsPage<TTBoxVersion>(`/v2/applications/${appId}/box/versions`, {
-        name: `b64:${name}`,
+      readVersions<TTBoxVersion>((algod) => algod.getApplicationBoxVersions(appId, nameBytes(name!)), {
         limit: BOX_VERSIONS_BATCH_SIZE,
         next: pageParam,
-        "max-round": maxRound,
+        maxRound,
         order,
       }),
     enabled: !!appId && !!name,
@@ -253,25 +265,43 @@ export function useBoxVersions(appId: number, name: string | undefined, maxRound
  * Where an account's versions are listed, and what to leave out: all of it,
  * or of `object` (an objKey) alone. A holding and the asset's params (where
  * the account created it) share a list, as do local state and app params;
- * neither list leaves anything out.
+ * neither list leaves anything out. `key`: of a local state, the versions
+ * that changed that key (base64) alone, which list the local state only.
+ * `id` names the list, for query keys.
  */
-function accountVersionsRequest(address: string, includeCreatedParams: boolean, object: string | undefined) {
-  const account = `/v2/accounts/${address}`;
+function accountVersionsRequest(
+  address: string,
+  includeCreatedParams: boolean,
+  object: string | undefined,
+  key?: string,
+): { id: string; source: VersionsSource } {
   const ref = object ? parseObjKey(object) : undefined;
   switch (ref?.kind) {
     case "base":
-      return { path: `${account}/versions`, exclude: "all" };
+      return { id: `${address}:base`, source: (algod) => algod.accountVersions(address).exclude("all") };
     case "asset":
-    case "created-asset":
-      return { path: `${account}/assets/${ref.id}/versions` };
+    case "created-asset": {
+      const assetId = Number(ref.id);
+      return { id: `${address}:asset:${assetId}`, source: (algod) => algod.accountAssetVersions(address, assetId) };
+    }
     case "local":
-    case "created-app":
-      return { path: `${account}/applications/${ref.id}/versions` };
+    case "created-app": {
+      const appId = Number(ref.id);
+      if (ref.kind === "local" && key !== undefined) {
+        return {
+          id: `${address}:app:${appId}:key:${key}`,
+          source: (algod) => algod.accountApplicationVersions(address, appId).key(nameBytes(key)),
+        };
+      }
+      return { id: `${address}:app:${appId}`, source: (algod) => algod.accountApplicationVersions(address, appId) };
+    }
     default:
-      return {
-        path: `${account}/versions`,
-        exclude: includeCreatedParams ? undefined : "created-apps-params,created-assets-params",
-      };
+      return includeCreatedParams
+        ? { id: address, source: (algod) => algod.accountVersions(address) }
+        : {
+            id: `${address}:no-created-params`,
+            source: (algod) => algod.accountVersions(address).exclude("created-apps-params", "created-assets-params"),
+          };
   }
 }
 
@@ -281,7 +311,9 @@ function accountVersionsRequest(address: string, includeCreatedParams: boolean, 
  * the versions of the lists that object is in (see accountVersionsRequest).
  * Without `includeCreatedParams`, every global state change of an app the
  * account created would be a version of the account too. After the first
- * batch, `batchSize` at a time (default: the usual).
+ * batch, `batchSize` at a time (default: the usual). With `key` (base64; see
+ * filterStateKey) and a local state `object`, only the versions that changed
+ * that key: with gaps between them (see buildRows).
  */
 export function useAccountVersions(
   address: string,
@@ -290,32 +322,30 @@ export function useAccountVersions(
   order: VersionsOrder,
   object?: string,
   batchSize?: number,
+  key?: string,
 ) {
   const batchSizeRef = useLatestBatchSize(batchSize);
   // Keyed by the request: objects sharing a list share its versions.
-  const { path, exclude } = accountVersionsRequest(address, includeCreatedParams, object);
+  const { id, source } = accountVersionsRequest(address, includeCreatedParams, object, key);
   return useInfiniteQuery({
     ...versionsQueryOptions,
-    queryKey: ["timetravel-account-versions", getTimeTravelNode()?.baseUrl, path, exclude, boundsKey(bounds), order],
+    queryKey: ["timetravel-account-versions", getTimeTravelNode()?.baseUrl, id, boundsKey(bounds), order],
     queryFn: ({ pageParam }) =>
-      getVersionsPage<TTAccountVersion>(path, {
+      readVersions<TTAccountVersion>(source, {
         next: pageParam,
-        "min-round": bounds?.min,
-        "max-round": bounds?.max,
+        minRound: bounds?.min,
+        maxRound: bounds?.max,
         order,
-        exclude,
       }, batchSizeRef.current),
     enabled: !!address && !!bounds,
   });
 }
 
-type AtRoundRequest = { path: string; query: Record<string, string | number> };
-
 /** Reads a baselineRequest; useBaselines and useObjectAt share what it caches. */
-function atRoundQuery(baseUrl: string | undefined, req: AtRoundRequest) {
+function atRoundQuery(baseUrl: string | undefined, req: AtRoundRead) {
   return {
-    queryKey: ["timetravel-at-round", baseUrl, req.path, req.query],
-    queryFn: () => ttGet(req.path, req.query),
+    queryKey: ["timetravel-at-round", baseUrl, req],
+    queryFn: () => readAtRound(req),
     // State at a past round never changes.
     staleTime: Infinity,
     meta,
@@ -348,12 +378,12 @@ export function readsWholeVersions(ctx: BaselineContext): boolean {
 function versionAtQuery(ctx: BaselineContext, baseUrl: string | undefined, round: number) {
   const common = { staleTime: Infinity, meta };
   if (ctx.kind === "account") {
-    const { path, exclude } = accountVersionsRequest(ctx.address, ctx.includeCreatedParams, undefined);
+    const { id, source } = accountVersionsRequest(ctx.address, ctx.includeCreatedParams, undefined);
     return {
       ...common,
-      queryKey: ["timetravel-account-version-at", baseUrl, path, exclude, round],
+      queryKey: ["timetravel-account-version-at", baseUrl, id, round],
       queryFn: async (): Promise<Touch[]> => {
-        const page = await getVersionsPage<TTAccountVersion>(path, { "min-round": round, "max-round": round, exclude });
+        const page = await readVersions<TTAccountVersion>(source, { minRound: round, maxRound: round });
         const version = page.versions.find((v) => v.round === round);
         return version ? accountVersionTouches(version, ctx.includeCreatedParams) : [];
       },
@@ -410,7 +440,7 @@ export function useVersionsAt(
     // results is a new array every render; signature captures what matters.
   }, [signature, rounds.join(","), object]);
 
-  const baselines = useBaselines(ctx, needs, everyRow);
+  const baselines = useBaselines(ctx, needs, everyRow, true);
   const byRound = useMemo(() => {
     const byRound = new Map<number, RowObject[]>();
     for (const { round, touches } of touched) {
@@ -431,30 +461,91 @@ export function useVersionsAt(
 }
 
 /**
+ * The version list `ctx`'s object `key` (an objKey) is in, to read it as of
+ * a round (see readVersionAsOf), and the touches of an entry of it. `id`
+ * names the list, for query keys.
+ */
+function asOfList(
+  ctx: BaselineContext,
+  key: string,
+): { id: string; source: VersionsSource; touches: (entry: any) => Touch[] } {
+  if (ctx.kind === "account") {
+    const { id, source } = accountVersionsRequest(ctx.address, ctx.includeCreatedParams, key);
+    return { id, source, touches: (v: TTAccountVersion) => accountVersionTouches(v, ctx.includeCreatedParams) };
+  }
+  const { appId } = ctx;
+  const ref = parseObjKey(key);
+  const name = ctx.kind === "box" ? ctx.name : ref?.kind === "box" ? String(ref.id) : undefined;
+  if (name === undefined) {
+    return { id: `app:${appId}`, source: (algod) => algod.getApplicationVersions(appId), touches: appVersionTouches };
+  }
+  return {
+    id: `app:${appId}:box:${name}`,
+    source: (algod) => algod.getApplicationBoxVersions(appId, nameBytes(name)),
+    touches:
+      ctx.kind === "box"
+        ? boxVersionTouches
+        : ({ round, timestamp, deleted, value }: TTBoxVersion) =>
+            appVersionTouches({ round, timestamp, boxes: [{ name, deleted, value }] }),
+  };
+}
+
+/**
+ * A need's state as of its round, from its object's version list: the needs
+ * of a render on the same list go as one request.
+ */
+function asOfQuery(ctx: BaselineContext, baseUrl: string | undefined, need: BaselineNeed) {
+  const { id, source } = asOfList(ctx, need.key);
+  return {
+    queryKey: ["timetravel-as-of", baseUrl, id, need.round],
+    queryFn: () => readVersionAsOf<unknown>(`${baseUrl}|${id}`, source, need.round),
+    staleTime: Infinity,
+    meta,
+  };
+}
+
+/** In an as-of entry, the need's object's state; none where it did not exist then. */
+function asOfBaseline(ctx: BaselineContext, need: BaselineNeed, entry: unknown): Snapshot {
+  return (
+    asOfList(ctx, need.key)
+      .touches(entry)
+      .find((t) => t.key === need.key)?.after ?? null
+  );
+}
+
+/**
  * Reads each needed object's state at its round, for the `shown` rows; the
  * same request is sent once. The others get any state an earlier read left in
- * the cache, so a row that stops being shown keeps what it had.
+ * the cache, so a row that stops being shown keeps what it had. `batched`:
+ * read from each object's version list as of the rounds, one request for all
+ * a render needs of it - for rows that each need their own.
  */
-function useBaselines(ctx: BaselineContext, needs: BaselineNeed[], shown: (row: number) => boolean): Baselines {
+function useBaselines(
+  ctx: BaselineContext,
+  needs: BaselineNeed[],
+  shown: (row: number) => boolean,
+  batched: boolean,
+): Baselines {
   const queryClient = useQueryClient();
   const baseUrl = getTimeTravelNode()?.baseUrl;
 
   const requests = useMemo(() => {
-    const byKey = new Map<string, { path: string; query: Record<string, string | number>; wanted: boolean }>();
+    type Query = ReturnType<typeof asOfQuery> | ReturnType<typeof atRoundQuery>;
+    const byKey = new Map<string, { query: Query; wanted: boolean }>();
     const keyOf = new Map<string, string>();
     for (const need of needs) {
-      const req = baselineRequest(ctx, need.ref, need.round);
-      const key = `${req.path}?${new URLSearchParams(req.query as Record<string, string>)}`;
-      byKey.set(key, { ...req, wanted: !!byKey.get(key)?.wanted || shown(need.row) });
+      const query = batched
+        ? asOfQuery(ctx, baseUrl, need)
+        : atRoundQuery(baseUrl, baselineRequest(ctx, need.ref, need.round));
+      const key = JSON.stringify(query.queryKey);
+      byKey.set(key, { query, wanted: !!byKey.get(key)?.wanted || shown(need.row) });
       keyOf.set(baselineId(need), key);
     }
     return { byKey, keyOf, wanted: [...byKey.entries()].filter(([, req]) => req.wanted) };
-  }, [ctx, needs, shown]);
-
-  const queryKeyOf = (req: AtRoundRequest) => atRoundQuery(baseUrl, req).queryKey;
+  }, [ctx, needs, shown, batched, baseUrl]);
 
   const results = useQueries({
-    queries: requests.wanted.map(([, req]) => atRoundQuery(baseUrl, req)),
+    queries: requests.wanted.map(([, { query }]) => query),
   });
 
   const signature = results.map((r) => `${r.status}:${r.dataUpdatedAt}`).join(",");
@@ -464,16 +555,19 @@ function useBaselines(ctx: BaselineContext, needs: BaselineNeed[], shown: (row: 
     const baselines: Baselines = new Map();
     for (const need of needs) {
       const key = requests.keyOf.get(baselineId(need));
-      const result = fetched.get(key) ?? queryClient.getQueryState(queryKeyOf(requests.byKey.get(key)));
+      const result = fetched.get(key) ?? queryClient.getQueryState(requests.byKey.get(key).query.queryKey);
       if (result?.status === "success") {
-        baselines.set(baselineId(need), extractBaseline(ctx, need.ref, result.data));
+        baselines.set(
+          baselineId(need),
+          batched ? asOfBaseline(ctx, need, result.data) : extractBaseline(ctx, need.ref, result.data),
+        );
       } else if (result?.status === "error") {
         baselines.set(baselineId(need), result.error as Error);
       }
     }
     return baselines;
     // results is a new array every render; signature captures what matters.
-  }, [signature, requests, needs, ctx, queryClient, baseUrl]);
+  }, [signature, requests, needs, ctx, queryClient, batched]);
 }
 
 /**
@@ -483,8 +577,10 @@ function useBaselines(ctx: BaselineContext, needs: BaselineNeed[], shown: (row: 
  * it before the others are looked at. Oldest first, every earlier version is
  * loaded before a later one, so an object's first loaded version is its first
  * ever and nothing needs reading - unless the list starts at `minRound`, where
- * the state before each object's first touch is read either way. `touchesOf`
- * and `shown` must be stable.
+ * the state before each object's first touch is read either way. `gaps`:
+ * the node filtered the versions (see Gaps); with `whole`, every row's
+ * previous states are read, as of the round before it, a request per object.
+ * `touchesOf` and `shown` must be stable.
  */
 export function useVersionRows<V extends { round: number; timestamp: number }>(
   ctx: BaselineContext,
@@ -494,18 +590,19 @@ export function useVersionRows<V extends { round: number; timestamp: number }>(
   shown: (row: number) => boolean,
   order: VersionsOrder,
   minRound?: number,
+  gaps?: Gaps,
 ): VersionRow<V>[] {
   // buildRows walks newest first; `row` indexes match the list only then.
   const newestFirst = useMemo(() => (order === "asc" ? [...versions].reverse() : versions), [versions, order]);
   const hasOlder = (order === "desc" && hasMore) || !!minRound;
 
   const needs = useMemo(() => {
-    const { needs } = buildRows(newestFirst, touchesOf, hasOlder, new Map());
+    const { needs } = buildRows(newestFirst, touchesOf, hasOlder, new Map(), gaps);
     return order === "asc" ? needs.map((need) => ({ ...need, row: newestFirst.length - 1 - need.row })) : needs;
-  }, [newestFirst, touchesOf, hasOlder, order]);
-  const baselines = useBaselines(ctx, needs, shown);
+  }, [newestFirst, touchesOf, hasOlder, order, gaps]);
+  const baselines = useBaselines(ctx, needs, shown, gaps === "whole");
   return useMemo(() => {
-    const { rows } = buildRows(newestFirst, touchesOf, hasOlder, baselines);
+    const { rows } = buildRows(newestFirst, touchesOf, hasOlder, baselines, gaps);
     return order === "asc" ? rows.reverse() : rows;
-  }, [newestFirst, touchesOf, hasOlder, baselines, order]);
+  }, [newestFirst, touchesOf, hasOlder, baselines, order, gaps]);
 }

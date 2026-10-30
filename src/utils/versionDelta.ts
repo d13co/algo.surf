@@ -1,5 +1,6 @@
 import { isUtf8 } from "src/utils/isUtf8";
 import type {
+  AtRoundRead,
   TTAccountVersion,
   TTAppLocalState,
   TTAppParams,
@@ -205,27 +206,24 @@ export type BaselineContext =
  * one endpoint (as do local state and a created app), so the same request is
  * keyed once and `extractBaseline` picks the part it needs.
  */
-export function baselineRequest(
-  ctx: BaselineContext,
-  ref: ObjRef,
-  round: number,
-): { path: string; query: Record<string, string | number> } {
-  const boxAt = (appId: number, name: string) => ({ path: `/v2/applications/${appId}/box`, query: { name: `b64:${name}`, round } });
+export function baselineRequest(ctx: BaselineContext, ref: ObjRef, round: number): AtRoundRead {
   if (ctx.kind === "app") {
-    return ref.kind === "box" ? boxAt(ctx.appId, String(ref.id)) : { path: `/v2/applications/${ctx.appId}`, query: { round } };
+    return ref.kind === "box"
+      ? { read: "box", appId: ctx.appId, name: String(ref.id), round }
+      : { read: "app", appId: ctx.appId, round };
   }
   if (ctx.kind === "box") {
-    return boxAt(ctx.appId, ctx.name);
+    return { read: "box", appId: ctx.appId, name: ctx.name, round };
   }
-  const account = `/v2/accounts/${ctx.address}`;
+  const { address } = ctx;
   switch (ref.kind) {
     case "base":
-      return { path: account, query: { round, exclude: "all" } };
+      return { read: "account", address, round, exclude: "all" };
     case "asset":
     case "created-asset":
-      return { path: `${account}/assets/${ref.id}`, query: { round } };
+      return { read: "account-asset", address, assetId: Number(ref.id), round };
     default:
-      return { path: `${account}/applications/${ref.id}`, query: { round } };
+      return { read: "account-app", address, appId: Number(ref.id), round };
   }
 }
 
@@ -272,17 +270,31 @@ export function baselineId(need: { key: string; round: number }): string {
 }
 
 /**
+ * How a version list the node filtered to a state key has gaps: only the
+ * versions that changed the key are in it. `key`: only the key's changes are
+ * shown, and the key did not change between two of them, so each version's
+ * previous value of it is the next older one's - the rest of the object's
+ * state, which did change in between, is not shown. `whole`: the rest is
+ * shown too, so each object's previous state is read just before its round.
+ */
+export type Gaps = "key" | "whole";
+
+/**
  * Pair every touched object with its previous state. `versions` is newest
  * first, and covers every version in its round range, so an object's previous
  * state is its nearest older loaded touch. Past the oldest loaded touch it is
  * the state just before that round - read from the node while older versions
- * remain (`hasOlder`), and nothing once the list is complete.
+ * remain (`hasOlder`), and nothing once the list is complete. `gaps`: the
+ * versions are only some of those in the range (see Gaps); with gaps, the
+ * oldest touch is read even when the list is complete, since an object's
+ * first version that changed a key need not be its first.
  */
 export function buildRows<V extends { round: number; timestamp: number }>(
   versions: V[],
   touchesOf: (v: V) => Touch[],
   hasOlder: boolean,
   baselines: Baselines,
+  gaps?: Gaps,
 ): { rows: VersionRow<V>[]; needs: BaselineNeed[] } {
   const rows: VersionRow<V>[] = new Array(versions.length);
   const needs: BaselineNeed[] = [];
@@ -291,10 +303,10 @@ export function buildRows<V extends { round: number; timestamp: number }>(
   for (let i = versions.length - 1; i >= 0; i--) {
     const version = versions[i];
     const objects: RowObject[] = touchesOf(version).map((touch) => {
-      if (later.has(touch.key)) {
+      if (gaps !== "whole" && later.has(touch.key)) {
         return { ...touch, before: later.get(touch.key) };
       }
-      if (!hasOlder) {
+      if (!gaps && !hasOlder) {
         return { ...touch, before: null };
       }
       const need = { key: touch.key, ref: touch.ref, round: version.round - 1, row: i };

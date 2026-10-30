@@ -5,7 +5,7 @@ import { useAccountVersions, useSearchBatchSize } from "src/hooks/useTimeTravel"
 import { useRound, withRound } from "src/hooks/useRound";
 import { withTxnRound } from "src/hooks/useTxnRound";
 import { useRangeRounds, useVersionFilter, useVersionPin, useVersionRange, useVersionsOrder } from "src/hooks/useVersionFilter";
-import { withVersionFilter, withVersionRange } from "src/utils/versionFilter";
+import { filterStateKey, withVersionFilter, withVersionRange } from "src/utils/versionFilter";
 import { TTAccountVersion } from "src/utils/timeTravel";
 import {
   accountVersionTouches,
@@ -87,7 +87,10 @@ function AccountVersions(): JSX.Element {
   // reload of it) must read them, whatever the box says.
   const paramsFiltered = !!filter?.fields.length && /^created-/.test(object ?? "");
   const includeCreatedParams = includeParamsChecked || paramsFiltered;
-  const listKey = `${includeCreatedParams}-${order}-${pinned ?? ""}-${withVersionFilter(withVersionRange("", range), filter)}`;
+  // Filtered to a key of an app's local state, the node picks the versions that changed it.
+  const nodeKey = filterStateKey(filter);
+  const gapped = nodeKey !== undefined;
+  const listKey = `${includeCreatedParams}-${order}-${pinned ?? ""}-${gapped}-${withVersionFilter(withVersionRange("", range), filter)}`;
   const [batchSize, keepSearching] = useSearchBatchSize(listKey, filter);
 
   const {
@@ -98,7 +101,7 @@ function AccountVersions(): JSX.Element {
     fetchNextPage,
     isFetchingNextPage,
     isFetchNextPageError,
-  } = useAccountVersions(address, includeCreatedParams, bounds, order, object, batchSize);
+  } = useAccountVersions(address, includeCreatedParams, bounds, order, object, batchSize, nodeKey);
   const stateHref = useMemo(() => stateHrefFor(address), [address]);
   const txnsLink = useMemo(() => txnsLinkFor(address), [address]);
 
@@ -123,6 +126,7 @@ function AccountVersions(): JSX.Element {
         key={listKey}
         filter={filter}
         onKeepSearching={keepSearching}
+        gapped={gapped}
         ctx={ctx}
         versions={versions}
         touchesOf={touchesOf}

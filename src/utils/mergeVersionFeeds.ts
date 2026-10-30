@@ -19,10 +19,10 @@ export type MergedCursor<V> = { feeds: FeedCursor<V>[]; max?: number };
 
 export type MergedPage<V> = { versions: V[]; cursor: MergedCursor<V>; more: boolean };
 
-/** Reads a page of feed `feed`, from `query` (`next`, `min-round`, `max-round`, `order`). */
+/** Reads a page of feed `feed`, from `query` (`next`, `minRound`, `maxRound`, `order`). */
 export type FeedReader<V> = (
   feed: number,
-  query: { next?: string; "min-round"?: number; "max-round"?: number; order: VersionsOrder },
+  query: { next?: string; minRound?: number; maxRound?: number; order: VersionsOrder },
 ) => Promise<TTVersionsPage<V>>;
 
 /**
@@ -53,7 +53,7 @@ export async function readMergedPage<V extends Versioned>(
   const pages = await Promise.all(
     state.feeds.map((f, i) =>
       !f.done && reach(f) === behind
-        ? read(i, { next: f.next, "min-round": bounds.min, "max-round": state.max, order })
+        ? read(i, { next: f.next, minRound: bounds.min, maxRound: state.max, order })
         : null,
     ),
   );

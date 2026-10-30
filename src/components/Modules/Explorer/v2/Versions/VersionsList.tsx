@@ -22,6 +22,7 @@ import { usePersistenBooleanState } from "src/utils/usePersistenBooleanState";
 import {
   BaselineContext,
   FieldPath,
+  Gaps,
   ObjectSummary,
   summarizeObject,
   summarizeOthers,
@@ -135,6 +136,7 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
   toolbar,
   filter,
   onKeepSearching,
+  gapped = false,
   minRound,
   pin,
 }: {
@@ -167,6 +169,12 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
   filter?: VersionFilter;
   /** Filtered, the reader told the list to keep searching (see useSearchBatchSize). */
   onKeepSearching?: () => void;
+  /**
+   * The node filtered `versions` to the filter's state key (filterStateKey),
+   * so there are gaps between them: each is diffed against the state just
+   * before its round (see buildRows), read for the rows up to the next page.
+   */
+  gapped?: boolean;
   /** The first round `versions` can be of (a date range's), if not the first ever. */
   minRound?: number;
   /** The round the list is pinned to (see useVersionPin), and how to list them all. */
@@ -206,15 +214,29 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
   const batchComing =
     hasMore && !fetchMoreFailed && (isFetchingMore || pagination.pageIndex >= loadedPages - 1);
   const moreComing = hasMore && !fetchMoreFailed && !scanPaused;
+
+  // Filtered, what else each version did, for the rows on the page: filtered
+  // to an object, the list holds only its part, so the rest is read whole.
+  const [showOthersChecked, setShowOthers] = usePersistenBooleanState("versions-show-other-changes", true);
+  const showOthers = !!filter && showOthersChecked;
+  // Gapped, the rest of each version's object changed in the gap before it
+  // too: shown, every row reads its previous state (see Gaps).
+  const gaps: Gaps | undefined = gapped ? (showOthers ? "whole" : "key") : undefined;
+  // Gapped, a row shows once those before it are in, so the next page's are
+  // read too, for it to be there to go to. With `key`, only the oldest loaded
+  // version reads its own: the next batch would supply it, but the next
+  // version that changed the key can be any number of batches away.
   const shown = useCallback(
     (row: number) =>
-      filter
-        ? !(batchesSupply && moreComing)
-        : !(batchesSupply && batchComing) &&
-          (Math.floor(row / pagination.pageSize) === pagination.pageIndex || row === openVersion),
-    [filter, batchesSupply, moreComing, batchComing, pagination, openVersion],
+      gaps
+        ? row < (pagination.pageIndex + 2) * pagination.pageSize || row === openVersion
+        : filter
+          ? !(batchesSupply && moreComing)
+          : !(batchesSupply && batchComing) &&
+            (Math.floor(row / pagination.pageSize) === pagination.pageIndex || row === openVersion),
+    [gaps, filter, batchesSupply, moreComing, batchComing, pagination, openVersion],
   );
-  const rows = useVersionRows(ctx, versions, touchesOf, hasMore, shown, order, minRound);
+  const rows = useVersionRows(ctx, versions, touchesOf, hasMore, shown, order, minRound, gaps);
 
   // `settled`: how many of `rows` are known to match or not; the rest wait on a previous state.
   const { data, settled } = useMemo(() => {
@@ -263,10 +285,6 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
     [data, navigate, detailsHref],
   );
 
-  // Filtered, what else each version did, for the rows on the page: filtered
-  // to an object, the list holds only its part, so the rest is read whole.
-  const [showOthersChecked, setShowOthers] = usePersistenBooleanState("versions-show-other-changes", true);
-  const showOthers = !!filter && showOthersChecked;
   const readWhole = showOthers && !!filter?.object && readsWholeVersions(ctx);
   const { pageIndex: shownPage, pageSize: shownPageSize } = pagination;
   const pageRounds = useMemo(
@@ -387,7 +405,10 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
   // On the last loaded page, fetch the next batch: without it there would be
   // no next page to go to; searching on, getSearchDelayMs() after the last. A
   // failed batch is not retried until the next page change.
-  const scanning = pageIndex >= pageCount - 1 && hasMore && !fetchMoreFailed && !scanPaused;
+  // Gapped, every loaded version matches, but shows only once its previous
+  // state is in: count the loaded ones, or this would fetch on meanwhile.
+  const loadedPageCount = gapped ? Math.ceil(versions.length / pageSize) : pageCount;
+  const scanning = pageIndex >= loadedPageCount - 1 && hasMore && !fetchMoreFailed && !scanPaused;
   useEffect(() => {
     if (!scanning || isFetchingMore) return;
     const delay = searching ? lastFetchEnd.current + getSearchDelayMs() - Date.now() : 0;
@@ -496,7 +517,9 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
                 Show other changes
               </label>
               <span className="text-sm text-muted-foreground whitespace-nowrap">
-                {data.length.toLocaleString()} of {versions.length.toLocaleString()}
+                {/* Gapped, the node sent only matches: all of them are. */}
+                {gapped ? null : `${data.length.toLocaleString()} of `}
+                {versions.length.toLocaleString()}
                 {hasMore ? "+" : ""} {versions.length === 1 && !hasMore ? "version" : "versions"}
               </span>
               {searching && scanning ? (

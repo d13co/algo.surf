@@ -6,6 +6,7 @@ settings:
 
 overrides:
   abel-ghost-sdk: 0.0.10
+  algosdk: file:vendor/dtalgosdk-3.9.0-dt.3.0.0.1.tgz
 
 importers:
 
@@ -13,10 +14,10 @@ importers:
     dependencies:
       '@algorandfoundation/algokit-utils':
         specifier: 9.2.0
-        version: 9.2.0(algosdk@3.8.0)
+        version: 9.2.0(dtalgosdk@file:vendor/dtalgosdk-3.9.0-dt.3.0.0.1.tgz)
       '@d13co/algo-group-balance-impact':
         specifier: ^0.0.1
-        version: 0.0.1(@algorandfoundation/algokit-utils@9.2.0(algosdk@3.8.0))(algosdk@3.8.0)
+        version: 0.0.1(@algorandfoundation/algokit-utils@9.2.0(dtalgosdk@file:vendor/dtalgosdk-3.9.0-dt.3.0.0.1.tgz))(dtalgosdk@file:vendor/dtalgosdk-3.9.0-dt.3.0.0.1.tgz)
       '@d13co/algo-metrics-react':
         specifier: ^1.2.1
         version: 1.2.1(react@18.3.1)
@@ -25,7 +26,7 @@ importers:
         version: 1.2.1
       '@d13co/escreg-sdk':
         specifier: ^1.0.0
-        version: 1.0.0(@algorandfoundation/algokit-utils@9.2.0(algosdk@3.8.0))(algosdk@3.8.0)
+        version: 1.0.0(@algorandfoundation/algokit-utils@9.2.0(dtalgosdk@file:vendor/dtalgosdk-3.9.0-dt.3.0.0.1.tgz))(dtalgosdk@file:vendor/dtalgosdk-3.9.0-dt.3.0.0.1.tgz)
       '@d13co/open-in':
         specifier: 0.1.2
         version: 0.1.2
@@ -70,13 +71,13 @@ importers:
         version: 0.10.1
       abel-ghost-sdk:
         specifier: 0.0.10
-        version: 0.0.10(@algorandfoundation/algokit-utils@9.2.0(algosdk@3.8.0))(algosdk@3.8.0)
+        version: 0.0.10(@algorandfoundation/algokit-utils@9.2.0(dtalgosdk@file:vendor/dtalgosdk-3.9.0-dt.3.0.0.1.tgz))(dtalgosdk@file:vendor/dtalgosdk-3.9.0-dt.3.0.0.1.tgz)
       algo-x-evm-sdk:
         specifier: ^0.1.3
-        version: 0.1.3(@algorandfoundation/algokit-utils@9.2.0(algosdk@3.8.0))(algosdk@3.8.0)
+        version: 0.1.3(@algorandfoundation/algokit-utils@9.2.0(dtalgosdk@file:vendor/dtalgosdk-3.9.0-dt.3.0.0.1.tgz))(dtalgosdk@file:vendor/dtalgosdk-3.9.0-dt.3.0.0.1.tgz)
       algosdk:
-        specifier: ^3.8.0
-        version: 3.8.0
+        specifier: file:vendor/dtalgosdk-3.9.0-dt.3.0.0.1.tgz
+        version: dtalgosdk@file:vendor/dtalgosdk-3.9.0-dt.3.0.0.1.tgz
       axios:
         specifier: ^0.27.2
         version: 0.27.2
@@ -188,6 +189,7 @@ packages:
 
   '@algorandfoundation/algokit-utils@9.2.0':
     resolution: {integrity: sha512-jILpK3PlSJ55crS8+Dl7iIiADEj/VowokTGSVEEneDG41XM3jMmogGVpCNipBil/YAGC2eh2yc4l9iHnfQdT/g==}
+    version: 9.2.0
     engines: {node: '>=20.0'}
     peerDependencies:
       algosdk: ^3.5.2
@@ -295,6 +297,7 @@ packages:
 
   '@d13co/algo-group-balance-impact@0.0.1':
     resolution: {integrity: sha512-oXQERt+k4hyEt1MSV7t1xWnsQDQoq/iiKkoB2SUUJmSPCsMrK2U5cBtRsVLY312aNWQAqyIZJURIGNBhCN+TcA==}
+    version: 0.0.1
     peerDependencies:
       '@algorandfoundation/algokit-utils': ^9.2.0
       algosdk: ^3.5.2
@@ -309,6 +312,7 @@ packages:
 
   '@d13co/escreg-sdk@1.0.0':
     resolution: {integrity: sha512-VL04IIJHbKCj+ukFd6AZKB4wtTSUo81xjETk6RXZDXVA53BfYeC0wgHzR2TksOf53FsteFKSnv4hJ1OFYMg5rA==}
+    version: 1.0.0
     peerDependencies:
       '@algorandfoundation/algokit-utils': ^9.0.0
       algosdk: ^3.6.0
@@ -1347,6 +1351,7 @@ packages:
 
   abel-ghost-sdk@0.0.10:
     resolution: {integrity: sha512-hzEK0YCE/5gzu85+U8EH1Wro5kcX6x4mbijcbXTGPqmlH1QdKkNSApSqRyRf5u8N++6BZJSfqtCrdezXzuBhLg==}
+    version: 0.0.10
     peerDependencies:
       '@algorandfoundation/algokit-utils': ^9.2.0
       algosdk: ^3.5.2
@@ -1358,6 +1363,7 @@ packages:
 
   algo-x-evm-sdk@0.1.3:
     resolution: {integrity: sha512-gugR8wMzLsiYub8+27SHNrpULvE1lhRXIFT+37CeM3vYZHYPChECBtw2aabL9UtJYhl9mA13Kk3UrJNHxdJBWw==}
+    version: 0.1.3
     peerDependencies:
       '@algorandfoundation/algokit-utils': ^9.2.0
       algosdk: ^3.5.2
@@ -1365,10 +1371,6 @@ packages:
   algorand-msgpack@1.1.0:
     resolution: {integrity: sha512-08k7pBQnkaUB5p+jL7f1TRaUIlTSDE0cesFu1mD7llLao+1cAhtvvZmGE3OnisTd0xOn118QMw74SRqddqaYvw==}
     engines: {node: '>= 14'}
-
-  algosdk@3.8.0:
-    resolution: {integrity: sha512-Q8MIQY/H21eTfc/zy/xce8kewlpK/t+Tt33StaamtHNycHLTLK004zsuMHN2Q++3MA4MdowOML1kFDox2hAqeg==}
-    engines: {node: '>=18.0.0'}
 
   aria-hidden@1.2.6:
     resolution: {integrity: sha512-ik3ZgC9dY/lYVVM++OISsaYDeg1tb0VtP5uL3ouh1koGOaUMDPpbFIei4JkFimWUFPn90sbMNMXQAIVOlnYKJA==}
@@ -1726,6 +1728,11 @@ packages:
   domain-browser@4.22.0:
     resolution: {integrity: sha512-IGBwjF7tNk3cwypFNH/7bfzBcgSCbaMOD3GsaY1AU/JRrnHnYgEM0+9kQt52iZxjNsjBtJYtao146V+f8jFZNw==}
     engines: {node: '>=10'}
+
+  dtalgosdk@file:vendor/dtalgosdk-3.9.0-dt.3.0.0.1.tgz:
+    resolution: {integrity: sha512-/lQyLigLlPzwkEyBgdQ892NIwIuJ9cqG8ZlouA/EOEpd9QLZfAwMq0vRAH/ggbYbtJuMGNhKlTjEkCflKC+CPA==, tarball: file:vendor/dtalgosdk-3.9.0-dt.3.0.0.1.tgz}
+    version: 3.9.0-dt.3.0.0.1
+    engines: {node: '>=22.0'}
 
   dunder-proto@1.0.1:
     resolution: {integrity: sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==}
@@ -2775,9 +2782,9 @@ packages:
 
 snapshots:
 
-  '@algorandfoundation/algokit-utils@9.2.0(algosdk@3.8.0)':
+  '@algorandfoundation/algokit-utils@9.2.0(dtalgosdk@file:vendor/dtalgosdk-3.9.0-dt.3.0.0.1.tgz)':
     dependencies:
-      algosdk: 3.8.0
+      algosdk: dtalgosdk@file:vendor/dtalgosdk-3.9.0-dt.3.0.0.1.tgz
       buffer: 6.0.3
 
   '@alloc/quick-lru@5.2.0': {}
@@ -2905,10 +2912,10 @@ snapshots:
       '@babel/helper-string-parser': 7.27.1
       '@babel/helper-validator-identifier': 7.28.5
 
-  '@d13co/algo-group-balance-impact@0.0.1(@algorandfoundation/algokit-utils@9.2.0(algosdk@3.8.0))(algosdk@3.8.0)':
+  '@d13co/algo-group-balance-impact@0.0.1(@algorandfoundation/algokit-utils@9.2.0(dtalgosdk@file:vendor/dtalgosdk-3.9.0-dt.3.0.0.1.tgz))(dtalgosdk@file:vendor/dtalgosdk-3.9.0-dt.3.0.0.1.tgz)':
     dependencies:
-      '@algorandfoundation/algokit-utils': 9.2.0(algosdk@3.8.0)
-      algosdk: 3.8.0
+      '@algorandfoundation/algokit-utils': 9.2.0(dtalgosdk@file:vendor/dtalgosdk-3.9.0-dt.3.0.0.1.tgz)
+      algosdk: dtalgosdk@file:vendor/dtalgosdk-3.9.0-dt.3.0.0.1.tgz
 
   '@d13co/algo-metrics-react@1.2.1(react@18.3.1)':
     dependencies:
@@ -2917,15 +2924,15 @@ snapshots:
 
   '@d13co/algo-metrics-sdk@1.2.1':
     dependencies:
-      '@algorandfoundation/algokit-utils': 9.2.0(algosdk@3.8.0)
-      abel-ghost-sdk: 0.0.10(@algorandfoundation/algokit-utils@9.2.0(algosdk@3.8.0))(algosdk@3.8.0)
-      algosdk: 3.8.0
+      '@algorandfoundation/algokit-utils': 9.2.0(dtalgosdk@file:vendor/dtalgosdk-3.9.0-dt.3.0.0.1.tgz)
+      abel-ghost-sdk: 0.0.10(@algorandfoundation/algokit-utils@9.2.0(dtalgosdk@file:vendor/dtalgosdk-3.9.0-dt.3.0.0.1.tgz))(dtalgosdk@file:vendor/dtalgosdk-3.9.0-dt.3.0.0.1.tgz)
+      algosdk: dtalgosdk@file:vendor/dtalgosdk-3.9.0-dt.3.0.0.1.tgz
 
-  '@d13co/escreg-sdk@1.0.0(@algorandfoundation/algokit-utils@9.2.0(algosdk@3.8.0))(algosdk@3.8.0)':
+  '@d13co/escreg-sdk@1.0.0(@algorandfoundation/algokit-utils@9.2.0(dtalgosdk@file:vendor/dtalgosdk-3.9.0-dt.3.0.0.1.tgz))(dtalgosdk@file:vendor/dtalgosdk-3.9.0-dt.3.0.0.1.tgz)':
     dependencies:
-      algosdk: 3.8.0
+      algosdk: dtalgosdk@file:vendor/dtalgosdk-3.9.0-dt.3.0.0.1.tgz
     optionalDependencies:
-      '@algorandfoundation/algokit-utils': 9.2.0(algosdk@3.8.0)
+      '@algorandfoundation/algokit-utils': 9.2.0(dtalgosdk@file:vendor/dtalgosdk-3.9.0-dt.3.0.0.1.tgz)
 
   '@d13co/open-in@0.1.2': {}
 
@@ -3742,33 +3749,22 @@ snapshots:
     dependencies:
       '@yornaath/batshit-devtools': 1.7.1
 
-  abel-ghost-sdk@0.0.10(@algorandfoundation/algokit-utils@9.2.0(algosdk@3.8.0))(algosdk@3.8.0):
+  abel-ghost-sdk@0.0.10(@algorandfoundation/algokit-utils@9.2.0(dtalgosdk@file:vendor/dtalgosdk-3.9.0-dt.3.0.0.1.tgz))(dtalgosdk@file:vendor/dtalgosdk-3.9.0-dt.3.0.0.1.tgz):
     dependencies:
-      '@algorandfoundation/algokit-utils': 9.2.0(algosdk@3.8.0)
-      algosdk: 3.8.0
+      '@algorandfoundation/algokit-utils': 9.2.0(dtalgosdk@file:vendor/dtalgosdk-3.9.0-dt.3.0.0.1.tgz)
+      algosdk: dtalgosdk@file:vendor/dtalgosdk-3.9.0-dt.3.0.0.1.tgz
       p-map: 7.0.4
 
   acorn@8.16.0:
     optional: true
 
-  algo-x-evm-sdk@0.1.3(@algorandfoundation/algokit-utils@9.2.0(algosdk@3.8.0))(algosdk@3.8.0):
+  algo-x-evm-sdk@0.1.3(@algorandfoundation/algokit-utils@9.2.0(dtalgosdk@file:vendor/dtalgosdk-3.9.0-dt.3.0.0.1.tgz))(dtalgosdk@file:vendor/dtalgosdk-3.9.0-dt.3.0.0.1.tgz):
     dependencies:
-      '@algorandfoundation/algokit-utils': 9.2.0(algosdk@3.8.0)
-      algosdk: 3.8.0
+      '@algorandfoundation/algokit-utils': 9.2.0(dtalgosdk@file:vendor/dtalgosdk-3.9.0-dt.3.0.0.1.tgz)
+      algosdk: dtalgosdk@file:vendor/dtalgosdk-3.9.0-dt.3.0.0.1.tgz
       p-map: 7.0.4
 
   algorand-msgpack@1.1.0: {}
-
-  algosdk@3.8.0:
-    dependencies:
-      algorand-msgpack: 1.1.0
-      hi-base32: 0.5.1
-      js-sha256: 0.9.0
-      js-sha3: 0.8.0
-      js-sha512: 0.8.0
-      json-bigint: 1.0.0
-      tweetnacl: 1.0.3
-      vlq: 2.0.4
 
   aria-hidden@1.2.6:
     dependencies:
@@ -4189,6 +4185,17 @@ snapshots:
       csstype: 3.2.3
 
   domain-browser@4.22.0: {}
+
+  dtalgosdk@file:vendor/dtalgosdk-3.9.0-dt.3.0.0.1.tgz:
+    dependencies:
+      algorand-msgpack: 1.1.0
+      hi-base32: 0.5.1
+      js-sha256: 0.9.0
+      js-sha3: 0.8.0
+      js-sha512: 0.8.0
+      json-bigint: 1.0.0
+      tweetnacl: 1.0.3
+      vlq: 2.0.4
 
   dunder-proto@1.0.1:
     dependencies:
