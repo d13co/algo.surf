@@ -7,6 +7,14 @@ overrides:
   # would keep a second copy of the SDK around: two GhostBase instances mean two
   # separate suggested-params caches, and its copy lacks the in-flight dedupe.
   abel-ghost-sdk: 0.0.10
-  # dtalgosdk: algosdk with time-travel support (reads at past rounds,
-  # versions), one copy everywhere. Vendored until published.
-  algosdk: file:vendor/dtalgosdk-3.9.0-dt.3.0.0.1.tgz
+  # dt-algosdk: algosdk with time-travel support (reads at past rounds,
+  # versions), one copy everywhere. Vendored from js-algorand-sdk
+  # query-total-calls (2264ae1) until published; then pin the npm release
+  # exactly, as a ^ range on a dt prerelease takes later breaking releases.
+  algosdk: file:vendor/dt-algosdk-3.9.0-dt.4.1.0.0-2264ae1.tgz
+  # dt-algokit-utils: algokit-utils on dtalgosdk (time travel, versions,
+  # asset holders), one copy everywhere: @d13co/algo-metrics-sdk depends on
+  # stock 9.2.0, whose AlgorandClient type clashes with this one's.
+  # Vendored from algokit-utils-ts query-total-calls (6463dd69) until
+  # published; then pin exactly, as algosdk.
+  '@algorandfoundation/algokit-utils': file:vendor/d13co-dt-algokit-utils-9.2.3-dt.4.1.0.0-6463dd69.tgz
