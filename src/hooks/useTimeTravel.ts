@@ -1,15 +1,13 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useInfiniteQuery, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
-import { network, Networks } from "src/packages/core-sdk/constants";
 import {
   AtRoundRead,
   getAssetHoldersPage,
-  getGenesisId,
+  getHoldersSupport,
   getTimeTravelNode,
+  getTimeTravelSupport,
   getVersionsPage,
   nameBytes,
-  probeHolders,
-  probeVersions,
   readAtRound,
   readVersionAsOf,
   TTAccountVersion,
@@ -51,8 +49,6 @@ import {
 import { parseObjKey, VersionFilter } from "src/utils/versionFilter";
 import { FeedReader, MergedCursor, MergedPage, readMergedPage } from "src/utils/mergeVersionFeeds";
 
-const ZERO_ADDRESS = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ";
-
 // History is append-only, but kept in memory only: it is experimental, and big.
 const meta = { noPersist: true };
 
@@ -69,25 +65,16 @@ export function useTimeTravelStatus(): TimeTravelStatus {
   const { data } = useQuery({
     queryKey: ["timetravel-support", node?.baseUrl],
     queryFn: async () => {
-      let versions: boolean;
-      let genesisId: string;
       try {
-        [versions, genesisId] = await Promise.all([probeVersions(ZERO_ADDRESS), getGenesisId()]);
+        const support = await getTimeTravelSupport();
+        if ("reason" in support) console.warn(`${node.baseUrl} does not serve version histories: ${support.reason}`);
+        return support.supported;
       } catch (e) {
         // Resolved rather than thrown: a failed query would be retried by
         // every component that mounts next.
         console.warn(`${node.baseUrl} is unreachable: ${(e as Error).message}`);
         return false;
       }
-      if (!versions) {
-        console.warn(`${node.baseUrl} does not serve version histories (is EnableTimeTravel on?)`);
-        return false;
-      }
-      if (network !== Networks.Localnet && !genesisId.toLowerCase().startsWith(network.toLowerCase())) {
-        console.warn(`${node.baseUrl} follows ${genesisId}, not ${network}: ignoring it`);
-        return false;
-      }
-      return true;
     },
     enabled: !!node,
     staleTime: Infinity,
@@ -106,7 +93,9 @@ export function useTimeTravelSupport(): boolean {
 
 /**
  * Whether the configured time-travel node lists asset holders (see
- * probeHolders); asked only of a node that serves this network's histories.
+ * getHoldersSupport); asked only of a node that serves this network's
+ * histories. A node whose holders index is still being built says yes, and
+ * its holders read fails with why.
  */
 export function useHoldersSupport(): boolean {
   const supported = useTimeTravelSupport();
@@ -114,7 +103,7 @@ export function useHoldersSupport(): boolean {
     queryKey: ["timetravel-holders-support", getTimeTravelNode()?.baseUrl],
     queryFn: async () => {
       try {
-        return await probeHolders();
+        return await getHoldersSupport();
       } catch (e) {
         // Resolved rather than thrown, as for useTimeTravelStatus.
         console.warn(`Asset holders unavailable: ${(e as Error).message}`);
@@ -122,7 +111,7 @@ export function useHoldersSupport(): boolean {
       }
     },
     enabled: supported,
-    // A no can be a passing one (the index being built, a network blip): asked again after a minute.
+    // A no from a failed read can be a passing one (a network blip): asked again after a minute.
     staleTime: (query) => (query.state.data ? Infinity : 60_000),
     retry: false,
     meta,
@@ -141,8 +130,8 @@ export function useAssetHolders(id: number, round: number | undefined) {
   const query = useInfiniteQuery({
     queryKey,
     initialPageParam: { round } as { round?: number; next?: string },
-    getNextPageParam: (last: TTAssetHoldersPage) =>
-      last["next-token"] ? { round: last.round, next: last["next-token"] } : undefined,
+    getNextPageParam: (last: TTAssetHoldersPage): { round?: number; next?: string } | undefined =>
+      last.nextToken ? { round: last.round, next: last.nextToken } : undefined,
     queryFn: ({ pageParam }) => getAssetHoldersPage(id, pageParam),
     // Refetching would re-read every loaded batch; the latest round shows on reload, or on reset.
     staleTime: Infinity,

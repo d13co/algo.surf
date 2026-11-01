@@ -44,7 +44,7 @@ function addressFraction(address: string): number {
 }
 
 function csvRow(h: TTAssetHolder, decimals: number): string {
-  return `${h.address},${h.amount},${formatUnits(h.amount, decimals, "")},${h["is-frozen"] ?? false}\n`;
+  return `${h.address},${h.amount},${formatUnits(h.amount, decimals, "")},${h.frozen}\n`;
 }
 
 /**
@@ -121,7 +121,7 @@ export default function AssetHoldersExport({
           current.chunks.push(csvRow(h, decimals));
           written++;
         }
-        current.next = page["next-token"] || undefined;
+        current.next = page.nextToken;
         if (signal.aborted) return;
         setProgress((p) => ({
           ...p,

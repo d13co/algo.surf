@@ -69,7 +69,7 @@ const columnsFor = (assetId: number, format: AssetFormat | undefined): ColumnDef
     header: "Balance",
     meta: { width: "30%" },
     cell: ({ row }) => {
-      const { address, amount, "is-frozen": frozen } = row.original;
+      const { address, amount, frozen } = row.original;
       return (
         <span className="inline-flex items-center gap-1">
           {frozen ? <FrozenIcon /> : null}

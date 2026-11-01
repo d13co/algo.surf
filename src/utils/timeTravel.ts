@@ -1,4 +1,16 @@
-import { base64ToBytes, decodeJSON, DTAlgodClient, DTUnsupportedError, indexerModels, IntDecoding, modelsv2, parseJSON } from "algosdk";
+import {
+  base64ToBytes,
+  bytesToBase64,
+  decodeJSON,
+  DTAlgodClient,
+  DTUnsupportedError,
+  encodeJSON,
+  indexerModels,
+  isHistoryUnavailable,
+  modelsv2,
+} from "algosdk";
+import { AlgorandClient } from "@algorandfoundation/algokit-utils";
+import { DEFAULT_MAX_VERSIONS_ROUNDS_PER_REQUEST } from "@algorandfoundation/algokit-utils/types/dt-manager";
 import { network, Networks } from "src/packages/core-sdk/constants";
 import type { BoxNamesPage } from "src/packages/core-sdk/clients/boxClient";
 import type { A_Box } from "src/packages/core-sdk/types";
@@ -8,12 +20,15 @@ import {
   REACT_APP_TIMETRAVEL_SEARCH_DELAY_MS,
 } from "src/env";
 import { getApiBaseUrl, getApiHeaders } from "./nodeApi";
+import { nodeJson } from "./nodeJson";
 
 /**
  * Client for the experimental time-travel algod (dt-algorand), which serves
  * object version histories (`GET .../versions`) and state at a past round
- * (`?round=R` on the usual lookups). Requests go through dtalgosdk's
- * DTAlgodClient; responses are read as the node's JSON (see ttRaw).
+ * (`?round=R` on the usual lookups). Requests go through dt-algosdk's
+ * DTAlgodClient, which checks that the node answered at the round asked for;
+ * asset holders through dt-algokit-utils. Version histories and the states
+ * they are diffed against are read as the node's JSON (see ttRead).
  */
 
 export type TimeTravelNode = { baseUrl: string; headers: Record<string, string> };
@@ -197,35 +212,44 @@ export class TimeTravelError extends Error {
   }
 }
 
-let cachedClient: { node: string; algod: DTAlgodClient } | undefined;
+let cachedClients: { node: string; algod: DTAlgodClient; algorand: AlgorandClient } | undefined;
 
-/**
- * A DTAlgodClient (dtalgosdk) on the configured time-travel node, or null
- * without one (see getTimeTravelNode). One per node, so the answers it caches
- * are shared.
- */
-export function getDTAlgod(): DTAlgodClient | null {
+/** The configured node's clients, one pair per node, so the answers they cache (capabilities) are shared. */
+function getClients() {
   const node = getTimeTravelNode();
   if (!node) return null;
   const key = JSON.stringify(node);
-  if (cachedClient?.node !== key) {
+  if (cachedClients?.node !== key) {
     // The token as a header object, which may be empty: a string, even "",
     // would send a header and make every read a CORS preflight. No port: the
     // URL's own.
-    cachedClient = { node: key, algod: new DTAlgodClient(node.headers, node.baseUrl, undefined) };
+    const algod = new DTAlgodClient(node.headers, node.baseUrl, undefined);
+    cachedClients = { node: key, algod, algorand: AlgorandClient.fromClients({ algod }) };
   }
-  return cachedClient.algod;
+  return cachedClients;
+}
+
+/**
+ * A DTAlgodClient (dt-algosdk) on the configured time-travel node, or null
+ * without one (see getTimeTravelNode).
+ */
+export function getDTAlgod(): DTAlgodClient | null {
+  return getClients()?.algod ?? null;
+}
+
+function requireClients() {
+  const clients = getClients();
+  if (!clients) throw new Error("No time travel node configured");
+  return clients;
 }
 
 function requireDTAlgod(): DTAlgodClient {
-  const algod = getDTAlgod();
-  if (!algod) throw new Error("No time travel node configured");
-  return algod;
+  return requireClients().algod;
 }
 
-/** An SDK request whose response is read as the node sent it. */
-type RawRequest = {
-  doRaw(headers?: Record<string, string>, customOptions?: Record<string, unknown>): Promise<Uint8Array>;
+/** An SDK request: its response decoded into the SDK's model. */
+type TTRequest = {
+  do(headers?: Record<string, string>, customOptions?: Record<string, unknown>): Promise<unknown>;
 };
 
 /** The node's message in an SDK HTTP error, without the SDK's "Network request error..." prefix. */
@@ -239,40 +263,52 @@ function errorMessage(e: any): string {
   return e.message;
 }
 
-/**
- * Sends an SDK request to the time-travel node and returns the body as is.
- * Resolves null on 404 (no such object at that round); throws a
- * TimeTravelError on any other failure, including a node without the
- * feature (DTUnsupportedError).
- */
-async function ttRawText(req: RawRequest, signal?: AbortSignal): Promise<string | null> {
-  try {
-    return new TextDecoder().decode(await req.doRaw(undefined, signal ? { signal } : undefined));
-  } catch (e) {
-    if (signal?.aborted) throw e;
-    if (e instanceof DTUnsupportedError) throw new TimeTravelError(e.message, 404);
-    const status = (e as any)?.response?.status ?? (e as any)?.status;
-    if (status === 404) return null;
-    if (typeof status === "number") throw new TimeTravelError(errorMessage(e), status);
-    throw e;
-  }
+/** The HTTP status of an SDK or utils error, if it has one. */
+function statusOf(e: unknown): number | undefined {
+  const status = (e as any)?.response?.status ?? (e as any)?.status;
+  return typeof status === "number" ? status : undefined;
 }
 
 /**
- * ttRawText, parsed: the node's JSON as the version and delta code reads it.
- * Integers beyond 2^53 come back as bigint. Not the SDK's models: re-encoded,
- * they leave out zero and empty values, which would read as removed fields.
+ * `e` as a TimeTravelError, where it is one the node gave: a node without
+ * the feature, or one that did not answer at the round asked for
+ * (DTUnsupportedError), counts as 404, as do the node's own 404s. Anything
+ * else (a network failure, an abort) is `e` itself.
  */
-async function ttRaw<T>(req: RawRequest, signal?: AbortSignal): Promise<T | null> {
-  const text = await ttRawText(req, signal);
-  return text === null ? null : (parseJSON(text, { intDecoding: IntDecoding.MIXED }) as T);
+function asTimeTravelError(e: unknown): unknown {
+  if (e instanceof TimeTravelError) return e;
+  if (e instanceof DTUnsupportedError) return new TimeTravelError(e.message, 404);
+  const status = statusOf(e);
+  return status === undefined ? e : new TimeTravelError(errorMessage(e), status);
+}
+
+/**
+ * Sends an SDK request to the time-travel node and returns its response as
+ * the node's JSON (see nodeJson): what the version and delta code reads.
+ * Resolves null on the node's 404 (no such object at that round); throws a
+ * TimeTravelError on any other failure (see asTimeTravelError).
+ */
+async function ttRead<T>(req: TTRequest, signal?: AbortSignal): Promise<T | null> {
+  const model = await ttDo(req, signal);
+  return model === null ? null : nodeJson<T>(model);
+}
+
+/** ttRead's request, its response left as the SDK's model. */
+async function ttDo<M>(req: { do(headers?: Record<string, string>, customOptions?: Record<string, unknown>): Promise<M> }, signal?: AbortSignal): Promise<M | null> {
+  try {
+    return await req.do(undefined, signal ? { signal } : undefined);
+  } catch (e) {
+    if (signal?.aborted) throw e;
+    if (!(e instanceof DTUnsupportedError) && statusOf(e) === 404) return null;
+    throw asTimeTravelError(e);
+  }
 }
 
 // ---------------------------------------------------------------------------
 // Versions
 
 /** What every `...Versions` builder of DTAlgodClient takes. */
-interface VersionsBuilder extends RawRequest {
+interface VersionsBuilder extends TTRequest {
   minRound(round: number | bigint): this;
   maxRound(round: number | bigint): this;
   order(order: VersionsOrder): this;
@@ -312,15 +348,19 @@ export async function getVersionsPage<V>(
   if (limit !== undefined) req.limit(limit);
   if (rounds) req.rounds(rounds);
   if (values) req.include("values");
-  const page = await ttRaw<TTVersionsPage<V>>(req, signal);
+  const page = await ttRead<TTVersionsPage<V>>(req, signal);
   // The versions endpoints never 404 (an object without versions has none);
   // the SDK throws DTUnsupportedError where the route is missing.
   if (!page) throw new TimeTravelError("This node does not serve version histories", 404);
   return page;
 }
 
-/** The most rounds one batched read asks for: a page's worth with values. */
-const AS_OF_BATCH_ROUNDS = 1000;
+/**
+ * The most rounds one batched read asks for: dt-algokit-utils' default, which
+ * keeps the request line (the rounds are in its query string) under the 8 KB
+ * many proxies allow.
+ */
+const AS_OF_BATCH_ROUNDS = DEFAULT_MAX_VERSIONS_ROUNDS_PER_REQUEST;
 
 type AsOfWaiter = { resolve: (entry: unknown) => void; reject: (e: unknown) => void };
 type AsOfBatch = { source: VersionsSource; waiters: Map<number, AsOfWaiter[]> };
@@ -378,71 +418,97 @@ async function flushAsOf({ source, waiters }: AsOfBatch) {
 /** A TEAL key or box name, base64 as the version JSON carries it, as bytes. */
 export const nameBytes = (b64: string) => base64ToBytes(b64);
 
-/** Whether the node serves version histories: a one-version read of an account's. */
-export async function probeVersions(address: string): Promise<boolean> {
-  try {
-    await getVersionsPage((algod) => algod.accountVersions(address), { limit: 1 });
-    return true;
-  } catch (e) {
-    if (e instanceof TimeTravelError && e.status === 404) return false;
-    throw e;
+// ---------------------------------------------------------------------------
+// What the node serves
+
+/** What the configured node serves this network, by its capabilities and genesis. */
+export type TimeTravelSupport =
+  | { supported: true }
+  | { supported: false; reason: string };
+
+/**
+ * Whether the node serves past state and version histories, for this network:
+ * time travel in its capabilities (`GET /v2/capabilities`, read once per
+ * client), and a genesis of this network's. Throws where the node cannot be
+ * reached.
+ */
+export async function getTimeTravelSupport(): Promise<TimeTravelSupport> {
+  const algod = requireDTAlgod();
+  const [timeTravel, params] = await Promise.all([algod.supportsDT(), algod.getTransactionParams().do()]);
+  if (!timeTravel) {
+    const { reported } = await algod.capabilities();
+    return {
+      supported: false,
+      reason: reported ? "time travel is off (EnableTimeTravel)" : "it is stock algod, or a dt-algorand without capabilities",
+    };
   }
+  const genesisId = params.genesisID ?? "";
+  if (network !== Networks.Localnet && !genesisId.toLowerCase().startsWith(network.toLowerCase())) {
+    return { supported: false, reason: `it follows ${genesisId}, not ${network}` };
+  }
+  return { supported: true };
+}
+
+/**
+ * Whether the node lists asset holders: time travel and the holders index
+ * (see DTAlgodClient.supportsAssetHolders, cached per client). A node whose
+ * index is on but not built yet says yes, then answers the holders with a
+ * 503 (see holdersError).
+ */
+export function getHoldersSupport(): Promise<boolean> {
+  return requireDTAlgod().supportsAssetHolders();
 }
 
 // ---------------------------------------------------------------------------
 // Asset holders
 
 /** An account holding an asset (opted in: the amount can be 0). */
-export type TTAssetHolder = { address: string; amount: TTInt; "is-frozen": boolean };
+export type TTAssetHolder = { address: string; amount: bigint; frozen: boolean };
 
 /** A page of an asset's holders at `round`, in address order. */
-export type TTAssetHoldersPage = { round: number; holders: TTAssetHolder[]; "next-token"?: string };
+export type TTAssetHoldersPage = { round: number; holders: TTAssetHolder[]; nextToken?: string };
 
 /** Holders per request: the node's default. */
 export const HOLDERS_BATCH_SIZE = 1000;
 
+/** A holders read's failure as a TimeTravelError, its message saying why. */
+function holdersError(e: unknown, assetId: number, round: number | undefined): unknown {
+  if (isHistoryUnavailable(e)) {
+    return new TimeTravelError("The node's asset holders index is not ready yet (it is being built or catching up)", 503);
+  }
+  if (!(e instanceof DTUnsupportedError) && statusOf(e) === 404) {
+    return new TimeTravelError(
+      round === undefined ? `Asset ${assetId} does not exist` : `Asset ${assetId} did not exist at block ${round}`,
+      404,
+    );
+  }
+  return asTimeTravelError(e);
+}
+
 /**
  * A page of an asset's holders at `round` (default: the latest), after
- * `next` (the previous page's `next-token`, with its `round`). The node
- * examines at most 100,000 accounts per page, so a page can be short or empty
- * while more remain: only a missing `next-token` ends the list.
+ * `next` (the previous page's `nextToken`, with its `round`), from
+ * dt-algokit-utils. The node examines at most 100,000 accounts per page, so a
+ * page can be short or empty while more remain: only a missing `nextToken`
+ * ends the list.
  */
 export async function getAssetHoldersPage(
   assetId: number,
   { round, next, limit = HOLDERS_BATCH_SIZE }: { round?: number; next?: string; limit?: number },
   signal?: AbortSignal,
 ): Promise<TTAssetHoldersPage> {
-  const req = requireDTAlgod().getAssetHolders(assetId).limit(limit).next(next);
-  if (round !== undefined) req.round(round);
-  const page = await ttRaw<TTAssetHoldersPage>(req, signal);
-  if (!page) {
-    throw new TimeTravelError(
-      round === undefined ? `Asset ${assetId} does not exist` : `Asset ${assetId} did not exist at block ${round}`,
-      404,
-    );
-  }
-  return page;
-}
-
-/**
- * Whether the node lists asset holders: asset 0 never exists, so a node with
- * a holders index answers 404. Without the endpoint or the index (400), or
- * while the index is missing or stale (503), it does not.
- */
-export async function probeHolders(): Promise<boolean> {
   try {
-    await ttRaw(requireDTAlgod().getAssetHolders(0).limit(1));
-    return true;
+    const page = await requireClients().algorand.dt.getAssetHolders(BigInt(assetId), {
+      round,
+      next,
+      limit,
+      signal,
+    });
+    return { round: Number(page.round), holders: page.holders, nextToken: page.nextToken };
   } catch (e) {
-    if (e instanceof TimeTravelError) return false;
-    throw e;
+    if (signal?.aborted) throw e;
+    throw holdersError(e, assetId, round);
   }
-}
-
-/** The node's genesis ID, from its suggested params. */
-export async function getGenesisId(): Promise<string> {
-  const params = await ttRaw<{ "genesis-id": string }>(requireDTAlgod().getTransactionParams());
-  return params?.["genesis-id"] ?? "";
 }
 
 // ---------------------------------------------------------------------------
@@ -461,7 +527,7 @@ export type AtRoundRead =
   | { read: "account-asset"; address: string; assetId: number; round: number }
   | { read: "account-app"; address: string; appId: number; round: number };
 
-function atRoundRequest(algod: DTAlgodClient, r: AtRoundRead): RawRequest {
+function atRoundRequest(algod: DTAlgodClient, r: AtRoundRead): TTRequest {
   switch (r.read) {
     case "app":
       return algod.getApplicationByID(r.appId).round(r.round);
@@ -482,29 +548,36 @@ function atRoundRequest(algod: DTAlgodClient, r: AtRoundRead): RawRequest {
 
 /** `r` as the node's JSON; null where the object did not exist at that round. */
 export function readAtRound<T = any>(r: AtRoundRead, signal?: AbortSignal): Promise<T | null> {
-  return ttRaw<T>(atRoundRequest(requireDTAlgod(), r), signal);
+  return ttRead<T>(atRoundRequest(requireDTAlgod(), r), signal);
 }
 
-/** readAtRound's body, decoded into `model`; a TimeTravelError (404) with `missing` where there was none. */
-async function readAtRoundAs<T>(r: AtRoundRead, model: Parameters<typeof decodeJSON>[1], missing: string): Promise<T> {
-  const text = await ttRawText(atRoundRequest(requireDTAlgod(), r));
-  if (text === null) throw new TimeTravelError(missing, 404);
-  return decodeJSON(text, model) as T;
+/**
+ * An algod model as the indexer's: the application and asset pages read the
+ * indexer models, whose JSON algod's is a subset of.
+ */
+function asIndexerModel<T>(model: unknown, indexerModel: Parameters<typeof decodeJSON>[1]): T {
+  return decodeJSON(encodeJSON(model as Parameters<typeof encodeJSON>[0]), indexerModel) as T;
 }
 
 /** An application at `round`, in the indexer model the application page reads. */
-export function getApplicationAt(id: number, round: number): Promise<indexerModels.Application> {
-  return readAtRoundAs({ read: "app", appId: id, round }, indexerModels.Application, `Application ${id} did not exist at block ${round}`);
+export async function getApplicationAt(id: number, round: number): Promise<indexerModels.Application> {
+  const app = await ttDo(requireDTAlgod().getApplicationByID(id).round(round));
+  if (!app) throw new TimeTravelError(`Application ${id} did not exist at block ${round}`, 404);
+  return asIndexerModel(app, indexerModels.Application);
 }
 
 /** An asset at `round`, in the indexer model the asset page reads. */
-export function getAssetAt(id: number, round: number): Promise<indexerModels.Asset> {
-  return readAtRoundAs({ read: "asset", assetId: id, round }, indexerModels.Asset, `Asset ${id} did not exist at block ${round}`);
+export async function getAssetAt(id: number, round: number): Promise<indexerModels.Asset> {
+  const asset = await ttDo(requireDTAlgod().getAssetByID(id).round(round));
+  if (!asset) throw new TimeTravelError(`Asset ${id} did not exist at block ${round}`, 404);
+  return asIndexerModel(asset, indexerModels.Asset);
 }
 
 /** An account at `round`, as algod's account information. */
-export function getAccountAt(address: string, round: number): Promise<modelsv2.Account> {
-  return readAtRoundAs({ read: "account", address, round }, modelsv2.Account, `Account ${address} not found at block ${round}`);
+export async function getAccountAt(address: string, round: number): Promise<modelsv2.Account> {
+  const account = await ttDo(requireDTAlgod().accountInformation(address).round(round));
+  if (!account) throw new TimeTravelError(`Account ${address} not found at block ${round}`, 404);
+  return account;
 }
 
 /** BoxClient's reads, from the time-travel node at `round`. */
@@ -512,16 +585,19 @@ export class TimeTravelBoxClient {
   constructor(private round: number) {}
 
   async getBoxNamesPage(id: number, nextToken?: string, limit = 500): Promise<BoxNamesPage> {
-    const req = requireDTAlgod().getApplicationBoxes(id).round(this.round).limit(limit).next(nextToken);
-    const page = await ttRaw<{ boxes: { name: string }[]; "next-token"?: string }>(req);
-    return { boxes: page?.boxes.map(({ name }) => ({ name })) ?? [], nextToken: page?.["next-token"] };
+    // do(), not a raw read: it checks that the page is of `round`.
+    const page = await ttDo(requireDTAlgod().getApplicationBoxes(id).round(this.round).limit(limit).next(nextToken));
+    return {
+      boxes: page?.boxes.map(({ name }) => ({ name: bytesToBase64(name) })) ?? [],
+      nextToken: page?.nextToken || undefined,
+    };
   }
 
   async getBox(id: number, name: string): Promise<A_Box> {
-    const box = await readAtRound<{ value: string }>({ read: "box", appId: id, name, round: this.round });
+    const box = await ttDo(requireDTAlgod().getApplicationBoxByName(id, nameBytes(name)).round(this.round));
     if (!box) {
       throw new TimeTravelError(`No such box at block ${this.round}`, 404);
     }
-    return { name, value: box.value };
+    return { name, value: bytesToBase64(box.value) };
   }
 }
