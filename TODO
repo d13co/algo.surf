@@ -62,6 +62,8 @@ logic sisg APPCALL3RF2SBLZDILOTQ6GOBKHBCAWVAPQEZTOZHYBJMFHTNAAD46V4ME
 [v] flow address book integration
   [ ] address view labels?
 [ ] NFD integration
+  [v] NFD history tab (nfd-ghost-sdk on a time-travel node with queries, NFD-HISTORY.md)
+  [ ] names, labels and search through nfd-ghost-sdk at the page's round (PLAN_NFD_HISTORY.md Part B)
 [ ] Rekey txns in all txn type pages: add common block
 
 [v] account assets view name clipped

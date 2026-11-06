@@ -57,22 +57,27 @@ const actionClassName = "border-border text-primary hover:bg-primary/10";
 /** The round column's header: the round, over its time in the chosen date format. */
 const roundLabel = (format: DateFormat) => `Block / ${ageLabel(format)}`;
 
-/** A version's round, a link to its block, over its time in the chosen date format (see AgeHeader); each copyable. */
-function RoundCell({ round, timestamp }: { round: number; timestamp: number }) {
+/**
+ * A version's round, a link to its block, over its time in the chosen date
+ * format (see AgeHeader); each copyable. Just the round where the time is unknown.
+ */
+export function RoundCell({ round, timestamp }: { round: number; timestamp: number | undefined }) {
   const { format: chosen } = useDateFormat();
   const format = shownFormat(chosen, true);
   // "3 days ago" is no use pasted elsewhere: copy the date.
-  const copyValue = formatDate(timestamp, format === "relative" ? "local" : format);
+  const copyValue = timestamp === undefined ? "" : formatDate(timestamp, format === "relative" ? "local" : format);
   return (
     <div className="flex flex-col">
       <span className="group inline-flex items-center gap-0.5">
         <Copyable className="opacity-60 group-hover:opacity-100" value={round} />
         <LinkToBlock id={round} />
       </span>
-      <span className="group inline-flex items-center gap-0.5 text-muted-foreground">
-        <Copyable className="opacity-60 group-hover:opacity-100" value={copyValue} />
-        <MultiDateViewer timestamp={timestamp} variant="short" noBlock />
-      </span>
+      {timestamp === undefined ? null : (
+        <span className="group inline-flex items-center gap-0.5 text-muted-foreground">
+          <Copyable className="opacity-60 group-hover:opacity-100" value={copyValue} />
+          <MultiDateViewer timestamp={timestamp} variant="short" noBlock />
+        </span>
+      )}
     </div>
   );
 }

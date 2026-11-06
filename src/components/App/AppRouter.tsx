@@ -29,6 +29,7 @@ const AccountValidator = lazy(() => import("../Modules/Explorer/v2/Account/Accou
 const AccountDelegations = lazy(() => import("../Modules/Explorer/v2/Account/AccountDelegations"));
 const AccountMultisig = lazy(() => import("../Modules/Explorer/v2/Account/AccountMultisig"));
 const AccountVersions = lazy(() => import("../Modules/Explorer/v2/Account/AccountVersions"));
+const AccountNfdHistory = lazy(() => import("../Modules/Explorer/v2/Account/AccountNfdHistory"));
 const Block = lazy(() => import("../Modules/Explorer/v2/Block/Block"));
 const BlockTransactions = lazy(() => import("../Modules/Explorer/v2/Block/BlockTransactions"));
 const BlockStateChanges = lazy(() => import("../Modules/Explorer/v2/Block/BlockStateChanges"));
@@ -154,6 +155,10 @@ function AppRouter(): JSX.Element {
                           <Route
                             path="versions/*"
                             element={<AccountVersions />}
+                          />
+                          <Route
+                            path="nfds"
+                            element={<AccountNfdHistory />}
                           />
                           <Route
                             path=""
