@@ -3,6 +3,8 @@ import { getNodeConfig } from "../../utils/nodeConfig";
 import { AlgorandClient } from "@algorandfoundation/algokit-utils";
 import { A_AssetTiny } from "../core-sdk/types";
 import { AssetTinyLabels } from "abel-ghost-sdk";
+import { retryOptions } from "../../utils/retryWaits";
+import { clientToken } from "../core-sdk/network";
 
 const config = getNodeConfig();
 const network = process.env.REACT_APP_NETWORK;
@@ -13,7 +15,9 @@ const { url: server, port, token } = config.algod;
 const algodConfig = {
   server,
   port,
-  token,
+  token: clientToken(token),
+  // algokit-utils retries by default; this reports the waits to RetryWaitToast
+  retry: retryOptions("algod"),
 };
 
 export const algorand = AlgorandClient.fromConfig({ algodConfig });
@@ -22,13 +26,14 @@ algorand.getSuggestedParams();
 
 export const abel = new AbelGhostSDK({
   algorand,
-  concurrency: 7,
   registryAppId: isMainnet ? BigInt(2914159523) : undefined,
-  ghostAppId: isMainnet ? BigInt(3381542955) : undefined,
+  // No ghostAppId: the deployed reader (3381542955) predates this SDK's
+  // reader contract and rejects its calls. Each read carries the reader instead.
+  // The mainnet fee sink, explicitly: the SDK finds it per call, but its app
+  // factory would otherwise default to the TestNet/BetaNet fee sink.
   readerAccount: isMainnet ? "Y76M3MSY6DKBRHBL7C3NNDXGS5IIMQVQVUAB6MP4XEMMGVF2QWNPL226CA" : undefined,
   // The SDK re-caches suggested params after every call, so this, not the 20s
-  // above, is what the cache timeout ends up being. Its own default is 75ms,
-  // which costs a params request per fetch that is not part of the same burst.
+  // above, is what the cache timeout ends up being. Its own default is 3s.
   // The ceiling is the 10-round validity window algokit gives these simulate
   // calls: past ~27s of staleness (10 rounds at ~2.7s) the node rejects them
   // as dead. 5s is ~2 rounds, leaving room for a burst to drain plus RTT.

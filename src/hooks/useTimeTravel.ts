@@ -17,6 +17,7 @@ import {
   TTAssetVersion,
   TTBoxesVersion,
   TTBoxVersion,
+  TTCapabilities,
   TTVersionsPage,
   BOX_VERSIONS_BATCH_SIZE,
   VERSIONS_BATCH_SIZE,
@@ -56,19 +57,23 @@ const meta = { noPersist: true };
 export type TimeTravelStatus = "none" | "checking" | "supported" | "unsupported";
 
 /**
- * Whether the configured time-travel node serves past state and version
- * histories, for this network. Sends nothing when no node is configured (see
- * getTimeTravelNode); a node that cannot be reached counts as unsupported.
+ * The configured time-travel node's capabilities when it serves past state and
+ * version histories for this network, false when it doesn't or can't be
+ * reached, undefined while checking. Sends nothing when no node is configured
+ * (see getTimeTravelNode).
  */
-export function useTimeTravelStatus(): TimeTravelStatus {
+function useTimeTravelSupportQuery(): TTCapabilities | false | undefined {
   const node = getTimeTravelNode();
   const { data } = useQuery({
     queryKey: ["timetravel-support", node?.baseUrl],
-    queryFn: async () => {
+    queryFn: async (): Promise<TTCapabilities | false> => {
       try {
         const support = await getTimeTravelSupport();
-        if ("reason" in support) console.warn(`${node.baseUrl} does not serve version histories: ${support.reason}`);
-        return support.supported;
+        if ("reason" in support) {
+          console.warn(`${node.baseUrl} does not serve version histories: ${support.reason}`);
+          return false;
+        }
+        return "capabilities" in support ? support.capabilities : false;
       } catch (e) {
         // Resolved rather than thrown: a failed query would be retried by
         // every component that mounts next.
@@ -81,7 +86,17 @@ export function useTimeTravelStatus(): TimeTravelStatus {
     retry: false,
     meta,
   });
-  if (!node) return "none";
+  return node ? data : false;
+}
+
+/**
+ * Whether the configured time-travel node serves past state and version
+ * histories, for this network. A node that cannot be reached counts as
+ * unsupported.
+ */
+export function useTimeTravelStatus(): TimeTravelStatus {
+  const data = useTimeTravelSupportQuery();
+  if (!getTimeTravelNode()) return "none";
   if (data === undefined) return "checking";
   return data ? "supported" : "unsupported";
 }
@@ -89,6 +104,15 @@ export function useTimeTravelStatus(): TimeTravelStatus {
 /** Whether the configured time-travel node serves version histories, for this network. */
 export function useTimeTravelSupport(): boolean {
   return useTimeTravelStatus() === "supported";
+}
+
+/**
+ * The configured time-travel node's capabilities (limits, developer API,
+ * queries: `query` is absent when they are off), when it serves this
+ * network's histories; else undefined. Features gate on these.
+ */
+export function useTimeTravelCapabilities(): TTCapabilities | undefined {
+  return useTimeTravelSupportQuery() || undefined;
 }
 
 /**

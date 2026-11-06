@@ -21,6 +21,7 @@ import {
 } from "src/env";
 import { getApiBaseUrl, getApiHeaders } from "./nodeApi";
 import { nodeJson } from "./nodeJson";
+import { retryOptions } from "./retryWaits";
 
 /**
  * Client for the experimental time-travel algod (dt-algorand), which serves
@@ -222,9 +223,12 @@ function getClients() {
   if (cachedClients?.node !== key) {
     // The token as a header object, which may be empty: a string, even "",
     // would send a header and make every read a CORS preflight. No port: the
-    // URL's own.
-    const algod = new DTAlgodClient(node.headers, node.baseUrl, undefined);
-    cachedClients = { node: key, algod, algorand: AlgorandClient.fromClients({ algod }) };
+    // URL's own. Retries 429s, busy 503s and network errors, reporting each
+    // wait for RetryWaitToast; the DTAlgodClient shares that HTTP client.
+    const algorand = AlgorandClient.fromConfig({
+      algodConfig: { server: node.baseUrl, token: node.headers, retry: retryOptions("time-travel") },
+    });
+    cachedClients = { node: key, algod: DTAlgodClient.from(algorand.client.algod), algorand };
   }
   return cachedClients;
 }
@@ -421,32 +425,37 @@ export const nameBytes = (b64: string) => base64ToBytes(b64);
 // ---------------------------------------------------------------------------
 // What the node serves
 
+/** What a dt-algorand node reports it can do (`GET /v2/capabilities`), as dt-algosdk reads it. */
+export type TTCapabilities = Awaited<ReturnType<DTAlgodClient["capabilities"]>>;
+
 /** What the configured node serves this network, by its capabilities and genesis. */
 export type TimeTravelSupport =
-  | { supported: true }
+  | { supported: true; capabilities: TTCapabilities }
   | { supported: false; reason: string };
 
 /**
  * Whether the node serves past state and version histories, for this network:
  * time travel in its capabilities (`GET /v2/capabilities`, read once per
- * client), and a genesis of this network's. Throws where the node cannot be
- * reached.
+ * client), and a genesis of this network's. With them, the node's limits and
+ * whether it runs queries (`query`, absent when they are off). Throws where
+ * the node cannot be reached.
  */
 export async function getTimeTravelSupport(): Promise<TimeTravelSupport> {
   const algod = requireDTAlgod();
-  const [timeTravel, params] = await Promise.all([algod.supportsDT(), algod.getTransactionParams().do()]);
-  if (!timeTravel) {
-    const { reported } = await algod.capabilities();
+  const [capabilities, params] = await Promise.all([algod.capabilities(), algod.getTransactionParams().do()]);
+  if (!capabilities.timeTravel) {
     return {
       supported: false,
-      reason: reported ? "time travel is off (EnableTimeTravel)" : "it is stock algod, or a dt-algorand without capabilities",
+      reason: capabilities.reported
+        ? "time travel is off (EnableTimeTravel)"
+        : "it is stock algod, or a dt-algorand without capabilities",
     };
   }
   const genesisId = params.genesisID ?? "";
   if (network !== Networks.Localnet && !genesisId.toLowerCase().startsWith(network.toLowerCase())) {
     return { supported: false, reason: `it follows ${genesisId}, not ${network}` };
   }
-  return { supported: true };
+  return { supported: true, capabilities };
 }
 
 /**

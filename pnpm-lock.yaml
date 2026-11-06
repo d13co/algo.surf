@@ -5,20 +5,20 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  abel-ghost-sdk: 0.0.10
-  algosdk: file:vendor/dt-algosdk-3.9.0-dt.4.1.0.0-2264ae1.tgz
-  '@algorandfoundation/algokit-utils': file:vendor/d13co-dt-algokit-utils-9.2.3-dt.4.1.0.0-6463dd69.tgz
+  abel-ghost-sdk: file:vendor/abel-ghost-sdk-0.1.0-dt.3-0ea02bb.tgz
+  algosdk: npm:dt-algosdk@3.9.0-dt.5.2.0.0
+  '@algorandfoundation/algokit-utils': npm:@d13co/dt-algokit-utils@9.2.3-dt.5.2.0.0
 
 importers:
 
   .:
     dependencies:
       '@algorandfoundation/algokit-utils':
-        specifier: file:vendor/d13co-dt-algokit-utils-9.2.3-dt.4.1.0.0-6463dd69.tgz
-        version: '@d13co/dt-algokit-utils@file:vendor/d13co-dt-algokit-utils-9.2.3-dt.4.1.0.0-6463dd69.tgz(dt-algosdk@file:vendor/dt-algosdk-3.9.0-dt.4.1.0.0-2264ae1.tgz)'
+        specifier: npm:@d13co/dt-algokit-utils@9.2.3-dt.5.2.0.0
+        version: '@d13co/dt-algokit-utils@9.2.3-dt.5.2.0.0(dt-algosdk@3.9.0-dt.5.2.0.0)'
       '@d13co/algo-group-balance-impact':
         specifier: ^0.0.1
-        version: 0.0.1(@d13co/dt-algokit-utils@file:vendor/d13co-dt-algokit-utils-9.2.3-dt.4.1.0.0-6463dd69.tgz(dt-algosdk@file:vendor/dt-algosdk-3.9.0-dt.4.1.0.0-2264ae1.tgz))(dt-algosdk@file:vendor/dt-algosdk-3.9.0-dt.4.1.0.0-2264ae1.tgz)
+        version: 0.0.1(@d13co/dt-algokit-utils@9.2.3-dt.5.2.0.0(dt-algosdk@3.9.0-dt.5.2.0.0))(dt-algosdk@3.9.0-dt.5.2.0.0)
       '@d13co/algo-metrics-react':
         specifier: ^1.2.1
         version: 1.2.1(react@18.3.1)
@@ -27,7 +27,7 @@ importers:
         version: 1.2.1
       '@d13co/escreg-sdk':
         specifier: ^1.0.0
-        version: 1.0.0(@d13co/dt-algokit-utils@file:vendor/d13co-dt-algokit-utils-9.2.3-dt.4.1.0.0-6463dd69.tgz(dt-algosdk@file:vendor/dt-algosdk-3.9.0-dt.4.1.0.0-2264ae1.tgz))(dt-algosdk@file:vendor/dt-algosdk-3.9.0-dt.4.1.0.0-2264ae1.tgz)
+        version: 1.0.0(@d13co/dt-algokit-utils@9.2.3-dt.5.2.0.0(dt-algosdk@3.9.0-dt.5.2.0.0))(dt-algosdk@3.9.0-dt.5.2.0.0)
       '@d13co/open-in':
         specifier: 0.1.2
         version: 0.1.2
@@ -71,14 +71,14 @@ importers:
         specifier: ^0.10.1
         version: 0.10.1
       abel-ghost-sdk:
-        specifier: 0.0.10
-        version: 0.0.10(@d13co/dt-algokit-utils@file:vendor/d13co-dt-algokit-utils-9.2.3-dt.4.1.0.0-6463dd69.tgz(dt-algosdk@file:vendor/dt-algosdk-3.9.0-dt.4.1.0.0-2264ae1.tgz))(dt-algosdk@file:vendor/dt-algosdk-3.9.0-dt.4.1.0.0-2264ae1.tgz)
+        specifier: file:vendor/abel-ghost-sdk-0.1.0-dt.3-0ea02bb.tgz
+        version: file:vendor/abel-ghost-sdk-0.1.0-dt.3-0ea02bb.tgz(@d13co/dt-algokit-utils@9.2.3-dt.5.2.0.0(dt-algosdk@3.9.0-dt.5.2.0.0))(dt-algosdk@3.9.0-dt.5.2.0.0)
       algo-x-evm-sdk:
         specifier: ^0.1.3
-        version: 0.1.3(@d13co/dt-algokit-utils@file:vendor/d13co-dt-algokit-utils-9.2.3-dt.4.1.0.0-6463dd69.tgz(dt-algosdk@file:vendor/dt-algosdk-3.9.0-dt.4.1.0.0-2264ae1.tgz))(dt-algosdk@file:vendor/dt-algosdk-3.9.0-dt.4.1.0.0-2264ae1.tgz)
+        version: 0.1.3(@d13co/dt-algokit-utils@9.2.3-dt.5.2.0.0(dt-algosdk@3.9.0-dt.5.2.0.0))(dt-algosdk@3.9.0-dt.5.2.0.0)
       algosdk:
-        specifier: file:vendor/dt-algosdk-3.9.0-dt.4.1.0.0-2264ae1.tgz
-        version: dt-algosdk@file:vendor/dt-algosdk-3.9.0-dt.4.1.0.0-2264ae1.tgz
+        specifier: npm:dt-algosdk@3.9.0-dt.5.2.0.0
+        version: dt-algosdk@3.9.0-dt.5.2.0.0
       axios:
         specifier: ^0.27.2
         version: 0.27.2
@@ -291,7 +291,6 @@ packages:
 
   '@d13co/algo-group-balance-impact@0.0.1':
     resolution: {integrity: sha512-oXQERt+k4hyEt1MSV7t1xWnsQDQoq/iiKkoB2SUUJmSPCsMrK2U5cBtRsVLY312aNWQAqyIZJURIGNBhCN+TcA==}
-    version: 0.0.1
     peerDependencies:
       '@algorandfoundation/algokit-utils': ^9.2.0
       algosdk: ^3.5.2
@@ -304,16 +303,14 @@ packages:
   '@d13co/algo-metrics-sdk@1.2.1':
     resolution: {integrity: sha512-VM2RRYUzZ5h99e5jQWFTlv4l759THmUJj70vay5rXxTqjNIGWsWELhE1vwaOVQAJCWoAwNoU6ZoNRyWYjpaDQg==}
 
-  '@d13co/dt-algokit-utils@file:vendor/d13co-dt-algokit-utils-9.2.3-dt.4.1.0.0-6463dd69.tgz':
-    resolution: {integrity: sha512-luIqHJDWn98fZ8vC+9hccruQ+prkYbd3pAszYHsqpnoqIkkCoBsgPqJeOJzjHSp5v/5WNAl0IMqUpzFYKHzWGA==, tarball: file:vendor/d13co-dt-algokit-utils-9.2.3-dt.4.1.0.0-6463dd69.tgz}
-    version: 9.2.3-dt.4.1.0.0
+  '@d13co/dt-algokit-utils@9.2.3-dt.5.2.0.0':
+    resolution: {integrity: sha512-esmDxO9pYy8zkwXwNf0C2CHEwXSpfpPkAU/giwFj4MswRyghJLArRm7eJQd884hdCwoBiLIpC2h+RSuVVyQ23A==}
     engines: {node: '>=22.0'}
     peerDependencies:
-      algosdk: ^3.5.2 || ^3.9.0-dt.4.1.0.0
+      algosdk: ^3.5.2 || ^3.9.0-dt.5.2.0.0
 
   '@d13co/escreg-sdk@1.0.0':
     resolution: {integrity: sha512-VL04IIJHbKCj+ukFd6AZKB4wtTSUo81xjETk6RXZDXVA53BfYeC0wgHzR2TksOf53FsteFKSnv4hJ1OFYMg5rA==}
-    version: 1.0.0
     peerDependencies:
       '@algorandfoundation/algokit-utils': ^9.0.0
       algosdk: ^3.6.0
@@ -1350,12 +1347,12 @@ packages:
   '@yornaath/batshit@0.10.1':
     resolution: {integrity: sha512-WGZ1WNoiVN6CLf28O73+6SCf+2lUn4U7TLGM9f4zOad0pn9mdoXIq8cwu3Kpf7N2OTYgWGK4eQPTflwFlduDGA==}
 
-  abel-ghost-sdk@0.0.10:
-    resolution: {integrity: sha512-hzEK0YCE/5gzu85+U8EH1Wro5kcX6x4mbijcbXTGPqmlH1QdKkNSApSqRyRf5u8N++6BZJSfqtCrdezXzuBhLg==}
-    version: 0.0.10
+  abel-ghost-sdk@file:vendor/abel-ghost-sdk-0.1.0-dt.3-0ea02bb.tgz:
+    resolution: {integrity: sha512-+QKWkaQJsB4ykh+Mw3oo74lqrgMnm79NiZYSvns9IfrAgLecOSdbNMeYXK6TqHlDrXl6GIQwdyklkc6CGT4uew==, tarball: file:vendor/abel-ghost-sdk-0.1.0-dt.3-0ea02bb.tgz}
+    version: 0.1.0-dt.3
     peerDependencies:
-      '@algorandfoundation/algokit-utils': ^9.2.0
-      algosdk: ^3.5.2
+      '@algorandfoundation/algokit-utils': ^9.2.0 || ^9.2.3-dt.5.2.0.0
+      algosdk: ^3.5.2 || ^3.9.0-dt.5.2.0.0
 
   acorn@8.16.0:
     resolution: {integrity: sha512-UVJyE9MttOsBQIDKw1skb9nAwQuR5wuGD3+82K6JgJlm/Y+KI92oNsMNGZCYdDsVtRHSak0pcV5Dno5+4jh9sw==}
@@ -1364,7 +1361,6 @@ packages:
 
   algo-x-evm-sdk@0.1.3:
     resolution: {integrity: sha512-gugR8wMzLsiYub8+27SHNrpULvE1lhRXIFT+37CeM3vYZHYPChECBtw2aabL9UtJYhl9mA13Kk3UrJNHxdJBWw==}
-    version: 0.1.3
     peerDependencies:
       '@algorandfoundation/algokit-utils': ^9.2.0
       algosdk: ^3.5.2
@@ -1730,9 +1726,8 @@ packages:
     resolution: {integrity: sha512-IGBwjF7tNk3cwypFNH/7bfzBcgSCbaMOD3GsaY1AU/JRrnHnYgEM0+9kQt52iZxjNsjBtJYtao146V+f8jFZNw==}
     engines: {node: '>=10'}
 
-  dt-algosdk@file:vendor/dt-algosdk-3.9.0-dt.4.1.0.0-2264ae1.tgz:
-    resolution: {integrity: sha512-9HOOfi7KxDqqB5KUfC02KxlpzeXpxTZ8jxNG+6ZKC0sVjHI4SKLzv2QPKKAZXvGj3WRmx61erYL1MLhqCgUfog==, tarball: file:vendor/dt-algosdk-3.9.0-dt.4.1.0.0-2264ae1.tgz}
-    version: 3.9.0-dt.4.1.0.0
+  dt-algosdk@3.9.0-dt.5.2.0.0:
+    resolution: {integrity: sha512-35Ot4TC6cmY4geLSSjnx+XxGAl7L4WhM4uR/bLAiqAFXhTskYkcMxnxk2CqKHZfCbb+pE/UfW3WjaBMLKxcNyA==}
     engines: {node: '>=22.0'}
 
   dunder-proto@1.0.1:
@@ -2908,10 +2903,10 @@ snapshots:
       '@babel/helper-string-parser': 7.27.1
       '@babel/helper-validator-identifier': 7.28.5
 
-  '@d13co/algo-group-balance-impact@0.0.1(@d13co/dt-algokit-utils@file:vendor/d13co-dt-algokit-utils-9.2.3-dt.4.1.0.0-6463dd69.tgz(dt-algosdk@file:vendor/dt-algosdk-3.9.0-dt.4.1.0.0-2264ae1.tgz))(dt-algosdk@file:vendor/dt-algosdk-3.9.0-dt.4.1.0.0-2264ae1.tgz)':
+  '@d13co/algo-group-balance-impact@0.0.1(@d13co/dt-algokit-utils@9.2.3-dt.5.2.0.0(dt-algosdk@3.9.0-dt.5.2.0.0))(dt-algosdk@3.9.0-dt.5.2.0.0)':
     dependencies:
-      '@algorandfoundation/algokit-utils': '@d13co/dt-algokit-utils@file:vendor/d13co-dt-algokit-utils-9.2.3-dt.4.1.0.0-6463dd69.tgz(dt-algosdk@file:vendor/dt-algosdk-3.9.0-dt.4.1.0.0-2264ae1.tgz)'
-      algosdk: dt-algosdk@file:vendor/dt-algosdk-3.9.0-dt.4.1.0.0-2264ae1.tgz
+      '@algorandfoundation/algokit-utils': '@d13co/dt-algokit-utils@9.2.3-dt.5.2.0.0(dt-algosdk@3.9.0-dt.5.2.0.0)'
+      algosdk: dt-algosdk@3.9.0-dt.5.2.0.0
 
   '@d13co/algo-metrics-react@1.2.1(react@18.3.1)':
     dependencies:
@@ -2920,20 +2915,20 @@ snapshots:
 
   '@d13co/algo-metrics-sdk@1.2.1':
     dependencies:
-      '@algorandfoundation/algokit-utils': '@d13co/dt-algokit-utils@file:vendor/d13co-dt-algokit-utils-9.2.3-dt.4.1.0.0-6463dd69.tgz(dt-algosdk@file:vendor/dt-algosdk-3.9.0-dt.4.1.0.0-2264ae1.tgz)'
-      abel-ghost-sdk: 0.0.10(@d13co/dt-algokit-utils@file:vendor/d13co-dt-algokit-utils-9.2.3-dt.4.1.0.0-6463dd69.tgz(dt-algosdk@file:vendor/dt-algosdk-3.9.0-dt.4.1.0.0-2264ae1.tgz))(dt-algosdk@file:vendor/dt-algosdk-3.9.0-dt.4.1.0.0-2264ae1.tgz)
-      algosdk: dt-algosdk@file:vendor/dt-algosdk-3.9.0-dt.4.1.0.0-2264ae1.tgz
+      '@algorandfoundation/algokit-utils': '@d13co/dt-algokit-utils@9.2.3-dt.5.2.0.0(dt-algosdk@3.9.0-dt.5.2.0.0)'
+      abel-ghost-sdk: file:vendor/abel-ghost-sdk-0.1.0-dt.3-0ea02bb.tgz(@d13co/dt-algokit-utils@9.2.3-dt.5.2.0.0(dt-algosdk@3.9.0-dt.5.2.0.0))(dt-algosdk@3.9.0-dt.5.2.0.0)
+      algosdk: dt-algosdk@3.9.0-dt.5.2.0.0
 
-  '@d13co/dt-algokit-utils@file:vendor/d13co-dt-algokit-utils-9.2.3-dt.4.1.0.0-6463dd69.tgz(dt-algosdk@file:vendor/dt-algosdk-3.9.0-dt.4.1.0.0-2264ae1.tgz)':
+  '@d13co/dt-algokit-utils@9.2.3-dt.5.2.0.0(dt-algosdk@3.9.0-dt.5.2.0.0)':
     dependencies:
-      algosdk: dt-algosdk@file:vendor/dt-algosdk-3.9.0-dt.4.1.0.0-2264ae1.tgz
+      algosdk: dt-algosdk@3.9.0-dt.5.2.0.0
       buffer: 6.0.3
 
-  '@d13co/escreg-sdk@1.0.0(@d13co/dt-algokit-utils@file:vendor/d13co-dt-algokit-utils-9.2.3-dt.4.1.0.0-6463dd69.tgz(dt-algosdk@file:vendor/dt-algosdk-3.9.0-dt.4.1.0.0-2264ae1.tgz))(dt-algosdk@file:vendor/dt-algosdk-3.9.0-dt.4.1.0.0-2264ae1.tgz)':
+  '@d13co/escreg-sdk@1.0.0(@d13co/dt-algokit-utils@9.2.3-dt.5.2.0.0(dt-algosdk@3.9.0-dt.5.2.0.0))(dt-algosdk@3.9.0-dt.5.2.0.0)':
     dependencies:
-      algosdk: dt-algosdk@file:vendor/dt-algosdk-3.9.0-dt.4.1.0.0-2264ae1.tgz
+      algosdk: dt-algosdk@3.9.0-dt.5.2.0.0
     optionalDependencies:
-      '@algorandfoundation/algokit-utils': '@d13co/dt-algokit-utils@file:vendor/d13co-dt-algokit-utils-9.2.3-dt.4.1.0.0-6463dd69.tgz(dt-algosdk@file:vendor/dt-algosdk-3.9.0-dt.4.1.0.0-2264ae1.tgz)'
+      '@algorandfoundation/algokit-utils': '@d13co/dt-algokit-utils@9.2.3-dt.5.2.0.0(dt-algosdk@3.9.0-dt.5.2.0.0)'
 
   '@d13co/open-in@0.1.2': {}
 
@@ -3750,19 +3745,18 @@ snapshots:
     dependencies:
       '@yornaath/batshit-devtools': 1.7.1
 
-  abel-ghost-sdk@0.0.10(@d13co/dt-algokit-utils@file:vendor/d13co-dt-algokit-utils-9.2.3-dt.4.1.0.0-6463dd69.tgz(dt-algosdk@file:vendor/dt-algosdk-3.9.0-dt.4.1.0.0-2264ae1.tgz))(dt-algosdk@file:vendor/dt-algosdk-3.9.0-dt.4.1.0.0-2264ae1.tgz):
+  abel-ghost-sdk@file:vendor/abel-ghost-sdk-0.1.0-dt.3-0ea02bb.tgz(@d13co/dt-algokit-utils@9.2.3-dt.5.2.0.0(dt-algosdk@3.9.0-dt.5.2.0.0))(dt-algosdk@3.9.0-dt.5.2.0.0):
     dependencies:
-      '@algorandfoundation/algokit-utils': '@d13co/dt-algokit-utils@file:vendor/d13co-dt-algokit-utils-9.2.3-dt.4.1.0.0-6463dd69.tgz(dt-algosdk@file:vendor/dt-algosdk-3.9.0-dt.4.1.0.0-2264ae1.tgz)'
-      algosdk: dt-algosdk@file:vendor/dt-algosdk-3.9.0-dt.4.1.0.0-2264ae1.tgz
-      p-map: 7.0.4
+      '@algorandfoundation/algokit-utils': '@d13co/dt-algokit-utils@9.2.3-dt.5.2.0.0(dt-algosdk@3.9.0-dt.5.2.0.0)'
+      algosdk: dt-algosdk@3.9.0-dt.5.2.0.0
 
   acorn@8.16.0:
     optional: true
 
-  algo-x-evm-sdk@0.1.3(@d13co/dt-algokit-utils@file:vendor/d13co-dt-algokit-utils-9.2.3-dt.4.1.0.0-6463dd69.tgz(dt-algosdk@file:vendor/dt-algosdk-3.9.0-dt.4.1.0.0-2264ae1.tgz))(dt-algosdk@file:vendor/dt-algosdk-3.9.0-dt.4.1.0.0-2264ae1.tgz):
+  algo-x-evm-sdk@0.1.3(@d13co/dt-algokit-utils@9.2.3-dt.5.2.0.0(dt-algosdk@3.9.0-dt.5.2.0.0))(dt-algosdk@3.9.0-dt.5.2.0.0):
     dependencies:
-      '@algorandfoundation/algokit-utils': '@d13co/dt-algokit-utils@file:vendor/d13co-dt-algokit-utils-9.2.3-dt.4.1.0.0-6463dd69.tgz(dt-algosdk@file:vendor/dt-algosdk-3.9.0-dt.4.1.0.0-2264ae1.tgz)'
-      algosdk: dt-algosdk@file:vendor/dt-algosdk-3.9.0-dt.4.1.0.0-2264ae1.tgz
+      '@algorandfoundation/algokit-utils': '@d13co/dt-algokit-utils@9.2.3-dt.5.2.0.0(dt-algosdk@3.9.0-dt.5.2.0.0)'
+      algosdk: dt-algosdk@3.9.0-dt.5.2.0.0
       p-map: 7.0.4
 
   algorand-msgpack@1.1.0: {}
@@ -4187,7 +4181,7 @@ snapshots:
 
   domain-browser@4.22.0: {}
 
-  dt-algosdk@file:vendor/dt-algosdk-3.9.0-dt.4.1.0.0-2264ae1.tgz:
+  dt-algosdk@3.9.0-dt.5.2.0.0:
     dependencies:
       algorand-msgpack: 1.1.0
       hi-base32: 0.5.1

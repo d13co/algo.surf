@@ -32,7 +32,7 @@ function AppSnackbar(): JSX.Element {
     const borderColor = colorFromSeverity(snackbar.severity);
 
     return (
-        <div className="fixed bottom-5 right-5 z-50">
+        <div>
             <div className={`rounded-[10px] py-5 px-5 min-w-[400px] max-w-[90vw] border border-border ${borderColor} border-l-[5px] bg-background-card flex items-start gap-3`}>
                 <div className="grow text-sm" dangerouslySetInnerHTML={{__html: snackbar.message}} />
                 <Copyable value={snackbar.message} />

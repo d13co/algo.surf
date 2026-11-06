@@ -3,6 +3,7 @@ import { lazy, Suspense } from "react";
 import Explorer from "../Modules/Explorer/Explorer/Explorer";
 import Loader from "../Common/Loader/Loader";
 import AppSnackbar from "./AppSnackbar";
+import RetryWaitToast from "./RetryWaitToast";
 import Footer from "./Footer";
 import { queryClient } from "../../db/query-client";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -245,7 +246,11 @@ function AppRouter(): JSX.Element {
               </div>
             </div>
             <Loader></Loader>
-            <AppSnackbar></AppSnackbar>
+            {/* The toasts, stacked in one corner */}
+            <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-3">
+              <RetryWaitToast />
+              <AppSnackbar></AppSnackbar>
+            </div>
           </AbelAssetsProvider>
           </GlobalUIProvider>
         </QueryClientProvider>

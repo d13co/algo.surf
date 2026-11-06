@@ -3,18 +3,19 @@ onlyBuiltDependencies:
   - esbuild
 
 overrides:
-  # @d13co/algo-metrics-sdk pins ^0.0.7 (a 0.0.x caret is an exact pin), which
-  # would keep a second copy of the SDK around: two GhostBase instances mean two
-  # separate suggested-params caches, and its copy lacks the in-flight dedupe.
-  abel-ghost-sdk: 0.0.10
+  # abel-ghost-sdk dt build: reads at many rounds through dtalgod queries
+  # (backend 'auto'), and block times. Vendored from abel-ghost-sdk dt-demos
+  # (0ea02bb) until 0.1.0-dt.3 is published; then pin the npm release exactly.
+  # Also one copy everywhere: @d13co/algo-metrics-sdk pins ^0.0.7 (a 0.0.x
+  # caret is an exact pin), and two GhostBase instances would mean two
+  # separate suggested-params caches.
+  abel-ghost-sdk: file:vendor/abel-ghost-sdk-0.1.0-dt.3-0ea02bb.tgz
   # dt-algosdk: algosdk with time-travel support (reads at past rounds,
-  # versions), one copy everywhere. Vendored from js-algorand-sdk
-  # query-total-calls (2264ae1) until published; then pin the npm release
+  # versions, queries) and the retry policy, one copy everywhere. Pinned
   # exactly, as a ^ range on a dt prerelease takes later breaking releases.
-  algosdk: file:vendor/dt-algosdk-3.9.0-dt.4.1.0.0-2264ae1.tgz
-  # dt-algokit-utils: algokit-utils on dtalgosdk (time travel, versions,
-  # asset holders), one copy everywhere: @d13co/algo-metrics-sdk depends on
-  # stock 9.2.0, whose AlgorandClient type clashes with this one's.
-  # Vendored from algokit-utils-ts query-total-calls (6463dd69) until
-  # published; then pin exactly, as algosdk.
-  '@algorandfoundation/algokit-utils': file:vendor/d13co-dt-algokit-utils-9.2.3-dt.4.1.0.0-6463dd69.tgz
+  algosdk: npm:dt-algosdk@3.9.0-dt.5.2.0.0
+  # dt-algokit-utils: algokit-utils on dt-algosdk (time travel, versions,
+  # asset holders, queries, retry config), one copy everywhere:
+  # @d13co/algo-metrics-sdk depends on stock 9.2.0, whose AlgorandClient type
+  # clashes with this one's. Pinned exactly, as algosdk.
+  '@algorandfoundation/algokit-utils': npm:@d13co/dt-algokit-utils@9.2.3-dt.5.2.0.0

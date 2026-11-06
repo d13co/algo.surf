@@ -44,7 +44,8 @@ async function findTransaction(
   await Promise.all(
     configs.map(async ([network, config]) => {
       try {
-        const client = new TransactionClient(new Network(config));
+        // No retries: a network that is down should not hold up the others
+        const client = new TransactionClient(new Network(config, { retry: false }));
         await client.get(id);
         onFound(network);
       } catch (e) {
