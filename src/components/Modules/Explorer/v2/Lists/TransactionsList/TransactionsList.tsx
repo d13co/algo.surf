@@ -57,8 +57,25 @@ interface TransactionsListProps {
   emptyLabel?: string;
 }
 
+/**
+ * `txns` without repeats. One outer transaction can match several inner
+ * ones, and when they straddle two batches it comes back in both.
+ */
+function uniqueTransactions(txns: indexerModels.Transaction[]): indexerModels.Transaction[] {
+  const seen = new Set<string>();
+  let repeats = false;
+  for (const { id } of txns) {
+    if (id === undefined) continue;
+    if (seen.has(id)) repeats = true;
+    seen.add(id);
+  }
+  if (!repeats) return txns;
+  seen.clear();
+  return txns.filter(({ id }) => id === undefined || (!seen.has(id) && !!seen.add(id)));
+}
+
 function TransactionsList({
-  transactions = [],
+  transactions: batches = [],
   loading = false,
   initialLoading = false,
   hasMore = true,
@@ -71,6 +88,7 @@ function TransactionsList({
   toolbar,
   emptyLabel = "No transactions",
 }: TransactionsListProps): JSX.Element {
+  const transactions = useMemo(() => uniqueTransactions(batches), [batches]);
   const [pageIndex, setPageIndex] = React.useState(0);
 
   const columnVisibility: VisibilityState = useMemo(() => {
@@ -161,8 +179,20 @@ function TransactionsList({
 
   const { ref: tableRef, style: stableStyle } = useStableHeight(currentRowCount === pageSize);
 
+  // On the last loaded page, fetch the next batch: without it there would be
+  // no next page to go to, nor an end to tell from "n+". Once per loaded
+  // list (a new array once a batch comes in), so a failed batch is not
+  // retried in a loop; paging to the last page retries it.
+  const askedAt = React.useRef<indexerModels.Transaction[]>();
+  React.useEffect(() => {
+    if (!hasMore || loading || pageIndex < pageCount - 1 || askedAt.current === transactions) return;
+    askedAt.current = transactions;
+    reachedLastPage();
+  }, [hasMore, loading, pageIndex, pageCount, transactions, reachedLastPage]);
+
   function handlePageChange(newPage: number) {
     if (newPage === pageCount - 1) {
+      askedAt.current = transactions;
       reachedLastPage();
     }
     table.setPageIndex(newPage);
@@ -172,6 +202,7 @@ function TransactionsList({
     <ListToolbar
       pageIndex={pageIndex}
       pageCount={pageCount}
+      hasMore={hasMore}
       canPreviousPage={table.getCanPreviousPage()}
       canNextPage={table.getCanNextPage()}
       onFirst={() => handlePageChange(0)}
@@ -277,6 +308,7 @@ function TransactionsList({
         <ListToolbar
           pageIndex={pageIndex}
           pageCount={pageCount}
+          hasMore={hasMore}
           canPreviousPage={table.getCanPreviousPage()}
           canNextPage={table.getCanNextPage()}
           onFirst={() => handlePageChange(0)}

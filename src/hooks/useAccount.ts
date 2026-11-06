@@ -2,6 +2,7 @@ import { keepSameRecord } from "src/utils/keepSameRecord";
 import { useState, useEffect, useCallback } from "react";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { AccountClient, ACCOUNTS_PAGE_SIZE } from "src/packages/core-sdk/clients/accountClient";
+import { nextTxnsToken } from "src/packages/core-sdk/clients/transactionClient";
 import explorer from "src/utils/dappflow";
 import { getAccountAt } from "src/utils/timeTravel";
 import { isEmptyTxnRound } from "src/hooks/useTxnRound";
@@ -134,8 +135,22 @@ export function useAccountTransactions(address: string, round?: number, txnRound
         txnRound
       ),
     initialPageParam: undefined as string | undefined,
-    getNextPageParam: (lastPage) => lastPage["next-token"] || undefined,
+    getNextPageParam: nextTxnsToken,
     enabled: !!address && !isEmptyTxnRound(txnRound, round),
+  });
+}
+
+/**
+ * The latest transaction `address` sent, up to `round` where given; null if
+ * it sent none lately (see getLastSentTransaction). Not persisted, as the
+ * transaction lists are not.
+ */
+export function useAccountLastSent(address: string, round?: number) {
+  return useQuery({
+    queryKey: ["account-last-sent", address, ...(round === undefined ? [] : [{ round }])],
+    queryFn: () => new AccountClient(explorer.network).getLastSentTransaction(address, round),
+    meta: { noPersist: true },
+    enabled: !!address,
   });
 }
 

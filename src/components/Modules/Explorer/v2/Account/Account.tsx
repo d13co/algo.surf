@@ -15,7 +15,7 @@ import {
 import {
   useAccount,
   useEscrowOf,
-  useAccountTransactions,
+  useAccountLastSent,
   useControllingAccounts,
 } from "src/hooks/useAccount";
 import { useValidatorStats } from "src/hooks/useValidator";
@@ -125,7 +125,7 @@ function Account(): JSX.Element {
   const { data: subsigners } = useMsigSubsigners(address, round === undefined && legacy);
   const { data: msigsOf } = useMsigsOf(address, round === undefined && legacy);
   const { data: nfd } = useReverseNFD(address);
-  const { data: txnData } = useAccountTransactions(address, round);
+  const { data: lastSentTxn } = useAccountLastSent(address, round);
   // The indexer only knows which accounts are rekeyed to this one now, so
   // there is no list to show for a past round.
   const { data: controllerData, fetchNextPage: fetchNextControllerPage, hasNextPage: hasNextControllerPage } = useControllingAccounts(address, round === undefined);
@@ -208,23 +208,16 @@ function Account(): JSX.Element {
 
   const numControlledAccounts = round === undefined ? controllingAccounts.length : 0;
 
-  const transactions = useMemo(
-    () => txnData?.pages.flatMap((p) => p.transactions) ?? [],
-    [txnData]
-  );
-
   const [lastSent, isMultiSig, isLogicSig, isClosed, isXEVM, pqSig] = useMemo(() => {
     if (!accountInfo) return [undefined, false, false, false, null, undefined] as const;
-    const lastSent = transactions.find(
-      ({ sender }) => sender === address
-    );
+    const lastSent = lastSentTxn ?? undefined;
     const isMultiSig = !!lastSent?.signature?.multisig;
     const isLogicSig = !!lastSent?.signature?.logicsig;
     const isClosed = accountInfo.amount === 0n && !!lastSent;
     const isXEVM = isLogicSig ? AlgoXEvmSdk.getEvmAddressFromProgram(lastSent!.signature!.logicsig!.logic) : null;
     const pqSig = lastSent ? getAttachedPqSig(lastSent) : undefined;
     return [lastSent, isMultiSig, isLogicSig, isClosed, isXEVM, pqSig] as const;
-  }, [address, accountInfo, transactions]);
+  }, [accountInfo, lastSentTxn]);
 
   // The last sent txn's logic sig was delegated: a key signed the program.
   const lastSentDelegated = useMemo(() => {

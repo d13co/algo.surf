@@ -1,5 +1,6 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { AssetClient } from "src/packages/core-sdk/clients/assetClient";
+import { nextTxnsToken } from "src/packages/core-sdk/clients/transactionClient";
 import explorer from "src/utils/dappflow";
 import { isEmptyTxnRound } from "src/hooks/useTxnRound";
 
@@ -15,7 +16,7 @@ export function useAssetTransactions(id: number, round?: number, txnRound?: numb
     queryFn: ({ pageParam }) =>
       new AssetClient(explorer.network).getAssetTransactions(id, pageParam, round, txnRound),
     initialPageParam: undefined as string | undefined,
-    getNextPageParam: (lastPage) => lastPage["next-token"] || undefined,
+    getNextPageParam: nextTxnsToken,
     enabled: !!id && !isEmptyTxnRound(txnRound, round),
   });
 }

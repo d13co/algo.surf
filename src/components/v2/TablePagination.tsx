@@ -10,6 +10,8 @@ import {
 interface TablePaginationProps {
   pageIndex: number;
   pageCount: number;
+  /** More pages may follow the last one loaded: the count shows as `n+`. */
+  hasMore?: boolean;
   canPreviousPage: boolean;
   canNextPage: boolean;
   onFirst: () => void;
@@ -24,6 +26,7 @@ interface TablePaginationProps {
 export default function TablePagination({
   pageIndex,
   pageCount,
+  hasMore,
   canPreviousPage,
   canNextPage,
   onFirst,
@@ -34,7 +37,7 @@ export default function TablePagination({
   onShowAll,
   className = "flex items-center justify-end gap-2",
 }: TablePaginationProps) {
-  if (pageCount <= 1) return null;
+  if (pageCount < 1 || (pageCount === 1 && !hasMore)) return null;
 
   return (
     <div className={className}>
@@ -53,6 +56,7 @@ export default function TablePagination({
       ) : null}
       <span className="text-sm text-muted-foreground whitespace-nowrap">
         Page {pageIndex + 1} of {pageCount}
+        {hasMore ? "+" : ""}
       </span>
       <Button
         variant="muted"

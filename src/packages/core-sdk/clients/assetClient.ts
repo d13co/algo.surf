@@ -5,7 +5,7 @@ import {
     A_AssetResult,
 } from "../types";
 import {Network} from "../network";
-import {A_TransactionsResponse} from "./transactionClient";
+import {A_TransactionsResponse, txnsBatchSize} from "./transactionClient";
 import { toA_Asset, toA_AssetsResponse } from "../utils/v3Adapters";
 
 
@@ -193,7 +193,7 @@ export class AssetClient{
 
     /** With `round`, only the transactions in that round; else with `maxRound`, only those up to it. */
     async getAssetTransactions(id: number, token?: string, maxRound?: number, round?: number): Promise<A_AssetTransactionsResponse> {
-        const req = this.indexer.searchForTransactions().assetID(id);
+        const req = this.indexer.searchForTransactions().assetID(id).limit(txnsBatchSize(token));
         if (token) {
             req.nextToken(token);
         }

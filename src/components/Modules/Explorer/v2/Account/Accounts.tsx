@@ -172,6 +172,7 @@ function Accounts(): JSX.Element {
       <ListToolbar
         pageIndex={pageIndex}
         pageCount={pageCount}
+        hasMore={effectiveHasNextPage}
         canPreviousPage={table.getCanPreviousPage()}
         canNextPage={table.getCanNextPage()}
         onFirst={() => onPageChange(0)}

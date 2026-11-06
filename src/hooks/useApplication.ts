@@ -1,6 +1,7 @@
 import { keepSameRecord } from "src/utils/keepSameRecord";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { ApplicationClient, APPLICATIONS_PAGE_SIZE } from "src/packages/core-sdk/clients/applicationClient";
+import { nextTxnsToken } from "src/packages/core-sdk/clients/transactionClient";
 import { BoxClient } from "src/packages/core-sdk/clients/boxClient";
 import { CoreApplication } from "src/packages/core-sdk/classes/core/CoreApplication";
 import explorer from "src/utils/dappflow";
@@ -123,7 +124,7 @@ export function useApplicationTransactions(id: number, round?: number, txnRound?
         txnRound,
       ),
     initialPageParam: undefined as string | undefined,
-    getNextPageParam: (lastPage) => lastPage["next-token"] || undefined,
+    getNextPageParam: nextTxnsToken,
     enabled: !!id && !isEmptyTxnRound(txnRound, round),
   });
 }

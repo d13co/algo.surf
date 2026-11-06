@@ -492,6 +492,7 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
         className="mt-3"
         pageIndex={pageIndex}
         pageCount={pageCount}
+        hasMore={hasMore}
         canPreviousPage={table.getCanPreviousPage()}
         canNextPage={table.getCanNextPage()}
         onFirst={() => onPageChange(0)}
@@ -532,6 +533,10 @@ export default function VersionsList<V extends { round: number; timestamp: numbe
                 </Button>
               ) : null}
             </>
+          ) : hasMore && fetchMoreFailed && !isFetchingMore ? (
+            <Button variant="outline" size="sm" className={actionClassName} onClick={fetchMore}>
+              Retry
+            </Button>
           ) : null}
         </div>
       </ListToolbar>

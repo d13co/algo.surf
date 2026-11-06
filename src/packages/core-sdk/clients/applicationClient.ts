@@ -3,7 +3,7 @@ import type { Indexer } from "algosdk";
 import { A_Application, A_ApplicationResult, } from "../types";
 import {Network} from "../network";
 import axios from 'axios';
-import {A_TransactionsResponse} from "./transactionClient";
+import {A_TransactionsResponse, txnsBatchSize} from "./transactionClient";
 import { toA_Application, toA_ApplicationsResponse } from "../utils/v3Adapters";
 
 export type CompileResponse = { hash: string; result: string; sourcemap?: string };
@@ -57,7 +57,7 @@ export class ApplicationClient{
 
     /** With `round`, only the transactions in that round; else with `maxRound`, only those up to it. */
     async getApplicationTransactions(id: number, token?: string, maxRound?: number, round?: number): Promise<A_ApplicationTransactionsResponse> {
-        const req = this.indexer.searchForTransactions().applicationID(id);
+        const req = this.indexer.searchForTransactions().applicationID(id).limit(txnsBatchSize(token));
         if (token) {
             req.nextToken(token);
         }

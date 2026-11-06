@@ -114,6 +114,7 @@ function Applications(): JSX.Element {
       <ListToolbar
         pageIndex={pageIndex}
         pageCount={pageCount}
+        hasMore={hasNextPage}
         canPreviousPage={table.getCanPreviousPage()}
         canNextPage={table.getCanNextPage()}
         onFirst={() => onPageChange(0)}

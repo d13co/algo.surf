@@ -199,6 +199,7 @@ function AssetHolders(): JSX.Element {
         className="mt-3"
         pageIndex={pageIndex}
         pageCount={pageCount}
+        hasMore={hasNextPage}
         canPreviousPage={table.getCanPreviousPage()}
         canNextPage={table.getCanNextPage()}
         onFirst={() => goTo(0)}

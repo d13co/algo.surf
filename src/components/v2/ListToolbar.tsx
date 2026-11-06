@@ -6,6 +6,8 @@ interface ListToolbarProps {
   className?: string;
   pageIndex: number;
   pageCount: number;
+  /** More pages may follow the last one loaded (see TablePagination). */
+  hasMore?: boolean;
   canPreviousPage: boolean;
   canNextPage: boolean;
   onFirst: () => void;
@@ -23,6 +25,7 @@ export default function ListToolbar({
   children,
   pageIndex,
   pageCount,
+  hasMore,
   canPreviousPage,
   canNextPage,
   onFirst,
@@ -32,13 +35,14 @@ export default function ListToolbar({
   loading,
   actions,
 }: ListToolbarProps) {
-  if (!children && !actions && pageCount <= 1) return <div className="mb-4 md:mb-0"></div>;
+  if (!children && !actions && (pageCount < 1 || (pageCount === 1 && !hasMore))) return <div className="mb-4 md:mb-0"></div>;
 
   const pagination = (className: string) => (
     <TablePagination
       className={className}
       pageIndex={pageIndex}
       pageCount={pageCount}
+      hasMore={hasMore}
       canPreviousPage={canPreviousPage}
       canNextPage={canNextPage}
       onFirst={onFirst}

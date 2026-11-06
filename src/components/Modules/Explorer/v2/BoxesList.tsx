@@ -109,12 +109,14 @@ function BoxList({
 
   // Searching swaps the whole list out, so the current page can end up past the
   // end of a shorter result set: the table renders empty and TablePagination
-  // hides itself, leaving no way back. Snap to the first page instead.
+  // hides itself, leaving no way back. Snap to the first page instead - but not
+  // on the page just past the loaded ones while more are coming: Next there
+  // waits for them.
   useEffect(() => {
-    if (pageIndex > 0 && pageIndex >= pageCount) {
+    if (pageIndex > 0 && pageIndex >= pageCount && !(hasMore && pageIndex === pageCount)) {
       table.setPageIndex(0);
     }
-  }, [pageIndex, pageCount, table]);
+  }, [hasMore, pageIndex, pageCount, table]);
 
   function onPageChange(newPage: number) {
     if (hasMore && loadMore && newPage >= pageCount - 2) {
@@ -129,6 +131,7 @@ function BoxList({
         className="mt-3"
         pageIndex={pageIndex}
         pageCount={pageCount}
+        hasMore={hasMore}
         canPreviousPage={table.getCanPreviousPage()}
         canNextPage={table.getCanNextPage() || hasMore}
         onFirst={() => onPageChange(0)}
