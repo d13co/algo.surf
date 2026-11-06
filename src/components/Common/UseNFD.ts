@@ -1,89 +1,84 @@
 import { useQuery, UseQueryResult } from "@tanstack/react-query";
-import {
-  create,
-  indexedResolver,
-  windowedFiniteBatchScheduler,
-} from "@yornaath/batshit";
+import type { NfdGhostSDK } from "nfd-ghost-sdk";
+import { getNfdReader, nfdReaderKey, nfdRoundKey } from "src/packages/nfd/nfdGhost";
+import { useRound } from "src/hooks/useRound";
+import { useTimeTravelSupport } from "src/hooks/useTimeTravel";
 
-type NFDRecord = {
-  name: string;
-  properties?: {
-    userDefined?: {
-      avatar: string;
-    };
-  };
-};
+/**
+ * NFD names through nfd-ghost-sdk (read-only queries), at the page's round
+ * (`?round=`). Labels are decoration: where the node can't read NFDs, or a
+ * read fails, there is no name.
+ */
 
-const nfd = create({
-  fetcher: async (addresses: string[]): Promise<Record<string, NFDRecord>> => {
-    if (addresses.length === 0) return {};
-    const params = addresses.map((address) => `address=${address}`).join("&");
-    const url = `https://api.nf.domains/nfd/v2/address?${params}&view=thumbnail&limit=1`;
-    const response = await fetch(url);
-    if (!response.ok) return {};
-    const data = await response.json();
-    const x = Object.fromEntries(
-      // @ts-ignore
-      Object.entries(data).map(([k, records]: [string, any[]]) => [
-        k,
-        records.find((r: any) => r.caAlgo?.includes(k)),
-      ])
-    );
-    return x;
-  },
-  resolver: indexedResolver(),
-  scheduler: windowedFiniteBatchScheduler({
-    windowMs: 10,
-    maxBatchSize: 20,
-  }),
+const HOUR = 60 * 60 * 1000;
+
+/**
+ * The NFD reader (see getNfdReader) when its node can read NFDs: the SDK's
+ * probe, asked once per node. Null until then, and where it can't.
+ */
+export function useNfdReader(): NfdGhostSDK | null {
+  const timeTravel = useTimeTravelSupport();
+  const sdk = getNfdReader(timeTravel);
+  const { data } = useQuery({
+    queryKey: ["nfd-reader-support", nfdReaderKey(timeTravel)],
+    queryFn: async () => {
+      try {
+        return await sdk!.supported();
+      } catch (e) {
+        // Resolved rather than thrown: every label that mounts would retry it.
+        console.warn(`NFD names unavailable: ${(e as Error).message}`);
+        return false;
+      }
+    },
+    enabled: !!sdk,
+    // A no from a failed probe can be a passing one (a network blip): asked again after a minute.
+    staleTime: (query) => (query.state.data ? Infinity : 60_000),
+    retry: false,
+    meta: { noPersist: true },
+  });
+  return data ? sdk : null;
+}
+
+/** Query options for names at `round`: a pinned round never changes. */
+const roundCache = (round: number | undefined) => ({
+  gcTime: HOUR,
+  staleTime: round === undefined ? HOUR : Infinity,
 });
 
-export const useReverseNFD = (
-  address: string
-): UseQueryResult<string | null> => {
+/**
+ * The primary NFD that lists `address` as a verified address at the page's
+ * round, or null. Reads asked for within 10 ms go as one query per round (the
+ * SDK's batcher).
+ */
+export const useReverseNFD = (address: string): UseQueryResult<string | null> => {
+  const { round } = useRound();
+  const sdk = useNfdReader();
+  const timeTravel = useTimeTravelSupport();
   return useQuery({
-    queryKey: ["nfd-rev", address],
+    queryKey: ["nfd-rev", nfdReaderKey(timeTravel), address, nfdRoundKey(round)],
     queryFn: async () => {
-      if (!address) return null;
-      const nfdData = await nfd.fetch(address);
-      return nfdData?.name ?? null;
+      const records = await sdk!.reverseLookup([address], { round, fields: [] });
+      return records.get(address)?.[0]?.name ?? null;
     },
-    gcTime: 1000 * 60 * 60, // 1 hour
-    staleTime: 1000 * 60 * 60, // 1 hour
+    enabled: !!sdk && !!address,
+    retry: false,
+    ...roundCache(round),
   });
 };
 
-export const useNFDAvatar = (
-  address?: string
-): UseQueryResult<string | null> => {
+/** Each address with its primary NFD at the page's round (see useReverseNFD), in one read. */
+export const useReverseNFDs = (addresses: string[]): UseQueryResult<[string, string | null][] | null> => {
+  const { round } = useRound();
+  const sdk = useNfdReader();
+  const timeTravel = useTimeTravelSupport();
   return useQuery({
-    queryKey: ["nfd-avatar", address ?? "-"],
+    queryKey: ["nfd-revs", nfdReaderKey(timeTravel), addresses, nfdRoundKey(round)],
     queryFn: async () => {
-      if (!address) return null;
-      const nfdData = await nfd.fetch(address);
-      return nfdData?.properties?.userDefined?.avatar ?? null;
+      const records = await sdk!.reverseLookup(addresses, { round, fields: [] });
+      return addresses.map((address): [string, string | null] => [address, records.get(address)?.[0]?.name ?? null]);
     },
-    gcTime: 1000 * 60 * 60, // 1 hour
-    staleTime: 1000 * 60 * 60, // 1 hour
-  });
-};
-
-export const useReverseNFDs = (
-  addresses: string[]
-): UseQueryResult<[string, string | null][] | null> => {
-  return useQuery({
-    queryKey: ["nfd-rev", addresses],
-    queryFn: async () => {
-      const nfdData = await Promise.all(
-        addresses.map((address) => nfd.fetch(address))
-      );
-      const ret: [string, string | null][] = nfdData.map((data, i) => [
-        addresses[i],
-        data?.name ?? null,
-      ]);
-      return ret;
-    },
-    gcTime: 1000 * 60 * 60, // 1 hour
-    staleTime: 1000 * 60 * 60, // 1 hour
+    enabled: !!sdk && addresses.length > 0,
+    retry: false,
+    ...roundCache(round),
   });
 };

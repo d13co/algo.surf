@@ -1,6 +1,6 @@
 # NFD history
 
-An account tab, "NFD history" (`/account/:address/nfds`), listing the NFDs that listed the account as a verified address (primary or not) and the NFDs it owned, with the round each period started and ended and why it ended. At `?round=R` the periods that held at R come first, marked "at block R". It reads NFDs at past rounds with nfd-ghost-sdk on the time-travel node. Only this tab uses the SDK so far: the header NFD badge, `UseNFD.ts`, `CoreSearch`, `LinkToAccount` and `DymNFD` still read the NFD REST API (PLAN_NFD_HISTORY.md Part B moves them).
+An account tab, "NFD history" (`/account/:address/nfds`), listing the NFDs that listed the account as a verified address (primary or not) and the NFDs it owned, with the round each period started and ended and why it ended. At `?round=R` the periods that held at R come first, marked "at block R". It reads NFDs at past rounds with nfd-ghost-sdk on the time-travel node. Every other NFD read in the app uses the SDK too (see [Names elsewhere](#names-elsewhere)); the app no longer calls the NFD REST API.
 
 ## What "listed" and "owned" mean
 
@@ -74,6 +74,19 @@ Fixtures:
 - `bakare.algo` (3,296,744,483) for `27CZLZFH…`: owned while its asset sits in the app; its link ends `expired` at 66,407,306, the first round whose timestamp (1,793,170,507) reaches its expiry (1,793,170,505).
 - `batmanmarkets.algo` (2,318,360,299) has never had a verified address, so its expiry ends no link; its owner (`HSHPPMCU…`) keeps an open owner period, as an expired NFD is still owned.
 - The Tinyman escrow `XSKED5VK…` finishes, stage 1 first.
+
+## Names elsewhere
+
+The account header, `LinkToAccount`, `DisplayAccount`, the `?alt=` check (`DymNFD`) and `*.algo` search read NFDs with nfd-ghost-sdk at the page's round (`?round=`), through `getNfdReader` (`src/packages/nfd/nfdGhost.ts`):
+
+- **Node.** The time-travel node when one is set and serves this network; else the network's own algod. Nodely's MainNet and TestNet algod run read-only queries (checked 2026-11-06: `sdk.supported()` passes, reads at past rounds work, CORS allows the POST). Where the probe fails (BetaNet, a custom stock node, localnet), no names show.
+- **Labels** (`useReverseNFD`) are `reverseLookup([address], { round })`: the SDK batches the labels a page asks for within 10 ms into one query per round. The reader has its own client, so label retries don't raise the retry toast. A pinned round's names never go stale; the latest round's stay an hour.
+- **Search** (`searchNFD`) is `resolveName(name, { round })`: the first verified address, else the owner, with the other verified addresses as `?alt=`. An expired or for-sale NFD has no verified addresses in the SDK, so search opens its owner with a notice.
+
+Checked against the REST API on 2026-11-06 (local `:8080`, latest round):
+
+- **Reverse lookups** (`pnpm verify:rest` in nfd-ghost-sdk, on 2.0.0-dt.6): 1,638 of 1,639 addresses agree on the primary NFD, and 648 of 648 records. The one difference, algpventure.algo, has expired on-chain; REST still called it owned.
+- **Search** (`scripts/nfd-search-parity.ts`, v1-nfds.txt and 300 sampled names): 59 of 348 open the same account with the same `?alt=` list. The other 289 are all expired NFDs, for which REST gave no account at all (the old search opened `/account/undefined`); the SDK search opens their owner.
 
 ## Known gaps
 

@@ -10,6 +10,7 @@ import {
 import { History, Loader2, Search } from "lucide-react";
 import { useGlobalUI } from "src/contexts/GlobalUIContext";
 import coreSearch from "src/components/Modules/Explorer/Search/CoreSearch";
+import { useNfdReader } from "src/components/Common/UseNFD";
 import { useNfdHistory, useNfdHistorySupport } from "src/hooks/useNfdHistory";
 import { useRound, useRoundNavigate, withRound } from "src/hooks/useRound";
 import { useStableHeight } from "src/hooks/useStableHeight";
@@ -50,14 +51,18 @@ type Shown = {
   checkingAssets?: string;
 };
 
-/** Searches for an NFD by name, as the search box does: to the account it resolves to now. */
+/** Searches for an NFD by name, as the search box does: to the account it resolves to at the page's round. */
 function NfdSearchButton({ name }: { name: string }): JSX.Element {
   const navigate = useRoundNavigate();
   const { showLoader, hideLoader, showSnack } = useGlobalUI();
+  const nfd = useNfdReader();
+  const { round } = useRound();
   const search = async () => {
     showLoader("Searching");
     try {
-      navigate(await coreSearch(name));
+      navigate(
+        await coreSearch(name, { nfd, round, onNotice: (message) => showSnack({ severity: "warning", message }) }),
+      );
     } catch (e) {
       showSnack({ severity: "error", message: (e as Error).message });
     } finally {

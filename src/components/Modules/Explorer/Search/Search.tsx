@@ -1,5 +1,6 @@
 import { useCallback, useState, useRef } from "react";
-import { useRoundNavigate } from "src/hooks/useRound";
+import { useRound, useRoundNavigate } from "src/hooks/useRound";
+import { useNfdReader } from "src/components/Common/UseNFD";
 import { useGlobalUI } from "../../../../contexts/GlobalUIContext";
 import { Search as SearchIcon, ClipboardPaste, X } from "lucide-react";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -37,6 +38,8 @@ function Search(props: SearchProps): JSX.Element {
 
   const navigate = useRoundNavigate();
   const { showLoader, hideLoader, showSnack } = useGlobalUI();
+  const nfd = useNfdReader();
+  const { round } = useRound();
   const { loading: abelLoading, loadedPromise } = useAbelAssetsContext();
 
   const [searchStr, setSearchStr] = useState("");
@@ -53,9 +56,14 @@ function Search(props: SearchProps): JSX.Element {
           return;
         }
 
+        const searchOptions = {
+          nfd,
+          round,
+          onNotice: (message: string) => showSnack({ severity: "warning", message }),
+        };
         showLoader("Searching");
         try {
-          const destination = await coreSearch(target);
+          const destination = await coreSearch(target, searchOptions);
           setSearchStr("");
           inputRef.current?.blur();
           navigate(destination);
@@ -71,7 +79,7 @@ function Search(props: SearchProps): JSX.Element {
             showLoader("Loading verified asset database...");
             try {
               await loadedPromise;
-              const destination = await coreSearch(target);
+              const destination = await coreSearch(target, searchOptions);
               setSearchStr("");
               inputRef.current?.blur();
               navigate(destination);
@@ -91,7 +99,7 @@ function Search(props: SearchProps): JSX.Element {
         hideLoader();
       })();
     },
-    [searchStr, showLoader, hideLoader, showSnack, navigate, abelLoading, loadedPromise],
+    [searchStr, showLoader, hideLoader, showSnack, navigate, abelLoading, loadedPromise, nfd, round],
   );
 
   const doPasteSearch = useCallback(() => {

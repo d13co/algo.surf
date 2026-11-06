@@ -67,9 +67,6 @@ importers:
       '@types/react-dom':
         specifier: ^17.0.9
         version: 17.0.26(@types/react@17.0.91)
-      '@yornaath/batshit':
-        specifier: ^0.10.1
-        version: 0.10.1
       abel-ghost-sdk:
         specifier: file:vendor/abel-ghost-sdk-0.1.0-dt.3-0ea02bb.tgz
         version: file:vendor/abel-ghost-sdk-0.1.0-dt.3-0ea02bb.tgz(@d13co/dt-algokit-utils@9.2.3-dt.5.2.0.0(dt-algosdk@3.9.0-dt.5.2.0.0))(dt-algosdk@3.9.0-dt.5.2.0.0)
@@ -1384,12 +1381,6 @@ packages:
 
   '@vitest/utils@3.2.4':
     resolution: {integrity: sha512-fB2V0JFrQSMsCo9HiSq3Ezpdv4iYaXRG1Sx8edX3MwxfyNn83mKiGzOcH+Fkxt4MHxr3y42fQi1oeAInqgX2QA==}
-
-  '@yornaath/batshit-devtools@1.7.1':
-    resolution: {integrity: sha512-AyttV1Njj5ug+XqEWY1smV45dTWMlWKtj1B8jcFYgBKUFyUlF/qEhD+iP1E5UaRYW6hQRYD9T2WNDwFTrOMWzQ==}
-
-  '@yornaath/batshit@0.10.1':
-    resolution: {integrity: sha512-WGZ1WNoiVN6CLf28O73+6SCf+2lUn4U7TLGM9f4zOad0pn9mdoXIq8cwu3Kpf7N2OTYgWGK4eQPTflwFlduDGA==}
 
   abel-ghost-sdk@file:vendor/abel-ghost-sdk-0.1.0-dt.3-0ea02bb.tgz:
     resolution: {integrity: sha512-+QKWkaQJsB4ykh+Mw3oo74lqrgMnm79NiZYSvns9IfrAgLecOSdbNMeYXK6TqHlDrXl6GIQwdyklkc6CGT4uew==, tarball: file:vendor/abel-ghost-sdk-0.1.0-dt.3-0ea02bb.tgz}
@@ -3953,12 +3944,6 @@ snapshots:
       '@vitest/pretty-format': 3.2.4
       loupe: 3.2.1
       tinyrainbow: 2.0.0
-
-  '@yornaath/batshit-devtools@1.7.1': {}
-
-  '@yornaath/batshit@0.10.1':
-    dependencies:
-      '@yornaath/batshit-devtools': 1.7.1
 
   abel-ghost-sdk@file:vendor/abel-ghost-sdk-0.1.0-dt.3-0ea02bb.tgz(@d13co/dt-algokit-utils@9.2.3-dt.5.2.0.0(dt-algosdk@3.9.0-dt.5.2.0.0))(dt-algosdk@3.9.0-dt.5.2.0.0):
     dependencies:

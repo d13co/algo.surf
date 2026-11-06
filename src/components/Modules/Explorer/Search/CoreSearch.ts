@@ -1,4 +1,5 @@
 import { isValidAddress } from "algosdk";
+import type { NfdGhostSDK, NfdRecord, NfdState } from "nfd-ghost-sdk";
 import { isNumber } from "../../../../utils/common";
 import {
   A_ApplicationResult,
@@ -26,21 +27,52 @@ export class NotFoundError extends Error {}
 export class ServerError extends Error {}
 export class NotSearchableError extends Error {}
 
-async function searchNFD(query: string): Promise<string[]> {
+export type CoreSearchOptions = {
+  /** The NFD reader (useNfdReader): `*.algo` searches need one */
+  nfd?: NfdGhostSDK | null;
+  /** The page's round: an NFD is resolved as it was then */
+  round?: number;
+  /** Told when the destination needs a word of explanation (an NFD expired, say) */
+  onNotice?: (message: string) => void;
+};
+
+/** Why an NFD with no verified addresses leads to its owner, where it needs saying. */
+const nfdStates: Partial<Record<NfdState, string>> = {
+  expired: "has expired: showing its owner",
+  forSale: "is for sale: showing its owner",
+  unowned: "is unclaimed: showing its app account",
+};
+
+/**
+ * The account an NFD name leads to, at `round`: its first verified address,
+ * else its owner; the rest of its verified addresses as `?alt=`. An expired or
+ * for-sale NFD has no verified addresses (the SDK leaves them out), so it
+ * leads to its owner, with a notice.
+ */
+export async function searchNFD(
+  name: string,
+  { nfd, round, onNotice }: CoreSearchOptions,
+): Promise<string> {
+  name = name.trim().toLowerCase();
+  // NFD names are lowercase letters, digits and dots; the error snackbar renders its message as HTML.
+  if (!/^[a-z0-9.]+\.algo$/.test(name)) throw new NotFoundError("That is not an NFD name");
+  if (!nfd) throw new NotFoundError(`Can't look up ${name}: the node doesn't run NFD queries`);
+  let record: NfdRecord | null;
   try {
-    query = query.trim().toLowerCase()
-    const response = await fetch(`https://api.nf.domains/nfd/${query}`);
-    if (response.status === 404)
-        throw new Error(`${query} was not found`)
-    const data = await response.json();
-    const results = new Set([data.depositAccount, ...(data.caAlgo ?? [])])
-    return [...results.values()]
+    record = await nfd.resolveName(name, { round, fields: ["caAlgo"] });
   } catch (e) {
-    throw new NotFoundError(`Error looking up NFD: ${(e as Error).message}`);
+    throw new ServerError(`Error looking up NFD: ${(e as Error).message}`);
   }
+  if (!record) {
+    throw new NotFoundError(round === undefined ? `${name} was not found` : `${name} did not exist at block ${round}`);
+  }
+  const [first, ...rest] = record.caAlgo.length ? record.caAlgo : [record.owner];
+  const why = record.caAlgo.length ? undefined : nfdStates[record.state];
+  if (why) onNotice?.(`${name}${round === undefined ? "" : ` at block ${round}`} ${why}`);
+  return `/account/${first}${rest.length ? `?alt=${rest.join(":")}` : ""}`;
 }
 
-export default async function (target: string): Promise<string> {
+export default async function (target: string, options: CoreSearchOptions = {}): Promise<string> {
   // support trailing junk [address,] [txid,] [12345678n]
   if (target.length === 59 || target.length === 53) {
     if (target.endsWith(",")) {
@@ -55,12 +87,7 @@ export default async function (target: string): Promise<string> {
   }
 
   if (target.endsWith(".algo")) {
-    const results = await searchNFD(target);
-    let alt=""
-    if (results.length > 1) {
-        alt="?alt="+results.slice(1).join(":")
-    }
-    return "/account/"+results[0]+alt
+    return searchNFD(target, options);
   }
 
   if (target.length === 58) {
