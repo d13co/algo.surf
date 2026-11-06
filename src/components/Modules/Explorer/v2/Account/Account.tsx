@@ -351,7 +351,8 @@ function Account(): JSX.Element {
   ) {
     tabValue = "versions";
   } else if (
-    hasNfdHistory &&
+    // While support is checked too, so a direct load doesn't select another tab.
+    hasNfdHistory !== false &&
     matchPath("/account/:address/nfds", pathname)
   ) {
     tabValue = "nfds";
@@ -780,7 +781,7 @@ function Account(): JSX.Element {
                       ...(numMsigsOf ? [{ name: "Multisigs", value: "multisigs", onClick: () => navigate("/account/" + address + "/multisigs") }] : []),
                       ...(hasValidatorData ? [{ name: "Validator Data", value: "validator", onClick: () => navigate("/account/" + address + "/validator") }] : []),
                       ...(hasVersions ? [{ name: "Versions", value: "versions", onClick: () => navigate("/account/" + address + "/versions") }] : []),
-                      ...(hasNfdHistory ? [{ name: "NFD history", value: "nfds", onClick: () => navigate("/account/" + address + "/nfds") }] : []),
+                      ...(hasNfdHistory || tabValue === "nfds" ? [{ name: "NFD history", value: "nfds", onClick: () => navigate("/account/" + address + "/nfds") }] : []),
                     ]}
                   />
 

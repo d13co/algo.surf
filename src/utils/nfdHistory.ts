@@ -465,8 +465,32 @@ async function fillTimestamps(ctx: Ctx, rounds: number[]) {
   }
 }
 
-/** Stage 1: links, and ownership from owner boxes and link candidates. */
-export async function loadNfdHistory(address: string, options: LoadNfdHistoryOptions): Promise<NfdHistory> {
+/**
+ * Runs `load` with a signal of its own, aborted with `signal` and on the
+ * first failure: the reads still running then stop instead of loading the
+ * node for a result nobody gets.
+ */
+async function cancelOnFailure<T>(signal: AbortSignal | undefined, load: (signal: AbortSignal) => Promise<T>): Promise<T> {
+  const controller = new AbortController();
+  const onAbort = () => controller.abort(signal!.reason);
+  if (signal?.aborted) onAbort();
+  signal?.addEventListener("abort", onAbort, { once: true });
+  try {
+    return await load(controller.signal);
+  } catch (e) {
+    controller.abort(e);
+    throw e;
+  } finally {
+    signal?.removeEventListener("abort", onAbort);
+  }
+}
+
+/** Stage 1: links, and ownership from owner boxes and link candidates. One failed feed read fails the load. */
+export function loadNfdHistory(address: string, options: LoadNfdHistoryOptions): Promise<NfdHistory> {
+  return cancelOnFailure(options.signal, (signal) => readNfdHistory(address, { ...options, signal }));
+}
+
+async function readNfdHistory(address: string, options: LoadNfdHistoryOptions): Promise<NfdHistory> {
   const started = Date.now();
   const { onProgress } = options;
   const ctx = await context(address, options);
@@ -644,10 +668,16 @@ export type NfdAssetHistory = {
  * v3 registry; older NFDs may have none). Reads at stage 1's latest round, and
  * skips its candidates.
  */
-export async function loadNfdAssetHistory(
+export function loadNfdAssetHistory(
   address: string,
-  options: LoadNfdHistoryOptions & { latestRound: number; known: number[] },
+  options: LoadNfdAssetHistoryOptions,
 ): Promise<NfdAssetHistory> {
+  return cancelOnFailure(options.signal, (signal) => readNfdAssetHistory(address, { ...options, signal }));
+}
+
+type LoadNfdAssetHistoryOptions = LoadNfdHistoryOptions & { latestRound: number; known: number[] };
+
+async function readNfdAssetHistory(address: string, options: LoadNfdAssetHistoryOptions): Promise<NfdAssetHistory> {
   const started = Date.now();
   const ctx = await context(address, options, options.latestRound);
   const { onProgress, signal } = options;
@@ -714,6 +744,8 @@ async function nfdAssetsEverHeld(ctx: Ctx): Promise<Map<number, number | undefin
     void AssetCache.insertMany(list).catch(() => {});
   }
   ctx.signal?.throwIfAborted();
+  // TODO: confirm whether deleting an NFD destroys its asset. If it does, a destroyed asset has no unit name here,
+  // so it is dropped, and nfdAssetApps' opt-in-round read for apps that are gone never sees it.
   for (const id of ids) {
     if (tiny.get(id)?.params["unit-name"] !== "NFD") held.delete(id);
   }

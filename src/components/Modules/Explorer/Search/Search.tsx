@@ -1,6 +1,6 @@
 import { useCallback, useState, useRef } from "react";
 import { useRound, useRoundNavigate } from "src/hooks/useRound";
-import { useNfdReader } from "src/components/Common/UseNFD";
+import { useNfdSearchReader } from "src/components/Common/UseNFD";
 import { useGlobalUI } from "../../../../contexts/GlobalUIContext";
 import { Search as SearchIcon, ClipboardPaste, X } from "lucide-react";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -38,7 +38,7 @@ function Search(props: SearchProps): JSX.Element {
 
   const navigate = useRoundNavigate();
   const { showLoader, hideLoader, showSnack } = useGlobalUI();
-  const nfd = useNfdReader();
+  const nfd = useNfdSearchReader();
   const { round } = useRound();
   const { loading: abelLoading, loadedPromise } = useAbelAssetsContext();
 

@@ -28,8 +28,8 @@ export class ServerError extends Error {}
 export class NotSearchableError extends Error {}
 
 export type CoreSearchOptions = {
-  /** The NFD reader (useNfdReader): `*.algo` searches need one */
-  nfd?: NfdGhostSDK | null;
+  /** The NFD reader, once its checks are done (useNfdSearchReader): `*.algo` searches need one */
+  nfd?: () => Promise<NfdGhostSDK | null>;
   /** The page's round: an NFD is resolved as it was then */
   round?: number;
   /** Told when the destination needs a word of explanation (an NFD expired, say) */
@@ -54,12 +54,13 @@ export async function searchNFD(
   { nfd, round, onNotice }: CoreSearchOptions,
 ): Promise<string> {
   name = name.trim().toLowerCase();
-  // NFD names are lowercase letters, digits and dots; the error snackbar renders its message as HTML.
+  // NFD names are lowercase letters, digits and dots.
   if (!/^[a-z0-9.]+\.algo$/.test(name)) throw new NotFoundError("That is not an NFD name");
-  if (!nfd) throw new NotFoundError(`Can't look up ${name}: the node doesn't run NFD queries`);
+  const sdk = await nfd?.();
+  if (!sdk) throw new NotFoundError(`Can't look up ${name}: the node doesn't run NFD queries`);
   let record: NfdRecord | null;
   try {
-    record = await nfd.resolveName(name, { round, fields: ["caAlgo"] });
+    record = await sdk.resolveName(name, { round, fields: ["caAlgo"] });
   } catch (e) {
     throw new ServerError(`Error looking up NFD: ${(e as Error).message}`);
   }

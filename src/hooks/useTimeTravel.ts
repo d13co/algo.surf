@@ -64,7 +64,14 @@ export type TimeTravelStatus = "none" | "checking" | "supported" | "unsupported"
  */
 function useTimeTravelSupportQuery(): TTCapabilities | false | undefined {
   const node = getTimeTravelNode();
-  const { data } = useQuery({
+  const { data } = useQuery({ ...timeTravelSupportQuery(), enabled: !!node });
+  return node ? data : false;
+}
+
+/** The query behind useTimeTravelSupportQuery, for queryClient.fetchQuery outside render. Needs a configured node. */
+export function timeTravelSupportQuery() {
+  const node = getTimeTravelNode();
+  return {
     queryKey: ["timetravel-support", node?.baseUrl],
     queryFn: async (): Promise<TTCapabilities | false> => {
       try {
@@ -81,12 +88,10 @@ function useTimeTravelSupportQuery(): TTCapabilities | false | undefined {
         return false;
       }
     },
-    enabled: !!node,
     staleTime: Infinity,
-    retry: false,
+    retry: false as const,
     meta,
-  });
-  return node ? data : false;
+  };
 }
 
 /**

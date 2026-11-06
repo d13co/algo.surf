@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getNfdGhost, nfdRegistryAppId } from "src/packages/nfd/nfdGhost";
 import { getTimeTravelNode } from "src/utils/timeTravel";
 import { loadNfdAssetHistory, loadNfdHistory, NfdHistory } from "src/utils/nfdHistory";
-import { useTimeTravelCapabilities } from "src/hooks/useTimeTravel";
+import { useTimeTravelCapabilities, useTimeTravelStatus } from "src/hooks/useTimeTravel";
 
 // Experimental and node-specific, like the version histories: kept in memory only.
 const meta = { noPersist: true };
@@ -11,9 +11,11 @@ const meta = { noPersist: true };
 /**
  * Whether NFD reads work: a time-travel node for this network that runs
  * read-only queries, an NFD registry on this network, and nfd-ghost-sdk's
- * probe (one 1-call query, cached per client).
+ * probe (one 1-call query, cached per client). Undefined while that is being
+ * checked.
  */
-export function useNfdHistorySupport(): boolean {
+export function useNfdHistorySupport(): boolean | undefined {
+  const status = useTimeTravelStatus();
   const queries = !!useTimeTravelCapabilities()?.query;
   const sdk = queries ? getNfdGhost() : null;
   const { data } = useQuery({
@@ -28,11 +30,14 @@ export function useNfdHistorySupport(): boolean {
       }
     },
     enabled: !!sdk,
-    staleTime: Infinity,
+    // A no from a failed probe can be a passing one (a network blip): asked again after a minute.
+    staleTime: (query) => (query.state.data ? Infinity : 60_000),
     retry: false,
     meta,
   });
-  return !!sdk && data === true;
+  if (status === "checking") return undefined;
+  if (!sdk) return false;
+  return data;
 }
 
 /**
@@ -41,8 +46,9 @@ export function useNfdHistorySupport(): boolean {
  * and only adds owner periods. Each says what it is reading while it loads.
  */
 export function useNfdHistory(address: string | undefined, enabled: boolean) {
-  const [progress, setProgress] = useState<string>();
-  const [assetProgress, setAssetProgress] = useState<string>();
+  // Each step with the account it is for: another account's last step isn't shown while this one starts.
+  const [progress, setProgress] = useState<{ address: string; step: string }>();
+  const [assetProgress, setAssetProgress] = useState<{ address: string; step: string }>();
   const sdk = getNfdGhost();
   const registryAppId = nfdRegistryAppId();
   const node = getTimeTravelNode()?.baseUrl;
@@ -50,7 +56,7 @@ export function useNfdHistory(address: string | undefined, enabled: boolean) {
   const links = useQuery({
     queryKey: ["nfd-history", node, address],
     queryFn: ({ signal }) =>
-      loadNfdHistory(address!, { sdk: sdk!, registryAppId: registryAppId!, signal, onProgress: setProgress }),
+      loadNfdHistory(address!, { sdk: sdk!, registryAppId: registryAppId!, signal, onProgress: (step) => setProgress({ address: address!, step }) }),
     enabled: ready,
     // Past rounds never change; a reload reads what happened since.
     staleTime: Infinity,
@@ -68,7 +74,7 @@ export function useNfdHistory(address: string | undefined, enabled: boolean) {
         latestRound: stage1!.latestRound,
         known: stage1!.candidates,
         signal,
-        onProgress: setAssetProgress,
+        onProgress: (step) => setAssetProgress({ address: address!, step }),
       }),
     enabled: ready && !!stage1,
     staleTime: Infinity,
@@ -76,5 +82,10 @@ export function useNfdHistory(address: string | undefined, enabled: boolean) {
     retry: false,
     meta,
   });
-  return { links, assets, progress, assetProgress };
+  return {
+    links,
+    assets,
+    progress: progress?.address === address ? progress.step : undefined,
+    assetProgress: assetProgress?.address === address ? assetProgress.step : undefined,
+  };
 }

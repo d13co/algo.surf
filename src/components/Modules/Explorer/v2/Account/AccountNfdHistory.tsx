@@ -10,7 +10,7 @@ import {
 import { History, Loader2, Search } from "lucide-react";
 import { useGlobalUI } from "src/contexts/GlobalUIContext";
 import coreSearch from "src/components/Modules/Explorer/Search/CoreSearch";
-import { useNfdReader } from "src/components/Common/UseNFD";
+import { useNfdSearchReader } from "src/components/Common/UseNFD";
 import { useNfdHistory, useNfdHistorySupport } from "src/hooks/useNfdHistory";
 import { useRound, useRoundNavigate, withRound } from "src/hooks/useRound";
 import { useStableHeight } from "src/hooks/useStableHeight";
@@ -55,7 +55,7 @@ type Shown = {
 function NfdSearchButton({ name }: { name: string }): JSX.Element {
   const navigate = useRoundNavigate();
   const { showLoader, hideLoader, showSnack } = useGlobalUI();
-  const nfd = useNfdReader();
+  const nfd = useNfdSearchReader();
   const { round } = useRound();
   const search = async () => {
     showLoader("Searching");
@@ -236,7 +236,7 @@ function AccountNfdHistory(): JSX.Element {
   const { address } = useParams();
   const { round } = useRound();
   const supported = useNfdHistorySupport();
-  const { links, assets, progress, assetProgress } = useNfdHistory(address, supported);
+  const { links, assets, progress, assetProgress } = useNfdHistory(address, supported === true);
   const stage1 = links.data;
   const stage2 = assets.data;
 
@@ -254,11 +254,11 @@ function AccountNfdHistory(): JSX.Element {
       timestamps: new Map([...stage1.timestamps, ...(stage2?.timestamps ?? [])]),
       notes,
       stats: sumStats(stage1.stats, stage2?.stats),
-      checkingAssets: assets.isPending && !assets.isError ? assetProgress ?? "Checking older NFDs (asset holdings)" : undefined,
+      checkingAssets: assets.isPending ? assetProgress ?? "Checking older NFDs (asset holdings)" : undefined,
     };
   }, [stage1, stage2, assets.isError, assets.error, assets.isPending, assetProgress]);
 
-  if (!supported) {
+  if (supported === false) {
     return <div className="mt-6 text-muted-foreground">NFD history needs a time-travel node that runs read-only queries.</div>;
   }
   if (links.isError) return <div className="mt-6 text-muted-foreground">{(links.error as Error).message}</div>;

@@ -1,8 +1,10 @@
-import { useQuery, UseQueryResult } from "@tanstack/react-query";
+import { useCallback } from "react";
+import { useQuery, useQueryClient, UseQueryResult } from "@tanstack/react-query";
 import type { NfdGhostSDK } from "nfd-ghost-sdk";
 import { getNfdReader, nfdReaderKey, nfdRoundKey } from "src/packages/nfd/nfdGhost";
 import { useRound } from "src/hooks/useRound";
-import { useTimeTravelSupport } from "src/hooks/useTimeTravel";
+import { timeTravelSupportQuery, useTimeTravelStatus, useTimeTravelSupport } from "src/hooks/useTimeTravel";
+import { getTimeTravelNode } from "src/utils/timeTravel";
 
 /**
  * NFD names through nfd-ghost-sdk (read-only queries), at the page's round
@@ -12,31 +14,60 @@ import { useTimeTravelSupport } from "src/hooks/useTimeTravel";
 
 const HOUR = 60 * 60 * 1000;
 
-/**
- * The NFD reader (see getNfdReader) when its node can read NFDs: the SDK's
- * probe, asked once per node. Null until then, and where it can't.
- */
-export function useNfdReader(): NfdGhostSDK | null {
-  const timeTravel = useTimeTravelSupport();
+/** Whether getNfdReader(timeTravel) can read NFDs: the SDK's probe, asked once per node. */
+function nfdReaderSupportQuery(timeTravel: boolean) {
   const sdk = getNfdReader(timeTravel);
-  const { data } = useQuery({
+  return {
     queryKey: ["nfd-reader-support", nfdReaderKey(timeTravel)],
     queryFn: async () => {
+      if (!sdk) return false;
       try {
-        return await sdk!.supported();
+        return await sdk.supported();
       } catch (e) {
         // Resolved rather than thrown: every label that mounts would retry it.
         console.warn(`NFD names unavailable: ${(e as Error).message}`);
         return false;
       }
     },
-    enabled: !!sdk,
     // A no from a failed probe can be a passing one (a network blip): asked again after a minute.
-    staleTime: (query) => (query.state.data ? Infinity : 60_000),
-    retry: false,
+    staleTime: (query: { state: { data?: boolean } }) => (query.state.data ? Infinity : 60_000),
+    retry: false as const,
     meta: { noPersist: true },
-  });
-  return data ? sdk : null;
+  };
+}
+
+/**
+ * The NFD reader (see getNfdReader) when its node can read NFDs. Null until
+ * that is known, and where it can't. Waits for the time-travel node's check,
+ * so names aren't read from the network's algod and then again from it.
+ */
+export function useNfdReader(): NfdGhostSDK | null {
+  const status = useTimeTravelStatus();
+  const timeTravel = status === "supported";
+  const settled = status !== "checking";
+  const sdk = getNfdReader(timeTravel);
+  const { data } = useQuery({ ...nfdReaderSupportQuery(timeTravel), enabled: !!sdk && settled });
+  return settled && data ? sdk : null;
+}
+
+/**
+ * The NFD reader for a search (see useNfdReader), as a function that waits
+ * for the checks still running instead of answering null. A failed probe is
+ * asked again: a search is worth one request.
+ */
+export function useNfdSearchReader(): () => Promise<NfdGhostSDK | null> {
+  const queryClient = useQueryClient();
+  return useCallback(async () => {
+    const timeTravel = !!getTimeTravelNode() && !!(await queryClient.fetchQuery(timeTravelSupportQuery()));
+    const sdk = getNfdReader(timeTravel);
+    if (!sdk) return null;
+    const support = nfdReaderSupportQuery(timeTravel);
+    const supported = await queryClient.fetchQuery({
+      ...support,
+      staleTime: (query: { state: { data?: boolean } }) => (query.state.data ? Infinity : 0),
+    });
+    return supported ? sdk : null;
+  }, [queryClient]);
 }
 
 /** Query options for names at `round`: a pinned round never changes. */

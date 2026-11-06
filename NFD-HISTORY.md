@@ -13,7 +13,7 @@ The history is exact against those answers, apart from the gaps below.
 
 ## Requirements
 
-- A time-travel node for the network with `query` in its capabilities, set as the time-travel algod (`REACT_APP_TIMETRAVEL_ALGOD_URL`, or `localStorage.timetravelAlgodUrl`). The tab shows only when `useTimeTravelCapabilities()?.query` and `sdk.supported()` (one probe query, cached per node) both hold. `pnpm dev:mainnet:tt` uses `mainnet-api-dt.d13.co`, which has queries on.
+- A time-travel node for the network with `query` in its capabilities, set as the time-travel algod (`REACT_APP_TIMETRAVEL_ALGOD_URL`, or `localStorage.timetravelAlgodUrl`). The tab shows only when `useTimeTravelCapabilities()?.query` and `sdk.supported()` (one probe query, cached per node) both hold; a probe that failed is asked again after a minute. `pnpm dev:mainnet:tt` uses `mainnet-api-dt.d13.co`, which has queries on.
 - nfd-ghost-sdk 2.0.0-dt.6, vendored as `vendor/nfd-ghost-sdk-2.0.0-dt.6.tgz` until it is on npm (then pin `"nfd-ghost-sdk": "2.0.0-dt.6"` exactly). Its peers are the dt5 forks the app already pins in `pnpm-workspace.yaml`, one copy each.
 
 ## How it works
@@ -42,7 +42,7 @@ App versions are kept when they create or delete the app, when the node can't sa
 3. **Naming, a second pass.** For the NFDs some record shows the account owning, the naming feeds' rounds are read with `getRecordsAt` too, and periods are recomputed from every record read.
 4. **Stage 2.** A second query, started once stage 1 is done: the asset scan finds older NFD apps, skips stage 1's candidates, and adds their owner periods the same way. Rows append while "Checking older NFDs (asset holdings)…" shows.
 
-Concurrency: the SDK sends 3 query requests at a time and the feeds 2, leaving the node (503 past 8 in flight) room for the page. Busy 503s and 429s are retried by the shared time-travel client, with the retry toast. Results stay in memory (`noPersist`); the SDK caches past rounds.
+Concurrency: the SDK sends 3 query requests at a time and the feeds 2, leaving the node (503 past 8 in flight) room for the page. Busy 503s and 429s are retried by the shared time-travel client, with the retry toast. A failed feed read fails the load, and cancels the reads still running. Results stay in memory (`noPersist`); the SDK caches past rounds.
 
 ## Measured (2026-11-06)
 
@@ -81,7 +81,7 @@ The account header, `LinkToAccount`, `DisplayAccount`, the `?alt=` check (`DymNF
 
 - **Node.** The time-travel node when one is set and serves this network; else the network's own algod. Nodely's MainNet and TestNet algod run read-only queries (checked 2026-11-06: `sdk.supported()` passes, reads at past rounds work, CORS allows the POST). Where the probe fails (BetaNet, a custom stock node, localnet), no names show.
 - **Labels** (`useReverseNFD`) are `reverseLookup([address], { round })`: the SDK batches the labels a page asks for within 10 ms into one query per round. The reader has its own client, so label retries don't raise the retry toast. A pinned round's names never go stale; the latest round's stay an hour.
-- **Search** (`searchNFD`) is `resolveName(name, { round })`: the first verified address, else the owner, with the other verified addresses as `?alt=`. An expired or for-sale NFD has no verified addresses in the SDK, so search opens its owner with a notice.
+- **Search** (`searchNFD`, from the search box and from `/name.algo` URLs) is `resolveName(name, { round })`, once the node checks are done: the first verified address, else the owner, with the other verified addresses as `?alt=`. An expired or for-sale NFD has no verified addresses in the SDK, so search opens its owner with a notice.
 
 Checked against the REST API on 2026-11-06 (local `:8080`, latest round):
 
@@ -92,6 +92,7 @@ Checked against the REST API on 2026-11-06 (local `:8080`, latest round):
 
 - **Naming between ownership rounds.** The naming feeds are read only for NFDs some record shows the account owning, so an NFD the registry didn't name at any of its own ownership rounds, but did name in between, is missed. No MainNet case of the registry re-pointing a name without an app version has been found: on 43 accounts (the fixtures and 40 from `addresses.txt`, 657 periods), the periods were the same with and without the naming pass, which costs about one feed request per owned NFD. If it stays that way, the cheaper fallback is to read the latest round for every open owner period and record the rest as a gap.
 - **A v3 NFD owned before owner boxes, whose asset stayed in its app**, is found only if it is also a link candidate (the SDK's documented `getOwned` gap).
+- **Destroyed NFD assets.** Stage 2 keeps only holdings whose unit name is `NFD` now. If deleting an NFD destroys its asset, that NFD's owner periods are missed. Not confirmed yet (TODO).
 - **Owner-box back-fill** is unknown (DESIGN-v2 §9.1), so the asset scan stays.
 - **Expiry rounds** come from `roundAsOfTime` (Abel block times on the time-travel node, else the indexer); if that fails, the period ends at the next sampled round instead, with a note.
 - **The 60 s time limit** on the deployed node: timed-out requests aren't retried. `getRecordsAt` batches keep requests small, and a failed batch becomes a note naming its NFDs.

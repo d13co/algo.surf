@@ -63,6 +63,7 @@ logic sisg APPCALL3RF2SBLZDILOTQ6GOBKHBCAWVAPQEZTOZHYBJMFHTNAAD46V4ME
   [ ] address view labels?
 [ ] NFD integration
   [v] NFD history tab (nfd-ghost-sdk on a time-travel node with queries, NFD-HISTORY.md)
+    [ ] confirm whether deleting an NFD destroys its asset (stage 2 drops assets without an NFD unit name, see nfdAssetsEverHeld)
   [ ] names, labels and search through nfd-ghost-sdk at the page's round (PLAN_NFD_HISTORY.md Part B)
 [ ] Rekey txns in all txn type pages: add common block
 

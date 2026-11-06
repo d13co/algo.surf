@@ -1,6 +1,8 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
-import { useRoundNavigate } from 'src/hooks/useRound';
+import { useRound, useRoundNavigate } from 'src/hooks/useRound';
+import { useNfdSearchReader } from 'src/components/Common/UseNFD';
+import { useGlobalUI } from 'src/contexts/GlobalUIContext';
 import search, { NotFoundError, ServerError, NotSearchableError } from "../Modules/Explorer/Search/CoreSearch";
 import Loader from "src/components/v2/LoadingTile";
 import { SearchX, CircleAlert, HeartCrack } from 'lucide-react';
@@ -23,6 +25,10 @@ export default function SearchFromPath(): JSX.Element {
     const { pathname } = useLocation();
     const navigate = useRoundNavigate();
     const { loading: abelLoading, loadedPromise } = useAbelAssetsContext();
+    const nfd = useNfdSearchReader();
+    const { round } = useRound();
+    const { showSnack } = useGlobalUI();
+    const onNotice = (message: string) => showSnack({ severity: "warning", message });
 
     const [loading, setLoading] = React.useState(false);
     const [loadingMessage, setLoadingMessage] = React.useState<string|undefined>();
@@ -36,13 +42,13 @@ export default function SearchFromPath(): JSX.Element {
                 setLoading(true);
                 let destination: string;
                 try {
-                    destination = await search(target);
+                    destination = await search(target, { nfd, round, onNotice });
                 } catch(e) {
                     if (abelLoading && loadedPromise) {
                         console.error("First search failed with:", e)
                         setLoadingMessage("Loading verified asset database...");
                         await loadedPromise;
-                        destination = await search(target);
+                        destination = await search(target, { nfd, round, onNotice });
                     } else {
                         throw e
                     }

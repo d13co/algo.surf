@@ -12,9 +12,6 @@ const REGISTRY_APP_IDS: Partial<Record<string, number>> = {
   [Networks.Betanet]: 842656530,
 };
 
-/** The first round of the registry generation with `"O" ‖ owner ‖ appId` owner boxes (MainNet). */
-export const OWNER_BOXES_FROM_ROUND: number | undefined = network === Networks.Mainnet ? 42181254 : undefined;
-
 export function nfdRegistryAppId(): number | undefined {
   return REGISTRY_APP_IDS[network];
 }
