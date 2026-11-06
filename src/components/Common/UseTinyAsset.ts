@@ -1,6 +1,8 @@
 import { UseQueryResult, useQuery } from "@tanstack/react-query";
-import { abel, abelTinyToAssetTiny } from "../../packages/abel/abel";
+import { abel, abelTinyToAssetTiny, isDeletedAssetTiny } from "../../packages/abel/abel";
+import { getAbelAt } from "../../packages/abel/abelAt";
 import { A_AssetTiny } from "../../packages/core-sdk/types";
+import { getTimeTravelNode } from "../../utils/timeTravel";
 import AssetCache from "./AssetCache";
 
 export function useTinyAsset(
@@ -20,8 +22,9 @@ export function useTinyAsset(
 
       // Fallback to ABEL and persist
       const abelData = await abel.getAssetsTinyLabels([BigInt(assetId)]);
-      const tiny = abelTinyToAssetTiny(abelData.get(BigInt(assetId)));
-      if (tiny) {
+      const found = abelData.get(BigInt(assetId));
+      const tiny = found ? abelTinyToAssetTiny(found) : null;
+      if (tiny && !isDeletedAssetTiny(tiny)) {
         // Persist to IndexedDB asynchronously (ignore errors)
         void AssetCache.insertOne(tiny).catch(() => {});
       }
@@ -71,8 +74,9 @@ export function useTinyAssets(
 
         if (fetchedList.length) {
           // Persist asynchronously
+          const found = fetchedList.filter((a) => !isDeletedAssetTiny(a));
           setTimeout(() => {
-            void AssetCache.insertMany(fetchedList).catch(() => {});
+            void AssetCache.insertMany(found).catch(() => {});
           }, 1000);
           // Update local map
           for (const a of fetchedList) cachedMap.set(a.index, a);
@@ -91,4 +95,39 @@ export function useTinyAssets(
     },
     staleTime: Infinity,
   });
+}
+
+/**
+ * useTinyAssets, with deleted assets read again on the time-travel node at
+ * `round`, a round they existed at (e.g. the round before a block that
+ * touched them). An asset's name, unit and decimals never change, so the
+ * current read is right for every asset it finds. Without a node or a round,
+ * or where the asset didn't exist then either, it stays the deleted stand-in
+ * (isDeletedAssetTiny).
+ */
+export function useTinyAssetsAtRound(
+  assetIds: number[],
+  round: number | undefined
+): { data: Map<number, A_AssetTiny> | undefined; isLoading: boolean } {
+  const current = useTinyAssets(assetIds);
+  const deleted = (current.data ?? []).filter(isDeletedAssetTiny).map((a) => a.index);
+  const node = getTimeTravelNode()?.baseUrl;
+  const canReadAt = !!node && round !== undefined && round > 0;
+  const past = useQuery({
+    queryKey: ["tiny-assets-at", node, round, deleted.join(",")],
+    queryFn: async () => {
+      const abelAt = getAbelAt();
+      if (!abelAt) return [];
+      const read = await abelAt.getAssetsTinyLabels(deleted, { round });
+      return [...read.values()].map(abelTinyToAssetTiny).filter((a) => !isDeletedAssetTiny(a));
+    },
+    enabled: canReadAt && deleted.length > 0,
+    staleTime: Infinity,
+    retry: false,
+  });
+
+  if (!current.data) return { data: undefined, isLoading: current.isLoading };
+  const map = new Map(current.data.map((a) => [a.index, a]));
+  for (const a of past.data ?? []) map.set(a.index, a);
+  return { data: map, isLoading: current.isLoading || past.isLoading };
 }

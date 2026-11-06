@@ -16,7 +16,9 @@ export interface AssetRow {
 }
 
 const DB_NAME = "algoSurfAssets";
-const DB_VERSION = 1; // bump if schema changes
+// 2: drops the rows of deleted assets cached before abel flagged them (all
+// empty, or the "(deleted)" stand-in); they aren't cached any more.
+const DB_VERSION = 2; // bump if schema changes
 const STORE_NAME = "assets";
 
 let dbPromise: Promise<IDBDatabase> | null = null;
@@ -26,7 +28,7 @@ function openDB(): Promise<IDBDatabase> {
     dbPromise = new Promise((resolve, reject) => {
       const req = indexedDB.open(DB_NAME, DB_VERSION);
 
-      req.onupgradeneeded = () => {
+      req.onupgradeneeded = (event) => {
         const db = req.result;
         // Create object store if missing
         if (!db.objectStoreNames.contains(STORE_NAME)) {
@@ -43,11 +45,38 @@ function openDB(): Promise<IDBDatabase> {
           try {
             store.createIndex("unitName", "unitName", { unique: false });
           } catch {}
+          if (event.oldVersion < 2) {
+            const cursorReq = store.openCursor();
+            cursorReq.onsuccess = () => {
+              const cursor = cursorReq.result;
+              if (!cursor) return;
+              const row = cursor.value as AssetRow;
+              const empty = !row.name && !row.unitName && !row.decimals && !row.peraVerified;
+              if (empty || row.name === "(deleted)") cursor.delete();
+              cursor.continue();
+            };
+          }
         }
       };
 
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error);
+      req.onsuccess = () => {
+        const db = req.result;
+        // Let a newer version's upgrade in (another tab) instead of blocking it.
+        db.onversionchange = () => {
+          db.close();
+          dbPromise = null;
+        };
+        resolve(db);
+      };
+      req.onerror = () => {
+        dbPromise = null;
+        reject(req.error);
+      };
+      // An older tab still holds the previous version open: fail, so lookups fall through to abel.
+      req.onblocked = () => {
+        dbPromise = null;
+        reject(new Error("Asset cache upgrade blocked by another tab"));
+      };
     });
   }
   return dbPromise;

@@ -1,6 +1,6 @@
 import React from "react";
 import AssetCache from "./AssetCache";
-import { abel, abelTinyToAssetTiny } from "../../packages/abel/abel";
+import { abel, abelTinyToAssetTiny, isDeletedAssetTiny } from "../../packages/abel/abel";
 import type { A_AssetTiny } from "../../packages/core-sdk/types";
 
 export type AbelAssetsContextValue = {
@@ -58,7 +58,7 @@ async function loadAllAssetsIntoCache(): Promise<void> {
       const abelData = await abel.getAssetsTinyLabels(missingIds);
       const assets = Array.from(abelData.values())
         .map(abelTinyToAssetTiny)
-        .filter((a): a is NonNullable<typeof a> => a != null);
+        .filter((a): a is NonNullable<typeof a> => a != null && !isDeletedAssetTiny(a));
 
       if (assets.length) {
         // Persist to IndexedDB asynchronously (ignore errors)

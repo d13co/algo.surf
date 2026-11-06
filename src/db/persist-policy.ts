@@ -17,7 +17,8 @@ export const ONE_WEEK = 7 * ONE_DAY;
  * Bump whenever the stored shape or the serializer changes. A mismatched entry
  * is dropped without being restored.
  */
-export const CACHE_BUSTER = "3";
+// 4: tiny assets cached before abel flagged deleted ones (all empty) read as live.
+export const CACHE_BUSTER = "4";
 
 // Keys whose data never changes once fetched: safe to keep for longer.
 const IMMUTABLE_KEYS = new Set([

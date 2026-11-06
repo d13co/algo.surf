@@ -24,6 +24,7 @@ import {
   DialogTitle,
 } from "src/components/v2/ui/dialog";
 import InnerTransactionDetail from "./InnerTransactionDetail";
+import { isDeletedAssetTiny } from "src/packages/abel/abel";
 
 function appIdToAddress(appId: number): string {
   const addr = getApplicationAddress(appId);
@@ -131,8 +132,10 @@ function assetName(
   assets: Map<number, A_AssetTiny>,
 ): string {
   const assetId = inst.getAssetId();
+  const tiny = assets.get(assetId);
   const name =
-    assets.get(assetId)?.params.name || inst.getAssetConfigPayload()?.params?.name;
+    (tiny && !isDeletedAssetTiny(tiny) ? tiny.params.name : undefined) ||
+    inst.getAssetConfigPayload()?.params?.name;
   return name ? `Asset ${assetId} (${name})` : `Asset ${assetId}`;
 }
 

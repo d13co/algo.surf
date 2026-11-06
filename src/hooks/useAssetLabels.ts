@@ -22,8 +22,8 @@ export function useAssetLabels(id: number, round?: number) {
       return asset && "labels" in asset ? asset.labels : [];
     },
     enabled: !!id && network === "Mainnet",
-    // Before the registry existed, a read at the round fails the same every time.
-    retry: round === undefined ? 3 : false,
+    // Before the registry existed, a read at the round has no labels (it doesn't fail).
+    retry: round === undefined ? 3 : 2,
     // Labels at a past round never change.
     staleTime: round === undefined ? 0 : Infinity,
   });

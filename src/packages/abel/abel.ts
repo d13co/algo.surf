@@ -42,18 +42,22 @@ export const abel = new AbelGhostSDK({
 
 const DELETED_ASSET_NAME = "(deleted)";
 
-/** abelTinyToAssetTiny's stand-in for a destroyed asset, whose decimals and unit are not known. */
+/**
+ * abelTinyToAssetTiny's stand-in for an asset abel found no params for
+ * (destroyed, or not created yet at the round read), whose decimals and unit
+ * are not known. Not cached: a read at an earlier round can still find them.
+ */
 export const isDeletedAssetTiny = (asset: A_AssetTiny): boolean => asset.params.name === DELETED_ASSET_NAME;
 
 export const abelTinyToAssetTiny = (tiny: AssetTinyLabels): A_AssetTiny => {
-  // @ts-ignore
-  if ("deleted" in tiny && tiny.deleted) {
+  if (!tiny.exists) {
     return {
       index: Number(tiny.id),
       params: {
         decimals: 0,
         name: DELETED_ASSET_NAME,
-        "unit-name": "(none)",
+        // Empty, as before abel flagged deleted assets: callers show the id instead.
+        "unit-name": "",
       },
       peraVerified: false,
     };
