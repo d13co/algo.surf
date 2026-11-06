@@ -3,8 +3,12 @@ import { Navigate, useLocation, useParams } from "react-router-dom";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { ChevronDown, ChevronRight, History } from "lucide-react";
 import NumberFormat from "react-number-format";
-import { accountFields, getBlockDelta, DeltaAccount, DeltaBox, DeltaObject } from "src/utils/blockDelta";
+import type { AssetHolding } from "abel-ghost-sdk";
+import { accountFields, getBlockDelta, DeltaAccount, DeltaBox, DeltaHolding, DeltaObject } from "src/utils/blockDelta";
 import { getAbelAt } from "src/packages/abel/abelAt";
+import { isDeletedAssetTiny } from "src/packages/abel/abel";
+import { useTinyAssetsAtRound } from "src/components/Common/UseTinyAsset";
+import { formatUnits } from "src/utils/formatUnits";
 import { useTimeTravelStatus } from "src/hooks/useTimeTravel";
 import { getTimeTravelNode, readAtRound } from "src/utils/timeTravel";
 import { baselineRequest, Change, diff, formatPath } from "src/utils/versionDelta";
@@ -120,6 +124,129 @@ function BoxRow({ box }: { box: DeltaBox }) {
   );
 }
 
+type Units = { decimals: number; unit: string };
+
+/** Each holding's state before the block, by `${assetId}:${address}`; undefined where it wasn't opted in. */
+type HoldingsBefore = { holdings: Map<string, AssetHolding | undefined>; failed: Set<number> };
+
+/**
+ * The block's holdings as they were at R-1, one abel read per asset (it reads
+ * one asset's holdings of many accounts), a few at a time. An asset the block
+ * created had none. An asset whose read fails is in `failed`.
+ */
+async function readHoldingsBefore(holdings: DeltaHolding[], createdAssets: Set<number>, round: number): Promise<HoldingsBefore> {
+  const abel = getAbelAt();
+  if (!abel) throw new Error("No time travel node configured");
+  const byAsset = new Map<number, string[]>();
+  for (const h of holdings) {
+    if (createdAssets.has(h.assetId)) continue;
+    const addresses = byAsset.get(h.assetId);
+    if (addresses) addresses.push(h.address);
+    else byAsset.set(h.assetId, [h.address]);
+  }
+  const out: HoldingsBefore = { holdings: new Map(), failed: new Set() };
+  const queue = [...byAsset];
+  const worker = async () => {
+    for (let next = queue.shift(); next; next = queue.shift()) {
+      const [assetId, addresses] = next;
+      for (let attempt = 1; ; attempt++) {
+        try {
+          const read = await abel.getAssetHoldings(assetId, addresses, { round: round - 1 });
+          for (const a of addresses) out.holdings.set(`${assetId}:${a}`, read.get(a));
+          break;
+        } catch {
+          if (attempt === 3) {
+            out.failed.add(assetId);
+            break;
+          }
+        }
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(6, queue.length) }, worker));
+  return out;
+}
+
+/** An amount in the asset's units (its link names the unit), or in base units when they aren't known (a deleted asset). */
+function Amount({ value, units, loading }: { value: bigint; units?: Units; loading?: boolean }) {
+  if (!units && loading) return <Pending className="inline-block h-4 w-12 align-middle" />;
+  return units ? (
+    <span>{formatUnits(value, units.decimals)}</span>
+  ) : (
+    <span title="The asset's decimals aren't known: base units">{formatUnits(value, 0)}</span>
+  );
+}
+
+/**
+ * One of an account's holdings the block wrote: its amount before → after
+ * and the change, opt-ins, opt-outs and freezes. Expands to its state before
+ * and after. `before` is "pending" until read, "unknown" without it (block 1,
+ * a failed read).
+ */
+function HoldingLine({
+  h,
+  round,
+  units,
+  unitsLoading,
+  name,
+  before,
+}: {
+  h: DeltaHolding;
+  round: number;
+  units?: Units;
+  unitsLoading?: boolean;
+  name?: string;
+  before: AssetHolding | undefined | "pending" | "unknown";
+}) {
+  const [open, setOpen] = useState(false);
+  const known = before !== "pending" && before !== "unknown";
+  // BigInt(): a read can decode a small uint64 as a number.
+  const was = known ? BigInt(before?.balance ?? 0) : undefined;
+  const now = BigInt(h.amount ?? 0);
+  const change = was === undefined ? undefined : now - was;
+  const optedIn = known && !before && !h.deleted;
+  const frozeChanged = known && !!before && h.frozen !== null && before.frozen !== h.frozen;
+  return (
+    <div className="py-1">
+      <button type="button" className="flex w-full min-w-0 items-center gap-2 text-left text-sm" onClick={() => setOpen(!open)} aria-expanded={open}>
+        {open ? <ChevronDown className="h-4 w-4 shrink-0" /> : <ChevronRight className="h-4 w-4 shrink-0" />}
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1">
+          <span className="min-w-0 max-w-[24ch] truncate" onClick={(e) => e.stopPropagation()}>
+            <LinkToAsset id={h.assetId} name={name} />
+          </span>
+          <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+            {before === "pending" ? (
+              <Pending className="inline-block h-4 w-16 align-middle" />
+            ) : was !== undefined ? (
+              <Amount value={was} units={units} loading={unitsLoading} />
+            ) : (
+              <span title={round <= 1 ? "Block 1 follows genesis" : "The holdings before this block couldn't be read"}>?</span>
+            )}
+            <span>→</span>
+            <span className="text-foreground">
+              {h.deleted ? <span className="text-muted-foreground">—</span> : <Amount value={now} units={units} loading={unitsLoading} />}
+            </span>
+          </span>
+          {change ? (
+            <span className={change > 0n ? "text-green-400" : "text-red-400"}>
+              {change > 0n ? "+" : "−"}
+              {unitsLoading && !units ? <Pending className="inline-block h-4 w-8 align-middle" /> : formatUnits(change > 0n ? change : -change, units?.decimals ?? 0)}
+            </span>
+          ) : null}
+          {optedIn ? <Chip className="border-green-400 text-green-400">opted in</Chip> : null}
+          {h.deleted ? <Chip className="border-red-400 text-red-400">opted out</Chip> : null}
+          {frozeChanged ? <Chip>{h.frozen ? "frozen" : "unfrozen"}</Chip> : null}
+        </div>
+      </button>
+      {open ? (
+        <div className="mt-2 pl-1 sm:pl-6 text-sm">
+          <ObjectRoundDiff ctx={h.ctx} objRef={h.ref} round={round} unchangedLabel="written, same value" />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 /** What the delta and the balances before tell about an account's row, before reading anything else. */
 type AccountRow = {
   account: DeltaAccount;
@@ -177,6 +304,108 @@ function useAccountRows(accounts: DeltaAccount[], round: number, balances: Map<s
   return { rows: shown, pending: [...checked.values()].includes("pending") };
 }
 
+/** An account's row: its base record's change (when it has one to show) and the holdings the block wrote. */
+type MergedRow = { address: string; base?: AccountRow; holdings: DeltaHolding[] };
+
+/** The ALGO balance, proposer and heartbeat marks and changed fields of an account's base record. */
+function BaseSummary({ base, round }: { base: AccountRow; round: number }) {
+  const { account: a, before, balanceChanged, proposed, heartbeat, changes } = base;
+  const change = before === undefined ? undefined : a.microAlgos - before;
+  return (
+    <>
+      {balanceChanged || before === undefined ? (
+        <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+          {before !== undefined ? (
+            <Algo micro={before} />
+          ) : (
+            <span title={round <= 1 ? "Block 1 follows genesis" : "The balances before this block couldn't be read"}>?</span>
+          )}
+          <span>→</span>
+          <span className="text-foreground">
+            <Algo micro={a.microAlgos} />
+          </span>
+        </span>
+      ) : null}
+      {balanceChanged && change !== undefined ? (
+        <span className={change > 0n ? "text-green-400" : "text-red-400"}>
+          {change > 0n ? "+" : "−"}
+          {microalgosToAlgos(Number(change > 0n ? change : -change)).toLocaleString(undefined, { maximumFractionDigits: 6 })}
+        </span>
+      ) : null}
+      {proposed ? <Chip title="It proposed this block (last-proposed)">proposer</Chip> : null}
+      {heartbeat ? <Chip title="It sent a heartbeat in this block (last-heartbeat)">heartbeat</Chip> : null}
+      {changes?.slice(0, 3).map((c) => (
+        <Chip key={formatPath(c.path)} variant="success" className="font-mono">
+          {formatPath(c.path)}
+        </Chip>
+      ))}
+    </>
+  );
+}
+
+function AccountHoldingsRow({
+  row,
+  round,
+  assetUnits,
+  unitsLoading,
+  assetNames,
+  holdingBefore,
+}: {
+  row: MergedRow;
+  round: number;
+  assetUnits: (assetId: number) => Units | undefined;
+  unitsLoading: boolean;
+  assetNames: (assetId: number) => string | undefined;
+  holdingBefore: (h: DeltaHolding) => AssetHolding | undefined | "pending" | "unknown";
+}) {
+  const [open, setOpen] = useState(false);
+  const address = (
+    <span className="min-w-0 text-[13px]" onClick={(e) => e.stopPropagation()}>
+      <LinkToAccount address={row.address} strip={9} copySize="m" />
+    </span>
+  );
+  return (
+    <div className="border-b border-border py-2">
+      {row.base ? (
+        <button type="button" className="flex w-full min-w-0 items-center gap-2 text-left text-sm" onClick={() => setOpen(!open)} aria-expanded={open}>
+          {open ? <ChevronDown className="h-4 w-4 shrink-0" /> : <ChevronRight className="h-4 w-4 shrink-0" />}
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1">
+            {address}
+            <BaseSummary base={row.base} round={round} />
+          </div>
+        </button>
+      ) : (
+        // Only holdings changed: nothing of the account's own to expand.
+        <div className="flex w-full min-w-0 items-center gap-2 text-sm">
+          <span className="h-4 w-4 shrink-0" />
+          {address}
+        </div>
+      )}
+      {open && row.base ? (
+        <div className="mt-2 pl-1 sm:pl-6 text-sm">
+          {/* The delta lists every object the block wrote, also those written with the value they had. */}
+          <ObjectRoundDiff ctx={row.base.account.ctx} objRef={row.base.account.ref} round={round} unchangedLabel="written, same value" />
+        </div>
+      ) : null}
+      {row.holdings.length ? (
+        <div className="mt-1 pl-4 sm:pl-6">
+          {row.holdings.map((h) => (
+            <HoldingLine
+              key={h.key}
+              h={h}
+              round={round}
+              units={assetUnits(h.assetId)}
+              unitsLoading={unitsLoading}
+              name={assetNames(h.assetId)}
+              before={holdingBefore(h)}
+            />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 /**
  * The "State changes" tab of a block: every account, app, local state, asset,
  * holding and box round R changed, from the time-travel node's ledger delta.
@@ -217,6 +446,59 @@ export default function BlockStateChanges(): JSX.Element {
   const { rows: accountRows, pending: accountChecksPending } = useAccountRows(delta?.accounts ?? [], round, balancesBefore, node);
   const accountsLoading = (!!delta?.accounts.length && round > 1 && !balancesBefore && !balancesFailed) || accountChecksPending;
 
+  // Holdings: their state before the block, and their assets' units. An
+  // asset the delta holds params of has them there; the others are read
+  // now, and a deleted one at R-1, where every asset the block touched but
+  // didn't create existed.
+  const deltaUnits = useMemo(() => new Map((delta?.assets ?? []).flatMap((a) => (a.units ? [[a.assetId, a.units]] : []))), [delta]);
+  const createdAssets = useMemo(() => new Set((delta?.assets ?? []).filter((a) => a.created).map((a) => a.assetId)), [delta]);
+  const lookupIds = useMemo(
+    () => [...new Set((delta?.holdings ?? []).map((h) => h.assetId))].filter((id) => !deltaUnits.has(id)),
+    [delta, deltaUnits],
+  );
+  const { data: tinies, isLoading: unitsLoading } = useTinyAssetsAtRound(lookupIds, round - 1);
+  const assetUnits = (assetId: number): Units | undefined => {
+    const fromDelta = deltaUnits.get(assetId);
+    if (fromDelta) return fromDelta;
+    const tiny = tinies?.get(assetId);
+    return tiny && !isDeletedAssetTiny(tiny) ? { decimals: tiny.params.decimals, unit: tiny.params["unit-name"] } : undefined;
+  };
+  const assetNames = (assetId: number): string | undefined => {
+    const tiny = tinies?.get(assetId);
+    if (tiny && !isDeletedAssetTiny(tiny)) return tiny.params["unit-name"] || tiny.params.name || undefined;
+    return deltaUnits.get(assetId)?.unit || undefined;
+  };
+
+  const { data: before, isError: holdingsFailed } = useQuery({
+    queryKey: ["block-delta-holdings-before", node, round],
+    queryFn: () => readHoldingsBefore(delta!.holdings, createdAssets, round),
+    enabled: !!delta?.holdings.length && round > 1,
+    staleTime: Infinity,
+    retry: false,
+    meta,
+  });
+  const holdingBefore = (h: DeltaHolding): AssetHolding | undefined | "pending" | "unknown" => {
+    if (round <= 1) return undefined; // Genesis has no assets: every holding is new.
+    if (holdingsFailed) return "unknown";
+    if (!before) return "pending";
+    if (before.failed.has(h.assetId)) return "unknown";
+    return before.holdings.get(`${h.assetId}:${h.address}`);
+  };
+
+  // One row per account: its base record's change, if useAccountRows shows
+  // one, and its holdings. An account whose holdings alone changed has a row
+  // too (the delta may not list its base record at all).
+  const mergedRows = useMemo((): MergedRow[] => {
+    const rows = new Map<string, MergedRow>();
+    for (const base of accountRows) rows.set(base.account.address, { address: base.account.address, base, holdings: [] });
+    for (const h of delta?.holdings ?? []) {
+      const row = rows.get(h.address) ?? { address: h.address, holdings: [] };
+      row.holdings.push(h);
+      rows.set(h.address, row);
+    }
+    return [...rows.values()].sort((a, b) => (a.address < b.address ? -1 : a.address > b.address ? 1 : 0));
+  }, [accountRows, delta]);
+
   // Only a time-travel node has deltas: without one, the block's transactions.
   if (status === "none" || status === "unsupported") return <Navigate replace to={`/block/${id}/transactions${search}`} />;
   if (isLoading || status === "checking") return <LoadingTile />;
@@ -245,44 +527,19 @@ export default function BlockStateChanges(): JSX.Element {
 
       <Section
         title="Accounts"
-        items={accountRows}
+        items={mergedRows}
         loading={accountsLoading}
-        render={({ account: a, before, balanceChanged, proposed, heartbeat, changes }) => {
-          const change = before === undefined ? undefined : a.microAlgos - before;
-          return (
-            <Row key={a.key} o={a} round={round}>
-              <span className="min-w-0 text-[13px]" onClick={(e) => e.stopPropagation()}>
-                <LinkToAccount address={a.address} strip={9} copySize="m" />
-              </span>
-              {balanceChanged || before === undefined ? (
-                <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-                  {before !== undefined ? (
-                    <Algo micro={before} />
-                  ) : (
-                    <span title={round <= 1 ? "Block 1 follows genesis" : "The balances before this block couldn't be read"}>?</span>
-                  )}
-                  <span>→</span>
-                  <span className="text-foreground">
-                    <Algo micro={a.microAlgos} />
-                  </span>
-                </span>
-              ) : null}
-              {balanceChanged && change !== undefined ? (
-                <span className={change > 0n ? "text-green-400" : "text-red-400"}>
-                  {change > 0n ? "+" : "−"}
-                  {microalgosToAlgos(Number(change > 0n ? change : -change)).toLocaleString(undefined, { maximumFractionDigits: 6 })}
-                </span>
-              ) : null}
-              {proposed ? <Chip title="It proposed this block (last-proposed)">proposer</Chip> : null}
-              {heartbeat ? <Chip title="It sent a heartbeat in this block (last-heartbeat)">heartbeat</Chip> : null}
-              {changes?.slice(0, 3).map((c) => (
-                <Chip key={formatPath(c.path)} variant="success" className="font-mono">
-                  {formatPath(c.path)}
-                </Chip>
-              ))}
-            </Row>
-          );
-        }}
+        render={(r) => (
+          <AccountHoldingsRow
+            key={r.address}
+            row={r}
+            round={round}
+            assetUnits={assetUnits}
+            unitsLoading={unitsLoading}
+            assetNames={assetNames}
+            holdingBefore={holdingBefore}
+          />
+        )}
       />
 
       <Section
@@ -325,22 +582,6 @@ export default function BlockStateChanges(): JSX.Element {
             </span>
             {a.created ? <Chip className="border-green-400 text-green-400">created</Chip> : null}
             {a.deleted ? <Chip className="border-red-400 text-red-400">destroyed</Chip> : null}
-          </Row>
-        )}
-      />
-
-      <Section
-        title="Asset holdings"
-        items={delta.holdings}
-        render={(h) => (
-          <Row key={h.key} o={h} round={round}>
-            <span onClick={(e) => e.stopPropagation()}>
-              <LinkToAsset id={h.assetId} />
-            </span>
-            <span className="min-w-0 text-[13px]" onClick={(e) => e.stopPropagation()}>
-              <LinkToAccount address={h.address} strip={9} />
-            </span>
-            {h.deleted ? <Chip className="border-red-400 text-red-400">opted out</Chip> : null}
           </Row>
         )}
       />

@@ -17,8 +17,21 @@ export type DeltaAccount = DeltaObject & {
 };
 export type DeltaApp = DeltaObject & { appId: number; deleted: boolean; created: boolean };
 export type DeltaLocal = DeltaObject & { address: string; appId: number; deleted: boolean };
-export type DeltaAsset = DeltaObject & { assetId: number; deleted: boolean; created: boolean };
-export type DeltaHolding = DeltaObject & { address: string; assetId: number; deleted: boolean };
+export type DeltaAsset = DeltaObject & {
+  assetId: number;
+  deleted: boolean;
+  created: boolean;
+  /** Its decimals and unit, when the delta holds its params (created or reconfigured, not destroyed). */
+  units?: { decimals: number; unit: string };
+};
+export type DeltaHolding = DeltaObject & {
+  address: string;
+  assetId: number;
+  deleted: boolean;
+  /** Its amount and frozen flag after the round; null once opted out. */
+  amount: bigint | null;
+  frozen: boolean | null;
+};
 export type DeltaBox = { key: string; appId: number; name: string; before: string | null; after: string | null };
 
 /** Everything round R changed, as lists of objects to show and diff. */
@@ -192,11 +205,13 @@ export async function getBlockDelta(round: number, signal?: AbortSignal): Promis
     const address = r.address.toString();
     const assetId = Number(r.id);
     if (r.params.params || r.params.deleted) {
+      const p = r.params.params;
       assets.push({
         key: `asset:${assetId}`,
         assetId,
         deleted: r.params.deleted,
         created: created.get(`asset:${assetId}`) === true,
+        units: p ? { decimals: Number(p.decimals), unit: p.unitName ? new TextDecoder().decode(p.unitName) : "" } : undefined,
         ctx: { kind: "asset", assetId },
         ref: { kind: "asset-params" },
       });
@@ -207,6 +222,8 @@ export async function getBlockDelta(round: number, signal?: AbortSignal): Promis
         address,
         assetId,
         deleted: r.holding.deleted,
+        amount: r.holding.holding?.amount ?? null,
+        frozen: r.holding.holding?.frozen ?? null,
         ctx: { kind: "account", address, includeCreatedParams: false },
         ref: { kind: "asset", id: assetId },
       });
