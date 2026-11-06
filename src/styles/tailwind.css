@@ -86,3 +86,14 @@
   overflow: hidden;
   transition: opacity 700ms, transform 700ms, max-height 700ms ease, margin 700ms ease;
 }
+
+/*
+ * While the time-travel bar is up (TimeTravelBar sets data-tt-bar and --tt-bar-h on <html>),
+ * dialogs center in the space below it and fit there, so the bar never covers a dialog's
+ * title or close button. Unlayered, so it wins over the dialogs' own top / max-height utilities.
+ */
+html[data-tt-bar] [role="dialog"][data-state] {
+  top: calc(50% + var(--tt-bar-h, 0px) / 2);
+  max-height: calc(100dvh - var(--tt-bar-h, 0px) - 2rem);
+  overflow-y: auto;
+}

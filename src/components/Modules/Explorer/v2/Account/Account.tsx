@@ -40,6 +40,7 @@ import LinkToBlockscan from "../Links/LinkToBlockscan";
 import LinkToLsigTemplate from "../Links/LinkToLsigTemplate";
 import DymNFD from "../DymNFD";
 import XChainBadge from "../XChainBadge";
+import AccountFunding from "./AccountFunding";
 import { microalgosToAlgos } from "src/utils/common";
 import { toPlainJson } from "src/packages/core-sdk/utils/serialize";
 import { network } from "src/packages/core-sdk/constants";
@@ -112,7 +113,12 @@ function Account(): JSX.Element {
   // The logic sig with this program address, and the ones this account delegated or was moved by.
   // Neither has history, so delegations are only listed for the current round. The delegations list
   // is still needed up front for the live-delegation chip.
-  const { data: lsig } = useLsig(address, legacy || !!summary?.lsig);
+  const { data: lsigNow } = useLsig(address, legacy || !!summary?.lsig);
+  // A program address's template never changes, but its uses do: at a past round, only those begun by then.
+  const lsig = useMemo(
+    () => (lsigNow && round !== undefined ? { ...lsigNow, uses: lsigNow.uses.filter((u) => u.firstRound <= round) } : lsigNow),
+    [lsigNow, round],
+  );
   const { data: delegations } = useDelegations(address, round === undefined && (legacy || !!summary?.delegations));
   // The keys of this multisig, or the multisigs this key is in. Without history too. With the
   // summary, only their tabs fetch them.
@@ -679,8 +685,12 @@ function Account(): JSX.Element {
                         </div>
                         <div className="mt-2.5 inline-flex items-center gap-1.5 max-w-full min-w-0">
                           <LinkToLsigTemplate template={lsig.template} name={lsig.name} />
-                          <span className="text-muted-foreground shrink-0">
+                          <span
+                            className="text-muted-foreground shrink-0"
+                            title={round !== undefined ? "Programs of this template as of now, not at this block" : undefined}
+                          >
                             {lsig.programs.toLocaleString()} program{plural(lsig.programs)}
+                            {round !== undefined ? " (now)" : ""}
                           </span>
                         </div>
                       </div>
@@ -748,6 +758,8 @@ function Account(): JSX.Element {
                         </div>
                       </div>
                     ) : null}
+
+                    <AccountFunding address={address} />
                   </div>
                 </div>
 

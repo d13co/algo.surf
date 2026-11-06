@@ -11,6 +11,7 @@ import { AbelAssetsProvider } from "../Common/AbelAssetsProvider";
 import { GlobalUIProvider } from "../../contexts/GlobalUIContext";
 import LoadingTile from "../v2/LoadingTile";
 import { TimeTravelBar } from "../Modules/Explorer/v2/Versions/RoundNotice";
+import LatestOnly from "../Modules/Explorer/v2/Versions/LatestOnly";
 
 const Home = lazy(() => import("../Modules/Explorer/Home/Home"));
 const Accounts = lazy(() => import("../Modules/Explorer/v2/Account/Accounts"));
@@ -30,6 +31,7 @@ const AccountMultisig = lazy(() => import("../Modules/Explorer/v2/Account/Accoun
 const AccountVersions = lazy(() => import("../Modules/Explorer/v2/Account/AccountVersions"));
 const Block = lazy(() => import("../Modules/Explorer/v2/Block/Block"));
 const BlockTransactions = lazy(() => import("../Modules/Explorer/v2/Block/BlockTransactions"));
+const BlockStateChanges = lazy(() => import("../Modules/Explorer/v2/Block/BlockStateChanges"));
 const Asset = lazy(() => import("../Modules/Explorer/v2/Asset/Asset"));
 const AssetTransactions = lazy(() => import("../Modules/Explorer/v2/Asset/AssetTransactions"));
 const AssetVersions = lazy(() => import("../Modules/Explorer/v2/Asset/AssetVersions"));
@@ -131,19 +133,19 @@ function AppRouter(): JSX.Element {
                           />
                           <Route
                             path="controller"
-                            element={<AccountControllerTo />}
+                            element={<LatestOnly what="The accounts rekeyed to this one"><AccountControllerTo /></LatestOnly>}
                           />
                           <Route
                             path="delegations"
-                            element={<AccountDelegations />}
+                            element={<LatestOnly what="Delegations"><AccountDelegations /></LatestOnly>}
                           />
                           <Route
                             path="subsigners"
-                            element={<AccountMultisig view="subsigners" />}
+                            element={<LatestOnly what="Multisig signers"><AccountMultisig view="subsigners" /></LatestOnly>}
                           />
                           <Route
                             path="multisigs"
-                            element={<AccountMultisig view="multisigs" />}
+                            element={<LatestOnly what="Multisigs this key is in"><AccountMultisig view="multisigs" /></LatestOnly>}
                           />
                           <Route
                             path="validator"
@@ -164,6 +166,10 @@ function AppRouter(): JSX.Element {
                           <Route
                             path="transactions"
                             element={<BlockTransactions></BlockTransactions>}
+                          />
+                          <Route
+                            path="delta"
+                            element={<BlockStateChanges></BlockStateChanges>}
                           />
                           <Route
                             path=""

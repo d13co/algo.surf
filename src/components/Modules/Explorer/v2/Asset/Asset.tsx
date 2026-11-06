@@ -48,7 +48,7 @@ function Asset(): JSX.Element {
         : "transactions";
 
   const { data: assetInfo, isLoading, isError, error } = useAsset(numId, round);
-  const { data: labels } = useAssetLabels(numId);
+  const { data: labels } = useAssetLabels(numId, round);
 
   const assetInstance = assetInfo ? new CoreAsset(assetInfo) : null;
   const createdAtRound = assetInstance?.getCreatedAtRound();

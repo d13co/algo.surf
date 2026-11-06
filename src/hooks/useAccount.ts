@@ -1,3 +1,4 @@
+import { keepSameRecord } from "src/utils/keepSameRecord";
 import { useState, useEffect, useCallback } from "react";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { AccountClient, ACCOUNTS_PAGE_SIZE } from "src/packages/core-sdk/clients/accountClient";
@@ -20,6 +21,7 @@ const escrowPending = new Set<string>();
  */
 export function useAccount(address: string, round?: number) {
   return useQuery({
+    placeholderData: keepSameRecord(address),
     ...(round === undefined
       ? { queryKey: ["account", address] }
       : { queryKey: ["account", address, { round }], meta: { noPersist: true }, retry: false }),

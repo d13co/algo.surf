@@ -21,7 +21,19 @@ import AppCallTxnGlobalStateDelta from "./AppCall/AppCallTxnGlobalStateDelta";
 import AppCallTxnLocalStateDelta from "./AppCall/AppCallTxnLocalStateDelta";
 import AppCallTxnLogs from "./AppCall/AppCallTxnLogs";
 import AppCallTxnInnerTxns from "./AppCall/AppCallTxnInnerTxns";
+import AppCallTxnStateChanges from "./AppCall/AppCallTxnStateChanges";
 import BalanceImpact from "../../BalanceImpact";
+
+/**
+ * The accounts whose local state an app call touched: those with a local
+ * state delta, and the sender of an opt-in, close-out or clear, which opens or
+ * closes its local state without necessarily writing a key.
+ */
+function localStateAddresses(txn: CoreTransaction, onCompletion: string | undefined): string[] {
+  const addresses = (txn.get().localStateDelta ?? []).map((d) => String(d.address));
+  if (onCompletion === "optin" || onCompletion === "closeout" || onCompletion === "clear") addresses.push(txn.getFrom());
+  return [...new Set(addresses)];
+}
 
 function AppCallTransaction({
   transaction,
@@ -246,6 +258,16 @@ function AppCallTransaction({
         <AppCallTxnLocalStateDelta
           appId={txnInstance.getAppId()}
           state={txnInstance.get().localStateDelta}
+        />
+      ) : null}
+
+      {/* Top-level calls only: an inner call's effect is its parent's. */}
+      {txnInstance.getId() && txnInstance.getBlock() ? (
+        <AppCallTxnStateChanges
+          appId={txnInstance.getAppId()}
+          round={txnInstance.getBlock()}
+          txId={txnInstance.getId()}
+          localAddresses={localStateAddresses(txnInstance, appCallPayload?.onCompletion)}
         />
       ) : null}
 

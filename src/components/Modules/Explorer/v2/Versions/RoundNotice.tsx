@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from "react";
 import { History } from "lucide-react";
 import dateFormat from "dateformat";
 import { useLocation } from "react-router-dom";
@@ -10,6 +11,8 @@ import LinkToBlock from "../Links/LinkToBlock";
 
 /** Pages that show a record as it was at `?round=` (see TimeTravelBar). */
 const roundAwarePath = /^\/(account|application|asset)\/[^/?#]/;
+/** Pages of one fixed record, the same at every round. */
+const fixedRecordPath = /^\/(block|transaction|group)\/[^/?#]/;
 
 /** This page without `?round`: the rest of its query (filters) and hash stay. */
 function useLatestHref(): string {
@@ -34,19 +37,42 @@ function RoundTime({ round }: { round: number }): JSX.Element | null {
 
 /**
  * Full-width bar pinned to the top of every page while `?round=R` is set.
- * Account, app and asset pages show their state at R; the others show the
- * latest data, but their links keep the round (see keepsRound). "Back to now"
+ * Account, app and asset pages show their state at R. Block, transaction
+ * and group pages show one fixed record; the rest show the latest data and
+ * say so. Every page's links keep the round (see keepsRound). "Back to now"
  * drops it.
  */
 export function TimeTravelBar(): JSX.Element | null {
   const { round } = useRound();
   const { pathname } = useLocation();
   const latestHref = useLatestHref();
+  const bar = useRef<HTMLDivElement>(null);
+  const shown = round !== undefined;
 
-  if (round === undefined) return null;
+  // Publishes the bar's height (--tt-bar-h, with data-tt-bar on <html>) so dialogs fit below it (see tailwind.css).
+  useLayoutEffect(() => {
+    const el = bar.current;
+    if (!shown || !el) return;
+    const root = document.documentElement;
+    const publish = () => root.style.setProperty("--tt-bar-h", `${el.offsetHeight}px`);
+    publish();
+    root.dataset.ttBar = "";
+    const observer = new ResizeObserver(publish);
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      delete root.dataset.ttBar;
+      root.style.removeProperty("--tt-bar-h");
+    };
+  }, [shown]);
+
+  if (!shown) return null;
 
   return (
-    <div className="sticky top-0 z-40 w-full bg-primary text-primary-dark text-sm">
+    // Above dialog backdrops (z-50), so the round stays in view while one is open, and clickable:
+    // a modal dialog sets pointer-events: none on the page (see DialogContent). Mouse and touch
+    // only: the dialog's focus trap and aria-hidden still keep keyboards and screen readers in it.
+    <div ref={bar} data-time-travel-bar className="pointer-events-auto sticky top-0 z-[60] w-full bg-primary text-primary-dark text-sm">
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 max-w-[1280px] mx-auto px-5 md:px-[100px] py-2">
         <History className="h-4 w-4 shrink-0" />
         <span className="min-w-0 font-bold [&_a]:text-primary-dark [&_a]:underline">
@@ -56,6 +82,11 @@ export function TimeTravelBar(): JSX.Element | null {
         <span className="opacity-80">
           <RoundTime round={round} />
         </span>
+        {!roundAwarePath.test(pathname) && !fixedRecordPath.test(pathname) ? (
+          <span className="opacity-80" title="This page has no history: it shows the latest data. Links from it keep the round.">
+            · this page shows the latest data
+          </span>
+        ) : null}
         <Link
           href={latestHref}
           keepRound={false}

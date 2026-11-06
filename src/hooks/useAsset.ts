@@ -1,3 +1,4 @@
+import { keepSameRecord } from "src/utils/keepSameRecord";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AssetClient } from "src/packages/core-sdk/clients/assetClient";
 import explorer from "src/utils/dappflow";
@@ -19,6 +20,7 @@ const latestAsset = (id: number) => ({
 export function useAsset(id: number, round?: number) {
   const queryClient = useQueryClient();
   return useQuery({
+    placeholderData: keepSameRecord(id),
     ...(round === undefined
       ? { queryKey: ["asset", id] }
       : { queryKey: ["asset", id, { round }], meta: { noPersist: true }, retry: false }),

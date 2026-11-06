@@ -1,3 +1,4 @@
+import { keepSameRecord } from "src/utils/keepSameRecord";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { ApplicationClient, APPLICATIONS_PAGE_SIZE } from "src/packages/core-sdk/clients/applicationClient";
 import { BoxClient } from "src/packages/core-sdk/clients/boxClient";
@@ -80,6 +81,7 @@ async function getApplicationOrDeletedAt(id: number, round: number): Promise<ind
 /** The app at `round` when given (see useRound), else as it is now. */
 export function useApplication(id: number, round?: number) {
   return useQuery({
+    placeholderData: keepSameRecord(id),
     ...atRound(["application", id], round),
     queryFn: () =>
       round === undefined

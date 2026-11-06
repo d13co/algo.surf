@@ -21,8 +21,13 @@ export const CACHE_BUSTER = "3";
 
 // Keys whose data never changes once fetched: safe to keep for longer.
 const IMMUTABLE_KEYS = new Set([
-  "transaction", "group", "block-hash", "block-header", "creator-app-info", "tiny-asset",
+  "transaction", "group", "block-hash", "block-header", "creator-app-info", "tiny-asset", "account-funding",
 ]);
+
+/** A result that may still turn up later (null, or an empty list): never persisted for a `noPersistEmpty` query. */
+function isEmpty(data: unknown): boolean {
+  return data == null || (Array.isArray(data) && data.length === 0);
+}
 
 export function maxEntryAge(queryKey: QueryKey): number {
   return IMMUTABLE_KEYS.has(queryKey[0] as string) ? ONE_WEEK : ONE_DAY;
@@ -51,6 +56,7 @@ export function isPersistable(query: PersistableQuery, now: number): boolean {
     state.status === "success" &&
     // Only a live query has meta: stored entries were filtered on it at write time.
     !meta?.noPersist &&
+    !(meta?.noPersistEmpty && isEmpty(state.data)) &&
     !isInfiniteData(state.data) &&
     now - state.dataUpdatedAt <= maxEntryAge(queryKey)
   );

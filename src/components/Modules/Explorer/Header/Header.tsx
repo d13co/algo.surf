@@ -2,6 +2,7 @@ import React from "react";
 import {useLocation} from "react-router-dom";
 import Search from "../Search/Search";
 import Logo from "./Logo";
+import TimeTravelPicker from "./TimeTravelPicker";
 import Link from "../v2/Links/Link";
 import { surfIdxSupported } from "src/utils/surfIdx";
 import { useSurfIdxCaps } from "src/hooks/useSurfIdxCaps";
@@ -60,11 +61,14 @@ function Header(): JSX.Element {
                         </Link>
                     ))}
                 </nav>
-                {route !== "home" ? (
-                    <div className="animate-in slide-in-from-top duration-300 max-header:mt-2">
-                        <Search placeholder={`Search ${networkLabel} [Ctrl+K]`} size="responsive"/>
-                    </div>
-                ) : null}
+                <div className="flex items-center gap-2 max-header:mt-2 empty:hidden">
+                    <TimeTravelPicker />
+                    {route !== "home" ? (
+                        <div className="flex-1 animate-in slide-in-from-top duration-300">
+                            <Search placeholder={`Search ${networkLabel} [Ctrl+K]`} size="responsive"/>
+                        </div>
+                    ) : null}
+                </div>
             </div>
         </div>
     );

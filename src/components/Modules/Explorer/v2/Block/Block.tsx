@@ -1,6 +1,8 @@
 import React, { Suspense } from "react";
-import { Outlet, useParams } from "react-router-dom";
-import { useRoundHref, useRoundNavigate } from "src/hooks/useRound";
+import { matchPath, Outlet, useLocation, useParams } from "react-router-dom";
+import { useRound, useRoundHref, useRoundNavigate, withRound } from "src/hooks/useRound";
+import { useTimeTravelSupport } from "src/hooks/useTimeTravel";
+import Link from "../Links/Link";
 import { useHotkeys } from "react-hotkeys-hook";
 import { CoreBlock } from "src/packages/core-sdk/classes/core/CoreBlock";
 import { useBlock, useBlockHash } from "src/hooks/useBlock";
@@ -15,7 +17,7 @@ import MultiDateViewer, { DateSwitcher } from "src/components/v2/MultiDateViewer
 import AlgoIcon from "../../AlgoIcon/AlgoIcon";
 import useTitle from "src/components/Common/UseTitle/UseTitle";
 import { microalgosToAlgos } from "src/utils/common";
-import { ArrowLeftFromLine, ArrowRightFromLine, TriangleAlert, Info } from "lucide-react";
+import { ArrowLeftFromLine, ArrowRightFromLine, History, TriangleAlert, Info } from "lucide-react";
 import TabsUnderline from "src/components/v2/shadcn-studio/tabs/tabs-11";
 import BlockUpgradeCard from "./BlockUpgradeCard";
 import BlockProtocol from "./BlockProtocol";
@@ -43,6 +45,11 @@ const BLOCK_JUMP = 100;
 function Block(): JSX.Element {
   const navigate = useRoundNavigate();
   const roundHref = useRoundHref();
+  const { round } = useRound();
+  const timeTravel = useTimeTravelSupport();
+  const { pathname } = useLocation();
+  // The delta tab redirects itself where there's no time-travel node (see BlockStateChanges).
+  const tabValue = matchPath("/block/:id/delta", pathname) ? "delta" : "transactions";
   const params = useParams();
   const { id } = params;
   const numId = Number(id);
@@ -58,15 +65,17 @@ function Block(): JSX.Element {
   // genesis round and then negative rounds, neither of which is a page.
   const hasPrev = numId > 1;
   const goToPrev = (step = 1) => {
-    if (hasPrev) navigate(`/block/${Math.max(1, numId - step)}/transactions`);
+    if (hasPrev) navigate(`/block/${Math.max(1, numId - step)}/${tabValue}`);
   };
-  const goToNext = (step = 1) => navigate(`/block/${numId + step}/transactions`);
+  const goToNext = (step = 1) => navigate(`/block/${numId + step}/${tabValue}`);
 
-  useHotkeys("left", () => goToPrev(), [numId]);
-  useHotkeys("right", () => goToNext(), [numId]);
+  // The callbacks are memoised on these: the tab and the round (in navigate) are part of where they go.
+  const hotkeyDeps = [numId, tabValue, navigate];
+  useHotkeys("left", () => goToPrev(), hotkeyDeps);
+  useHotkeys("right", () => goToNext(), hotkeyDeps);
   // Shift jumps further. v4 matches modifiers exactly, so plain arrows don't fire these.
-  useHotkeys("shift+left", () => goToPrev(BLOCK_JUMP), [numId]);
-  useHotkeys("shift+right", () => goToNext(BLOCK_JUMP), [numId]);
+  useHotkeys("shift+left", () => goToPrev(BLOCK_JUMP), hotkeyDeps);
+  useHotkeys("shift+right", () => goToNext(BLOCK_JUMP), hotkeyDeps);
 
   const txnTypes = blockInstance ? blockInstance.getTransactionsTypesCount() : {};
   const txnTypesList = Object.keys(txnTypes);
@@ -102,8 +111,20 @@ function Block(): JSX.Element {
               openIn={{ pageType: "block", id }}
             >
               <div className="flex items-center gap-1 shrink-0 ml-auto md:ml-0">
+                {timeTravel && Number.isFinite(numId) && round !== numId ? (
+                  <Link
+                    href={withRound(`/block/${numId}`, numId)}
+                    keepRound={false}
+                    noStyle
+                    className="text-primary hover:bg-primary/10 rounded p-1.5"
+                    title="View state at this block: pages you open from here show their state as of this block"
+                    aria-label="View state at this block"
+                  >
+                    <History size={20} />
+                  </Link>
+                ) : null}
                 <a
-                  href={hasPrev ? roundHref(`/block/${numId - 1}/transactions`) : undefined}
+                  href={hasPrev ? roundHref(`/block/${numId - 1}/${tabValue}`) : undefined}
                   onClick={(e) => {
                     e.preventDefault();
                     goToPrev();
@@ -119,7 +140,7 @@ function Block(): JSX.Element {
                   <ArrowLeftFromLine size={20} />
                 </a>
                 <a
-                  href={roundHref(`/block/${numId + 1}/transactions`)}
+                  href={roundHref(`/block/${numId + 1}/${tabValue}`)}
                   onClick={(e) => {
                     e.preventDefault();
                     goToNext();
@@ -275,9 +296,10 @@ function Block(): JSX.Element {
 
                 <div className="mt-6">
                   <TabsUnderline
-                    value="transactions"
+                    value={tabValue}
                     tabs={[
                       { name: "Transactions", value: "transactions", onClick: () => navigate("/block/" + id + "/transactions") },
+                      ...(timeTravel || tabValue === "delta" ? [{ name: "State changes", value: "delta", onClick: () => navigate("/block/" + id + "/delta") }] : []),
                     ]}
                   />
 

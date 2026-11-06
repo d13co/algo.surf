@@ -2,11 +2,13 @@ import {
   base64ToBytes,
   bytesToBase64,
   decodeJSON,
+  decodeMsgpack,
   DTAlgodClient,
   DTUnsupportedError,
   encodeJSON,
   indexerModels,
   isHistoryUnavailable,
+  LedgerStateDelta,
   modelsv2,
 } from "algosdk";
 import { AlgorandClient } from "@algorandfoundation/algokit-utils";
@@ -22,6 +24,7 @@ import {
 import { getApiBaseUrl, getApiHeaders } from "./nodeApi";
 import { nodeJson } from "./nodeJson";
 import { retryOptions } from "./retryWaits";
+import { omitMapKeys } from "./msgpackOmit";
 
 /**
  * Client for the experimental time-travel algod (dt-algorand), which serves
@@ -239,6 +242,14 @@ function getClients() {
  */
 export function getDTAlgod(): DTAlgodClient | null {
   return getClients()?.algod ?? null;
+}
+
+/**
+ * The dt-algokit-utils AlgorandClient on the configured time-travel node (it
+ * shares getDTAlgod's HTTP client and retries), or null without one.
+ */
+export function getTTAlgorand(): AlgorandClient | null {
+  return getClients()?.algorand ?? null;
 }
 
 function requireClients() {
@@ -587,6 +598,24 @@ export async function getAccountAt(address: string, round: number): Promise<mode
   const account = await ttDo(requireDTAlgod().accountInformation(address).round(round));
   if (!account) throw new TimeTravelError(`Account ${address} not found at block ${round}`, 404);
   return account;
+}
+
+/**
+ * The ledger state delta of `round` from the time-travel node; null where the
+ * node doesn't store that block (it rebuilds an old round's delta from it).
+ */
+export function getLedgerDeltaAt(round: number, signal?: AbortSignal) {
+  const req = requireDTAlgod().getLedgerStateDelta(round);
+  // Decoded from the raw msgpack without `Txleases`: a block with leased txns
+  // keys it by {Sender, Lease} structs, which algosdk's decoder rejects
+  // ("The type of key must be string, number, bigint, or Uint8Array").
+  return ttDo(
+    {
+      do: async (headers?: Record<string, string>, options?: Record<string, unknown>) =>
+        decodeMsgpack(omitMapKeys(await req.doRaw(headers, options), ["Txleases"]), LedgerStateDelta),
+    },
+    signal,
+  );
 }
 
 /** BoxClient's reads, from the time-travel node at `round`. */

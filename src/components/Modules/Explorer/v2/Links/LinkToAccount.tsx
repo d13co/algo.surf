@@ -17,6 +17,8 @@ function LinkToAccount({
   copy = "right",
   copySize = "m",
   strip = 0,
+  href,
+  note,
 }: {
   address: string;
   noNFD?: boolean;
@@ -27,6 +29,10 @@ function LinkToAccount({
   copy?: "left" | "right" | "none";
   copySize?: "m" | "s";
   strip?: number;
+  /** Where the name links to, instead of the account (or its app). */
+  href?: string;
+  /** A first line for the hover text, e.g. what `href` leads to. */
+  note?: string;
 }): JSX.Element {
   const { data: nfd } = useReverseNFD(address);
   const { data: addressBook } = useAddressBook();
@@ -38,6 +44,7 @@ function LinkToAccount({
 
   // Hover text: every identifier we have for this address, one per line.
   const title = [
+    note,
     label,
     nfd,
     typeof escrowAppId === "number" ? "App " + escrowAppId : null,
@@ -47,7 +54,7 @@ function LinkToAccount({
     .join("\n");
 
   // App escrow only applies when there's no higher-precedence name to show.
-  if (typeof escrowAppId === "number" && !noEscrow && !name) {
+  if (typeof escrowAppId === "number" && !noEscrow && !name && !href) {
     const escrowName = shortEscrow
       ? "App " + escrowAppId
       : "App " + escrowAppId + " " + ellipseString(address, strip || 8);
@@ -61,9 +68,10 @@ function LinkToAccount({
       ) : null}
       <Link
         className="truncate"
-        href={`/account/${address}/${subPage}`}
+        href={href ?? `/account/${address}/${subPage}`}
         title={title}
       >
+        {!name && href && typeof escrowAppId === "number" && !noEscrow ? `App ${escrowAppId} ` : null}
         {name ? name + (nfdOnly ? "" : " ") : null}
         {name && nfdOnly ? null : strip ? ellipseString(address, strip) : address}
       </Link>
