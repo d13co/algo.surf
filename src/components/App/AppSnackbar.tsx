@@ -34,7 +34,7 @@ function AppSnackbar(): JSX.Element {
     return (
         <div>
             <div className={`rounded-[10px] py-5 px-5 min-w-[400px] max-w-[90vw] border border-border ${borderColor} border-l-[5px] bg-background-card flex items-start gap-3`}>
-                <div className="grow text-sm" dangerouslySetInnerHTML={{__html: snackbar.message}} />
+                <div className="grow text-sm break-words">{snackbar.message}</div>
                 <Copyable value={snackbar.message} />
                 <button
                     type="button"

@@ -70,6 +70,8 @@ export type TTAppVersion = {
   timestamp: number;
   deleted: boolean;
   application?: TTApplication;
+  /** The global state keys the round changed (base64), with `include=keys`; absent where the node can't say. */
+  "changed-keys"?: string[];
 };
 
 /** An asset's params from this round on; none where the round destroyed it. */
@@ -330,7 +332,8 @@ interface VersionsBuilder extends TTRequest {
   limit(limit: number): this;
   next(nextToken: string | undefined): this;
   rounds(rounds: readonly number[]): this;
-  include(...include: "values"[]): this;
+  /** Box feeds take only `values`. One call: a second replaces the first. */
+  include(...include: ("values" | "keys")[]): this;
 }
 
 /** A version list request's range and paging. */
@@ -342,6 +345,8 @@ export type VersionsQuery = {
   limit?: number;
   /** Each version's new value (`include=values`). */
   values?: boolean;
+  /** The state keys each application or local state version changed (`include=keys`, `changed-keys`). */
+  keys?: boolean;
   /** Instead of a range, the object as of each of these rounds (not with minRound/maxRound). */
   rounds?: number[];
 };
@@ -349,10 +354,10 @@ export type VersionsQuery = {
 /** Where a version list is read from: a builder of `algod`'s, without range or paging. */
 export type VersionsSource = (algod: DTAlgodClient) => VersionsBuilder;
 
-/** A page of versions from `source`. */
+/** A page of versions from `source`. Throws a TimeTravelError where the node fails it (see asTimeTravelError). */
 export async function getVersionsPage<V>(
   source: VersionsSource,
-  { next, minRound, maxRound, order, limit, values, rounds }: VersionsQuery,
+  { next, minRound, maxRound, order, limit, values, keys, rounds }: VersionsQuery,
   signal?: AbortSignal,
 ): Promise<TTVersionsPage<V>> {
   const req = source(requireDTAlgod());
@@ -362,12 +367,40 @@ export async function getVersionsPage<V>(
   if (order) req.order(order);
   if (limit !== undefined) req.limit(limit);
   if (rounds) req.rounds(rounds);
-  if (values) req.include("values");
-  const page = await ttRead<TTVersionsPage<V>>(req, signal);
-  // The versions endpoints never 404 (an object without versions has none);
-  // the SDK throws DTUnsupportedError where the route is missing.
-  if (!page) throw new TimeTravelError("This node does not serve version histories", 404);
-  return page;
+  const include = [...(values ? ["values" as const] : []), ...(keys ? ["keys" as const] : [])];
+  if (include.length) req.include(...include);
+  // The versions endpoints never 404 (an object without versions has none),
+  // and the SDK throws DTUnsupportedError where the route is missing: every
+  // failure throws.
+  try {
+    return nodeJson<TTVersionsPage<V>>(await req.do(undefined, signal ? { signal } : undefined));
+  } catch (e) {
+    if (signal?.aborted) throw e;
+    throw asTimeTravelError(e);
+  }
+}
+
+/**
+ * Every page of `source`'s versions, from `query.next` on, until a page has
+ * no `next-token`. A filtered page (`key`, `prefix`) can be short or empty and
+ * still have one. `query.limit` is per page.
+ */
+export async function* getVersionsPages<V>(
+  source: VersionsSource,
+  query: Omit<VersionsQuery, "next"> & { next?: string },
+  signal?: AbortSignal,
+): AsyncGenerator<TTVersionsPage<V>, void, undefined> {
+  let next = query.next;
+  const seen = new Set<string>();
+  do {
+    const page = await getVersionsPage<V>(source, { ...query, next }, signal);
+    yield page;
+    next = page["next-token"] || undefined;
+    if (next !== undefined) {
+      if (seen.has(next)) throw new TimeTravelError("The node sent the same page token twice", 500);
+      seen.add(next);
+    }
+  } while (next !== undefined);
 }
 
 /**

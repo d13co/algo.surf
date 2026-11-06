@@ -23,6 +23,7 @@ import { delegationLive, templateLabel, useDelegations, useLsig } from "src/hook
 import { useMsigSubsigners, useMsigsOf } from "src/hooks/useMsig";
 import { useAccountSummary } from "src/hooks/useAccountSummary";
 import { useTimeTravelSupport } from "src/hooks/useTimeTravel";
+import { useNfdHistorySupport } from "src/hooks/useNfdHistory";
 import { useRound, useRoundHref, useRoundNavigate } from "src/hooks/useRound";
 import RoundNotice from "../Versions/RoundNotice";
 import { useReverseNFD, useReverseNFDs } from "src/components/Common/UseNFD";
@@ -299,6 +300,7 @@ function Account(): JSX.Element {
   let tabValue = "transactions";
   const { pathname } = useLocation();
   const hasVersions = useTimeTravelSupport();
+  const hasNfdHistory = useNfdHistorySupport();
 
   if (hasOptedAssets && matchPath("/account/:address/assets", pathname)) {
     tabValue = "assets";
@@ -348,6 +350,12 @@ function Account(): JSX.Element {
     matchPath("/account/:address/versions/*", pathname)
   ) {
     tabValue = "versions";
+  } else if (
+    // While support is checked too, so a direct load doesn't select another tab.
+    hasNfdHistory !== false &&
+    matchPath("/account/:address/nfds", pathname)
+  ) {
+    tabValue = "nfds";
   }
 
   useTitle(`Account ${address}`);
@@ -773,6 +781,7 @@ function Account(): JSX.Element {
                       ...(numMsigsOf ? [{ name: "Multisigs", value: "multisigs", onClick: () => navigate("/account/" + address + "/multisigs") }] : []),
                       ...(hasValidatorData ? [{ name: "Validator Data", value: "validator", onClick: () => navigate("/account/" + address + "/validator") }] : []),
                       ...(hasVersions ? [{ name: "Versions", value: "versions", onClick: () => navigate("/account/" + address + "/versions") }] : []),
+                      ...(hasNfdHistory || tabValue === "nfds" ? [{ name: "NFD history", value: "nfds", onClick: () => navigate("/account/" + address + "/nfds") }] : []),
                     ]}
                   />
 
