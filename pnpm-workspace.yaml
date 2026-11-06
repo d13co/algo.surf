@@ -4,13 +4,12 @@ onlyBuiltDependencies:
 
 overrides:
   # abel-ghost-sdk dt build: reads at many rounds through dtalgod queries
-  # (backend 'auto'), and block times. Vendored from abel-ghost-sdk dt-demos
-  # (0ea02bb) plus getAssetsTiny's `exists` flag (branch feat/asset-tiny-exists)
-  # until that is published; then pin the npm release exactly.
+  # (backend 'auto'), block times, and getAssetsTiny's `exists` flag.
+  # Pinned exactly, as a ^ range on a dt prerelease takes later breaking releases.
   # Also one copy everywhere: @d13co/algo-metrics-sdk pins ^0.0.7 (a 0.0.x
   # caret is an exact pin), and two GhostBase instances would mean two
   # separate suggested-params caches.
-  abel-ghost-sdk: file:vendor/abel-ghost-sdk-0.1.0-dt.3-exists.tgz
+  abel-ghost-sdk: 0.1.0-dt.5
   # dt-algosdk: algosdk with time-travel support (reads at past rounds,
   # versions, queries) and the retry policy, one copy everywhere. Pinned
   # exactly, as a ^ range on a dt prerelease takes later breaking releases.

@@ -21,7 +21,7 @@
     "@types/node": "^16.7.13",
     "@types/react": "^17.0.20",
     "@types/react-dom": "^17.0.9",
-    "abel-ghost-sdk": "file:vendor/abel-ghost-sdk-0.1.0-dt.3-exists.tgz",
+    "abel-ghost-sdk": "0.1.0-dt.5",
     "algo-x-evm-sdk": "^0.1.3",
     "algosdk": "npm:dt-algosdk@3.9.0-dt.5.2.0.0",
     "axios": "^0.27.2",
