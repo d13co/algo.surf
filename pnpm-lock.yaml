@@ -116,8 +116,8 @@ importers:
         specifier: ^9.7.1
         version: 9.9.0
       nfd-ghost-sdk:
-        specifier: file:vendor/nfd-ghost-sdk-2.0.0-dt.6.tgz
-        version: file:vendor/nfd-ghost-sdk-2.0.0-dt.6.tgz(@d13co/dt-algokit-utils@9.2.3-dt.5.2.0.0(dt-algosdk@3.9.0-dt.5.2.0.0))(dt-algosdk@3.9.0-dt.5.2.0.0)
+        specifier: 2.0.0-dt.6
+        version: 2.0.0-dt.6(@d13co/dt-algokit-utils@9.2.3-dt.5.2.0.0(dt-algosdk@3.9.0-dt.5.2.0.0))(dt-algosdk@3.9.0-dt.5.2.0.0)
       react:
         specifier: ^18.0.0
         version: 18.3.1
@@ -2250,9 +2250,8 @@ packages:
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
-  nfd-ghost-sdk@file:vendor/nfd-ghost-sdk-2.0.0-dt.6.tgz:
-    resolution: {integrity: sha512-Jt9Woiq8hvXmZS1g+Uv+1RqH3sgfFxJUN4JMApRH1LrCoNrlpgLz+8EX7RBuffA3nNO2zIzxoKhR8EV2Rk/tIw==, tarball: file:vendor/nfd-ghost-sdk-2.0.0-dt.6.tgz}
-    version: 2.0.0-dt.6
+  nfd-ghost-sdk@2.0.0-dt.6:
+    resolution: {integrity: sha512-Jt9Woiq8hvXmZS1g+Uv+1RqH3sgfFxJUN4JMApRH1LrCoNrlpgLz+8EX7RBuffA3nNO2zIzxoKhR8EV2Rk/tIw==}
     peerDependencies:
       '@algorandfoundation/algokit-utils': ^9.2.3-dt.5.2.0.0
       algosdk: ^3.9.0-dt.5.2.0.0
@@ -4862,7 +4861,7 @@ snapshots:
 
   nanoid@3.3.11: {}
 
-  nfd-ghost-sdk@file:vendor/nfd-ghost-sdk-2.0.0-dt.6.tgz(@d13co/dt-algokit-utils@9.2.3-dt.5.2.0.0(dt-algosdk@3.9.0-dt.5.2.0.0))(dt-algosdk@3.9.0-dt.5.2.0.0):
+  nfd-ghost-sdk@2.0.0-dt.6(@d13co/dt-algokit-utils@9.2.3-dt.5.2.0.0(dt-algosdk@3.9.0-dt.5.2.0.0))(dt-algosdk@3.9.0-dt.5.2.0.0):
     dependencies:
       '@algorandfoundation/algokit-utils': '@d13co/dt-algokit-utils@9.2.3-dt.5.2.0.0(dt-algosdk@3.9.0-dt.5.2.0.0)'
       algosdk: dt-algosdk@3.9.0-dt.5.2.0.0

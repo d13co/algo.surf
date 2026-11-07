@@ -14,7 +14,7 @@ The history is exact against those answers, apart from the gaps below.
 ## Requirements
 
 - A time-travel node for the network with `query` in its capabilities, set as the time-travel algod (`REACT_APP_TIMETRAVEL_ALGOD_URL`, or `localStorage.timetravelAlgodUrl`). The tab shows only when `useTimeTravelCapabilities()?.query` and `sdk.supported()` (one probe query, cached per node) both hold; a probe that failed is asked again after a minute. `pnpm dev:mainnet:tt` uses `mainnet-api-dt.d13.co`, which has queries on.
-- nfd-ghost-sdk 2.0.0-dt.6, vendored as `vendor/nfd-ghost-sdk-2.0.0-dt.6.tgz` until it is on npm (then pin `"nfd-ghost-sdk": "2.0.0-dt.6"` exactly). Its peers are the dt5 forks the app already pins in `pnpm-workspace.yaml`, one copy each.
+- nfd-ghost-sdk 2.0.0-dt.6 from npm, pinned exactly (a ^ range on a dt prerelease takes later breaking releases). Its peers are the dt5 forks the app already pins in `pnpm-workspace.yaml`, one copy each.
 
 ## How it works
 
