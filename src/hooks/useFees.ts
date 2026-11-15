@@ -82,7 +82,7 @@ const seriesUrl = (interval: Interval, start?: number, end?: number) =>
  * live refetches every LIVE_POLL_MS[interval]. A refetch, or a new view the shown one extends (see extendsView), fetches
  * only from the shown view's last bucket on: the chain's past doesn't change, and that bucket may have been partial.
  */
-export function useSeries(interval: Interval, start?: number, end?: number, live = false) {
+export function useSeries(interval: Interval, start?: number, end?: number, live = false, enabled = true) {
   // The view shown at the last render, the current one or the previous one standing in while this one loads.
   const shown = useRef<SeriesView>();
   const query = useQuery({
@@ -98,7 +98,7 @@ export function useSeries(interval: Interval, start?: number, end?: number, live
       const tail = await surfIdxGet<Bucket[]>(seriesUrl(interval, Math.max(from, start ?? 0), end));
       return { interval, start, end, buckets: [...prev!.buckets.filter((b) => b.ts < from), ...tail] };
     },
-    enabled: surfIdxSupported,
+    enabled: surfIdxSupported && enabled,
     staleTime: live ? LIVE_POLL_MS[interval] : 60_000,
     refetchInterval: live ? LIVE_POLL_MS[interval] : false,
     // Live, showing the tab again doesn't refetch: the next poll, at most one away, does. A refocus refetch would take

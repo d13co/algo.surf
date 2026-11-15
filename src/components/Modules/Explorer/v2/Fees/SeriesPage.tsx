@@ -9,6 +9,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "src/co
 import { Bucket, Interval, LIVE_POLL_MS, bucketEnd, bucketStart, useSeries } from "src/hooks/useFees";
 import { cn } from "src/lib/utils";
 import { surfIdxSupported } from "src/utils/surfIdx";
+import { useRound } from "src/hooks/useRound";
+import { useBlockHeader } from "src/hooks/useBlock";
 import { usePersistenBooleanState } from "src/utils/usePersistenBooleanState";
 import PeriodMenu from "./PeriodMenu";
 import SeriesChart from "./SeriesChart";
@@ -35,7 +37,7 @@ const RANGES: { value: string; name: string; label: string; days?: number }[] = 
   { value: "1y", name: "1Y", label: "past year", days: 365 },
   { value: "all", name: "All", label: "all time" },
 ];
-const DEFAULT_RANGE = RANGES[2];
+const DEFAULT_RANGE = RANGES[0];
 
 // ponytail: block is mainnet's ~2.8s round time; older history ran ~4.4s, so those views have fewer bars than planned.
 const APPROX_SECONDS: Record<Interval, number> = {
@@ -198,6 +200,15 @@ function SeriesPage({ title, y, format: formatValue, label, stats }: SeriesPageP
   const [params, setParams] = useSearchParams();
   const [liveOn, setLiveOn] = usePersistenBooleanState("series.live", true);
   const now = Math.floor(Date.now() / 1000);
+  // At ?round=R a rolling range (24H … All) ends at block R instead of now: R's timestamp, its own block included.
+  const { round: atRound } = useRound();
+  const { data: atHeader, error: atHeaderError } = useBlockHeader(atRound ?? 0);
+  // Round 0, the genesis block, has no header to look up (and no history before it).
+  const atEnd =
+    atRound === 0 ? GENESIS + 1 : atRound !== undefined && atHeader?.timestamp ? Number(atHeader.timestamp) + 1 : undefined;
+  // Waiting for R's timestamp: nothing is fetched until the view's end is known.
+  const atPending = atRound !== undefined && atEnd === undefined;
+  const rangeEnd = atEnd ?? now;
   // A calendar period, else a rolling range.
   const period = parsePeriod(params.get("range") ?? "", now);
   const range = RANGES.find((r) => r.value === params.get("range")) ?? DEFAULT_RANGE;
@@ -205,8 +216,10 @@ function SeriesPage({ title, y, format: formatValue, label, stats }: SeriesPageP
   // A drag-zoomed [start, end) overrides the range or period.
   const zoomStart = Number(params.get("start"));
   const zoomEnd = Number(params.get("end"));
-  const zoom = zoomStart > 0 && zoomEnd > zoomStart ? { start: zoomStart, end: zoomEnd } : null;
-  const span = zoom ? zoom.end - zoom.start : spanOf(rangeValue, now);
+  // At a round, a zoom (from a link or typed) ends at R at the latest: nothing after R is shown.
+  const zoomEndAt = atEnd !== undefined ? Math.min(zoomEnd, atEnd) : zoomEnd;
+  const zoom = zoomStart > 0 && zoomEndAt > zoomStart ? { start: zoomStart, end: zoomEndAt } : null;
+  const span = zoom ? zoom.end - zoom.start : period ? spanOf(rangeValue, now) : spanOf(rangeValue, rangeEnd);
   const intervals = intervalsFor(span);
   // The finest interval keeping a zoom to 1000 bars, anything else to 200.
   const interval =
@@ -216,14 +229,14 @@ function SeriesPage({ title, y, format: formatValue, label, stats }: SeriesPageP
   // A zoom or period has fixed bounds. A rolling range is interval-aligned, so the first bucket is whole and the
   // query key holds for a whole bucket.
   const bounds = zoom ?? period;
-  const start = bounds ? bounds.start : range.days ? bucketStart(interval, now - range.days * DAY) : undefined;
-  const end = bounds?.end;
+  const start = bounds ? bounds.start : range.days ? bucketStart(interval, rangeEnd - range.days * DAY) : undefined;
+  const end = bounds ? bounds.end : atEnd;
   // A view ending now, or a zoom ending in the future. Past a zoom's end it stays live for two more polls, for blocks
   // surf idx hadn't indexed yet.
   const liveUntil = end === undefined ? Infinity : end + (2 * LIVE_POLL_MS[interval]) / 1000;
   const endsNow = surfIdxSupported && now < liveUntil;
   const live = liveOn && endsNow;
-  const { data, isPlaceholderData, error } = useSeries(interval, start, end, live);
+  const { data, isPlaceholderData, error } = useSeries(interval, start, end, live, !atPending);
   // Placeholder data with other params is the previous view: dimmed until this one loads. With these params it's the
   // shown view cut to this start, e.g. a live rolling range sliding forward a bucket.
   const loading = isPlaceholderData && !(data?.interval === interval && data.start === start && data.end === end);
@@ -267,18 +280,21 @@ function SeriesPage({ title, y, format: formatValue, label, stats }: SeriesPageP
 
   // Tabs and periods replace the history entry; a zoom pushes one, so Back undoes it. A picked interval carries over
   // where the new span offers it; a default one is worked out again.
+  // The time-travel round rides along through every change of view, as it does through links (see keepsRound).
+  // The round this page shows (none where no time-travel node serves it), as links carry it (see useRoundHref).
+  const withRound = (p: Record<string, string>) => (atRound !== undefined ? { ...p, round: String(atRound) } : p);
   const select = (r: string) => {
-    const keep = params.get("interval") === interval && intervalsFor(spanOf(r, now)).includes(interval);
-    setParams(keep ? { range: r, interval } : { range: r }, { replace: true });
+    const keep = params.get("interval") === interval && intervalsFor(spanOf(r, rangeEnd)).includes(interval);
+    setParams(withRound(keep ? { range: r, interval } : { range: r }), { replace: true });
   };
   const selectInterval = (i: string) =>
     setParams({ ...Object.fromEntries(params), interval: i }, { replace: true });
-  const zoomTo = (s: number, e: number) => setParams({ range: rangeValue, start: String(s), end: String(e) });
-  const resetZoom = () => setParams({ range: rangeValue }, { replace: true });
+  const zoomTo = (s: number, e: number) => setParams(withRound({ range: rangeValue, start: String(s), end: String(e) }));
+  const resetZoom = () => setParams(withRound({ range: rangeValue }), { replace: true });
   // 12.5% more on each side, out to whole buckets, no further than the buckets holding genesis and the tip.
   const zoomOut = (z: { start: number; end: number }) => {
     const pad = (z.end - z.start) / 8;
-    const end = bucketEnd(interval, bucketStart(interval, Math.min(z.end + pad, now) - 1));
+    const end = bucketEnd(interval, bucketStart(interval, Math.min(z.end + pad, rangeEnd) - 1));
     zoomTo(bucketStart(interval, Math.max(z.start - pad, GENESIS)), end);
   };
 
@@ -339,7 +355,12 @@ function SeriesPage({ title, y, format: formatValue, label, stats }: SeriesPageP
                 </div>
               ) : (
                 <>
-                  Showing {period?.label ?? range.label}.{" "}
+                  Showing{" "}
+                  {period?.label ??
+                    (atRound !== undefined
+                      ? `${range.label.replace(/^past /, "the ")} up to block ${atRound.toLocaleString()}`
+                      : range.label)}
+                  .{" "}
                   <span className="text-muted pointer-coarse:hidden">Click a bar or drag across the chart to zoom in.</span>
                   <span className="hidden text-muted pointer-coarse:inline">Drag across the chart to zoom in.</span>
                 </>
@@ -356,7 +377,11 @@ function SeriesPage({ title, y, format: formatValue, label, stats }: SeriesPageP
         </div>
 
         {/* A failed fetch with a view to show, e.g. a rate-limited live poll, keeps it up: the next poll may succeed. */}
-        {error && !data ? (
+        {atPending && atHeaderError ? (
+          <div className="text-muted-foreground">
+            Could not find block {atRound?.toLocaleString()}: {String(atHeaderError)}
+          </div>
+        ) : error && !data ? (
           <div className="text-muted-foreground">Could not load data: {String(error)}</div>
         ) : !data ? (
           <LoadingTile />

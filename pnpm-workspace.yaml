@@ -6,16 +6,19 @@ overrides:
   # abel-ghost-sdk dt build: reads at many rounds through dtalgod queries
   # (backend 'auto'), block times, and getAssetsTiny's `exists` flag.
   # Pinned exactly, as a ^ range on a dt prerelease takes later breaking releases.
-  # Also one copy everywhere: @d13co/algo-metrics-sdk pins ^0.0.7 (a 0.0.x
-  # caret is an exact pin), and two GhostBase instances would mean two
-  # separate suggested-params caches.
+  # One copy everywhere: two GhostBase instances would mean two separate
+  # suggested-params caches. (algo-metrics-sdk dt takes it as a peer.)
   abel-ghost-sdk: 0.1.0-dt.5
+  # algo-metrics-sdk dt build: block-time windows and online stake at past
+  # rounds through a time-travel node. Vendored (named with its commit) until
+  # 1.3.0-dt.1 is published;
+  # this keeps algo-metrics-react's dependency on it on the same tarball.
+  '@d13co/algo-metrics-sdk': file:vendor/algo-metrics-sdk-1.3.0-dt.1-a498f64.tgz
   # dt-algosdk: algosdk with time-travel support (reads at past rounds,
   # versions, queries) and the retry policy, one copy everywhere. Pinned
   # exactly, as a ^ range on a dt prerelease takes later breaking releases.
   algosdk: npm:dt-algosdk@3.9.0-dt.5.2.0.0
   # dt-algokit-utils: algokit-utils on dt-algosdk (time travel, versions,
-  # asset holders, queries, retry config), one copy everywhere:
-  # @d13co/algo-metrics-sdk depends on stock 9.2.0, whose AlgorandClient type
-  # clashes with this one's. Pinned exactly, as algosdk.
+  # asset holders, queries, retry config), one copy everywhere: a stock
+  # AlgorandClient type clashes with this one's. Pinned exactly, as algosdk.
   '@algorandfoundation/algokit-utils': npm:@d13co/dt-algokit-utils@9.2.3-dt.5.2.0.0

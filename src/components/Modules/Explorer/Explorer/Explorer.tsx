@@ -5,8 +5,11 @@ import { AlgoMetricsProvider } from "@d13co/algo-metrics-react";
 import { AlgoMetricsSDK } from "@d13co/algo-metrics-sdk";
 import { LiveBlocksProvider } from "../../../../hooks/useLiveBlocks";
 import { abel } from "../../../../packages/abel/abel";
+import { getAbelAt } from "../../../../packages/abel/abelAt";
 
-const metricsSDK = new AlgoMetricsSDK({ abelGhostSDK: abel });
+// Reads at past rounds (stats at ?round=R) go to the time-travel node's abel, looked up on each
+// read so a node configured later is used.
+const metricsSDK = new AlgoMetricsSDK({ abelGhostSDK: abel, historyAbelGhostSDK: getAbelAt });
 
 class PageErrorBoundary extends Component<
   { children: React.ReactNode },

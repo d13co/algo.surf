@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useRoundNavigate } from "src/hooks/useRound";
 import { barY, defineChart } from "@tanstack/charts";
 import { scaleBand } from "@tanstack/charts/scales/band";
 import { scaleLinear } from "@tanstack/charts/scales/linear";
@@ -54,7 +54,8 @@ function SeriesChart({
   label,
   onZoom,
 }: SeriesChartProps): JSX.Element {
-  const navigate = useNavigate();
+  // Block links keep the page's time-travel round.
+  const navigate = useRoundNavigate();
   const rows = useMemo((): Row[] => {
     const cut = Math.min(end ?? Infinity, Date.now() / 1000);
     return buckets.map((b) => {

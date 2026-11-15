@@ -4,7 +4,10 @@ import {
     useAverageRoundTime,
     useTransactionCount,
     useBlockData,
+    useBlockDataAt,
+    useOnlineStake,
 } from "@d13co/algo-metrics-react";
+import { useRound, useRoundHref } from "src/hooks/useRound";
 import {
     Tooltip,
     TooltipContent,
@@ -26,6 +29,7 @@ const FEE_PERIODS = [
 
 function FeeRow({ period, label, span }: (typeof FEE_PERIODS)[number]): JSX.Element {
     const { data } = useFeeTotal(period);
+    const roundHref = useRoundHref();
     const value = data
         ? microalgosToAlgos(data.fees).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " ALGO"
         : "-";
@@ -34,7 +38,7 @@ function FeeRow({ period, label, span }: (typeof FEE_PERIODS)[number]): JSX.Elem
         <TooltipProvider>
             <Tooltip>
                 <TooltipTrigger asChild>
-                    <Link to="/fees" className="flex justify-between w-[90%] max-md:min-w-[80%] max-md:w-auto mb-2.5 text-muted-foreground hover:text-foreground">
+                    <Link to={roundHref("/fees")} className="flex justify-between w-[90%] max-md:min-w-[80%] max-md:w-auto mb-2.5 text-muted-foreground hover:text-foreground">
                         <span>{label}</span>
                         <span className="text-primary ml-2.5">{value}</span>
                     </Link>
@@ -47,13 +51,29 @@ function FeeRow({ period, label, span }: (typeof FEE_PERIODS)[number]): JSX.Elem
     );
 }
 
+/** Rounds the TPS and block-time stats span. */
+const STATS_SPAN = 100;
+
+const compactAlgo = new Intl.NumberFormat(undefined, { notation: "compact", maximumFractionDigits: 2 });
+
 function LiveStats(): JSX.Element {
-    const tpsValue = useTransactionsPerSecond();
-    const avgRoundTime = useAverageRoundTime();
-    const txnCount = useTransactionCount();
-    const blockData = useBlockData();
+    // The 100 rounds up to ?round=R (read from the time-travel node), else the last 100 of the live window, which
+    // stays at 1,000 blocks for the ETAs that average over it (upgrade countdown, key expiry).
+    const { round } = useRound();
+    const roundHref = useRoundHref();
+    const at = { round, span: STATS_SPAN };
+    const tpsValue = useTransactionsPerSecond(at);
+    const avgRoundTime = useAverageRoundTime(at);
+    const txnCount = useTransactionCount(at);
+    const blockData = useBlockData(at);
+    const onlineStake = useOnlineStake(at);
+    // Same read as the hooks above (same round and span), so no extra request: only its error is new.
+    const { error: atError } = useBlockDataAt(round, STATS_SPAN);
 
     const blockCount = blockData?.length ?? 0;
+    const spanBlocks = Math.max(0, blockCount - 1);
+    const windowText = round !== undefined ? `the ${spanBlocks} blocks up to ${round.toLocaleString()}` : `the last ${spanBlocks} blocks`;
+    const pendingText = atError ? `Could not read the blocks up to ${round?.toLocaleString()}: ${(atError as Error).message}` : "Loading";
 
     const tps = tpsValue != null ? tpsValue.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : "-";
     const avg = avgRoundTime != null
@@ -78,7 +98,7 @@ function LiveStats(): JSX.Element {
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 {surfIdxSupported ? (
-                                    <Link to="/tps" className="flex justify-between w-[90%] max-md:min-w-[80%] max-md:w-auto mb-2.5 text-muted-foreground hover:text-foreground">
+                                    <Link to={roundHref("/tps")} className="flex justify-between w-[90%] max-md:min-w-[80%] max-md:w-auto mb-2.5 text-muted-foreground hover:text-foreground">
                                         <span>Transactions per second</span>
                                         <span className="text-primary ml-2.5">{tps}</span>
                                     </Link>
@@ -90,7 +110,7 @@ function LiveStats(): JSX.Element {
                                 )}
                             </TooltipTrigger>
                             <TooltipContent side="top" className="bg-black text-white border-border">
-                                <p>{loading ? "Loading" : `TPS over the last ${blockCount} blocks (~${intervalMinutes} minutes)`}{surfIdxSupported ? ". Click for charts." : ""}</p>
+                                <p>{loading ? pendingText : `TPS over ${windowText} (~${intervalMinutes} minutes)`}{surfIdxSupported ? ". Click for charts." : ""}</p>
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
@@ -104,7 +124,7 @@ function LiveStats(): JSX.Element {
                                 </div>
                             </TooltipTrigger>
                             <TooltipContent side="top" className="bg-black text-white border-border">
-                                <p>{loading ? "Loading" : `Average block time over the last ${blockCount} blocks (~${intervalMinutes} minutes)`}</p>
+                                <p>{loading ? pendingText : `Average block time over ${windowText} (~${intervalMinutes} minutes)`}</p>
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
@@ -119,14 +139,31 @@ function LiveStats(): JSX.Element {
                             </TooltipTrigger>
                             <TooltipContent side="top" className="bg-black text-white border-border max-w-xs">
                                 <p>
-                                    Total transactions on Algorand {NETWORK}
+                                    Total transactions on Algorand {NETWORK}{round !== undefined ? ` up to block ${round.toLocaleString()}` : ""}
                                     {NETWORK === "Mainnet" ? <>.<br/><br/>Corrected for the transactions performed before the transaction counter (tc) was implemented.</> : null}
                                 </p>
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
 
-                    {surfIdxSupported ? FEE_PERIODS.map((p) => <FeeRow key={p.period} {...p} />) : null}
+                    {/* The fee totals end now: hidden at a past round rather than shown beside its stats. */}
+                    {surfIdxSupported && round === undefined ? FEE_PERIODS.map((p) => <FeeRow key={p.period} {...p} />) : null}
+
+                    {onlineStake != null ? (
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <div className="flex justify-between w-[90%] max-md:min-w-[80%] max-md:w-auto mb-2.5 cursor-help text-muted-foreground">
+                                        <span>Online stake</span>
+                                        <span className="text-primary ml-2.5">{compactAlgo.format(Number(onlineStake / 1000n) / 1000)} ALGO</span>
+                                    </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="bg-black text-white border-border">
+                                    <p>Total stake of online accounts{round !== undefined ? ` at block ${round.toLocaleString()}` : ""}</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    ) : null}
 
                     <TooltipProvider>
                         <Tooltip>

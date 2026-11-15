@@ -11,6 +11,8 @@ import LinkToBlock from "../Links/LinkToBlock";
 
 /** Pages that show a record as it was at `?round=` (see TimeTravelBar). */
 const roundAwarePath = /^\/(account|application|asset)\/[^/?#]/;
+/** Pages whose views end at the round (the TPS and fee charts): not record state, but not the latest data either. */
+const roundBoundPath = /^\/(tps|fees)\/?$/;
 /** Pages of one fixed record, the same at every round. */
 const fixedRecordPath = /^\/(block|transaction|group)\/[^/?#]/;
 
@@ -82,7 +84,7 @@ export function TimeTravelBar(): JSX.Element | null {
         <span className="opacity-80">
           <RoundTime round={round} />
         </span>
-        {!roundAwarePath.test(pathname) && !fixedRecordPath.test(pathname) ? (
+        {!roundAwarePath.test(pathname) && !fixedRecordPath.test(pathname) && !roundBoundPath.test(pathname) ? (
           <span className="opacity-80" title="This page has no history: it shows the latest data. Links from it keep the round.">
             · this page shows the latest data
           </span>
