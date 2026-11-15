@@ -34,9 +34,9 @@ type Edits = { loc: string; round?: string; day?: Date; time?: string; month?: D
  * "Travel to…": a header icon button that opens a picker for a round, or a
  * local date and time (turned into the last round at or before it). Either
  * opens this page at that round. Shown only with a time-travel node for this
- * network.
+ * network. With a `label`, the trigger is that text with the icon, as a link.
  */
-export default function TimeTravelPicker({ className }: { className?: string }): JSX.Element | null {
+export default function TimeTravelPicker({ className, label }: { className?: string; label?: string }): JSX.Element | null {
   const supported = useTimeTravelSupport();
   const { round } = useRound();
   const { pathname, search, hash } = useLocation();
@@ -116,19 +116,31 @@ export default function TimeTravelPicker({ className }: { className?: string }):
         setOpen(o);
       }}
     >
-      <DropdownMenuTrigger
-        title="Travel to a round or date"
-        aria-label="Travel to a round or date"
-        className={cn(
-          "inline-flex shrink-0 items-center justify-center rounded-full h-12 w-12 header:h-9 header:w-9 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring hover:text-primary",
-          round !== undefined ? "text-primary" : "text-muted-foreground",
-          className,
-        )}
-      >
-        <History className="h-7 w-7 header:h-6 header:w-6" strokeWidth={1.75} />
-      </DropdownMenuTrigger>
+      {label ? (
+        <DropdownMenuTrigger
+          className={cn(
+            "inline-flex min-h-11 items-center gap-2 rounded-md px-2 text-sm text-primary outline-none transition-colors hover:underline focus-visible:ring-2 focus-visible:ring-ring",
+            className,
+          )}
+        >
+          <History className="h-4 w-4" strokeWidth={2} />
+          {label}
+        </DropdownMenuTrigger>
+      ) : (
+        <DropdownMenuTrigger
+          title="Travel to a round or date"
+          aria-label="Travel to a round or date"
+          className={cn(
+            "inline-flex shrink-0 items-center justify-center rounded-full h-12 w-12 header:h-9 header:w-9 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring hover:text-primary",
+            round !== undefined ? "text-primary" : "text-muted-foreground",
+            className,
+          )}
+        >
+          <History className="h-7 w-7 header:h-6 header:w-6" strokeWidth={1.75} />
+        </DropdownMenuTrigger>
+      )}
       <DropdownMenuContent
-        align="end"
+        align={label ? "center" : "end"}
         collisionPadding={16}
         className="w-[300px] bg-background border-border text-foreground p-3 [color-scheme:dark]"
         // Keeps the menu's typeahead and arrow keys out of the fields and calendar.

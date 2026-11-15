@@ -4,16 +4,17 @@ import { useAlgoMetricsContext } from "@d13co/algo-metrics-react";
 import type { TsTcWatcherBlockCallback, TsTcWatcherSimpleCallback } from "@d13co/algo-metrics-sdk";
 import type { modelsv2, Transaction } from "algosdk";
 import { surfIdxSupported } from "src/utils/surfIdx";
+import { useRound } from "src/hooks/useRound";
 
-const BLOCKS_TO_KEEP = 11;
+export const BLOCKS_TO_KEEP = 11;
 const TRANSACTIONS_TO_KEEP = BLOCKS_TO_KEEP;
 const IS_LOCALNET = process.env.REACT_APP_NETWORK === "Localnet";
 
-type Block = modelsv2.BlockResponse["block"];
-type SignedTxnInBlock = Block["payset"][number];
+export type Block = modelsv2.BlockResponse["block"];
+export type SignedTxnInBlock = Block["payset"][number];
 
 /** Restore genesisID/genesisHash stripped by algod in block encoding */
-function patchBlockTxns(block: Block): void {
+export function patchBlockTxns(block: Block): void {
   const { genesisID, genesisHash } = block.header;
   for (const stib of block.payset) {
     const txn = stib.signedTxn.signedTxn.txn as { -readonly [K in keyof Transaction]: Transaction[K] };
@@ -24,7 +25,7 @@ function patchBlockTxns(block: Block): void {
   }
 }
 
-function deriveTransactions(blocks: Block[]): SignedTxnInBlock[] {
+export function deriveTransactions(blocks: Block[]): SignedTxnInBlock[] {
   return blocks
     .flatMap((b) => b.payset ?? [])
     .slice(0, TRANSACTIONS_TO_KEEP);
@@ -65,7 +66,9 @@ export function LiveBlocksProvider({ children }: { children: React.ReactNode }) 
   stateRef.current = state;
 
   const { pathname } = useLocation();
-  const mode = watchMode(pathname);
+  // At ?round=R the homepage shows the blocks up to R (useHomeBlocks): nothing to follow.
+  const { round } = useRound();
+  const mode = round !== undefined && pathname === "/" ? null : watchMode(pathname);
   const modeRef = useRef(mode);
   modeRef.current = mode;
 

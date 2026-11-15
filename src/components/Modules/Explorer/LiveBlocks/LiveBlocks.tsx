@@ -1,7 +1,11 @@
 import React, { useRef } from "react";
-import { Link } from "react-router-dom";
-import { useRoundHref } from "src/hooks/useRound";
-import { useLiveBlocks } from "../../../../hooks/useLiveBlocks";
+import { Link, useNavigate } from "react-router-dom";
+import { ChevronUp } from "lucide-react";
+import { useLatestRound } from "@d13co/algo-metrics-react";
+import dateFormat from "dateformat";
+import { useRoundHref, useRoundNavigate } from "src/hooks/useRound";
+import { useHomeBlocks } from "src/hooks/useHomeBlocks";
+import { cn } from "src/lib/utils";
 import { CSSTransition, TransitionGroup } from 'react-transition-group';
 import MultiDateViewer from "../../../v2/MultiDateViewer";
 import {
@@ -63,18 +67,48 @@ function countTxnTypes(payset: Block["payset"]) {
     return { total, counts };
 }
 
-function BlockItem({ block, ...transitionProps }: { block: Block } & Record<string, unknown>) {
+/**
+ * When a block was made, against the shown round's: live, how long ago; at a round, the anchor's
+ * UTC time and, for the blocks before it, how long before it.
+ */
+function BlockTime({ block, anchor }: { block: Block; anchor?: Block }): JSX.Element {
+    const ts = Number(block.header.timestamp);
+    if (!anchor) return <MultiDateViewer timestamp={ts} fixedView="relative" noCopy />;
+    const anchorTs = Number(anchor.header.timestamp);
+    if (block === anchor) {
+        return <span title={dateFormat(new Date(ts * 1000), "UTC:yyyy-mm-dd HH:MM:ss") + " UTC"}>{dateFormat(new Date(ts * 1000), "UTC:HH:MM:ss")} UTC</span>;
+    }
+    return <span>{anchorTs - ts}s before</span>;
+}
+
+function BlockItem({ block, anchor, ...transitionProps }: { block: Block; anchor?: Block } & Record<string, unknown>) {
     const nodeRef = useRef<HTMLAnchorElement>(null);
     const roundHref = useRoundHref();
     const round = Number(block.header.round);
     const { total, counts } = countTxnTypes(block.payset);
+    const isAnchor = block === anchor;
 
     return (
         <CSSTransition {...transitionProps} key={round} timeout={700} classNames="item" nodeRef={nodeRef}>
-            <Link ref={nodeRef} to={roundHref("/block/" + round)} className="block bg-background-card p-4 my-3 border-l-[6px] border-primary rounded overflow-hidden hover:bg-background-card/80">
+            <Link
+                ref={nodeRef}
+                to={roundHref("/block/" + round)}
+                aria-current={isAnchor ? "true" : undefined}
+                className={cn(
+                    "block bg-background-card p-4 my-3 border-l-[6px] border-primary rounded overflow-hidden hover:bg-background-card/80",
+                    isAnchor && "outline outline-2 outline-primary outline-offset-2",
+                )}
+            >
                 <div className="w-full">
                     <div className="flex justify-between items-center flex-wrap">
-                        <span className="text-primary font-medium">{round}</span>
+                        <span className="text-primary font-medium">
+                            {round}
+                            {isAnchor ? (
+                                <span className="ml-2 rounded bg-foreground px-1.5 text-[11px] font-bold text-background align-middle" title="The round this page shows">
+                                    R
+                                </span>
+                            ) : null}
+                        </span>
                         <span className="text-right grow text-muted-foreground">
                             {total} Transactions
                         </span>
@@ -86,7 +120,7 @@ function BlockItem({ block, ...transitionProps }: { block: Block } & Record<stri
                             )}
                         </div>
                         <div className="mt-4 text-[13px] text-muted-foreground text-right ml-0.5">
-                            <MultiDateViewer timestamp={Number(block.header.timestamp)} fixedView="relative" noCopy />
+                            <BlockTime block={block} anchor={anchor} />
                         </div>
                     </div>
                 </div>
@@ -96,7 +130,14 @@ function BlockItem({ block, ...transitionProps }: { block: Block } & Record<stri
 }
 
 function LiveBlocks(): JSX.Element {
-    const { blocks } = useLiveBlocks();
+    const { round, blocks, isLoading, error } = useHomeBlocks();
+    const navigate = useRoundNavigate();
+    const navigateLive = useNavigate();
+    const latest = useLatestRound();
+    // At the tip there is no newer block: the step goes back to the live page.
+    const atTip = round !== undefined && latest !== null && round >= Number(latest);
+    // At a round, R is the window's newest block once it has loaded.
+    const anchor = round !== undefined && blocks[0] && Number(blocks[0].header.round) === round ? blocks[0] : undefined;
 
     return (
         <div>
@@ -105,9 +146,24 @@ function LiveBlocks(): JSX.Element {
                     Blocks
                 </div>
                 <div className="mt-5">
+                    {round !== undefined ? (
+                        // One block on: the same page at R + 1.
+                        <button
+                            type="button"
+                            onClick={() => (atTip ? navigateLive("/") : navigate(`/?round=${round + 1}`, { replace: true }))}
+                            className="mb-1 flex w-full min-h-11 items-center justify-center gap-1.5 rounded border border-dashed border-primary/50 text-sm text-muted-foreground hover:text-foreground hover:border-primary"
+                        >
+                            <ChevronUp className="h-4 w-4" />
+                            {atTip ? "Latest block: back to live" : `Newer: block ${(round + 1).toLocaleString()}`}
+                        </button>
+                    ) : null}
+                    {error && !blocks.length ? (
+                        <div className="text-sm text-muted-foreground">Could not load the blocks up to {round?.toLocaleString()}: {String(error)}</div>
+                    ) : null}
+                    {round !== undefined && isLoading && !blocks.length ? <div className="text-sm text-muted-foreground">Loading blocks…</div> : null}
                     <TransitionGroup component="div">
                         {blocks.map((block) => (
-                            <BlockItem key={Number(block.header.round)} block={block} />
+                            <BlockItem key={Number(block.header.round)} block={block} anchor={anchor} />
                         ))}
                     </TransitionGroup>
                 </div>

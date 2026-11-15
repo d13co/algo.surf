@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import ConsensusVersion from "src/components/v2/ConsensusVersion";
 import { useConsensusUpgrade } from "src/hooks/useConsensusUpgrade";
+import { useHomeBlocks } from "src/hooks/useHomeBlocks";
 import { useConsensusVersionLookup } from "src/hooks/useConsensusVersions";
 import { useUpgradeAttempt } from "src/hooks/useUpgrades";
 import ConsensusUpgradeDialog from "./ConsensusUpgradeDialog";
@@ -11,10 +12,13 @@ import { voteStatus } from "./voteStatus";
 /**
  * Homepage banner for a consensus upgrade in flight, in either phase: being voted on, or approved
  * and counting down to its switch round. Renders nothing the rest of the time, which is almost
- * always. Clicking opens the full detail dialog.
+ * always. Clicking opens the full detail dialog. At ?round=R, the upgrade as it stood at block R.
  */
 export default function LiveUpgrade(): JSX.Element | null {
-    const upgrade = useConsensusUpgrade();
+    const { round, blocks } = useHomeBlocks();
+    // At a round, only once R's own header is in: an older one would show an older state.
+    const atR = round !== undefined && blocks[0] && Number(blocks[0].header.round) === round ? { round, blocks } : undefined;
+    const upgrade = useConsensusUpgrade(round !== undefined ? atR ?? { round, blocks: [] } : undefined);
     const lookup = useConsensusVersionLookup();
     const [open, setOpen] = useState(false);
     // From surf idx: earlier proposals of this protocol make this a re-vote.
@@ -41,6 +45,7 @@ export default function LiveUpgrade(): JSX.Element | null {
                         <div className="text-muted-foreground text-[13px] mb-1">
                             {upgrade.phase === "voting" ? "Upgrade Vote" : "Upgrade Countdown"}
                             {attempt > 1 ? ` · attempt ${attempt}` : ""}
+                            {round !== undefined ? ` · as it stood at block ${round.toLocaleString()}` : ""}
                         </div>
                         <ConsensusVersion info={next} size="lg" />
                     </div>
@@ -59,7 +64,12 @@ export default function LiveUpgrade(): JSX.Element | null {
                                 <span className="text-muted-foreground">{upgrade.roundsRemaining === 1 ? "round" : "rounds"}</span>
                             </div>
                             <div className="text-[13px] mt-2">
-                                <UpgradeEta targetEpoch={upgrade.targetEpoch} />
+                                {round !== undefined ? (
+                                    // A countdown from a past block has run out: name the round instead.
+                                    <span className="text-muted-foreground">to the switch at block {upgrade.nextProtocolSwitchOn.toLocaleString()}</span>
+                                ) : (
+                                    <UpgradeEta targetEpoch={upgrade.targetEpoch} />
+                                )}
                             </div>
                         </div>
                     )}

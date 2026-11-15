@@ -9,8 +9,8 @@ import { TIMESTAMP_DISPLAY_FORMAT } from "src/packages/core-sdk/constants";
 import Link from "../Links/Link";
 import LinkToBlock from "../Links/LinkToBlock";
 
-/** Pages that show a record as it was at `?round=` (see TimeTravelBar). */
-const roundAwarePath = /^\/(account|application|asset)\/[^/?#]/;
+/** Pages that show state as it was at `?round=` (see TimeTravelBar): records, and the homepage's blocks and stats. */
+const roundAwarePath = /^(\/(account|application|asset)\/[^/?#]|\/$)/;
 /** Pages whose views end at the round (the TPS and fee charts): not record state, but not the latest data either. */
 const roundBoundPath = /^\/(tps|fees)\/?$/;
 /** Pages of one fixed record, the same at every round. */

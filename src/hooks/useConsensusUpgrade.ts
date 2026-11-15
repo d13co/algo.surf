@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useAverageRoundTime } from "@d13co/algo-metrics-react";
-import { useLiveBlocks } from "src/hooks/useLiveBlocks";
+import { Block, useLiveBlocks } from "src/hooks/useLiveBlocks";
 import { BLOCK_TIME } from "src/packages/core-sdk/constants";
 import { A_UpgradeState } from "src/packages/core-sdk/types";
 
@@ -49,7 +49,7 @@ function votableRoundsLeft(voting: boolean, voteBefore: number, switchOn: number
 }
 
 /** Average seconds per round from the cached live block headers, or null with fewer than two. */
-function avgRoundTimeFromBlocks(blocks: { header: { round: bigint; timestamp: bigint } }[]): number | null {
+function avgRoundTimeFromBlocks(blocks: readonly { header: { round: bigint; timestamp: bigint } }[]): number | null {
     if (blocks.length < 2) return null;
     const newest = blocks[0].header;
     const oldest = blocks[blocks.length - 1].header;
@@ -105,10 +105,14 @@ function demoUpgrade(mode: string, round: number): ConsensusUpgrade | null {
  * and is refreshed every round — so this costs no requests. (algod's status endpoint would add only
  * next-version-supported, which is a property of the node serving us rather than of the network, so
  * it is deliberately not surfaced.)
+ *
+ * With `at`, the upgrade in flight at block `at.round`, from that block's header (`at.blocks`,
+ * newest first, as useHomeBlocks gives them), with the block time of the 100 rounds up to it.
  */
-export function useConsensusUpgrade(): ConsensusUpgrade | null {
-    const { blocks } = useLiveBlocks();
-    const metricsAvg = useAverageRoundTime();
+export function useConsensusUpgrade(at?: { round: number; blocks: readonly Block[] }): ConsensusUpgrade | null {
+    const live = useLiveBlocks();
+    const blocks = at ? at.blocks : live.blocks;
+    const metricsAvg = useAverageRoundTime(at ? { round: at.round, span: 100 } : undefined);
 
     return useMemo(() => {
         const latest = blocks[0];

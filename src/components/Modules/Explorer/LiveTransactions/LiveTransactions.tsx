@@ -1,7 +1,7 @@
 import React, { useRef } from "react";
 import { Link } from "react-router-dom";
 import { useRoundHref } from "src/hooks/useRound";
-import { useLiveBlocks } from "../../../../hooks/useLiveBlocks";
+import { useHomeBlocks } from "src/hooks/useHomeBlocks";
 import { CSSTransition, TransitionGroup } from 'react-transition-group';
 import { ellipseString } from "src/packages/core-sdk/utils";
 import { TransactionType } from "algosdk";
@@ -96,7 +96,8 @@ function TransactionItem({ stib, ...transitionProps }: { stib: SignedTxnInBlock 
 }
 
 function LiveTransactions(): JSX.Element {
-    const { transactions } = useLiveBlocks();
+    // Live, or the newest of the blocks up to ?round=R.
+    const { transactions } = useHomeBlocks();
 
     return (
         <div>
