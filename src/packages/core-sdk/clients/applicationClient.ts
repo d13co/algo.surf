@@ -5,10 +5,14 @@ import {Network} from "../network";
 import axios from 'axios';
 import {A_TransactionsResponse, txnsBatchSize} from "./transactionClient";
 import { toA_Application, toA_ApplicationsResponse } from "../utils/v3Adapters";
+import { ListOptions, withSignal } from "../utils/signal";
 
 export type CompileResponse = { hash: string; result: string; sourcemap?: string };
 
 export const APPLICATIONS_PAGE_SIZE = 100;
+
+/** Fetch options that cancel the request with `signal`. */
+
 
 export type A_ApplicationTransactionsResponse = A_TransactionsResponse;
 export type A_ApplicationsResponse = {
@@ -32,9 +36,9 @@ export class ApplicationClient{
         return response.application;
     }
 
-    async search(id: number): Promise<A_ApplicationResult | null>{
+    async search(id: number, signal?: AbortSignal): Promise<A_ApplicationResult | null>{
         try {
-            const response = await this.indexer.lookupApplications(id).includeAll().do();
+            const response = await this.indexer.lookupApplications(id).includeAll().do(undefined, withSignal(signal));
             const converted = toA_Application(response.application);
             return { ...converted, type: "application" } as A_ApplicationResult
         } catch(e) {
@@ -45,13 +49,21 @@ export class ApplicationClient{
         }
     }
 
-    async getApplications(token?: string): Promise<A_ApplicationsResponse> {
-        const req = this.indexer.searchForApplications().limit(APPLICATIONS_PAGE_SIZE);
+    /** With `includeAll`, deleted applications too. */
+    async getApplications(
+        token?: string,
+        limit: number = APPLICATIONS_PAGE_SIZE,
+        { signal, includeAll }: ListOptions = {},
+    ): Promise<A_ApplicationsResponse> {
+        const req = this.indexer.searchForApplications().limit(limit);
         if (token) {
             req.nextToken(token);
         }
+        if (includeAll) {
+            req.includeAll();
+        }
 
-        const response = await req.do();
+        const response = await req.do(undefined, withSignal(signal));
         return toA_ApplicationsResponse(response);
     }
 

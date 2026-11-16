@@ -51,6 +51,7 @@ const LsigTemplates = lazy(() => import("../Modules/Explorer/v2/Lsig/LsigTemplat
 const LsigTemplate = lazy(() => import("../Modules/Explorer/v2/Lsig/LsigTemplate"));
 const StripExplorerFromPath = lazy(() => import("./StripExplorerFromPath"));
 const SearchFromPath = lazy(() => import("./SearchFromPath"));
+const SearchResults = lazy(() => import("../Modules/Explorer/Search/SearchResults"));
 
 /** A redirect that keeps the query string, so `?round=` survives it. */
 function NavigateKeepingSearch({ to }: { to: string }): JSX.Element {
@@ -247,6 +248,7 @@ function AppRouter(): JSX.Element {
                           path="/explorer/*"
                           element={<StripExplorerFromPath />}
                         />
+                        <Route path="/search" element={<SearchResults />} />
                         <Route path="*" element={<SearchFromPath />} />
                       </Routes>
                       </Suspense>

@@ -7,6 +7,7 @@ import {
 import {Network} from "../network";
 import {A_TransactionsResponse, txnsBatchSize} from "./transactionClient";
 import { toA_Asset, toA_AssetsResponse } from "../utils/v3Adapters";
+import { ListOptions, withSignal } from "../utils/signal";
 
 
 function strToBytes(s: string | undefined): Uint8Array | undefined {
@@ -85,6 +86,9 @@ function mergeAssetParams(
 export type A_AssetTransactionsResponse = A_TransactionsResponse;
 
 export const ASSETS_PAGE_SIZE = 100;
+
+/** Fetch options that cancel the request with `signal`. */
+
 
 export type A_AssetsResponse = {
     'next-token': string,
@@ -167,9 +171,9 @@ export class AssetClient{
         return { creation: acc.creation, latest: acc.latest };
     }
 
-    async search(id: number): Promise<A_AssetResult | null>{
+    async search(id: number, signal?: AbortSignal): Promise<A_AssetResult | null>{
         try {
-            const response = await this.indexer.lookupAssetByID(id).includeAll().do();
+            const response = await this.indexer.lookupAssetByID(id).includeAll().do(undefined, withSignal(signal));
             const converted = toA_Asset(response.asset);
             return { ...converted, type: "asset" } as A_AssetResult;
         } catch(e) {
@@ -180,14 +184,21 @@ export class AssetClient{
         }
     }
 
-    async getAssets(token?: string): Promise<A_AssetsResponse> {
-
-        const req = this.indexer.searchForAssets().limit(ASSETS_PAGE_SIZE);
+    /** With `includeAll`, destroyed assets too. */
+    async getAssets(
+        token?: string,
+        limit: number = ASSETS_PAGE_SIZE,
+        { signal, includeAll }: ListOptions = {},
+    ): Promise<A_AssetsResponse> {
+        const req = this.indexer.searchForAssets().limit(limit);
         if (token) {
             req.nextToken(token);
         }
+        if (includeAll) {
+            req.includeAll();
+        }
 
-        const response = await req.do();
+        const response = await req.do(undefined, withSignal(signal));
         return toA_AssetsResponse(response);
     }
 

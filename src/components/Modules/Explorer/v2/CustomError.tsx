@@ -5,53 +5,35 @@ import { Button } from "src/components/v2/ui/button";
 import { Alert, AlertDescription } from "src/components/v2/ui/alert";
 import {
   getLocalNodeAccess,
-  getOtherNetworkNodeConfigs,
-  isLocalNodeConfig,
   networkToDomainMap,
   shouldProbeLocalNodes,
   LocalNodeAccess,
 } from "src/utils/nodeConfig";
+import {
+  byNetworkOrder,
+  findOnNetworks,
+  getSearchableNetworks,
+  NetworkConfig,
+} from "src/utils/otherNetworks";
 import { network, Networks } from "src/packages/core-sdk/constants";
 import { TransactionClient } from "src/packages/core-sdk/clients/transactionClient";
-import { Network } from "src/packages/core-sdk/network";
-import { NodeConnectionParams } from "src/packages/core-sdk/types";
 
 const isLocalnet = process.env.REACT_APP_NETWORK === "Localnet";
 const TOTAL_RETRIES = 5;
 
-const networkOrder = Object.keys(Networks) as Networks[];
-
-type NetworkConfig = [Networks, NodeConnectionParams];
-
-/** The other networks, split by whether their node runs on the user's machine. */
-function getSearchableNetworks(): {
-  local: NetworkConfig[];
-  remote: NetworkConfig[];
-} {
-  const configs = [...getOtherNetworkNodeConfigs()] as NetworkConfig[];
-  return {
-    local: configs.filter(([, config]) => isLocalNodeConfig(config)),
-    remote: configs.filter(([, config]) => !isLocalNodeConfig(config)),
-  };
-}
-
 /** Reports each network that holds the transaction as its node answers. */
-async function findTransaction(
+function findTransaction(
   id: string,
   configs: NetworkConfig[],
   onFound: (network: Networks) => void,
 ): Promise<void> {
-  await Promise.all(
-    configs.map(async ([network, config]) => {
-      try {
-        // No retries: a network that is down should not hold up the others
-        const client = new TransactionClient(new Network(config, { retry: false }));
-        await client.get(id);
-        onFound(network);
-      } catch (e) {
-        // not on this network, or the node is unreachable
-      }
-    }),
+  return findOnNetworks(
+    configs,
+    async (net) => {
+      await new TransactionClient(net).get(id);
+      return true;
+    },
+    (network) => onFound(network),
   );
 }
 
@@ -102,9 +84,7 @@ function CustomError({
     setOtherNetworks((current) =>
       current.includes(network)
         ? current
-        : [...current, network].sort(
-            (a, b) => networkOrder.indexOf(a) - networkOrder.indexOf(b),
-          ),
+        : [...current, network].sort(byNetworkOrder),
     );
 
   useEffect(() => {

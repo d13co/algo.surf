@@ -54,6 +54,8 @@ export interface A_Asset {
     index: number
     params: A_AssetParams
     deleted?: boolean
+    /** The round it was destroyed in, if it was */
+    deletedAtRound?: number
 }
 
 export interface A_AssetResult extends A_Asset {
@@ -81,6 +83,9 @@ export interface A_AssetParams {
 export interface A_Application {
     id: number
     params: A_ApplicationParams
+    deleted?: boolean
+    /** The round it was deleted in, if it was */
+    deletedAtRound?: number
 }
 
 export interface A_ApplicationResult extends A_Application {

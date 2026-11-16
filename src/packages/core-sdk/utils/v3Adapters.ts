@@ -498,6 +498,16 @@ export function toA_AccountsResponse(input: unknown): {
   };
 }
 
+/** `deleted`, and the round it happened in, for an asset or app that was deleted. */
+function deletion(
+  o: Record<string, unknown>,
+  roundKeys: string[],
+): { deleted?: true; deletedAtRound?: number } {
+  if (!getBoolean(o, ["deleted"], false)) return {};
+  const round = getNumber(o, roundKeys, 0);
+  return { deleted: true, ...(round ? { deletedAtRound: round } : {}) };
+}
+
 export function toA_Application(input: unknown): A_Application {
   const o = isObject(input) ? input : {};
   const idRaw = o["id"] as unknown;
@@ -508,10 +518,12 @@ export function toA_Application(input: unknown): A_Application {
       ? idRaw
       : 0;
   const paramsRaw = o["params"] as unknown;
+  const deleted = deletion(o, ["deleted-at-round", "deletedAtRound"]);
 
   if (!isObject(paramsRaw)) {
     return {
       id,
+      ...deleted,
       params: {
         "approval-program": "",
         "clear-state-program": "",
@@ -568,7 +580,7 @@ export function toA_Application(input: unknown): A_Application {
     ),
   };
 
-  return { id, params };
+  return { id, params, ...deleted };
 }
 
 export function toA_ApplicationsResponse(input: unknown): {
@@ -630,8 +642,7 @@ export function toA_Asset(input: unknown): A_Asset {
     ]),
   };
 
-  const deleted = getBoolean(o, ["deleted"], false);
-  return { index, params, ...(deleted ? { deleted: true } : {}) };
+  return { index, params, ...deletion(o, ["destroyed-at-round", "destroyedAtRound"]) };
 }
 
 export function toA_AssetsResponse(input: unknown): {

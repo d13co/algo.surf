@@ -18,7 +18,7 @@ import { useSearchParams } from "react-router-dom";
 import useTitle from "src/components/Common/UseTitle/UseTitle";
 import { useStableHeight } from "src/hooks/useStableHeight";
 import { useDebounce } from "src/hooks/useDebounce";
-import { isValidBase32Prefix, completeAddress } from "src/utils/completeAddress";
+import { isValidBase32Prefix, addressBefore } from "src/utils/completeAddress";
 import { DataTable } from "src/components/v2/DataTable";
 
 const columns: ColumnDef<A_SearchAccount, any>[] = [
@@ -100,7 +100,7 @@ function Accounts(): JSX.Element {
   const prefixToken = useMemo(() => {
     if (!debouncedPrefix) return undefined;
     if (!isValidBase32Prefix(debouncedPrefix)) return undefined;
-    return completeAddress(debouncedPrefix);
+    return addressBefore(debouncedPrefix);
   }, [debouncedPrefix]);
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } =

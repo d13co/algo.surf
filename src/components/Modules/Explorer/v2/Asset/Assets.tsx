@@ -1,26 +1,23 @@
-import { useMemo } from "react";
-import { useAssets } from "src/hooks/useAssets";
+import { ColumnDef } from "@tanstack/react-table";
 import { A_Asset } from "src/packages/core-sdk/types";
-import {
-  useReactTable,
-  getCoreRowModel,
-  getPaginationRowModel,
-  ColumnDef,
-} from "@tanstack/react-table";
+import { AssetClient, ASSETS_PAGE_SIZE } from "src/packages/core-sdk/clients/assetClient";
+import explorer from "src/utils/dappflow";
 import LinkToAsset from "../Links/LinkToAsset";
 import LinkToAccount from "../Links/LinkToAccount";
-import { Loader2 } from "lucide-react";
-import ListToolbar from "src/components/v2/ListToolbar";
 import useTitle from "src/components/Common/UseTitle/UseTitle";
-import { useStableHeight } from "src/hooks/useStableHeight";
-import { DataTable } from "src/components/v2/DataTable";
+import CreatedList from "src/components/v2/CreatedList";
+import DeletedMark from "src/components/v2/DeletedMark";
+import type { FetchAfter } from "src/hooks/useCreatedList";
 
 const columns: ColumnDef<A_Asset, any>[] = [
   {
     id: "name",
     header: "Name",
     cell: ({ row }) => (
-      <LinkToAsset id={row.original.index} name={row.original.params.name} />
+      <>
+        <LinkToAsset id={row.original.index} name={row.original.params.name} />
+        <DeletedMark deleted={row.original.deleted} atRound={row.original.deletedAtRound} />
+      </>
     ),
   },
   {
@@ -74,79 +71,23 @@ const columnLabels: Record<string, string> = {
   creator: "Creator",
 };
 
+const fetchAfter: FetchAfter<A_Asset> = async (next, limit, options) => {
+  const page = await new AssetClient(explorer.network).getAssets(next, limit, options);
+  return { items: page.assets, nextToken: page["next-token"] };
+};
+
 function Assets(): JSX.Element {
   useTitle("Assets");
 
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useAssets();
-
-  const assets = useMemo(
-    () => data?.pages.flatMap((p) => p.assets) ?? [],
-    [data],
-  );
-
-  const initialLoading = !data;
-
-  const table = useReactTable({
-    data: assets,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getRowId: (row) => String(row.index),
-    autoResetPageIndex: false,
-    initialState: {
-      pagination: { pageSize: 10 },
-    },
-  });
-
-  const { pageIndex, pageSize } = table.getState().pagination;
-  const pageCount = table.getPageCount();
-  const currentRowCount = table.getRowModel().rows.length;
-  const padCount = hasNextPage ? pageSize - currentRowCount : 0;
-
-  const { ref: tableRef, style: stableStyle } = useStableHeight(currentRowCount === pageSize);
-
-  function onPageChange(newPage: number) {
-    table.setPageIndex(newPage);
-    if (newPage >= pageCount - 1 && hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
-    }
-  }
-
-  if (initialLoading) {
-    return (
-      <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
-        <Loader2 className="h-5 w-5 animate-spin" />
-        <span>Loading assets...</span>
-      </div>
-    );
-  }
-
   return (
-    <div>
-      <ListToolbar
-        pageIndex={pageIndex}
-        pageCount={pageCount}
-        hasMore={hasNextPage}
-        canPreviousPage={table.getCanPreviousPage()}
-        canNextPage={table.getCanNextPage()}
-        onFirst={() => onPageChange(0)}
-        onPrev={() => onPageChange(pageIndex - 1)}
-        onNext={() => onPageChange(pageIndex + 1)}
-        onLast={() => onPageChange(pageCount - 1)}
-        loading={isFetchingNextPage}
-      />
-
-      <DataTable
-        table={table}
-        columns={columns}
-        columnLabels={columnLabels}
-        emptyLabel="No assets"
-        padCount={padCount}
-        isFetchingNextPage={isFetchingNextPage}
-        tableRef={tableRef}
-        tableStyle={stableStyle}
-      />
-    </div>
+    <CreatedList
+      kind="assets"
+      columns={columns}
+      columnLabels={columnLabels}
+      pageSize={ASSETS_PAGE_SIZE}
+      fetchAfter={fetchAfter}
+      idOf={(asset) => asset.index}
+    />
   );
 }
 

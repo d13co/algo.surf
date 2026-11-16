@@ -1,10 +1,11 @@
 import { useCallback, useState, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRound, useRoundNavigate } from "src/hooks/useRound";
 import { useNfdSearchReader } from "src/components/Common/UseNFD";
 import { useGlobalUI } from "../../../../contexts/GlobalUIContext";
 import { Search as SearchIcon, ClipboardPaste, X } from "lucide-react";
 import { useHotkeys } from "react-hotkeys-hook";
-import coreSearch, { NotSearchableError } from "./CoreSearch";
+import coreSearch, { NotFoundError, NotSearchableError, searchResultsHref } from "./CoreSearch";
 import { useAbelAssetsContext } from "../../../Common/AbelAssetsProvider";
 import { Input } from "src/components/v2/ui/input";
 
@@ -39,6 +40,7 @@ function Search(props: SearchProps): JSX.Element {
   const navigate = useRoundNavigate();
   const { showLoader, hideLoader, showSnack } = useGlobalUI();
   const nfd = useNfdSearchReader();
+  const queryClient = useQueryClient();
   const { round } = useRound();
   const { loading: abelLoading, loadedPromise } = useAbelAssetsContext();
 
@@ -59,7 +61,18 @@ function Search(props: SearchProps): JSX.Element {
         const searchOptions = {
           nfd,
           round,
+          queryClient,
           onNotice: (message: string) => showSnack({ severity: "warning", message }),
+        };
+        /** A miss or several hits: the results page says more than a snackbar */
+        const showResults = (e: unknown) => {
+          if (!(e instanceof NotFoundError || e instanceof NotSearchableError)) return false;
+          // An NFD miss explains itself
+          if (target.trim().endsWith(".algo")) return false;
+          setSearchStr("");
+          inputRef.current?.blur();
+          navigate(searchResultsHref(target));
+          return true;
         };
         showLoader("Searching");
         try {
@@ -84,12 +97,12 @@ function Search(props: SearchProps): JSX.Element {
               inputRef.current?.blur();
               navigate(destination);
             } catch (e2) {
-              showSnack({
+              if (!showResults(e2)) showSnack({
                 severity: "error",
                 message: (e2 as Error).message,
               });
             }
-          } else {
+          } else if (!showResults(e)) {
             showSnack({
               severity: "error",
               message: (e as Error).message,
