@@ -53,7 +53,10 @@ function Panels(): JSX.Element {
             </div>
             <PanelErrorBoundary><LiveStats /></PanelErrorBoundary>
             <PanelErrorBoundary><LiveBlocks /></PanelErrorBoundary>
-            <PanelErrorBoundary><LiveTransactions /></PanelErrorBoundary>
+            {/* Not on phones: one column, and the blocks already list what's in them. */}
+            <div className="max-md:hidden">
+                <PanelErrorBoundary><LiveTransactions /></PanelErrorBoundary>
+            </div>
         </div>
     );
 }
@@ -72,7 +75,7 @@ function HomeAt({ round }: { round: number }): JSX.Element {
                         <span>Algo</span> <span className="text-foreground">Surf</span> <span className="text-primary">{network}</span> · as it was at
                     </div>
                     <h1 className="text-4xl font-extrabold leading-tight">
-                        Block <span className="text-primary">{round.toLocaleString()}</span>
+                        <span className="text-muted">Block</span> <span className="text-primary">{round.toLocaleString()}</span>
                     </h1>
                     <div className="text-sm text-muted-foreground min-h-5">
                         {ts !== undefined ? (
@@ -82,7 +85,7 @@ function HomeAt({ round }: { round: number }): JSX.Element {
                         ) : null}
                     </div>
                 </div>
-                <div className="min-w-0 flex-1 basis-[420px] max-w-[600px]">
+                <div className="min-w-0 flex-1 basis-[420px] max-w-[600px] self-center">
                     <Search placeholder={`Search ${network} at block ${round.toLocaleString()}`} />
                 </div>
             </section>

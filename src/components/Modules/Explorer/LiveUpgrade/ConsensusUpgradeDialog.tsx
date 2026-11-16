@@ -10,7 +10,10 @@ import {
 import Copyable from "src/components/v2/Copyable";
 import { Button } from "src/components/v2/ui/button";
 import ConsensusVersion from "src/components/v2/ConsensusVersion";
-import MultiDateViewer from "src/components/v2/MultiDateViewer";
+import humanizeDuration from "humanize-duration";
+import { useLatestRound } from "@d13co/algo-metrics-react";
+import MultiDateViewer, { formatDate } from "src/components/v2/MultiDateViewer";
+import { useBlockHeader } from "src/hooks/useBlock";
 import LinkToBlock from "src/components/Modules/Explorer/v2/Links/LinkToBlock";
 import Link from "src/components/Modules/Explorer/v2/Links/Link";
 import { useUpgradeAttempt } from "src/hooks/useUpgrades";
@@ -45,16 +48,35 @@ function Row({ label, children }: { label: string; children: React.ReactNode }):
     );
 }
 
+/** The estimate, in minutes: it is roundsRemaining × an average round time, so seconds would imply a precision it lacks. */
+const toMinute = (ts: number) => Math.round(ts / 60) * 60;
+
+/**
+ * At ?round=R (`atRound`), the upgrade as it stood at block R: the ETA is projected from R's own
+ * timestamp and block time, and once the chain has since reached the round the phase ends on, that
+ * round's real time is shown next to the estimate.
+ */
 export default function ConsensusUpgradeDialog({
     open,
     onOpenChange,
     upgrade,
+    atRound,
 }: {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     upgrade: ConsensusUpgrade;
+    atRound?: number;
 }): JSX.Element {
     const lookup = useConsensusVersionLookup();
+    const latestRaw = useLatestRound();
+    const latest = latestRaw != null ? Number(latestRaw) : undefined;
+    const voting = upgrade.phase === "voting";
+    /** Rounds produced since: at R, links to them work and their times are known. */
+    const exists = (r: number) => atRound !== undefined && latest !== undefined && r > 0 && r <= latest;
+    const endRound = voting ? upgrade.nextProtocolVoteBefore : upgrade.nextProtocolSwitchOn;
+    const reached = exists(endRound);
+    const { data: endHeader } = useBlockHeader(reached && open ? endRound : 0);
+    const endTs = endHeader?.timestamp ? Number(endHeader.timestamp) : undefined;
 
     const current = lookup(upgrade.currentProtocol);
     const next = lookup(upgrade.nextProtocol);
@@ -135,9 +157,13 @@ export default function ConsensusUpgradeDialog({
                         <Row label="Voting closes">
                             {/* Only a link once the vote has closed. While voting, this round has
                                 not been produced yet, so the block page would 404. */}
-                            {upgrade.phase === "voting" ? (
+                            {voting ? (
                                 <>
-                                    <span>Round {upgrade.nextProtocolVoteBefore.toLocaleString()}</span>
+                                    {exists(upgrade.nextProtocolVoteBefore) ? (
+                                        <LinkToBlock id={upgrade.nextProtocolVoteBefore} />
+                                    ) : (
+                                        <span>Round {upgrade.nextProtocolVoteBefore.toLocaleString()}</span>
+                                    )}
                                     {/* One less than the distance to the close round — that round
                                         resolves the vote without casting one (see votableRoundsLeft). */}
                                     <span className="text-muted-foreground ml-2">
@@ -157,9 +183,14 @@ export default function ConsensusUpgradeDialog({
                         round is speculative — showing it reads as a promise the tally hasn't made. */}
                     {upgrade.nextProtocolSwitchOn > 0 && vote.verdict === "approved" ? (
                         <Row label="Switches on">
-                            {/* Never a link: the switch round is always in the future here — the
-                                hook returns null once the chain reaches it — so it would 404. */}
-                            Round {upgrade.nextProtocolSwitchOn.toLocaleString()}
+                            {/* Live, never a link: the switch round is always in the future here (the
+                                hook returns null once the chain reaches it), so it would 404. At a
+                                past round, it is a link once the chain has reached it. */}
+                            {exists(upgrade.nextProtocolSwitchOn) ? (
+                                <LinkToBlock id={upgrade.nextProtocolSwitchOn} />
+                            ) : (
+                                <>Round {upgrade.nextProtocolSwitchOn.toLocaleString()}</>
+                            )}
                         </Row>
                     ) : null}
 
@@ -174,24 +205,39 @@ export default function ConsensusUpgradeDialog({
                         </Row>
                     ) : null}
 
-                    <Row label={upgrade.phase === "voting" ? "Voting close ETA" : "Estimated switch"}>
-                        <UpgradeEta targetEpoch={upgrade.targetEpoch} />
-                        <div className="mt-1 text-muted-foreground text-xs">
-                            {/* fixedView="local": MultiDateViewer's relative mode always appends
-                                "ago", which reads wrong for a future timestamp.
-
-                                Rounded to the minute so the display's seconds are a fixed :00.
-                                TIMESTAMP_DISPLAY_FORMAT renders seconds, and this estimate is
-                                roundsRemaining × a live average round time — the seconds digit
-                                jittered on every block, implying a precision the projection
-                                doesn't have. */}
-                            <MultiDateViewer
-                                timestamp={Math.round(upgrade.targetEpoch / 60) * 60}
-                                variant="value"
-                                fixedView="local"
-                            />
-                        </div>
-                    </Row>
+                    {atRound === undefined ? (
+                        <Row label={voting ? "Voting close ETA" : "Estimated switch"}>
+                            <UpgradeEta targetEpoch={upgrade.targetEpoch} />
+                            <div className="mt-1 text-muted-foreground text-xs">
+                                {/* fixedView="local": MultiDateViewer's relative mode always appends
+                                    "ago", which reads wrong for a future timestamp. Rounded to the
+                                    minute: the seconds digit jittered on every block. */}
+                                <MultiDateViewer timestamp={toMinute(upgrade.targetEpoch)} variant="value" fixedView="local" />
+                            </div>
+                        </Row>
+                    ) : reached ? (
+                        // At a past round whose phase has since ended: when it did, then what R projected.
+                        <Row label={voting ? "Voting closed" : "Switched"}>
+                            {endTs !== undefined ? (
+                                <MultiDateViewer timestamp={endTs} variant="value" fixedView="local" />
+                            ) : (
+                                <span className="text-muted-foreground">…</span>
+                            )}
+                            <div className="mt-1 text-muted-foreground text-xs">
+                                Estimated at block {atRound.toLocaleString()}: {formatDate(toMinute(upgrade.targetEpoch), "local")}
+                            </div>
+                        </Row>
+                    ) : (
+                        // A countdown from a past block would run from now: count from R instead.
+                        <Row label={voting ? "Voting close ETA" : "Estimated switch"}>
+                            <span className="text-muted-foreground">~</span>
+                            {humanizeDuration(Math.max(0, upgrade.targetEpoch - upgrade.roundTimestamp) * 1000, { largest: 2, round: true })}
+                            <span className="text-muted-foreground"> after block {atRound.toLocaleString()}</span>
+                            <div className="mt-1 text-muted-foreground text-xs">
+                                <MultiDateViewer timestamp={toMinute(upgrade.targetEpoch)} variant="value" fixedView="local" />
+                            </div>
+                        </Row>
+                    )}
 
                     {earlier.length > 0 ? (
                         <Row label={`Earlier attempts (this is #${found!.attempt})`}>
@@ -220,7 +266,9 @@ export default function ConsensusUpgradeDialog({
                                 ? " (assumed)"
                                 : upgrade.avgRoundTimeSource === "liveblocks"
                                     ? " (recent blocks)"
-                                    : " (live)"}
+                                    : atRound !== undefined
+                                        ? ` (the 100 blocks up to block ${atRound.toLocaleString()})`
+                                        : " (live)"}
                         </span>
                     </Row>
 

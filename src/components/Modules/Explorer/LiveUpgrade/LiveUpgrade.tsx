@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import ConsensusVersion from "src/components/v2/ConsensusVersion";
-import { useConsensusUpgrade } from "src/hooks/useConsensusUpgrade";
+import { ConsensusUpgrade, useConsensusUpgrade } from "src/hooks/useConsensusUpgrade";
 import { useHomeBlocks } from "src/hooks/useHomeBlocks";
 import { useConsensusVersionLookup } from "src/hooks/useConsensusVersions";
 import { useUpgradeAttempt } from "src/hooks/useUpgrades";
@@ -18,7 +18,13 @@ export default function LiveUpgrade(): JSX.Element | null {
     const { round, blocks } = useHomeBlocks();
     // At a round, only once R's own header is in: an older one would show an older state.
     const atR = round !== undefined && blocks[0] && Number(blocks[0].header.round) === round ? { round, blocks } : undefined;
-    const upgrade = useConsensusUpgrade(round !== undefined ? atR ?? { round, blocks: [] } : undefined);
+    const fromHeader = useConsensusUpgrade(round !== undefined ? atR ?? { round, blocks: [] } : undefined);
+    // While the next round's header loads (a step, a replay), the last state stays up rather than the
+    // banner collapsing and the page jumping.
+    const held = useRef<ConsensusUpgrade | null>(null);
+    const loading = round !== undefined && !atR;
+    if (!loading) held.current = fromHeader;
+    const upgrade = loading ? held.current : fromHeader;
     const lookup = useConsensusVersionLookup();
     const [open, setOpen] = useState(false);
     // From surf idx: earlier proposals of this protocol make this a re-vote.
@@ -42,7 +48,7 @@ export default function LiveUpgrade(): JSX.Element | null {
             >
                 <div className="flex justify-between items-center gap-6 flex-wrap">
                     <div>
-                        <div className="text-muted-foreground text-[13px] mb-1">
+                        <div className="text-muted-foreground text-[13px] leading-5 mb-1">
                             {upgrade.phase === "voting" ? "Upgrade Vote" : "Upgrade Countdown"}
                             {attempt > 1 ? ` · attempt ${attempt}` : ""}
                             {round !== undefined ? ` · as it stood at block ${round.toLocaleString()}` : ""}
@@ -76,7 +82,7 @@ export default function LiveUpgrade(): JSX.Element | null {
                 </div>
             </button>
 
-            <ConsensusUpgradeDialog open={open} onOpenChange={setOpen} upgrade={upgrade} />
+            <ConsensusUpgradeDialog open={open} onOpenChange={setOpen} upgrade={upgrade} atRound={round} />
         </>
     );
 }

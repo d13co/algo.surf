@@ -149,13 +149,14 @@ function LiveStats(): JSX.Element {
                     {/* The fee totals end now: hidden at a past round rather than shown beside its stats. */}
                     {surfIdxSupported && round === undefined ? FEE_PERIODS.map((p) => <FeeRow key={p.period} {...p} />) : null}
 
-                    {onlineStake != null ? (
+                    {/* Always a row ("-" while it loads), so stepping through rounds doesn't move the panel. */}
+                    {(
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <div className="flex justify-between w-[90%] max-md:min-w-[80%] max-md:w-auto mb-2.5 cursor-help text-muted-foreground">
                                         <span>Online stake</span>
-                                        <span className="text-primary ml-2.5">{compactAlgo.format(Number(onlineStake / 1000n) / 1000)} ALGO</span>
+                                        <span className="text-primary ml-2.5">{onlineStake != null ? `${compactAlgo.format(Number(onlineStake / 1000n) / 1000)} ALGO` : "-"}</span>
                                     </div>
                                 </TooltipTrigger>
                                 <TooltipContent side="top" className="bg-black text-white border-border">
@@ -163,7 +164,7 @@ function LiveStats(): JSX.Element {
                                 </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
-                    ) : null}
+                    )}
 
                     <TooltipProvider>
                         <Tooltip>

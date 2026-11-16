@@ -35,7 +35,7 @@ function TxnTypePill({ type, count }: { type: string; count: number }) {
         <TooltipProvider>
             <Tooltip>
                 <TooltipTrigger asChild>
-                    <span className="border border-primary text-primary rounded-full px-2 py-0.5 text-xs cursor-default">
+                    <span className="shrink-0 whitespace-nowrap border border-primary text-primary rounded-full px-2 py-0.5 text-xs cursor-default">
                         {count} {typeToShow}
                     </span>
                 </TooltipTrigger>
@@ -101,25 +101,20 @@ function BlockItem({ block, anchor, ...transitionProps }: { block: Block; anchor
             >
                 <div className="w-full">
                     <div className="flex justify-between items-center flex-wrap">
-                        <span className="text-primary font-medium">
-                            {round}
-                            {isAnchor ? (
-                                <span className="ml-2 rounded bg-foreground px-1.5 text-[11px] font-bold text-background align-middle" title="The round this page shows">
-                                    R
-                                </span>
-                            ) : null}
-                        </span>
+                        <span className="text-primary font-medium">{round}</span>
                         <span className="text-right grow text-muted-foreground">
                             {total} Transactions
                         </span>
                     </div>
-                    <div className="flex justify-between items-center flex-wrap mt-2">
-                        <div className="mt-4 text-[13px] flex leading-5 flex-wrap gap-0.5">
+                    {/* One line, clipped: a block with many kinds of transaction would wrap onto a second
+                        and change the card's height, which made a replay jump. */}
+                    <div className="flex justify-between items-center gap-1 mt-6">
+                        <div className="text-[13px] flex leading-5 flex-nowrap gap-0.5 min-w-0 overflow-hidden">
                             {Object.entries(counts).map(
                                 ([type, count]) => <TxnTypePill key={type} type={type} count={count} />
                             )}
                         </div>
-                        <div className="mt-4 text-[13px] text-muted-foreground text-right ml-0.5">
+                        <div className="text-[13px] text-muted-foreground text-right ml-0.5 shrink-0 whitespace-nowrap">
                             <BlockTime block={block} anchor={anchor} />
                         </div>
                     </div>
@@ -161,7 +156,9 @@ function LiveBlocks(): JSX.Element {
                         <div className="text-sm text-muted-foreground">Could not load the blocks up to {round?.toLocaleString()}: {String(error)}</div>
                     ) : null}
                     {round !== undefined && isLoading && !blocks.length ? <div className="text-sm text-muted-foreground">Loading blocks…</div> : null}
-                    <TransitionGroup component="div">
+                    {/* Live, new blocks slide in. At a round, a step swaps the list in place: an entering
+                        and a leaving card side by side changed its height on every step of a replay. */}
+                    <TransitionGroup component="div" enter={round === undefined} exit={round === undefined}>
                         {blocks.map((block) => (
                             <BlockItem key={Number(block.header.round)} block={block} anchor={anchor} />
                         ))}

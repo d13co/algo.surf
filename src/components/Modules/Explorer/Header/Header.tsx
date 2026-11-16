@@ -43,8 +43,10 @@ function Header(): JSX.Element {
 
     return (
         <div className="mb-5">
-            <div className="flex justify-between items-center max-header:flex-col max-header:items-stretch">
-                <nav className="flex items-center -ml-3 overflow-x-auto">
+            {/* The time-travel button stays at the top right at every width; on narrow screens the
+                nav scrolls sideways beside it (fading out under it) and the search takes a row below. */}
+            <div className="flex flex-wrap items-center gap-x-2">
+                <nav className="flex min-w-0 flex-1 items-center -ml-3 overflow-x-auto max-header:[mask-image:linear-gradient(to_right,black_calc(100%-2rem),transparent)]">
                     {items.map((item) => (
                         <Link
                             key={item.value}
@@ -61,14 +63,14 @@ function Header(): JSX.Element {
                         </Link>
                     ))}
                 </nav>
-                <div className="flex items-center gap-2 max-header:mt-2 empty:hidden">
+                <div className="shrink-0">
                     <TimeTravelPicker />
-                    {route !== "home" ? (
-                        <div className="flex-1 animate-in slide-in-from-top duration-300">
-                            <Search placeholder={`Search ${networkLabel} [Ctrl+K]`} size="responsive"/>
-                        </div>
-                    ) : null}
                 </div>
+                {route !== "home" ? (
+                    <div className="animate-in slide-in-from-top duration-300 max-header:mt-2 max-header:basis-full">
+                        <Search placeholder={`Search ${networkLabel} [Ctrl+K]`} size="responsive"/>
+                    </div>
+                ) : null}
             </div>
         </div>
     );

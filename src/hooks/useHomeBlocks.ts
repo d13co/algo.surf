@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { useQueries } from "@tanstack/react-query";
 import { useAlgoMetricsContext } from "@d13co/algo-metrics-react";
 import type { modelsv2 } from "algosdk";
@@ -27,7 +27,8 @@ export interface HomeBlocks {
 /**
  * The homepage's blocks: the live watcher's, or at ?round=R the BLOCKS_TO_KEEP blocks up to R,
  * read from algod one block per query. A block never changes, so each is cached for good while
- * the page lives; stepping R by one reads one block.
+ * the page lives; stepping R by one reads one block. While a new window loads, the last complete one
+ * stands in (isLoading true), so a step or a replay doesn't shrink the list for a moment.
  */
 export function useHomeBlocks(): HomeBlocks {
   const live = useLiveBlocks();
@@ -61,9 +62,14 @@ export function useHomeBlocks(): HomeBlocks {
   });
 
   const transactions = useMemo(() => deriveTransactions(window.blocks), [window.blocks]);
+  const held = useRef<{ blocks: Block[]; transactions: SignedTxnInBlock[] }>();
+  if (round !== undefined && !window.isLoading && window.blocks.length) held.current = { blocks: window.blocks, transactions };
 
   if (round === undefined) {
     return { round, blocks: live.blocks, transactions: live.transactions, isLoading: false, error: null };
+  }
+  if (window.isLoading && !window.error && held.current) {
+    return { round, ...held.current, isLoading: true, error: null };
   }
   return { round, blocks: window.blocks, transactions, isLoading: window.isLoading, error: window.error };
 }

@@ -41,10 +41,26 @@ export default function HomeStepper({ round }: { round: number }): JSX.Element {
     navigate(`/?round=${Math.max(1, r)}`, { replace });
   };
 
-  // A replay steps one block per block time, and goes live at the tip.
+  /** A step by hand (or a typed round) pauses a replay. */
+  const move = (r: number, replace = true) => {
+    setPlaying(false);
+    go(r, replace);
+  };
+
+  // A replay steps one block per block time, and goes live at the tip. Any other move to a round (the
+  // blocks' "Newer", the timeline, Back) pauses it.
+  const replayNext = useRef<number>();
   useEffect(() => {
     if (!playing) return;
-    const id = setTimeout(() => go(round + 1), BLOCK_TIME * 1000);
+    if (replayNext.current !== undefined && round !== replayNext.current) {
+      replayNext.current = undefined;
+      setPlaying(false);
+      return;
+    }
+    const id = setTimeout(() => {
+      replayNext.current = round + 1;
+      go(round + 1);
+    }, BLOCK_TIME * 1000);
     return () => clearTimeout(id);
     // `go` reads the latest round and navigate; re-arming on round is the step.
   }, [playing, round]);
@@ -59,7 +75,7 @@ export default function HomeStepper({ round }: { round: number }): JSX.Element {
     try {
       seedFromQueryCache(queryClient);
       const r = await roundAsOfTime(ts + days * DAY, controller.signal);
-      if (!controller.signal.aborted) go(r);
+      if (!controller.signal.aborted) move(r);
     } catch (err) {
       if (!controller.signal.aborted) setError((err as Error).message || "Could not find the round");
     } finally {
@@ -72,7 +88,7 @@ export default function HomeStepper({ round }: { round: number }): JSX.Element {
     e.preventDefault();
     if (!/^\d+$/.test(input.trim())) return;
     setDraft(undefined);
-    go(Number(input.trim()), false);
+    move(Number(input.trim()), false);
   };
 
   return (
@@ -81,10 +97,10 @@ export default function HomeStepper({ round }: { round: number }): JSX.Element {
         <button type="button" className={STEP} onClick={() => byDay(-1)} disabled={!header || finding}>
           −1 day
         </button>
-        <button type="button" className={STEP} onClick={() => go(round - 1000)}>
+        <button type="button" className={STEP} onClick={() => move(round - 1000)}>
           −1k
         </button>
-        <button type="button" className={STEP} onClick={() => go(round - 1)} aria-label="Previous block">
+        <button type="button" className={STEP} onClick={() => move(round - 1)} aria-label="Previous block">
           <ChevronLeft className="h-4 w-4" />
         </button>
         <form onSubmit={onGo} className="flex items-center gap-1">
@@ -102,10 +118,10 @@ export default function HomeStepper({ round }: { round: number }): JSX.Element {
             Go
           </button>
         </form>
-        <button type="button" className={STEP} onClick={() => go(round + 1)} aria-label="Next block">
+        <button type="button" className={STEP} onClick={() => move(round + 1)} aria-label="Next block">
           <ChevronRight className="h-4 w-4" />
         </button>
-        <button type="button" className={STEP} onClick={() => go(round + 1000)}>
+        <button type="button" className={STEP} onClick={() => move(round + 1000)}>
           +1k
         </button>
         <button type="button" className={STEP} onClick={() => byDay(1)} disabled={!header || finding}>
@@ -114,7 +130,10 @@ export default function HomeStepper({ round }: { round: number }): JSX.Element {
         {finding ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" aria-label="Finding the round" /> : null}
         <button
           type="button"
-          onClick={() => setPlaying((p) => !p)}
+          onClick={() => {
+            replayNext.current = undefined;
+            setPlaying((p) => !p);
+          }}
           aria-pressed={playing}
           className="ml-auto inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-4 text-sm font-bold text-background transition-opacity hover:opacity-90"
         >

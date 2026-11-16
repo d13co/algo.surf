@@ -7,6 +7,7 @@ import { bucketStart, useSeries } from "src/hooks/useFees";
 import { roundAsOfTime, seedFromQueryCache } from "src/utils/dateToRound";
 import { surfIdxSupported } from "src/utils/surfIdx";
 import { cn } from "src/lib/utils";
+import { BLOCK_TIME } from "src/packages/core-sdk/constants";
 
 const HOUR = 3600;
 const DAY = 24 * HOUR;
@@ -18,8 +19,8 @@ const markerLabel = (ts: number) => dateFormat(new Date(ts * 1000), "UTC:d mmm H
 
 /**
  * A week of hourly TPS from surf idx with a marker, to travel by: live, the last 7 days up to now;
- * at block `round` (made at `roundTs`), the 7 days around it, or the last 7 when it is closer to
- * now than half a week. Picking a time (click, drag, or arrow keys on the slider) opens the
+ * at block `round` (made at `roundTs`), the 7 UTC days with its day in the middle, or the last 7
+ * when those would reach past now. Picking a time (click, drag, or arrow keys on the slider) opens the
  * homepage at the last round at or before it.
  */
 export default function HomeTimeline({ round, roundTs }: { round?: number; roundTs?: number }): JSX.Element | null {
@@ -28,19 +29,29 @@ export default function HomeTimeline({ round, roundTs }: { round?: number; round
   const now = Math.floor(Date.now() / 1000);
   const atRound = round !== undefined;
 
-  // The week shown, hour-aligned so the query key holds for an hour. end undefined: up to now, polled live.
+  // A step changes the round before its header loads: until it does, R's time is estimated from the
+  // last one known, so the week (and the query) doesn't fall back to the live one and jump back.
+  const known = useRef<{ round: number; ts: number }>();
+  if (round !== undefined && roundTs !== undefined) known.current = { round, ts: roundTs };
+  const estTs =
+    roundTs ?? (round !== undefined && known.current ? known.current.ts + (round - known.current.round) * BLOCK_TIME : undefined);
+
+  // The week shown. At R, whole UTC days with R's day in the middle, so a block or a thousand either
+  // way keeps the same week and query for most of a day; the last 7 days when that week would reach
+  // past now. Live, hour-aligned so the key holds for an hour; end undefined: up to now, polled.
   const view = useMemo(() => {
-    if (atRound && roundTs !== undefined && now - roundTs > WEEK / 2) {
-      const start = bucketStart("hour", roundTs - WEEK / 2);
-      return { start, end: start + WEEK };
+    if (atRound && estTs !== undefined) {
+      const start = bucketStart("day", estTs) - 3 * DAY;
+      if (start + WEEK <= now) return { start, end: start + WEEK };
     }
     return { start: bucketStart("hour", now - WEEK), end: undefined };
     // The live window slides with the hour, not the second.
-  }, [atRound, roundTs, Math.floor(now / HOUR)]);
+  }, [atRound, estTs === undefined ? undefined : bucketStart("day", estTs), Math.floor(now / HOUR)]);
   const viewEnd = view.end ?? now;
   const live = !atRound;
-  const { data, error } = useSeries("hour", view.start, view.end, live, !atRound || roundTs !== undefined);
-  const buckets = data?.start === view.start ? data.buckets : undefined;
+  const { data, error } = useSeries("hour", view.start, view.end, live, !atRound || estTs !== undefined);
+  // Placed by time, not index: while a new week loads, the last one stands in where its hours fall.
+  const buckets = data?.buckets.filter((b) => b.ts >= view.start && b.ts < viewEnd);
 
   const [preview, setPreview] = useState<number>();
   const [finding, setFinding] = useState(false);
@@ -52,10 +63,12 @@ export default function HomeTimeline({ round, roundTs }: { round?: number; round
 
   if (!surfIdxSupported) return null;
 
-  const markerTs = preview ?? (atRound ? roundTs : viewEnd);
-  const frac = markerTs === undefined ? undefined : Math.min(1, Math.max(0, (markerTs - view.start) / (viewEnd - view.start)));
+  const markerTs = preview ?? (atRound ? estTs : viewEnd);
+  const span = viewEnd - view.start;
+  const frac = markerTs === undefined ? undefined : Math.min(1, Math.max(0, (markerTs - view.start) / span));
   const max = Math.max(0, ...(buckets ?? []).map((b) => b.tps));
-  const markIndex = markerTs === undefined ? -1 : Math.floor((markerTs - view.start) / HOUR);
+  // The hour holding the marker, and the ones before it.
+  const markHour = markerTs === undefined ? -Infinity : bucketStart("hour", markerTs);
 
   const days: { ts: number; left: number }[] = [];
   for (let d = Math.ceil(view.start / DAY) * DAY; d <= viewEnd; d += DAY) {
@@ -96,26 +109,33 @@ export default function HomeTimeline({ round, roundTs }: { round?: number; round
         </span>
       </div>
       <div className="relative mt-6 h-[92px] rounded-lg bg-background-muted px-2 pt-2">
-        <div className="absolute inset-x-2 bottom-0 top-2 flex items-end gap-px" aria-hidden>
-          {(buckets ?? []).map((b, i) => (
+        <div className="absolute inset-x-2 bottom-0 top-2" aria-hidden>
+          {(buckets ?? []).map((b) => (
             <div
               key={b.ts}
-              className={cn("flex-1 rounded-t-sm", i === markIndex ? "bg-foreground" : i < markIndex ? "bg-primary" : "bg-primary/30")}
-              style={{ height: `${max ? Math.max(3, (b.tps / max) * 100) : 0}%` }}
+              className={cn("absolute bottom-0 rounded-t-sm", b.ts === markHour ? "bg-foreground" : b.ts < markHour ? "bg-primary" : "bg-primary/30")}
+              style={{
+                left: `${((b.ts - view.start) / span) * 100}%`,
+                width: `calc(${(HOUR / span) * 100}% - 1px)`,
+                height: `${max ? Math.max(3, (b.tps / max) * 100) : 0}%`,
+              }}
               title={`${dateFormat(new Date(b.ts * 1000), "UTC:ddd d mmm HH:00")} UTC · ${b.tps.toFixed(1)} TPS`}
             />
           ))}
         </div>
         {frac !== undefined ? (
           <div aria-hidden className="pointer-events-none absolute bottom-0 top-0 w-0.5 bg-foreground" style={{ left: `calc(0.5rem + (100% - 1rem) * ${frac})` }}>
-            <div
-              className={cn(
-                "absolute -top-6 whitespace-nowrap rounded bg-foreground px-1.5 py-0.5 text-xs font-bold text-background",
-                frac > 0.85 ? "right-0" : frac < 0.15 ? "left-0" : "left-1/2 -translate-x-1/2",
-              )}
-            >
-              {preview === undefined && !atRound ? "Now" : markerLabel(markerTs!)}
-            </div>
+            {/* Live, the marker sits at the right edge, which is now: no badge until a time is picked. */}
+            {preview !== undefined || atRound ? (
+              <div
+                className={cn(
+                  "absolute -top-6 whitespace-nowrap rounded bg-foreground px-1.5 py-0.5 text-xs font-bold text-background",
+                  frac > 0.85 ? "right-0" : frac < 0.15 ? "left-0" : "left-1/2 -translate-x-1/2",
+                )}
+              >
+                {markerLabel(markerTs!)}
+              </div>
+            ) : null}
           </div>
         ) : null}
         <input

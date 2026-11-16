@@ -25,11 +25,16 @@ function useLatestHref(): string {
   return `${pathname}${query ? `?${query}` : ""}${hash}`;
 }
 
-/** When `round` was made, in local time; UTC in its title. */
+/**
+ * When `round` was made, in local time; UTC in its title. While a new round's header loads, the last
+ * time shown stays, so the bar keeps its height through a step or a replay.
+ */
 function RoundTime({ round }: { round: number }): JSX.Element | null {
   const { data: block } = useBlockHeader(round);
-  if (!block?.timestamp) return null;
-  const date = new Date(block.timestamp * 1000);
+  const last = useRef<number>();
+  if (block?.timestamp) last.current = Number(block.timestamp);
+  if (last.current === undefined) return null;
+  const date = new Date(last.current * 1000);
   return (
     <span title={dateFormat(date, "UTC:" + TIMESTAMP_DISPLAY_FORMAT) + " UTC"}>
       {dateFormat(date, TIMESTAMP_DISPLAY_FORMAT)}
@@ -75,26 +80,29 @@ export function TimeTravelBar(): JSX.Element | null {
     // a modal dialog sets pointer-events: none on the page (see DialogContent). Mouse and touch
     // only: the dialog's focus trap and aria-hidden still keep keyboards and screen readers in it.
     <div ref={bar} data-time-travel-bar className="pointer-events-auto sticky top-0 z-[60] w-full bg-primary text-primary-dark text-sm">
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 max-w-[1280px] mx-auto px-5 md:px-[100px] py-2">
+      {/* The text wraps in its own column; "Back to now" stays at the right, centered on however many lines it takes. */}
+      <div className="flex items-center gap-x-3 max-w-[1280px] mx-auto px-5 md:px-[100px] py-2">
         <History className="h-4 w-4 shrink-0" />
-        <span className="min-w-0 font-bold [&_a]:text-primary-dark [&_a]:underline">
-          {roundAwarePath.test(pathname) ? "Showing historical state at" : "Time travel mode at block"}{" "}
-          <LinkToBlock id={round} />
-        </span>
-        <span className="opacity-80">
-          <RoundTime round={round} />
-        </span>
-        {!roundAwarePath.test(pathname) && !fixedRecordPath.test(pathname) && !roundBoundPath.test(pathname) ? (
-          <span className="opacity-80" title="This page has no history: it shows the latest data. Links from it keep the round.">
-            · this page shows the latest data
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="min-w-0 font-bold [&_a]:text-primary-dark [&_a]:underline">
+            {roundAwarePath.test(pathname) ? "Showing historical state at" : "Time travel mode at block"}{" "}
+            <LinkToBlock id={round} />
           </span>
-        ) : null}
+          <span className="opacity-80">
+            <RoundTime round={round} />
+          </span>
+          {!roundAwarePath.test(pathname) && !fixedRecordPath.test(pathname) && !roundBoundPath.test(pathname) ? (
+            <span className="opacity-80" title="This page has no history: it shows the latest data. Links from it keep the round.">
+              · this page shows the latest data
+            </span>
+          ) : null}
+        </div>
         <Link
           href={latestHref}
           keepRound={false}
           noStyle
           title="Show the latest state"
-          className="ml-auto shrink-0 rounded-md border border-primary-dark px-3 py-0.5 font-medium transition-colors hover:bg-primary-dark hover:text-primary"
+          className="shrink-0 rounded-md border border-primary-dark px-3 py-0.5 font-medium transition-colors hover:bg-primary-dark hover:text-primary"
         >
           Back to now
         </Link>

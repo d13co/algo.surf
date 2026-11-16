@@ -97,3 +97,10 @@ html[data-tt-bar] [role="dialog"][data-state] {
   max-height: calc(100dvh - var(--tt-bar-h, 0px) - 2rem);
   overflow-y: auto;
 }
+
+/* A full-screen dialog (data-fullscreen, e.g. the time-travel picker on phones) fills the space below it. */
+html[data-tt-bar] [role="dialog"][data-state][data-fullscreen] {
+  top: var(--tt-bar-h, 0px);
+  height: calc(100dvh - var(--tt-bar-h, 0px));
+  max-height: none;
+}
