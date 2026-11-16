@@ -15,6 +15,7 @@ import { AlgorandClient } from "@algorandfoundation/algokit-utils";
 import { DEFAULT_MAX_VERSIONS_ROUNDS_PER_REQUEST } from "@algorandfoundation/algokit-utils/types/dt-manager";
 import { network, Networks } from "src/packages/core-sdk/constants";
 import type { BoxNamesPage } from "src/packages/core-sdk/clients/boxClient";
+import { ACCOUNT_EXCLUDE } from "src/packages/core-sdk/clients/accountClient";
 import type { A_Box } from "src/packages/core-sdk/types";
 import {
   REACT_APP_TIMETRAVEL_ALGOD_TOKEN,
@@ -628,7 +629,19 @@ export async function getAssetAt(id: number, round: number): Promise<indexerMode
 
 /** An account at `round`, as algod's account information. */
 export async function getAccountAt(address: string, round: number): Promise<modelsv2.Account> {
-  const account = await ttDo(requireDTAlgod().accountInformation(address).round(round));
+  const read = (exclude: boolean) => {
+    const req = requireDTAlgod().accountInformation(address).round(round);
+    return ttDo(exclude ? req.exclude(ACCOUNT_EXCLUDE) : req);
+  };
+  let account: modelsv2.Account | null;
+  try {
+    account = await read(true);
+  } catch (e) {
+    // A node that predates the exclude refuses it ("failed to parse
+    // exclude"): read the account in full, which the page reads just as well.
+    if (!(e instanceof TimeTravelError && e.status === 400 && /exclude/i.test(e.message))) throw e;
+    account = await read(false);
+  }
   if (!account) throw new TimeTravelError(`Account ${address} not found at block ${round}`, 404);
   return account;
 }

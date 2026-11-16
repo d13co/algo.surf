@@ -39,28 +39,6 @@ export class CoreAccount {
         return this.account.assets ?? [];
     }
 
-    isCreatedAsset(assetId: number): boolean {
-        const createdAssets = this.getCreatedAssets();
-
-        for (const asset of createdAssets) {
-            if (Number(asset.index) === assetId) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    getCreatedAsset(assetId: number): modelsv2.Asset | undefined {
-        const createdAssets = this.getCreatedAssets();
-
-        for (const asset of createdAssets) {
-            if (Number(asset.index) === assetId) {
-                return asset;
-            }
-        }
-    }
-
     getHoldingAsset(assetId: number): modelsv2.AssetHolding | undefined {
         const assets = this.getHoldingAssets();
         for (const asset of assets) {

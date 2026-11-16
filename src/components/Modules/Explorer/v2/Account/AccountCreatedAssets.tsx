@@ -57,7 +57,7 @@ const columnLabels: Record<string, string> = {
 function AccountCreatedAssets(): JSX.Element {
   const { address } = useParams();
   const { round } = useRound();
-  const { data: accountInfo } = useAccount(address, round);
+  const { data: accountInfo, isPlaceholderData } = useAccount(address, round);
 
   const createdAssetIds = useMemo(
     () =>
@@ -65,7 +65,9 @@ function AccountCreatedAssets(): JSX.Element {
     [accountInfo?.createdAssets]
   );
 
-  const { data: createdAssets, isLoading } = useTinyAssets(createdAssetIds);
+  const { data: createdAssets, isLoading: assetsLoading } = useTinyAssets(createdAssetIds);
+  // On a switch of round the last round's list stays up (keepSameRecord) until this one's is in.
+  const isLoading = assetsLoading || isPlaceholderData;
 
   const { searchTerm, setSearchTerm, filtered, searchStatus } = useFilteredAssets(createdAssets);
 
@@ -107,7 +109,7 @@ function AccountCreatedAssets(): JSX.Element {
           <div className="text-sm text-muted-foreground whitespace-nowrap">{isLoading ? "Loading" : searchStatus}</div>
         </div>
       </ListToolbar>
-      {isLoading ? (
+      {assetsLoading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>

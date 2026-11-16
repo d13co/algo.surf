@@ -35,6 +35,8 @@ function NameCell({ appId, onNameResolved }: { appId: number; onNameResolved?: (
   return appName ? <span>{appName}</span> : <span className="text-muted">&mdash;</span>;
 }
 
+// The app as it is now, at any round: its creation round never changes, and
+// only the indexer has it.
 function CreatedAtCell({ appId }: { appId: number }) {
   const { data: appInfo } = useApplication(appId);
   const createdAtRound = appInfo?.createdAtRound != null ? Number(appInfo.createdAtRound) : undefined;
@@ -44,6 +46,19 @@ function CreatedAtCell({ appId }: { appId: number }) {
   if (!timestamp || !createdAtRound) return <span className="text-muted">&mdash;</span>;
 
   return <MultiDateViewer timestamp={timestamp} block={createdAtRound} variant="short" />;
+}
+
+// The account's created apps come without params (ACCOUNT_EXCLUDE), so the
+// version is the app's own: at the page's round, the same lookup as the Created
+// column's at the latest one. A full account (from a node without the exclude)
+// already has it. algod and the indexer leave out a version of 0.
+function VersionCell({ app, round }: { app: modelsv2.Application; round: number | undefined }) {
+  const known = app.params ? app.params.version ?? 0 : undefined;
+  // id 0 disables the lookup where the account already had the params.
+  const { data: appInfo } = useApplication(known === undefined ? Number(app.id) : 0, round);
+  if (known !== undefined) return <>{known}</>;
+  if (!appInfo) return <span className="text-muted">&mdash;</span>;
+  return <>{appInfo.params?.version ?? 0}</>;
 }
 
 const columnLabels: Record<string, string> = {
@@ -56,7 +71,9 @@ const columnLabels: Record<string, string> = {
 function AccountCreatedApplications(): JSX.Element {
   const { address } = useParams();
   const { round } = useRound();
-  const { data: accountInfo, isLoading } = useAccount(address, round);
+  const { data: accountInfo, isLoading, isPlaceholderData } = useAccount(address, round);
+  // On a switch of round the last round's list stays up (keepSameRecord) until this one's is in.
+  const loading = isLoading || isPlaceholderData;
 
   const [resolvedNames, setResolvedNames] = useState<Map<number, string>>(() => new Map());
 
@@ -90,9 +107,9 @@ function AccountCreatedApplications(): JSX.Element {
     {
       id: "version",
       header: "Version",
-      cell: ({ row }) => row.original.params.version ?? 0,
+      cell: ({ row }) => <VersionCell app={row.original} round={round} />,
     },
-  ], [onNameResolved]);
+  ], [onNameResolved, round]);
 
   const createdApplications = useMemo(() => {
     if (!accountInfo) return [];
@@ -128,7 +145,7 @@ function AccountCreatedApplications(): JSX.Element {
         onPrev={() => table.previousPage()}
         onNext={() => table.nextPage()}
         onLast={() => table.setPageIndex(pageCount - 1)}
-        loading={isLoading}
+        loading={loading}
       >
         <div className="flex items-center gap-3">
           <FilterInput
@@ -137,7 +154,7 @@ function AccountCreatedApplications(): JSX.Element {
             placeholder="Filter applications"
             className="w-[195px]"
           />
-          <div className="text-sm text-muted-foreground whitespace-nowrap">{isLoading ? "Loading" : searchStatus}</div>
+          <div className="text-sm text-muted-foreground whitespace-nowrap">{loading ? "Loading" : searchStatus}</div>
         </div>
       </ListToolbar>
       {isLoading ? (
