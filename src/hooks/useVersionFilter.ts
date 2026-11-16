@@ -5,6 +5,7 @@ import { BlockClient } from "src/packages/core-sdk/clients/blockClient";
 import explorer from "src/utils/dappflow";
 import { RoundBounds, VersionsOrder } from "src/utils/timeTravel";
 import {
+  orderForRange,
   parseVersionFilter,
   parseVersionRange,
   parseVersionsOrder,
@@ -42,10 +43,23 @@ export function useVersionRange(): VersionRange | undefined {
   return useMemo(() => parseVersionRange(searchParams), [signature]);
 }
 
-/** Links to this page with another version date range (or none), keeping the rest of its query. */
+/**
+ * Links to this page with another version date range (or none), keeping the
+ * rest of its query - but its order where the range comes to have one end
+ * only (see orderForRange).
+ */
 export function useVersionRangeHref(): (range: VersionRange | undefined) => string {
   const { pathname, search } = useLocation();
-  return useCallback((range: VersionRange | undefined) => withVersionRange(`${pathname}${search}`, range), [pathname, search]);
+  return useCallback(
+    (range: VersionRange | undefined) => {
+      const params = new URLSearchParams(search);
+      const order = parseVersionsOrder(params);
+      const next = orderForRange(parseVersionRange(params), range, order);
+      const path = withVersionRange(`${pathname}${search}`, range);
+      return next === order ? path : withVersionsOrder(path, next);
+    },
+    [pathname, search],
+  );
 }
 
 /** The order version lists show in, from the URL (see parseVersionsOrder), and a way to switch it. */

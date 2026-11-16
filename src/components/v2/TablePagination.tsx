@@ -21,6 +21,8 @@ interface TablePaginationProps {
   loading?: boolean;
   onShowAll?: () => void;
   className?: string;
+  /** Below `sm`, the counter reads "1 / 4" rather than "Page 1 of 4", to fit a phone's toolbar row. */
+  compact?: boolean;
 }
 
 export default function TablePagination({
@@ -36,6 +38,7 @@ export default function TablePagination({
   loading,
   onShowAll,
   className = "flex items-center justify-end gap-2",
+  compact = false,
 }: TablePaginationProps) {
   if (pageCount < 1 || (pageCount === 1 && !hasMore)) return null;
 
@@ -55,7 +58,17 @@ export default function TablePagination({
         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
       ) : null}
       <span className="text-sm text-muted-foreground whitespace-nowrap">
-        Page {pageIndex + 1} of {pageCount}
+        {compact ? (
+          <>
+            <span className="max-sm:hidden">Page </span>
+            {pageIndex + 1}
+            <span className="max-sm:hidden"> of </span>
+            <span className="sm:hidden"> / </span>
+          </>
+        ) : (
+          <>Page {pageIndex + 1} of </>
+        )}
+        {pageCount}
         {hasMore ? "+" : ""}
       </span>
       <Button

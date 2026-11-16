@@ -18,6 +18,8 @@ interface ListToolbarProps {
   children?: React.ReactNode;
   /** Buttons beside the page counter: on its left on desktop; on mobile, on its row at the left. */
   actions?: React.ReactNode;
+  /** A shorter page counter on phones (see TablePagination). */
+  compactPagination?: boolean;
 }
 
 export default function ListToolbar({
@@ -34,6 +36,7 @@ export default function ListToolbar({
   onLast,
   loading,
   actions,
+  compactPagination,
 }: ListToolbarProps) {
   if (!children && !actions && (pageCount < 1 || (pageCount === 1 && !hasMore))) return <div className="mb-4 md:mb-0"></div>;
 
@@ -50,6 +53,7 @@ export default function ListToolbar({
       onNext={onNext}
       onLast={onLast}
       loading={loading}
+      compact={compactPagination}
     />
   );
 

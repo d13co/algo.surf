@@ -215,6 +215,24 @@ export function withVersionRange(path: string, range: VersionRange | undefined):
   return qs ? `${pathname}?${qs}` : pathname;
 }
 
+/** The order a range with only one end reads best in: from its start, or back from its end. */
+function oneEndedOrder(range: VersionRange | undefined): VersionsOrder | undefined {
+  if (range?.from !== undefined && range.to === undefined) return "asc";
+  if (range?.to !== undefined && range.from === undefined) return "desc";
+  return undefined;
+}
+
+/**
+ * The order a version list takes as its date range goes from `prev` to
+ * `next`: oldest first where it comes to have only a start, newest first where
+ * only an end, so it opens at the date picked. Moving that one end keeps
+ * `order`, which may have been switched since.
+ */
+export function orderForRange(prev: VersionRange | undefined, next: VersionRange | undefined, order: VersionsOrder): VersionsOrder {
+  const want = oneEndedOrder(next);
+  return want && want !== oneEndedOrder(prev) ? want : order;
+}
+
 /**
  * A version list's order, as the URL carries it: `?order=asc` for oldest
  * first; newest first without it, so a link lists alike for every reader.

@@ -14,14 +14,11 @@ interface LinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
   keepRound?: boolean;
 }
 
-export default function Link({
-  href,
-  noStyle,
-  keepRound = true,
-  children,
-  className,
-  ...props
-}: LinkProps) {
+/** Forwards its ref, so it can be a Radix `asChild` child (a menu item). */
+const Link = React.forwardRef<HTMLAnchorElement, LinkProps>(function Link(
+  { href, noStyle, keepRound = true, children, className, ...props },
+  ref,
+) {
   const roundHref = useRoundHref();
 
   const isExternal =
@@ -35,7 +32,7 @@ export default function Link({
 
   if (isExternal) {
     return (
-      <a href={href} className={linkClasses} {...props}>
+      <a ref={ref} href={href} className={linkClasses} {...props}>
         {children}
       </a>
     );
@@ -43,6 +40,7 @@ export default function Link({
 
   return (
     <RouterLink
+      ref={ref}
       to={keepRound ? roundHref(href) : href}
       className={linkClasses}
       {...props}
@@ -50,4 +48,6 @@ export default function Link({
       {children}
     </RouterLink>
   );
-}
+});
+
+export default Link;

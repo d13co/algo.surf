@@ -152,6 +152,7 @@ export default function MultiFormatViewer(
   const shown = cut ? (
     <span
       className="cursor-pointer"
+      data-inline-toggle
       style={{ wordBreak: "break-all" }}
       title={`${full ? "Click to shorten" : "Click to show all"} (${Buffer.from(value, "base64").length.toLocaleString()} bytes)`}
       onClick={() => setFull((f) => !f)}
