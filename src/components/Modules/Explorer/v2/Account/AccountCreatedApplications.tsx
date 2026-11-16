@@ -50,14 +50,16 @@ function CreatedAtCell({ appId }: { appId: number }) {
 
 // The account's created apps come without params (ACCOUNT_EXCLUDE), so the
 // version is the app's own: at the page's round, the same lookup as the Created
-// column's at the latest one. A full account (from a node without the exclude)
-// already has it. algod and the indexer leave out a version of 0.
-function VersionCell({ app, round }: { app: modelsv2.Application; round: number | undefined }) {
+// column's at the latest one. A full account (persisted from before the exclude)
+// already has it. algod and the indexer leave out a version of 0. `stale` while
+// the list is still the last round's: its apps aren't looked up at this one.
+function VersionCell({ app, round, stale }: { app: modelsv2.Application; round: number | undefined; stale: boolean }) {
   const known = app.params ? app.params.version ?? 0 : undefined;
-  // id 0 disables the lookup where the account already had the params.
-  const { data: appInfo } = useApplication(known === undefined ? Number(app.id) : 0, round);
+  // id 0 disables the lookup.
+  const { data: appInfo, isPlaceholderData } = useApplication(known === undefined && !stale ? Number(app.id) : 0, round);
   if (known !== undefined) return <>{known}</>;
-  if (!appInfo) return <span className="text-muted">&mdash;</span>;
+  // A placeholder is the app at another round.
+  if (!appInfo || stale || isPlaceholderData) return <span className="text-muted">&mdash;</span>;
   return <>{appInfo.params?.version ?? 0}</>;
 }
 
@@ -107,9 +109,9 @@ function AccountCreatedApplications(): JSX.Element {
     {
       id: "version",
       header: "Version",
-      cell: ({ row }) => <VersionCell app={row.original} round={round} />,
+      cell: ({ row }) => <VersionCell app={row.original} round={round} stale={isPlaceholderData} />,
     },
-  ], [onNameResolved, round]);
+  ], [onNameResolved, round, isPlaceholderData]);
 
   const createdApplications = useMemo(() => {
     if (!accountInfo) return [];

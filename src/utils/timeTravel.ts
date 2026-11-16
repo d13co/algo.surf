@@ -629,19 +629,7 @@ export async function getAssetAt(id: number, round: number): Promise<indexerMode
 
 /** An account at `round`, as algod's account information. */
 export async function getAccountAt(address: string, round: number): Promise<modelsv2.Account> {
-  const read = (exclude: boolean) => {
-    const req = requireDTAlgod().accountInformation(address).round(round);
-    return ttDo(exclude ? req.exclude(ACCOUNT_EXCLUDE) : req);
-  };
-  let account: modelsv2.Account | null;
-  try {
-    account = await read(true);
-  } catch (e) {
-    // A node that predates the exclude refuses it ("failed to parse
-    // exclude"): read the account in full, which the page reads just as well.
-    if (!(e instanceof TimeTravelError && e.status === 400 && /exclude/i.test(e.message))) throw e;
-    account = await read(false);
-  }
+  const account = await ttDo(requireDTAlgod().accountInformation(address).round(round).exclude(ACCOUNT_EXCLUDE));
   if (!account) throw new TimeTravelError(`Account ${address} not found at block ${round}`, 404);
   return account;
 }
