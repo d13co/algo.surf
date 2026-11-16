@@ -8,17 +8,36 @@ import useTitle from "src/components/Common/UseTitle/UseTitle";
 import CreatedList from "src/components/v2/CreatedList";
 import DeletedMark from "src/components/v2/DeletedMark";
 import type { FetchAfter } from "src/hooks/useCreatedList";
+import { useDeletedAssetTiny } from "src/components/Common/UseTinyAsset";
+
+/**
+ * The indexer clears a destroyed asset's name and unit: a time-travel node
+ * still has them (both cells ask, and share one read).
+ */
+function usePastParams(asset: A_Asset) {
+  return useDeletedAssetTiny(asset.index, asset.deleted ? asset.deletedAtRound : undefined)?.params;
+}
+
+function NameCell({ asset }: { asset: A_Asset }): JSX.Element {
+  const past = usePastParams(asset);
+  return (
+    <>
+      <LinkToAsset id={asset.index} name={asset.params.name || past?.name} />
+      <DeletedMark deleted={asset.deleted} atRound={asset.deletedAtRound} />
+    </>
+  );
+}
+
+function UnitCell({ asset }: { asset: A_Asset }): JSX.Element {
+  const past = usePastParams(asset);
+  return <span>{asset.params["unit-name"] || past?.["unit-name"]}</span>;
+}
 
 const columns: ColumnDef<A_Asset, any>[] = [
   {
     id: "name",
     header: "Name",
-    cell: ({ row }) => (
-      <>
-        <LinkToAsset id={row.original.index} name={row.original.params.name} />
-        <DeletedMark deleted={row.original.deleted} atRound={row.original.deletedAtRound} />
-      </>
-    ),
+    cell: ({ row }) => <NameCell asset={row.original} />,
   },
   {
     id: "index",
@@ -28,7 +47,7 @@ const columns: ColumnDef<A_Asset, any>[] = [
   {
     id: "unit",
     header: "Unit",
-    cell: ({ row }) => <span>{row.original.params["unit-name"]}</span>,
+    cell: ({ row }) => <UnitCell asset={row.original} />,
   },
   {
     id: "url",

@@ -98,6 +98,38 @@ export function useTinyAssets(
 }
 
 /**
+ * A deleted asset's name, unit and decimals, read on the time-travel node at
+ * the round before `deletedAtRound`: they never change while an asset exists,
+ * so that read is right whatever round the page shows. Null without a node or
+ * a deletion round, or where abel had nothing then. For a list, which pages
+ * through many: kept in memory a short while and never persisted.
+ */
+export function useDeletedAssetTiny(
+  id: number,
+  deletedAtRound: number | undefined
+): A_AssetTiny | null | undefined {
+  const node = getTimeTravelNode()?.baseUrl;
+  const round = deletedAtRound === undefined ? undefined : deletedAtRound - 1;
+  const { data } = useQuery({
+    queryKey: ["deleted-asset-tiny", node, id, round],
+    queryFn: async () => {
+      const abelAt = getAbelAt();
+      if (!abelAt) return null;
+      const read = await abelAt.getAssetsTinyLabels([id], { round });
+      const found = read.get(BigInt(id));
+      const tiny = found ? abelTinyToAssetTiny(found) : null;
+      return tiny && !isDeletedAssetTiny(tiny) ? tiny : null;
+    },
+    enabled: !!node && round !== undefined && round > 0,
+    staleTime: Infinity,
+    gcTime: 10 * 60_000,
+    retry: false,
+    meta: { noPersist: true },
+  });
+  return data;
+}
+
+/**
  * useTinyAssets, with deleted assets read again on the time-travel node at
  * `round`, a round they existed at (e.g. the round before a block that
  * touched them). An asset's name, unit and decimals never change, so the
