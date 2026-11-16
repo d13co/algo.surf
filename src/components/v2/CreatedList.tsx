@@ -58,8 +58,8 @@ export default function CreatedList<T>({
   const currentRowCount = table.getRowModel().rows.length;
   const padCount = hasNextPage ? rowsPerPage - currentRowCount : 0;
 
-  // Another order is another list: start it at its first page
-  useEffect(() => table.setPageIndex(0), [order, table]);
+  // Another order or round is another list: start it at its first page
+  useEffect(() => table.setPageIndex(0), [order, round, table]);
 
   const { ref: tableRef, style: stableStyle } = useStableHeight(currentRowCount === rowsPerPage);
 

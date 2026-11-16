@@ -209,8 +209,9 @@ function SeriesPage({ title, y, format: formatValue, label, stats }: SeriesPageP
   // Waiting for R's timestamp: nothing is fetched until the view's end is known.
   const atPending = atRound !== undefined && atEnd === undefined;
   const rangeEnd = atEnd ?? now;
-  // A calendar period, else a rolling range.
-  const period = parsePeriod(params.get("range") ?? "", now);
+  // A calendar period, else a rolling range. At a round, R stands in for now: a period not begun by R isn't one, and
+  // one running past R ends there.
+  const period = parsePeriod(params.get("range") ?? "", rangeEnd);
   const range = RANGES.find((r) => r.value === params.get("range")) ?? DEFAULT_RANGE;
   const rangeValue = period?.value ?? range.value;
   // A drag-zoomed [start, end) overrides the range or period.
@@ -219,7 +220,7 @@ function SeriesPage({ title, y, format: formatValue, label, stats }: SeriesPageP
   // At a round, a zoom (from a link or typed) ends at R at the latest: nothing after R is shown.
   const zoomEndAt = atEnd !== undefined ? Math.min(zoomEnd, atEnd) : zoomEnd;
   const zoom = zoomStart > 0 && zoomEndAt > zoomStart ? { start: zoomStart, end: zoomEndAt } : null;
-  const span = zoom ? zoom.end - zoom.start : period ? spanOf(rangeValue, now) : spanOf(rangeValue, rangeEnd);
+  const span = zoom ? zoom.end - zoom.start : spanOf(rangeValue, rangeEnd);
   const intervals = intervalsFor(span);
   // The finest interval keeping a zoom to 1000 bars, anything else to 200.
   const interval =
@@ -230,7 +231,7 @@ function SeriesPage({ title, y, format: formatValue, label, stats }: SeriesPageP
   // query key holds for a whole bucket.
   const bounds = zoom ?? period;
   const start = bounds ? bounds.start : range.days ? bucketStart(interval, rangeEnd - range.days * DAY) : undefined;
-  const end = bounds ? bounds.end : atEnd;
+  const end = bounds ? bounds.end ?? atEnd : atEnd;
   // A view ending now, or a zoom ending in the future. Past a zoom's end it stays live for two more polls, for blocks
   // surf idx hadn't indexed yet.
   const liveUntil = end === undefined ? Infinity : end + (2 * LIVE_POLL_MS[interval]) / 1000;
@@ -333,7 +334,7 @@ function SeriesPage({ title, y, format: formatValue, label, stats }: SeriesPageP
                 onValueChange={select}
                 tabs={RANGES}
               />
-              <PeriodMenu period={zoom ? undefined : period} now={now} onSelect={select} />
+              <PeriodMenu period={zoom ? undefined : period} now={rangeEnd} onSelect={select} />
             </div>
             <LiveButton on={liveOn} available={endsNow} onChange={setLiveOn} />
           </div>
@@ -356,7 +357,9 @@ function SeriesPage({ title, y, format: formatValue, label, stats }: SeriesPageP
               ) : (
                 <>
                   Showing{" "}
-                  {period?.label ??
+                  {(period && (atRound !== undefined && period.end === undefined
+                    ? period.label.replace(/ to date$/, "") + ` up to block ${atRound.toLocaleString()}`
+                    : period.label)) ??
                     (atRound !== undefined
                       ? `${range.label.replace(/^past /, "the ")} up to block ${atRound.toLocaleString()}`
                       : range.label)}

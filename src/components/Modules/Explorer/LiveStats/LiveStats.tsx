@@ -73,7 +73,9 @@ function LiveStats(): JSX.Element {
     const blockCount = blockData?.length ?? 0;
     const spanBlocks = Math.max(0, blockCount - 1);
     const windowText = round !== undefined ? `the ${spanBlocks} blocks up to ${round.toLocaleString()}` : `the last ${spanBlocks} blocks`;
-    const pendingText = atError ? `Could not read the blocks up to ${round?.toLocaleString()}: ${(atError as Error).message}` : "Loading";
+    const pendingText = atError
+        ? `Could not read ${round !== undefined ? `the blocks up to ${round.toLocaleString()}` : "the latest blocks"}: ${(atError as Error).message}`
+        : "Loading";
 
     const tps = tpsValue != null ? tpsValue.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : "-";
     const avg = avgRoundTime != null
@@ -81,7 +83,8 @@ function LiveStats(): JSX.Element {
         : "-";
     const tc = txnCount != null ? Number(txnCount).toLocaleString() : "-";
 
-    const loading = blockCount < 4;
+    // Near genesis the window holds fewer: blocks 0 … R
+    const loading = blockCount < (round !== undefined ? Math.min(4, round + 1) : 4);
     // Window duration from actual timestamps — immune to round gaps in the data
     const intervalMinutes = blockData != null && blockCount > 1
         ? Math.round((blockData[blockCount - 1].ts - blockData[0].ts) / 60)

@@ -1,4 +1,5 @@
 import React, { Component } from "react";
+import { Navigate } from "react-router-dom";
 import Search from '../Search/Search';
 import LiveStats from "../LiveStats/LiveStats";
 import LiveUpgrade from "../LiveUpgrade/LiveUpgrade";
@@ -100,6 +101,8 @@ function Home(): JSX.Element {
     const { round } = useRound();
     useTitle(round !== undefined ? `Home at block ${round}` : "Home");
 
+    // Genesis has no time of its own to show or step from: the homepage starts at block 1, as the stepper does
+    if (round === 0) return <Navigate to="/?round=1" replace />;
     if (round !== undefined) return <HomeAt round={round} />;
 
     return (

@@ -87,9 +87,6 @@ export type A_AssetTransactionsResponse = A_TransactionsResponse;
 
 export const ASSETS_PAGE_SIZE = 100;
 
-/** Fetch options that cancel the request with `signal`. */
-
-
 export type A_AssetsResponse = {
     'next-token': string,
     assets: A_Asset[]

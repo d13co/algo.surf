@@ -35,7 +35,7 @@ export default function HomeStepper({ round }: { round: number }): JSX.Element {
     setError(undefined);
     if (latest !== undefined && r > latest) {
       setPlaying(false);
-      navigate("/");
+      navigate("/", { replace });
       return;
     }
     navigate(`/?round=${Math.max(1, r)}`, { replace });
@@ -83,6 +83,8 @@ export default function HomeStepper({ round }: { round: number }): JSX.Element {
     }
   };
 
+  // A round typed but not gone to gives way to the round shown once any other move lands
+  useEffect(() => setDraft(undefined), [round]);
   const input = draft ?? String(round);
   const onGo = (e: FormEvent) => {
     e.preventDefault();

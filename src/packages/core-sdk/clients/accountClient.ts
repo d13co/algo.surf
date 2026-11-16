@@ -11,9 +11,6 @@ import { withSignal } from "../utils/signal";
 
 export const ACCOUNTS_PAGE_SIZE = 100;
 
-/** Fetch options that cancel the request with `signal`. */
-
-
 // How far getLastSentTransaction looks: up to 3 batches of 50.
 const LAST_SENT_BATCH_SIZE = 50;
 const LAST_SENT_BATCHES = 3;

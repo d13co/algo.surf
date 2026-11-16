@@ -11,9 +11,6 @@ export type CompileResponse = { hash: string; result: string; sourcemap?: string
 
 export const APPLICATIONS_PAGE_SIZE = 100;
 
-/** Fetch options that cancel the request with `signal`. */
-
-
 export type A_ApplicationTransactionsResponse = A_TransactionsResponse;
 export type A_ApplicationsResponse = {
     'next-token': string,

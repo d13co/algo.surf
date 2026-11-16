@@ -47,16 +47,22 @@ async function collect<T>(
   signal?: AbortSignal,
 ): Promise<T[]> {
   const items: T[] = [];
-  let next = lower > 0 ? String(lower - 1) : undefined;
+  let after = lower - 1;
   for (;;) {
     // Deleted ones too: they were still created
-    const { items: batch } = await fetchAfter(next, BATCH, { signal, includeAll: true });
+    const { items: batch } = await fetchAfter(after >= 0 ? String(after) : undefined, BATCH, {
+      signal,
+      includeAll: true,
+    });
     if (!batch.length) return items;
     for (const item of batch) {
       if (idOf(item) >= upper) return items;
       items.push(item);
     }
-    next = String(idOf(batch[batch.length - 1]));
+    const last = idOf(batch[batch.length - 1]);
+    // An indexer that didn't move past `after` would repeat this batch forever
+    if (last <= after) throw new Error(`The indexer listed id ${last} again after ${after}`);
+    after = last;
   }
 }
 
@@ -87,12 +93,31 @@ export function useCreatedList<T>({
 }) {
   const queryClient = useQueryClient();
 
+  /** One past the highest id created by `round`: its transaction counter, read once per round. */
+  const upperAt = useCallback(
+    async (round: number, signal?: AbortSignal) =>
+      (await queryClient.fetchQuery({
+        queryKey: ["txn-counter", round],
+        queryFn: () => new BlockClient(explorer.network).txnCounter(round, signal),
+        staleTime: Infinity,
+      })) + 1,
+    [queryClient],
+  );
+
   const oldest = useInfiniteQuery({
-    queryKey: ["created-list", kind, "oldest"],
+    queryKey: ["created-list", kind, "oldest", round ?? "live"],
     enabled: order === "oldest",
     initialPageParam: undefined as string | undefined,
-    // Deleted ones too, as Latest lists them
-    queryFn: ({ pageParam, signal }) => fetchAfter(pageParam, pageSize, { signal, includeAll: true }),
+    queryFn: async ({ pageParam, signal }) => {
+      // Deleted ones too, as Latest lists them
+      const [page, upper] = await Promise.all([
+        fetchAfter(pageParam, pageSize, { signal, includeAll: true }),
+        round === undefined ? Infinity : upperAt(round, signal),
+      ]);
+      // At a round, only what existed by then: the first id past it ends the list
+      const items = page.items.filter((item) => idOf(item) < upper);
+      return items.length < page.items.length ? { items } : page;
+    },
     // The indexer can return a next-token even on the final (short) page, so
     // only treat it as a real next page when the page came back full.
     getNextPageParam: (last) =>
@@ -103,7 +128,10 @@ export function useCreatedList<T>({
   const fetchLatest = useCallback(
     async (pageParam: LatestParam, signal?: AbortSignal): Promise<LatestPage<T>> => {
       const upper =
-        pageParam?.upper ?? (await new BlockClient(explorer.network).txnCounter(round, signal)) + 1;
+        pageParam?.upper ??
+        (round === undefined
+          ? (await new BlockClient(explorer.network).txnCounter(undefined, signal)) + 1
+          : await upperAt(round, signal));
       let window = pageParam?.window ?? FIRST_WINDOW;
       // Widening only fetches the part of the window not yet seen
       let items: T[] = [];
@@ -120,11 +148,11 @@ export function useCreatedList<T>({
         items.length > WIDEN_MORE * pageSize ? Math.max(1000, Math.floor(window / WIDEN_MORE)) : window;
       return { items: items.reverse(), lower, window: nextWindow };
     },
-    [round, pageSize, fetchAfter, idOf],
+    [round, pageSize, fetchAfter, idOf, upperAt],
   );
 
   const latestKey = useMemo(
-    () => ["created-list", kind, "latest", ...(round === undefined ? [] : [{ round }])],
+    () => ["created-list", kind, "latest", round ?? "live"],
     [kind, round],
   );
   const latest = useInfiniteQuery({

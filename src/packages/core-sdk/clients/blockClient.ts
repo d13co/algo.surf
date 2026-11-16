@@ -5,8 +5,6 @@ import {A_Status,A_BlockResult} from "../types";
 import { toA_Block, toA_Status } from "../utils/v3Adapters";
 import { withSignal } from "../utils/signal";
 
-/** Fetch options that cancel the request with `signal`. */
-
 export class BlockClient {
     client: Algodv2;
     indexer: Indexer;
