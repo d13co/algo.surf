@@ -1,6 +1,5 @@
 import React, { useCallback, useMemo } from "react";
 import { useParams } from "react-router-dom";
-import { cn } from "src/lib/utils";
 import { usePersistenBooleanState } from "src/utils/usePersistenBooleanState";
 import { useAppVersions, useSearchBatchSize } from "src/hooks/useTimeTravel";
 import { useRound, withRound } from "src/hooks/useRound";
@@ -11,8 +10,8 @@ import { filterStateKey, withVersionFilter, withVersionRange, withVersionsOrder 
 import { appVersionTouches, BaselineContext, displayTealKey, objKindLabel, ObjRef } from "src/utils/versionDelta";
 import Link from "../Links/Link";
 import { ObjectLabel, StateHref, TxnsLink } from "../Versions/VersionChanges";
-import VersionRangeBar from "../Versions/VersionRangeBar";
 import VersionsList from "../Versions/VersionsList";
+import { VersionOption } from "../Versions/VersionsToolbar";
 
 /** Where the app page shows a box (by its base64 name). */
 function boxHref(appId: number, name: string): string {
@@ -90,11 +89,25 @@ function ApplicationVersions(): JSX.Element {
     [appId],
   );
 
+  const options = useMemo<VersionOption[]>(
+    () => [
+      {
+        id: "boxes",
+        group: "List",
+        label: "Include box changes",
+        checked: includeBoxes,
+        disabled: boxFiltered,
+        note: boxFiltered ? "filtered to a box" : undefined,
+        onChange: setIncludeBoxesChecked,
+      },
+    ],
+    [includeBoxes, boxFiltered, setIncludeBoxesChecked],
+  );
+
   return (
     <>
-      <VersionRangeBar />
       <VersionsList
-        key={listKey}
+        listKey={listKey}
         filter={filter}
         onKeepSearching={keepSearching}
         gapped={gapped}
@@ -116,18 +129,7 @@ function ApplicationVersions(): JSX.Element {
         emptyLabel={range ? "No versions in this date range" : "No versions"}
         minRound={bounds?.min}
         pin={pinned === undefined ? undefined : { round: pinned, onUnpin: unpin }}
-        toolbar={
-          <label className={cn("flex items-center gap-2 text-sm text-muted-foreground", boxFiltered ? "opacity-60" : "cursor-pointer")}>
-            <input
-              type="checkbox"
-              className="accent-primary"
-              checked={includeBoxes}
-              disabled={boxFiltered}
-              onChange={(e) => setIncludeBoxesChecked(e.target.checked)}
-            />
-            Include box changes
-          </label>
-        }
+        options={options}
       />
     </>
   );

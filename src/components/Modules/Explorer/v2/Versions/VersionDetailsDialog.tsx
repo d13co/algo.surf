@@ -76,6 +76,7 @@ function SummarySection({
   txnsLink,
   fieldHref,
   boxTypes,
+  headerHrefs,
 }: {
   summary: ObjectSummary;
   round: number;
@@ -85,9 +86,13 @@ function SummarySection({
   txnsLink: TxnsLink;
   fieldHref?: FieldHref;
   boxTypes?: string[];
+  /** Where the dialog's own Rewind and Find txns go: the section's links show only where they differ. */
+  headerHrefs?: { state: string; txns: string };
 }) {
   const isBox = s.ref.kind === "box" && (s.status === "created" || s.status === "deleted" || s.status === "changed" || s.status === "unchanged");
   const box = isBox ? boxValues(s) : undefined;
+  const rewindHref = stateHref(round, s.ref);
+  const txns = txnsLink(round, s.ref);
   return (
     <section>
       <div className="flex flex-wrap items-center gap-2 mb-1">
@@ -95,13 +100,13 @@ function SummarySection({
         <StatusChip summary={s} />
         {box ? <SizeNote before={box.before} after={box.after} /> : null}
         {label && fieldHref ? <FilterLink href={fieldHref(s.key)} title="Only the versions that changed this" /> : null}
-        {label ? (
-          <Link href={stateHref(round, s.ref)} className="text-xs" title="Where the page shows this, as it was at this block">
+        {label && rewindHref !== headerHrefs?.state ? (
+          <Link href={rewindHref} className="text-xs" title="Where the page shows this, as it was at this block">
             <History size={12} className="inline -mt-0.5 mr-1" />
             rewind
           </Link>
         ) : null}
-        {label ? <FindTxnsLink {...txnsLink(round, s.ref)} /> : null}
+        {label && txns.href !== headerHrefs?.txns ? <FindTxnsLink {...txns} /> : null}
       </div>
       {s.status === "pending" ? (
         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -133,14 +138,12 @@ function AccountAt({
   round,
   unchanged,
   label,
-  stateHref,
   fieldHref,
 }: {
   ctx: BaselineContext;
   round: number;
   unchanged: boolean;
   label: ObjectLabel;
-  stateHref: StateHref;
   fieldHref?: FieldHref;
 }) {
   const { state, error } = useObjectAt(ctx, ACCOUNT, round);
@@ -153,11 +156,8 @@ function AccountAt({
       <div className="flex flex-wrap items-center gap-2 mb-1">
         <span className="text-muted-foreground">{label ? label(ACCOUNT) : objKindLabel.base}</span>
         {summary && unchanged ? <StatusChip summary={summary} /> : null}
+        {/* No rewind: it would be the dialog's own, to the account page. */}
         {fieldHref ? <FilterLink href={fieldHref("base")} title="Only the versions that changed this" /> : null}
-        <Link href={stateHref(round)} className="text-xs" title="The account page as it was at this block">
-          <History size={12} className="inline -mt-0.5 mr-1" />
-          rewind
-        </Link>
       </div>
       {error ? (
         <span className="text-red-400">Account state unavailable: {error.message}</span>
@@ -197,6 +197,7 @@ export default function VersionDetailsDialog<V>({
   txnsLink,
   fieldHref,
   filenamePrefix,
+  onCloseAutoFocus,
 }: {
   ctx: BaselineContext;
   filter?: VersionFilter;
@@ -221,6 +222,8 @@ export default function VersionDetailsDialog<V>({
   txnsLink: TxnsLink;
   fieldHref?: FieldHref;
   filenamePrefix: string;
+  /** Where focus goes on closing; preventDefault() keeps it from the default. */
+  onCloseAutoFocus?: (event: Event) => void;
 }) {
   const [view, setView] = useState<View>("changes");
   // Stepping past the last loaded version waits for the next batch.
@@ -294,7 +297,17 @@ export default function VersionDetailsDialog<V>({
   const boxValueTypes = useBoxValueTypes(ctx.kind === "app" ? ctx.appId : 0);
   const hasBoxes = ctx.kind === "app" && [...summaries, ...others].some((s) => s.ref.kind === "box");
 
-  const sectionProps = { round: row?.round ?? 0, view, label, stateHref, txnsLink, fieldHref, boxTypes: boxValueTypes.types };
+  const sectionProps = {
+    round: row?.round ?? 0,
+    view,
+    label,
+    stateHref,
+    txnsLink,
+    fieldHref,
+    boxTypes: boxValueTypes.types,
+    // Where the header's Rewind and Find txns go: a section links only elsewhere.
+    headerHrefs: row ? { state: stateHref(row.round), txns: versionTxnsLink(txnsLink, row).href } : undefined,
+  };
 
   function close() {
     setAwaitingMore(false);
@@ -303,7 +316,7 @@ export default function VersionDetailsDialog<V>({
 
   return (
     <Dialog open={!!row || openRound !== null} onOpenChange={(open) => !open && close()}>
-      <DialogContent aria-describedby={undefined} className="max-w-4xl max-h-[90vh] flex flex-col bg-background-muted text-foreground">
+      <DialogContent aria-describedby={undefined} onCloseAutoFocus={onCloseAutoFocus} className="max-w-4xl max-h-[90vh] flex flex-col bg-background-muted text-foreground">
         <DialogHeader>
           <DialogTitle className="text-lg font-normal">
             Version at block {row ? <LinkToBlock id={row.round} /> : openRound !== null ? <LinkToBlock id={openRound} /> : null}
@@ -389,7 +402,6 @@ export default function VersionDetailsDialog<V>({
                   round={row.round}
                   unchanged={accountUnchanged}
                   label={label}
-                  stateHref={stateHref}
                   fieldHref={fieldHref}
                 />
               ) : null}

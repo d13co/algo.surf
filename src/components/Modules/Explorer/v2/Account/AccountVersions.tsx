@@ -1,6 +1,5 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import { cn } from "src/lib/utils";
 import { useAccountVersions, useSearchBatchSize } from "src/hooks/useTimeTravel";
 import { useRound, withRound } from "src/hooks/useRound";
 import { withTxnRound } from "src/hooks/useTxnRound";
@@ -16,8 +15,8 @@ import {
 import LinkToAsset from "../Links/LinkToAsset";
 import LinkToApplication from "../Links/LinkToApplication";
 import { TxnsLink } from "../Versions/VersionChanges";
-import VersionRangeBar from "../Versions/VersionRangeBar";
 import VersionsList from "../Versions/VersionsList";
+import { VersionOption } from "../Versions/VersionsToolbar";
 
 function objectLabel(ref: ObjRef): React.ReactNode {
   const id = Number(ref.id);
@@ -119,11 +118,25 @@ function AccountVersions(): JSX.Element {
     [includeCreatedParams, object],
   );
 
+  const options = useMemo<VersionOption[]>(
+    () => [
+      {
+        id: "created-params",
+        group: "List",
+        label: "Include created app and asset params",
+        checked: includeCreatedParams,
+        disabled: paramsFiltered,
+        note: paramsFiltered ? "filtered to them" : undefined,
+        onChange: setIncludeParamsChecked,
+      },
+    ],
+    [includeCreatedParams, paramsFiltered],
+  );
+
   return (
     <>
-      <VersionRangeBar />
       <VersionsList
-        key={listKey}
+        listKey={listKey}
         filter={filter}
         onKeepSearching={keepSearching}
         gapped={gapped}
@@ -145,18 +158,7 @@ function AccountVersions(): JSX.Element {
         emptyLabel={range ? "No versions in this date range" : "No versions"}
         minRound={bounds?.min}
         pin={pinned === undefined ? undefined : { round: pinned, onUnpin: unpin }}
-        toolbar={
-          <label className={cn("flex items-center gap-2 text-sm text-muted-foreground", paramsFiltered ? "opacity-60" : "cursor-pointer")}>
-            <input
-              type="checkbox"
-              className="accent-primary"
-              checked={includeCreatedParams}
-              disabled={paramsFiltered}
-              onChange={(e) => setIncludeParamsChecked(e.target.checked)}
-            />
-            Include created app and asset params
-          </label>
-        }
+        options={options}
       />
     </>
   );

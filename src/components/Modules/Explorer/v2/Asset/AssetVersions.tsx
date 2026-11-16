@@ -7,7 +7,6 @@ import { useRangeRounds, useVersionFilter, useVersionPin, useVersionRange, useVe
 import { withVersionFilter, withVersionRange } from "src/utils/versionFilter";
 import { assetVersionTouches, BaselineContext } from "src/utils/versionDelta";
 import { StateHref, TxnsLink } from "../Versions/VersionChanges";
-import VersionRangeBar from "../Versions/VersionRangeBar";
 import VersionsList from "../Versions/VersionsList";
 
 function AssetVersions(): JSX.Element {
@@ -44,9 +43,8 @@ function AssetVersions(): JSX.Element {
 
   return (
     <>
-      <VersionRangeBar />
       <VersionsList
-        key={listKey}
+        listKey={listKey}
         filter={filter}
         onKeepSearching={keepSearching}
         ctx={ctx}

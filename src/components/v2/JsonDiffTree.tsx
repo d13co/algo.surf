@@ -86,6 +86,7 @@ function Str({ value, truncateAt }: { value: string; truncateAt: number }) {
   return (
     <span
       className="cursor-pointer break-all"
+      data-inline-toggle
       title={full ? "Click to shorten" : "Click to show all"}
       onClick={() => setFull((f) => !f)}
     >
@@ -215,7 +216,7 @@ function Branch({
   const Toggle = open ? ChevronDown : ChevronRight;
   return (
     <div className={tone ? toneClass[tone] : undefined}>
-      <span className="cursor-pointer select-none" onClick={() => setOpen((o) => !o)}>
+      <span className="cursor-pointer select-none" data-inline-toggle onClick={() => setOpen((o) => !o)}>
         <Toggle size={12} className="inline -ml-3.5 mr-0.5 opacity-60" />
         <Key name={name} parent={parent} path={path} opts={opts} />
         {open ? openBrace : (
