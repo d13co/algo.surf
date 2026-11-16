@@ -15,6 +15,7 @@ import { AlgorandClient } from "@algorandfoundation/algokit-utils";
 import { DEFAULT_MAX_VERSIONS_ROUNDS_PER_REQUEST } from "@algorandfoundation/algokit-utils/types/dt-manager";
 import { network, Networks } from "src/packages/core-sdk/constants";
 import type { BoxNamesPage } from "src/packages/core-sdk/clients/boxClient";
+import { ACCOUNT_EXCLUDE } from "src/packages/core-sdk/clients/accountClient";
 import type { A_Box } from "src/packages/core-sdk/types";
 import {
   REACT_APP_TIMETRAVEL_ALGOD_TOKEN,
@@ -628,7 +629,7 @@ export async function getAssetAt(id: number, round: number): Promise<indexerMode
 
 /** An account at `round`, as algod's account information. */
 export async function getAccountAt(address: string, round: number): Promise<modelsv2.Account> {
-  const account = await ttDo(requireDTAlgod().accountInformation(address).round(round));
+  const account = await ttDo(requireDTAlgod().accountInformation(address).round(round).exclude(ACCOUNT_EXCLUDE));
   if (!account) throw new TimeTravelError(`Account ${address} not found at block ${round}`, 404);
   return account;
 }

@@ -11,6 +11,16 @@ import { withSignal } from "../utils/signal";
 
 export const ACCOUNTS_PAGE_SIZE = 100;
 
+/**
+ * What algod leaves out of an account: each created app and asset comes back
+ * as its id alone (`{id}` / `{index}`), with no params. Those params were
+ * most of a big creator's account (9.6 MB, or 1.3 MB without them, on one with 17k assets),
+ * and nothing on the page reads them; the created lists' tabs look up what
+ * they show. algod has no exclude for the lists themselves, short of `all`,
+ * which drops holdings and local states too.
+ */
+export const ACCOUNT_EXCLUDE = "created-apps-params,created-assets-params";
+
 // How far getLastSentTransaction looks: up to 3 batches of 50.
 const LAST_SENT_BATCH_SIZE = 50;
 const LAST_SENT_BATCHES = 3;
@@ -34,7 +44,7 @@ export class AccountClient{
     }
 
     async getAccountInformation(address: string): Promise<modelsv2.Account> {
-        return this.client.accountInformation(address).do();
+        return this.client.accountInformation(address).exclude(ACCOUNT_EXCLUDE).do();
     }
 
     async getAccounts(token?: string, limit: number = ACCOUNTS_PAGE_SIZE, signal?: AbortSignal): Promise<A_AccountsResponse> {

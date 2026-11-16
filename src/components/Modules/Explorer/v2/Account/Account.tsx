@@ -44,6 +44,7 @@ import XChainBadge from "../XChainBadge";
 import AccountFunding from "./AccountFunding";
 import { microalgosToAlgos } from "src/utils/common";
 import { toPlainJson } from "src/packages/core-sdk/utils/serialize";
+import { ACCOUNT_EXCLUDE } from "src/packages/core-sdk/clients/accountClient";
 import { network } from "src/packages/core-sdk/constants";
 import TabsUnderline from "src/components/v2/shadcn-studio/tabs/tabs-11";
 import {
@@ -244,13 +245,9 @@ function Account(): JSX.Element {
   );
 
   const hasOptedAssets = accountInfo?.assets?.length ?? 0;
-  const hasCreatedAssets = accountInfo?.createdAssets?.length ?? 0;
-
-  const createdApplications = useMemo(() => {
-    if (!accountInstance) return [];
-    return [...accountInstance.getCreatedApplications()]
-      .sort((a, b) => Number(b.id) - Number(a.id));
-  }, [accountInstance]);
+  // From algod's totals: the created lists come without params (ACCOUNT_EXCLUDE), and their tabs read them.
+  const hasCreatedAssets = Number(accountInfo?.totalCreatedAssets ?? 0);
+  const hasCreatedApps = Number(accountInfo?.totalCreatedApps ?? 0);
 
   const optedApplications = useMemo(() => {
     if (!accountInstance) return [];
@@ -258,7 +255,6 @@ function Account(): JSX.Element {
       .sort((a, b) => Number(b.id) - Number(a.id));
   }, [accountInstance]);
 
-  const hasCreatedApps = createdApplications.length;
   const hasOptedApps = optedApplications.length;
   const hasAssetOrAppInfo =
     hasOptedAssets || hasCreatedAssets || hasOptedApps || hasCreatedApps;
@@ -387,9 +383,9 @@ function Account(): JSX.Element {
                 // Neither serves a past round: that came from the time-travel node.
                 api: address && round === undefined
                   ? {
-                      // algod has no such limit, so it always serves the
-                      // arrays in full.
-                      algod: `/v2/accounts/${address}`,
+                      // algod has no such limit; this is the request the page makes,
+                      // created apps and assets as ids alone.
+                      algod: `/v2/accounts/${address}?exclude=${ACCOUNT_EXCLUDE}`,
                       indexer: `/v2/accounts/${address}${indexerExcludesResources ? "?exclude=all" : ""}`,
                     }
                   : undefined,
@@ -733,7 +729,7 @@ function Account(): JSX.Element {
                           Created assets
                         </div>
                         <div className="mt-2.5">
-                          {accountInfo.createdAssets?.length ?? 0}
+                          {hasCreatedAssets}
                         </div>
                       </div>
                     ) : null}
@@ -744,7 +740,7 @@ function Account(): JSX.Element {
                           Created apps
                         </div>
                         <div className="mt-2.5">
-                          {createdApplications.length}
+                          {hasCreatedApps}
                         </div>
                       </div>
                     ) : null}
