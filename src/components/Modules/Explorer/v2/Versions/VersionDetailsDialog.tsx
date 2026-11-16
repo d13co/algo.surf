@@ -388,7 +388,8 @@ export default function VersionDetailsDialog<V>({
               ]}
             />
 
-            <div className="overflow-y-auto min-h-0 flex flex-col gap-4">
+            {/* -mx-1 px-1 pb-1: room inside the scroll box for the diff rows' bleeding highlight and the last line's glyphs, so neither shows a scrollbar. */}
+            <div className="overflow-y-auto min-h-0 flex flex-col gap-4 -mx-1 px-1 pb-1">
               {hasBoxes ? (
                 <BoxValueTypesInput
                   value={boxValueTypes.filter}

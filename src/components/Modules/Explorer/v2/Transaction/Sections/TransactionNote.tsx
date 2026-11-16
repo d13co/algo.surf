@@ -78,9 +78,10 @@ function TransactionNote({
       </div>
       <div className="mt-5 text-[13px] break-words leading-5">
         {textEncoding === TEXT_ENCODING.JSON ? (
-          <span className="whitespace-pre">
+          // Keeps the indentation but wraps long values, which would otherwise run out of the card.
+          <div className="whitespace-pre-wrap [overflow-wrap:anywhere]">
             {txnInstance.getNote(textEncoding)}
-          </span>
+          </div>
         ) : (
           txnInstance.getNote(textEncoding)
         )}

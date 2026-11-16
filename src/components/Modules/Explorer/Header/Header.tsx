@@ -65,7 +65,7 @@ function Header(): JSX.Element {
                 <nav
                     ref={nav}
                     onScroll={updateMore}
-                    className={`flex min-w-0 flex-1 items-center -ml-3 overflow-x-auto ${
+                    className={`flex min-w-0 flex-1 items-center -ml-3 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
                         more ? "[mask-image:linear-gradient(to_right,black_calc(100%-2rem),transparent)]" : ""
                     }`}
                 >

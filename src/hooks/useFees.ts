@@ -25,14 +25,45 @@ export interface Bucket {
 /** A block bucket is one block; ts is its timestamp. */
 export type Interval = "block" | "minute" | "hour" | "day" | "week" | "month";
 
-export function useFeeTotal(period: "24h" | "7d" | "30d") {
+export type FeePeriod = "24h" | "7d";
+
+const PERIOD_SECONDS: Record<FeePeriod, number> = { "24h": 86_400, "7d": 7 * 86_400 };
+
+export function useFeeTotal(period: FeePeriod, enabled = true) {
   return useQuery({
     ...surfIdxRetry,
     queryKey: ["fees-total", period],
     queryFn: () => surfIdxGet<FeeTotal>(`/v0/fees/${period}`),
-    enabled: surfIdxSupported,
+    enabled: surfIdxSupported && enabled,
     refetchInterval: 60_000,
     // Refetched every minute: persisted, each refetch would be an IndexedDB write for data that's stale by the next visit.
+    meta: { noPersist: true },
+  });
+}
+
+/**
+ * Fees over the period up to and including block `round`, made at `roundTs`: the blocks from roundTs - period on, to
+ * round. The past doesn't change, so it's read once per round. /v0/fees is a heavy route: pass enabled false while the
+ * round is still changing (stepping through rounds), so only the round settled on is read.
+ * Block R is always in its own window, so a total that doesn't reach it is surf idx not having indexed R yet: an
+ * error, never cached as R's total, and read again every 30s until R is in.
+ */
+export function useFeeTotalAt(period: FeePeriod, round: number | undefined, roundTs: number | undefined, enabled = true) {
+  return useQuery({
+    ...surfIdxRetry,
+    queryKey: ["fees-total-at", period, round],
+    queryFn: async () => {
+      // end is exclusive: block R's own second is in.
+      const start = Math.max(0, roundTs! - PERIOD_SECONDS[period]);
+      const total = await surfIdxGet<FeeTotal>(`/v0/fees?maxRound=${round}&start=${start}&end=${roundTs! + 1}`);
+      if (!total.blocks || total.lastRound < round!) throw new Error(`surf idx has not indexed block ${round!.toLocaleString()} yet`);
+      return total;
+    },
+    enabled: surfIdxSupported && enabled && round !== undefined && roundTs !== undefined,
+    staleTime: Infinity,
+    refetchInterval: (query) => (query.state.status === "error" ? 30_000 : false),
+    // A key per round: stepping through rounds would leave an entry for each, in memory for an hour and in IndexedDB for a day.
+    gcTime: 5 * 60_000,
     meta: { noPersist: true },
   });
 }

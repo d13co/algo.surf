@@ -15,7 +15,9 @@ import {
     TooltipTrigger,
 } from "src/components/v2/ui/tooltip";
 import { Link } from "react-router-dom";
-import { useFeeTotal } from "src/hooks/useFees";
+import { useFeeTotal, useFeeTotalAt } from "src/hooks/useFees";
+import { useDebounce } from "src/hooks/useDebounce";
+import { useBlockHeader } from "src/hooks/useBlock";
 import { surfIdxSupported } from "src/utils/surfIdx";
 import { microalgosToAlgos } from "src/utils/common";
 
@@ -24,15 +26,32 @@ const NETWORK = process.env.REACT_APP_NETWORK;
 const FEE_PERIODS = [
     { period: "24h", label: "Fees 24h", span: "24 hours" },
     { period: "7d", label: "Fees 7d", span: "7 days" },
-    { period: "30d", label: "Fees 30d", span: "30 days" },
 ] as const;
 
-function FeeRow({ period, label, span }: (typeof FEE_PERIODS)[number]): JSX.Element {
-    const { data } = useFeeTotal(period);
+/** How long a past round stays before its fee totals are read. */
+const FEE_SETTLE_MS = 1500;
+
+/**
+ * Fees over the period ending now, or at a past round (?round=R) over the period up to block R. Those are heavy surf idx
+ * requests: R's are read only once R has stayed for FEE_SETTLE_MS while stepping through rounds, and 7d's after 24h's
+ * is in, so a stop doesn't spend two at once. "-" until then.
+ */
+function FeeRow({ period, label, span, round }: (typeof FEE_PERIODS)[number] & { round?: number }): JSX.Element {
+    // The homepage at R reads R's header too: the same query.
+    const { data: header, error: headerError } = useBlockHeader(round ?? 0);
+    const roundTs = header?.timestamp !== undefined ? Number(header.timestamp) : undefined;
+    const [settled] = useDebounce(round, FEE_SETTLE_MS);
+    // 24h's total at R, from its row's query (this observer never fetches).
+    const first = useFeeTotalAt("24h", round, roundTs, false);
+    const live = useFeeTotal(period, round === undefined);
+    const at = useFeeTotalAt(period, round, roundTs, settled === round && (period === "24h" || first.data !== undefined || first.isError));
+    const data = round === undefined ? live.data : at.data;
+    const error = round === undefined ? live.error : at.error ?? headerError;
     const roundHref = useRoundHref();
     const value = data
         ? microalgosToAlgos(data.fees).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " ALGO"
         : "-";
+    const blocks = data && data.blocks ? ` (blocks ${data.firstRound.toLocaleString()}–${data.lastRound.toLocaleString()})` : "";
 
     return (
         <TooltipProvider>
@@ -44,7 +63,13 @@ function FeeRow({ period, label, span }: (typeof FEE_PERIODS)[number]): JSX.Elem
                     </Link>
                 </TooltipTrigger>
                 <TooltipContent side="top" className="bg-black text-white border-border">
-                    <p>Fees paid over the last {span}, inner transactions included. Click for charts.</p>
+                    <p>
+                        {error && !data
+                            ? `Could not read the fees: ${(error as Error).message}`
+                            : round !== undefined
+                              ? `Fees paid over the ${span} up to block ${round.toLocaleString()}${blocks}, inner transactions included. Click for charts.`
+                              : `Fees paid over the last ${span}, inner transactions included. Click for charts.`}
+                    </p>
                 </TooltipContent>
             </Tooltip>
         </TooltipProvider>
@@ -149,8 +174,8 @@ function LiveStats(): JSX.Element {
                         </Tooltip>
                     </TooltipProvider>
 
-                    {/* The fee totals end now: hidden at a past round rather than shown beside its stats. */}
-                    {surfIdxSupported && round === undefined ? FEE_PERIODS.map((p) => <FeeRow key={p.period} {...p} />) : null}
+                    {/* At a past round, the totals up to it; always rows ("-" while they load), so stepping doesn't move the panel. */}
+                    {surfIdxSupported ? FEE_PERIODS.map((p) => <FeeRow key={p.period} {...p} round={round} />) : null}
 
                     {/* Always a row ("-" while it loads), so stepping through rounds doesn't move the panel. */}
                     {(

@@ -17,6 +17,8 @@ import { Chip } from "src/components/v2/Chips";
 import LoadingTile from "src/components/v2/LoadingTile";
 import MultiFormatViewer from "src/components/v2/MultiFormatViewer";
 import AlgoIcon from "../../AlgoIcon/AlgoIcon";
+import { withRound } from "src/hooks/useRound";
+import Link from "../Links/Link";
 import LinkToAccount from "../Links/LinkToAccount";
 import LinkToApplication from "../Links/LinkToApplication";
 import LinkToAsset from "../Links/LinkToAsset";
@@ -95,9 +97,10 @@ const Algo = ({ micro }: { micro: bigint }) => (
   </span>
 );
 
-function BoxRow({ box }: { box: DeltaBox }) {
+function BoxRow({ box, round }: { box: DeltaBox; round: number }) {
   const [open, setOpen] = useState(false);
   const status = box.before === null ? "created" : box.after === null ? "deleted" : undefined;
+  const href = `/application/${box.appId}/boxes/${encodeURIComponent(box.name)}`;
   return (
     <div className="border-b border-border py-2">
       <button type="button" className="flex w-full min-w-0 items-center gap-2 text-left text-sm" onClick={() => setOpen(!open)} aria-expanded={open}>
@@ -113,6 +116,18 @@ function BoxRow({ box }: { box: DeltaBox }) {
             <Chip className={status === "created" ? "border-green-400 text-green-400" : "border-red-400 text-red-400"}>{status}</Chip>
           ) : null}
           <SizeNote before={box.before} after={box.after} />
+          <span className="ml-auto flex gap-3 text-xs" onClick={(e) => e.stopPropagation()}>
+            {/* A box the block deleted has no value at it: its history still shows it. */}
+            {box.after !== null ? (
+              <Link href={withRound(href, round)} title="This box as it was at this block">
+                <History size={12} className="inline -mt-0.5 mr-1" />
+                rewind
+              </Link>
+            ) : null}
+            <Link href={withRound(`${href}?view=history`, round)} title="This box's history up to this block">
+              history
+            </Link>
+          </span>
         </div>
       </button>
       {open ? (
@@ -586,7 +601,7 @@ export default function BlockStateChanges(): JSX.Element {
         )}
       />
 
-      <Section title="Boxes" items={delta.boxes} render={(b) => <BoxRow key={b.key} box={b} />} />
+      <Section title="Boxes" items={delta.boxes} render={(b) => <BoxRow key={b.key} box={b} round={round} />} />
     </div>
   );
 }
