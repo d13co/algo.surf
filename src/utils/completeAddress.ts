@@ -31,15 +31,24 @@ function base32DecodeToBytes(str: string): Uint8Array {
 }
 
 /**
- * Complete a base32 prefix into a valid 58-char Algorand address.
+ * The indexer `next` token that lists accounts from the first one whose
+ * address starts with `prefix` (base32, up to a full 58-char address).
  *
- * Pads the prefix to 52 chars with 'A' (zero bits), decodes to a 32-byte
- * public key, then uses algosdk's encodeAddress to append the correct
- * SHA-512/256 checksum — producing a valid address that sorts at the
- * start of the prefix range.
+ * The indexer lists accounts in public key order, after the `next` address.
+ * Padding the prefix's first 52 chars with 'A' (zero bits) gives the lowest
+ * public key in the prefix range, so the token is the key just below it.
+ * Undefined when that lowest key is all zeros: then the list starts at the
+ * beginning.
  */
-export function completeAddress(prefix: string): string {
-  const padded = prefix + "A".repeat(52 - prefix.length);
-  const publicKey = base32DecodeToBytes(padded);
-  return encodeAddress(publicKey);
+export function addressBefore(prefix: string): string | undefined {
+  const head = prefix.slice(0, 52);
+  const key = base32DecodeToBytes(head + "A".repeat(52 - head.length));
+  for (let i = key.length - 1; i >= 0; i--) {
+    if (key[i] > 0) {
+      key[i]--;
+      return encodeAddress(key);
+    }
+    key[i] = 0xff;
+  }
+  return undefined;
 }

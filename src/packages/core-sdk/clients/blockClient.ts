@@ -3,6 +3,9 @@ import type { Indexer } from "algosdk";
 import {Network} from "../network";
 import {A_Status,A_BlockResult} from "../types";
 import { toA_Block, toA_Status } from "../utils/v3Adapters";
+import { withSignal } from "../utils/signal";
+
+/** Fetch options that cancel the request with `signal`. */
 
 export class BlockClient {
     client: Algodv2;
@@ -20,13 +23,30 @@ export class BlockClient {
         return response as indexerModels.Block;
     }
 
-    async getHeader(id: number): Promise<indexerModels.Block> {
-        return this.indexer.lookupBlock(id).headerOnly(true).do();
+    async getHeader(id: number, signal?: AbortSignal): Promise<indexerModels.Block> {
+        return this.indexer.lookupBlock(id).headerOnly(true).do(undefined, withSignal(signal));
     }
 
-    async search(id: number): Promise<A_BlockResult> {
+    /**
+     * The ledger's transaction counter at `round`, or at the indexer's latest
+     * round. Asset and app ids come from this counter, so every asset or app
+     * created by then has an id at most this.
+     */
+    async txnCounter(round?: number, signal?: AbortSignal): Promise<number> {
+        if (round === undefined) {
+            const health = await this.indexer.makeHealthCheck().do(undefined, withSignal(signal));
+            round = Number(health.round);
+        }
+        const header = await this.getHeader(round, signal);
+        if (header.txnCounter === undefined) {
+            throw new Error(`Block ${round} has no transaction counter`);
+        }
+        return Number(header.txnCounter);
+    }
+
+    async search(id: number, signal?: AbortSignal): Promise<A_BlockResult> {
         try {
-            const response = await this.indexer.lookupBlock(id).do();
+            const response = await this.indexer.lookupBlock(id).do(undefined, withSignal(signal));
             const converted = toA_Block(response);
             return { ...converted, type: "block" } as A_BlockResult;
         } catch(e) {

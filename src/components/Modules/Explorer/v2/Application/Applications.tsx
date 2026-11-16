@@ -1,20 +1,17 @@
-import { useMemo } from "react";
-import { useApplications } from "src/hooks/useApplication";
+import { ColumnDef } from "@tanstack/react-table";
 import { A_Application } from "src/packages/core-sdk/types";
 import {
-  useReactTable,
-  getCoreRowModel,
-  getPaginationRowModel,
-  ColumnDef,
-} from "@tanstack/react-table";
+  ApplicationClient,
+  APPLICATIONS_PAGE_SIZE,
+} from "src/packages/core-sdk/clients/applicationClient";
+import { CoreApplication } from "src/packages/core-sdk/classes/core/CoreApplication";
+import explorer from "src/utils/dappflow";
 import LinkToApplication from "../Links/LinkToApplication";
 import LinkToAccount from "../Links/LinkToAccount";
-import { CoreApplication } from "src/packages/core-sdk/classes/core/CoreApplication";
-import { Loader2 } from "lucide-react";
-import ListToolbar from "src/components/v2/ListToolbar";
 import useTitle from "src/components/Common/UseTitle/UseTitle";
-import { useStableHeight } from "src/hooks/useStableHeight";
-import { DataTable } from "src/components/v2/DataTable";
+import CreatedList from "src/components/v2/CreatedList";
+import DeletedMark from "src/components/v2/DeletedMark";
+import type { FetchAfter } from "src/hooks/useCreatedList";
 
 const columns: ColumnDef<A_Application, any>[] = [
   {
@@ -22,7 +19,10 @@ const columns: ColumnDef<A_Application, any>[] = [
     header: "Application ID",
     meta: { width: "20%" },
     cell: ({ row }) => (
-      <LinkToApplication copy="left" id={row.original.id} />
+      <>
+        <LinkToApplication copy="left" id={row.original.id} />
+        <DeletedMark deleted={row.original.deleted} atRound={row.original.deletedAtRound} />
+      </>
     ),
   },
   {
@@ -61,80 +61,23 @@ const columnLabels: Record<string, string> = {
   creator: "Creator",
 };
 
+const fetchAfter: FetchAfter<A_Application> = async (next, limit, options) => {
+  const page = await new ApplicationClient(explorer.network).getApplications(next, limit, options);
+  return { items: page.applications, nextToken: page["next-token"] };
+};
+
 function Applications(): JSX.Element {
   useTitle("Applications");
 
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage } =
-    useApplications();
-
-  const applications = useMemo(
-    () => data?.pages.flatMap((p) => p.applications) ?? [],
-    [data],
-  );
-
-  const initialLoading = !data;
-
-  const table = useReactTable({
-    data: applications,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getRowId: (row) => String(row.id),
-    autoResetPageIndex: false,
-    initialState: {
-      pagination: { pageSize: 10 },
-    },
-  });
-
-  const { pageIndex, pageSize } = table.getState().pagination;
-  const pageCount = table.getPageCount();
-  const currentRowCount = table.getRowModel().rows.length;
-  const padCount = hasNextPage ? pageSize - currentRowCount : 0;
-
-  const { ref: tableRef, style: stableStyle } = useStableHeight(currentRowCount === pageSize);
-
-  function onPageChange(newPage: number) {
-    table.setPageIndex(newPage);
-    if (newPage >= pageCount - 1 && hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
-    }
-  }
-
-  if (initialLoading) {
-    return (
-      <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
-        <Loader2 className="h-5 w-5 animate-spin" />
-        <span>Loading applications...</span>
-      </div>
-    );
-  }
-
   return (
-    <div>
-      <ListToolbar
-        pageIndex={pageIndex}
-        pageCount={pageCount}
-        hasMore={hasNextPage}
-        canPreviousPage={table.getCanPreviousPage()}
-        canNextPage={table.getCanNextPage()}
-        onFirst={() => onPageChange(0)}
-        onPrev={() => onPageChange(pageIndex - 1)}
-        onNext={() => onPageChange(pageIndex + 1)}
-        onLast={() => onPageChange(pageCount - 1)}
-        loading={isFetchingNextPage}
-      />
-
-      <DataTable
-        table={table}
-        columns={columns}
-        columnLabels={columnLabels}
-        emptyLabel="No applications"
-        padCount={padCount}
-        isFetchingNextPage={isFetchingNextPage}
-        tableRef={tableRef}
-        tableStyle={stableStyle}
-      />
-    </div>
+    <CreatedList
+      kind="applications"
+      columns={columns}
+      columnLabels={columnLabels}
+      pageSize={APPLICATIONS_PAGE_SIZE}
+      fetchAfter={fetchAfter}
+      idOf={(app) => app.id}
+    />
   );
 }
 

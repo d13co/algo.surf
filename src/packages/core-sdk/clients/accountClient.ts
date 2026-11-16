@@ -7,8 +7,12 @@ import {Network} from "../network";
 import {A_TransactionsResponse, txnsBatchSize} from "./transactionClient";
 import { toA_AccountsResponse } from "../utils/v3Adapters";
 import { attachPqSig, parsePqSig } from "../utils/pqsig";
+import { withSignal } from "../utils/signal";
 
 export const ACCOUNTS_PAGE_SIZE = 100;
+
+/** Fetch options that cancel the request with `signal`. */
+
 
 // How far getLastSentTransaction looks: up to 3 batches of 50.
 const LAST_SENT_BATCH_SIZE = 50;
@@ -36,13 +40,13 @@ export class AccountClient{
         return this.client.accountInformation(address).do();
     }
 
-    async getAccounts(token?: string, limit: number = ACCOUNTS_PAGE_SIZE): Promise<A_AccountsResponse> {
+    async getAccounts(token?: string, limit: number = ACCOUNTS_PAGE_SIZE, signal?: AbortSignal): Promise<A_AccountsResponse> {
         const req = this.indexer.searchAccounts().limit(limit);
         if (token) {
             req.nextToken(token);
         }
 
-        const response = await req.do();
+        const response = await req.do(undefined, withSignal(signal));
         return toA_AccountsResponse(response);
     }
 

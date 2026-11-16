@@ -1,6 +1,6 @@
 import { keepSameRecord } from "src/utils/keepSameRecord";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
-import { ApplicationClient, APPLICATIONS_PAGE_SIZE } from "src/packages/core-sdk/clients/applicationClient";
+import { ApplicationClient } from "src/packages/core-sdk/clients/applicationClient";
 import { nextTxnsToken } from "src/packages/core-sdk/clients/transactionClient";
 import { BoxClient } from "src/packages/core-sdk/clients/boxClient";
 import { CoreApplication } from "src/packages/core-sdk/classes/core/CoreApplication";
@@ -95,21 +95,6 @@ export function useApplication(id: number, round?: number) {
 /** Box reads at `round` from the time-travel node, else the usual clients. */
 export function boxClientFor(round: number | undefined): Pick<BoxClient, "getBoxNamesPage" | "getBox"> {
   return round === undefined ? new BoxClient(explorer.network) : new TimeTravelBoxClient(round);
-}
-
-export function useApplications() {
-  return useInfiniteQuery({
-    queryKey: ["applications"],
-    queryFn: ({ pageParam }) =>
-      new ApplicationClient(explorer.network).getApplications(pageParam),
-    initialPageParam: undefined as string | undefined,
-    // The indexer can return a next-token even on the final (short) page, so
-    // only treat it as a real next page when the page came back full.
-    getNextPageParam: (lastPage) =>
-      lastPage.applications.length >= APPLICATIONS_PAGE_SIZE
-        ? lastPage["next-token"] || undefined
-        : undefined,
-  });
 }
 
 /** With `round`, only the transactions up to it; with `txnRound`, only those in it (see useTxnRound). */
