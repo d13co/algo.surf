@@ -8,6 +8,7 @@ import useTitle from "../../../Common/UseTitle/UseTitle";
 import humanizeDuration from "humanize-duration";
 import dateFormat from "dateformat";
 import { useRound } from "src/hooks/useRound";
+import { useNarrow } from "src/hooks/useNarrow";
 import { useBlockHeader } from "src/hooks/useBlock";
 import TimeTravelPicker from "../Header/TimeTravelPicker";
 import HomeStepper from "./HomeStepper";
@@ -42,6 +43,7 @@ const network = process.env.REACT_APP_NETWORK;
 
 /** The panels, live or at the page's round: they read the same sources either way. */
 function Panels(): JSX.Element {
+    const narrow = useNarrow();
     return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
             {/* Full-width row above the panels. empty:hidden collapses it when
@@ -53,10 +55,8 @@ function Panels(): JSX.Element {
             </div>
             <PanelErrorBoundary><LiveStats /></PanelErrorBoundary>
             <PanelErrorBoundary><LiveBlocks /></PanelErrorBoundary>
-            {/* Not on phones: one column, and the blocks already list what's in them. */}
-            <div className="max-md:hidden">
-                <PanelErrorBoundary><LiveTransactions /></PanelErrorBoundary>
-            </div>
+            {/* Not on phones (not even mounted): one column, and the blocks already list what's in them. */}
+            {narrow ? null : <PanelErrorBoundary><LiveTransactions /></PanelErrorBoundary>}
         </div>
     );
 }

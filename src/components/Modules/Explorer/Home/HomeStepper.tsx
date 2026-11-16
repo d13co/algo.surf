@@ -131,7 +131,8 @@ export default function HomeStepper({ round }: { round: number }): JSX.Element {
         <button
           type="button"
           onClick={() => {
-            replayNext.current = undefined;
+            // The round the replay expects to be on: any other round before its first step pauses it too.
+            replayNext.current = round;
             setPlaying((p) => !p);
           }}
           aria-pressed={playing}

@@ -15,14 +15,14 @@ import { voteStatus } from "./voteStatus";
  * always. Clicking opens the full detail dialog. At ?round=R, the upgrade as it stood at block R.
  */
 export default function LiveUpgrade(): JSX.Element | null {
-    const { round, blocks } = useHomeBlocks();
+    const { round, blocks, isLoading, error } = useHomeBlocks();
     // At a round, only once R's own header is in: an older one would show an older state.
     const atR = round !== undefined && blocks[0] && Number(blocks[0].header.round) === round ? { round, blocks } : undefined;
     const fromHeader = useConsensusUpgrade(round !== undefined ? atR ?? { round, blocks: [] } : undefined);
     // While the next round's header loads (a step, a replay), the last state stays up rather than the
-    // banner collapsing and the page jumping.
+    // banner collapsing and the page jumping. Not after a failed read: then there is no state at R.
     const held = useRef<ConsensusUpgrade | null>(null);
-    const loading = round !== undefined && !atR;
+    const loading = round !== undefined && !atR && isLoading && !error;
     if (!loading) held.current = fromHeader;
     const upgrade = loading ? held.current : fromHeader;
     const lookup = useConsensusVersionLookup();
@@ -51,7 +51,7 @@ export default function LiveUpgrade(): JSX.Element | null {
                         <div className="text-muted-foreground text-[13px] leading-5 mb-1">
                             {upgrade.phase === "voting" ? "Upgrade Vote" : "Upgrade Countdown"}
                             {attempt > 1 ? ` · attempt ${attempt}` : ""}
-                            {round !== undefined ? ` · as it stood at block ${round.toLocaleString()}` : ""}
+                            {round !== undefined ? ` · as it stood at block ${upgrade.round.toLocaleString()}` : ""}
                         </div>
                         <ConsensusVersion info={next} size="lg" />
                     </div>
@@ -82,7 +82,7 @@ export default function LiveUpgrade(): JSX.Element | null {
                 </div>
             </button>
 
-            <ConsensusUpgradeDialog open={open} onOpenChange={setOpen} upgrade={upgrade} atRound={round} />
+            <ConsensusUpgradeDialog open={open} onOpenChange={setOpen} upgrade={upgrade} atRound={round !== undefined ? upgrade.round : undefined} />
         </>
     );
 }

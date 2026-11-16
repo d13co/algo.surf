@@ -10,6 +10,7 @@ import { cn } from "src/lib/utils";
 import { useRound, withRound } from "src/hooks/useRound";
 import { useBlockHeader } from "src/hooks/useBlock";
 import { useTimeTravelSupport } from "src/hooks/useTimeTravel";
+import { useNarrow } from "src/hooks/useNarrow";
 import { roundAsOfTime, seedFromQueryCache } from "src/utils/dateToRound";
 
 const LABEL = "text-xs font-normal text-muted-foreground";
@@ -22,20 +23,6 @@ const GENESIS_DAY = new Date(2019, 5, 11);
 const pad = (n: number) => String(n).padStart(2, "0");
 const hhmmss = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 const midnight = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
-
-/** Below md: phones, where the picker is a full-screen dialog rather than a dropdown. */
-const NARROW = "(max-width: 767px)";
-function useNarrow(): boolean {
-  const [narrow, setNarrow] = useState(() => window.matchMedia(NARROW).matches);
-  useEffect(() => {
-    const media = window.matchMedia(NARROW);
-    const update = () => setNarrow(media.matches);
-    update();
-    media.addEventListener("change", update);
-    return () => media.removeEventListener("change", update);
-  }, []);
-  return narrow;
-}
 
 /** What the viewer typed or picked, on the page (`loc`) they did it on. */
 type Edits = { loc: string; round?: string; day?: Date; time?: string; month?: Date };

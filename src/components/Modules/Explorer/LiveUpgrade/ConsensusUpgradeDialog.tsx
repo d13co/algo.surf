@@ -265,7 +265,9 @@ export default function ConsensusUpgradeDialog({
                             {upgrade.avgRoundTimeSource === "constant"
                                 ? " (assumed)"
                                 : upgrade.avgRoundTimeSource === "liveblocks"
-                                    ? " (recent blocks)"
+                                    ? atRound !== undefined
+                                        ? ` (the blocks up to block ${atRound.toLocaleString()})`
+                                        : " (recent blocks)"
                                     : atRound !== undefined
                                         ? ` (the 100 blocks up to block ${atRound.toLocaleString()})`
                                         : " (live)"}

@@ -27,13 +27,13 @@ function useLatestHref(): string {
 
 /**
  * When `round` was made, in local time; UTC in its title. While a new round's header loads, the last
- * time shown stays, so the bar keeps its height through a step or a replay.
+ * time shown stays, so the bar keeps its height through a step or a replay; none if it fails.
  */
 function RoundTime({ round }: { round: number }): JSX.Element | null {
-  const { data: block } = useBlockHeader(round);
+  const { data: block, isError } = useBlockHeader(round);
   const last = useRef<number>();
   if (block?.timestamp) last.current = Number(block.timestamp);
-  if (last.current === undefined) return null;
+  if (isError || last.current === undefined) return null;
   const date = new Date(last.current * 1000);
   return (
     <span title={dateFormat(date, "UTC:" + TIMESTAMP_DISPLAY_FORMAT) + " UTC"}>

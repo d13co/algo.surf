@@ -31,15 +31,19 @@ export default function HomeTimeline({ round, roundTs }: { round?: number; round
 
   // A step changes the round before its header loads: until it does, R's time is estimated from the
   // last one known, so the week (and the query) doesn't fall back to the live one and jump back.
+  // Only over about a day of rounds: block times have changed over the years, so a far jump would land
+  // on the wrong week. Then the last week shown stays until R's header is in.
   const known = useRef<{ round: number; ts: number }>();
   if (round !== undefined && roundTs !== undefined) known.current = { round, ts: roundTs };
-  const estTs =
-    roundTs ?? (round !== undefined && known.current ? known.current.ts + (round - known.current.round) * BLOCK_TIME : undefined);
+  const near = round !== undefined && known.current !== undefined && Math.abs(round - known.current.round) * BLOCK_TIME <= DAY;
+  const estTs = roundTs ?? (near ? known.current!.ts + (round! - known.current!.round) * BLOCK_TIME : undefined);
+  const lastView = useRef<{ start: number; end: number | undefined }>();
 
   // The week shown. At R, whole UTC days with R's day in the middle, so a block or a thousand either
   // way keeps the same week and query for most of a day; the last 7 days when that week would reach
   // past now. Live, hour-aligned so the key holds for an hour; end undefined: up to now, polled.
   const view = useMemo(() => {
+    if (atRound && estTs === undefined && lastView.current) return lastView.current;
     if (atRound && estTs !== undefined) {
       const start = bucketStart("day", estTs) - 3 * DAY;
       if (start + WEEK <= now) return { start, end: start + WEEK };
@@ -47,6 +51,7 @@ export default function HomeTimeline({ round, roundTs }: { round?: number; round
     return { start: bucketStart("hour", now - WEEK), end: undefined };
     // The live window slides with the hour, not the second.
   }, [atRound, estTs === undefined ? undefined : bucketStart("day", estTs), Math.floor(now / HOUR)]);
+  if (atRound) lastView.current = view;
   const viewEnd = view.end ?? now;
   const live = !atRound;
   const { data, error } = useSeries("hour", view.start, view.end, live, !atRound || estTs !== undefined);
@@ -116,7 +121,8 @@ export default function HomeTimeline({ round, roundTs }: { round?: number; round
               className={cn("absolute bottom-0 rounded-t-sm", b.ts === markHour ? "bg-foreground" : b.ts < markHour ? "bg-primary" : "bg-primary/30")}
               style={{
                 left: `${((b.ts - view.start) / span) * 100}%`,
-                width: `calc(${(HOUR / span) * 100}% - 1px)`,
+                // Live, the current hour ends at now, at the marker.
+                width: `calc(${(Math.min(HOUR, viewEnd - b.ts) / span) * 100}% - 1px)`,
                 height: `${max ? Math.max(3, (b.tps / max) * 100) : 0}%`,
               }}
               title={`${dateFormat(new Date(b.ts * 1000), "UTC:ddd d mmm HH:00")} UTC · ${b.tps.toFixed(1)} TPS`}

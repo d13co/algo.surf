@@ -63,7 +63,7 @@ export function useHomeBlocks(): HomeBlocks {
 
   const transactions = useMemo(() => deriveTransactions(window.blocks), [window.blocks]);
   const held = useRef<{ blocks: Block[]; transactions: SignedTxnInBlock[] }>();
-  if (round !== undefined && !window.isLoading && window.blocks.length) held.current = { blocks: window.blocks, transactions };
+  if (round !== undefined && !window.isLoading && !window.error && window.blocks.length) held.current = { blocks: window.blocks, transactions };
 
   if (round === undefined) {
     return { round, blocks: live.blocks, transactions: live.transactions, isLoading: false, error: null };

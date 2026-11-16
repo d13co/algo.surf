@@ -41,12 +41,34 @@ function Header(): JSX.Element {
         return METRICS.includes(r) ? "metrics" : r;
     }, [location.pathname]);
 
+    // The nav fades out at its right edge only while there is more of it to scroll to.
+    const nav = React.useRef<HTMLElement>(null);
+    const [more, setMore] = React.useState(false);
+    const updateMore = React.useCallback(() => {
+        const el = nav.current;
+        if (el) setMore(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+    }, []);
+    React.useEffect(() => {
+        const el = nav.current;
+        if (!el) return;
+        updateMore();
+        const observer = new ResizeObserver(updateMore);
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, [updateMore, items.length]);
+
     return (
         <div className="mb-5">
             {/* The time-travel button stays at the top right at every width; on narrow screens the
                 nav scrolls sideways beside it (fading out under it) and the search takes a row below. */}
             <div className="flex flex-wrap items-center gap-x-2">
-                <nav className="flex min-w-0 flex-1 items-center -ml-3 overflow-x-auto max-header:[mask-image:linear-gradient(to_right,black_calc(100%-2rem),transparent)]">
+                <nav
+                    ref={nav}
+                    onScroll={updateMore}
+                    className={`flex min-w-0 flex-1 items-center -ml-3 overflow-x-auto ${
+                        more ? "[mask-image:linear-gradient(to_right,black_calc(100%-2rem),transparent)]" : ""
+                    }`}
+                >
                     {items.map((item) => (
                         <Link
                             key={item.value}

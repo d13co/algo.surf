@@ -132,7 +132,8 @@ function LiveBlocks(): JSX.Element {
     // At the tip there is no newer block: the step goes back to the live page.
     const atTip = round !== undefined && latest !== null && round >= Number(latest);
     // At a round, R is the window's newest block once it has loaded.
-    const anchor = round !== undefined && blocks[0] && Number(blocks[0].header.round) === round ? blocks[0] : undefined;
+    // While the next window loads, the one still shown keeps its own anchor, so the cards don't flip to "ago" and back.
+    const anchor = round !== undefined ? blocks[0] : undefined;
 
     return (
         <div>
