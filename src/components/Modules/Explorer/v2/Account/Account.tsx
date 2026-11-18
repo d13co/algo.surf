@@ -22,6 +22,7 @@ import { useValidatorStats } from "src/hooks/useValidator";
 import { delegationLive, templateLabel, useDelegations, useLsig } from "src/hooks/useLsig";
 import { useMsigSubsigners, useMsigsOf } from "src/hooks/useMsig";
 import { useAccountSummary } from "src/hooks/useAccountSummary";
+import { useRekeys } from "src/hooks/useRekeys";
 import { useTimeTravelSupport } from "src/hooks/useTimeTravel";
 import { useNfdHistorySupport } from "src/hooks/useNfdHistory";
 import { useRound, useRoundHref, useRoundNavigate } from "src/hooks/useRound";
@@ -126,6 +127,9 @@ function Account(): JSX.Element {
   // summary, only their tabs fetch them.
   const { data: subsigners } = useMsigSubsigners(address, round === undefined && legacy);
   const { data: msigsOf } = useMsigsOf(address, round === undefined && legacy);
+  // Both sides of its rekey history. It has history, so it shows at a past round too, but its counts
+  // are the current ones: only the tab filters by round.
+  const { data: rekeys } = useRekeys(address, legacy);
   const { data: nfd } = useReverseNFD(address);
   const { data: lastSentTxn } = useAccountLastSent(address, round);
   // The indexer only knows which accounts are rekeyed to this one now, so
@@ -235,6 +239,9 @@ function Account(): JSX.Element {
   const numDelegations = round === undefined ? (legacy ? delegations?.length : summary?.delegations) ?? 0 : 0;
   const numSubsigners = round === undefined ? (legacy ? subsigners?.length : summary?.signers) ?? 0 : 0;
   const numMsigsOf = round === undefined ? (legacy ? msigsOf?.length : summary?.multisigs) ?? 0 : 0;
+  const numRekeys = legacy
+    ? (rekeys?.to.length ?? 0) + (rekeys?.from.length ?? 0)
+    : (summary?.rekeysTo ?? 0) + (summary?.rekeysFrom ?? 0);
   // Delegations this account's key signed that can still send its txns.
   const liveDelegations = useMemo(
     () =>
@@ -336,6 +343,11 @@ function Account(): JSX.Element {
     matchPath("/account/:address/multisigs", pathname)
   ) {
     tabValue = "multisigs";
+  } else if (
+    // Whatever the counts: the tab itself says when there are none, or why the feature is off.
+    matchPath("/account/:address/rekeys", pathname)
+  ) {
+    tabValue = "rekeys";
   } else if (
     hasValidatorData &&
     matchPath("/account/:address/validator", pathname)
@@ -775,6 +787,7 @@ function Account(): JSX.Element {
                       ...(numDelegations ? [{ name: "Delegations", value: "delegations", onClick: () => navigate("/account/" + address + "/delegations") }] : []),
                       ...(numSubsigners ? [{ name: "Subsigners", value: "subsigners", onClick: () => navigate("/account/" + address + "/subsigners") }] : []),
                       ...(numMsigsOf ? [{ name: "Multisigs", value: "multisigs", onClick: () => navigate("/account/" + address + "/multisigs") }] : []),
+                      ...(numRekeys || tabValue === "rekeys" ? [{ name: "Rekeys", value: "rekeys", onClick: () => navigate("/account/" + address + "/rekeys") }] : []),
                       ...(hasValidatorData ? [{ name: "Validator Data", value: "validator", onClick: () => navigate("/account/" + address + "/validator") }] : []),
                       ...(hasVersions ? [{ name: "Versions", value: "versions", onClick: () => navigate("/account/" + address + "/versions") }] : []),
                       ...(hasNfdHistory || tabValue === "nfds" ? [{ name: "NFD history", value: "nfds", onClick: () => navigate("/account/" + address + "/nfds") }] : []),

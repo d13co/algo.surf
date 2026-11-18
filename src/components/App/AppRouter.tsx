@@ -28,6 +28,7 @@ const AccountControllerTo = lazy(() => import("../Modules/Explorer/v2/Account/Ac
 const AccountValidator = lazy(() => import("../Modules/Explorer/v2/Account/AccountValidator"));
 const AccountDelegations = lazy(() => import("../Modules/Explorer/v2/Account/AccountDelegations"));
 const AccountMultisig = lazy(() => import("../Modules/Explorer/v2/Account/AccountMultisig"));
+const AccountRekeys = lazy(() => import("../Modules/Explorer/v2/Account/AccountRekeys"));
 const AccountVersions = lazy(() => import("../Modules/Explorer/v2/Account/AccountVersions"));
 const AccountNfdHistory = lazy(() => import("../Modules/Explorer/v2/Account/AccountNfdHistory"));
 const Block = lazy(() => import("../Modules/Explorer/v2/Block/Block"));
@@ -148,6 +149,10 @@ function AppRouter(): JSX.Element {
                           <Route
                             path="multisigs"
                             element={<LatestOnly what="Multisigs this key is in"><AccountMultisig view="multisigs" /></LatestOnly>}
+                          />
+                          <Route
+                            path="rekeys"
+                            element={<AccountRekeys />}
                           />
                           <Route
                             path="validator"
