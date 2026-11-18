@@ -21,6 +21,10 @@ export interface AccountSummary {
   evicted?: boolean;
   /** VOTER_ROUNDS: voted within the voter window. */
   voted?: boolean;
+  /** REKEYS, once backfilled: authorizers it was rekeyed to, its own key included (`to` of /v0/rekeys). */
+  rekeysTo?: number;
+  /** REKEYS, once backfilled: accounts rekeyed to it (`from` of /v0/rekeys). */
+  rekeysFrom?: number;
 }
 
 /** Rows a list route returns at most here; a summary count above it means the list is cut. */
@@ -33,7 +37,7 @@ export const LIST_LIMIT = 10_000;
  */
 export function useAccountSummary(address: string | undefined) {
   const caps = useSurfIdxCaps();
-  const tracked = !!caps && (caps.lsigs || caps.msigs || caps.proposers || caps.voterRounds > 0);
+  const tracked = !!caps && (caps.lsigs || caps.msigs || caps.proposers || caps.voterRounds > 0 || caps.rekeys);
   return useQuery({
     queryKey: ["surf-account", address],
     // null, not an error: a refetch of an errored query (on a tab's mount, on focus) would clear the
