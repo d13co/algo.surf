@@ -1,7 +1,7 @@
 import { keepSameRecord } from "src/utils/keepSameRecord";
 import { useState, useEffect, useCallback } from "react";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
-import { AccountClient, ACCOUNTS_PAGE_SIZE } from "src/packages/core-sdk/clients/accountClient";
+import { AccountClient, ACCOUNTS_PAGE_SIZE, CONTROLLERS_PAGE_SIZE } from "src/packages/core-sdk/clients/accountClient";
 import { nextTxnsToken } from "src/packages/core-sdk/clients/transactionClient";
 import explorer from "src/utils/dappflow";
 import { getAccountAt } from "src/utils/timeTravel";
@@ -161,7 +161,12 @@ export function useControllingAccounts(address: string, enabled = true) {
     queryFn: ({ pageParam }) =>
       new AccountClient(explorer.network).getAuthAddr(address, pageParam),
     initialPageParam: undefined as string | undefined,
-    getNextPageParam: (lastPage) => lastPage["next-token"] || undefined,
+    // As useAccounts: a short page is the last, next-token or not.
+    getNextPageParam: (lastPage) =>
+      lastPage.accounts.length >= CONTROLLERS_PAGE_SIZE ? lastPage["next-token"] || undefined : undefined,
     enabled: !!address && enabled,
+    // Paged to its end by the account page: a refetch asks for every page again, one after another.
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
   });
 }

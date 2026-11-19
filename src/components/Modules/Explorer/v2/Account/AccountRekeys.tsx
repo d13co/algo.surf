@@ -8,13 +8,14 @@ import {
   ColumnDef,
 } from "@tanstack/react-table";
 import { KeyRound, Loader2 } from "lucide-react";
-import { useAccount, useControllingAccounts } from "src/hooks/useAccount";
+import { useAccount } from "src/hooks/useAccount";
 import { cutNote, useAccountSummary } from "src/hooks/useAccountSummary";
-import { RekeyPair, useRekeys } from "src/hooks/useRekeys";
+import { RekeyPair, useAuthAddrsOf, useRekeys } from "src/hooks/useRekeys";
 import { useRound } from "src/hooks/useRound";
 import { surfIdxOffMessage, useSurfIdxCaps } from "src/hooks/useSurfIdxCaps";
 import { useStableHeight } from "src/hooks/useStableHeight";
-import ListToolbar from "src/components/v2/ListToolbar";
+import TablePagination from "src/components/v2/TablePagination";
+import { getAbelAt } from "src/packages/abel/abelAt";
 import { DataTable } from "src/components/v2/DataTable";
 import { Chip } from "src/components/v2/Chips";
 import LinkToAccount from "../Links/LinkToAccount";
@@ -30,15 +31,14 @@ type Row = RekeyPair & {
   later: boolean;
 };
 
-const SIDE_LABELS: Record<Side, { title: string; help: string; other: string; empty: string }> = {
+const SIDE_LABELS: Record<Side, { title?: string; help: string; other: string; empty: string }> = {
   to: {
-    title: "Rekeyed to",
+    title: "Summary of past authorizers",
     help: "The authorizers this account was rekeyed to. Its own key counts its rekeys back and its close-outs while rekeyed.",
     other: "Authorizer",
     empty: "Never rekeyed",
   },
   from: {
-    title: "Accounts rekeyed to this one",
     help: "The accounts that were rekeyed to this address, which could then authorize their txns.",
     other: "Account",
     empty: "No account was rekeyed to it",
@@ -64,8 +64,16 @@ function columnsFor(side: Side, address: string, round: number | undefined): Col
             <KeyRound size={16} className="shrink-0" /> Own key
           </span>
         ) : (
-          // Each links to the other account's own rekey history, an app escrow's too (not its app).
-          <LinkToAccount copy="left" copySize="s" address={row.original.address} strip={20} subPage="rekeys" noEscrow />
+          // Each links to the other account's side of the same history, an app escrow's too (not its app):
+          // an authorizer's accounts rekeyed to it, a rekeyed account's authorizers.
+          <LinkToAccount
+            copy="left"
+            copySize="s"
+            address={row.original.address}
+            strip={20}
+            subPage={side === "to" ? "controller/history" : "rekeys"}
+            noEscrow
+          />
         ),
     },
     {
@@ -79,13 +87,20 @@ function columnsFor(side: Side, address: string, round: number | undefined): Col
             title={
               side === "to"
                 ? `The account's authorizer${round === undefined ? "" : ` at block ${round}`}`
-                : "This account is rekeyed to this address now"
+                : `This account is rekeyed to this address${round === undefined ? " now" : ` at block ${round}`}`
             }
           >
             <Chip variant="warning">Current</Chip>
           </span>
         ) : row.original.current === undefined ? (
-          <span className="text-muted-foreground" title="The indexer only knows which accounts are rekeyed to it now">
+          <span
+            className="text-muted-foreground"
+            title={
+              side === "from" && round !== undefined && !getAbelAt()
+                ? "Authorizers at a past round need a time-travel node"
+                : "Not known yet"
+            }
+          >
             &mdash;
           </span>
         ) : (
@@ -140,21 +155,23 @@ function RekeyTable({
   side,
   address,
   rows,
-  fetched,
+  loaded,
   total,
+  limit,
   round,
 }: {
   side: Side;
   address: string;
   rows: Row[];
-  /** The rows surf idx returned, before a past round's filter: the list is cut at LIST_LIMIT of them. */
-  fetched: number;
-  /** The summary's count, for the note when the list is cut. */
+  /** The entries surf idx returned, before a past round's filter. */
+  loaded: number;
+  /** The summary's count of the whole list. */
   total: number | undefined;
+  /** surf idx's RESULTS_LIMIT, which cuts the list. */
+  limit: number;
   round: number | undefined;
 }): JSX.Element {
   const columns = useMemo(() => columnsFor(side, address, round), [side, address, round]);
-  const note = cutNote(fetched, total);
   const table = useReactTable({
     data: rows,
     columns,
@@ -168,27 +185,41 @@ function RekeyTable({
   });
 
   const { pageIndex, pageSize } = table.getState().pagination;
+  const pageCount = table.getPageCount();
   const currentRowCount = table.getRowModel().rows.length;
   const { ref: tableRef, style: stableStyle } = useStableHeight(currentRowCount === pageSize);
   const { title, help, empty } = SIDE_LABELS[side];
 
+  // One line, never wrapped: the note gives way (truncated) to the pager.
+  const cut = cutNote(loaded, total, limit);
+  const note = title ? (
+    <>
+      {title} {cut ? <>&middot; {cut}</> : `(${rows.length.toLocaleString()})`}
+    </>
+  ) : (
+    cut
+  );
+
   return (
-    <div className="mt-5">
-      <div className="text-base font-semibold" title={help}>
-        {title} <span className="text-muted-foreground font-normal">({rows.length.toLocaleString()})</span>
+    <div>
+      {/* As the other tabs' toolbars: flush left, on the pager's row. */}
+      <div className="mt-3 mb-3 flex min-h-8 flex-nowrap items-center justify-between gap-2">
+        <div className="min-w-0 truncate text-sm text-muted-foreground" title={help}>
+          {note}
+        </div>
+        <TablePagination
+          className="ml-auto flex shrink-0 items-center justify-end gap-2"
+          compact
+          pageIndex={pageIndex}
+          pageCount={pageCount}
+          canPreviousPage={table.getCanPreviousPage()}
+          canNextPage={table.getCanNextPage()}
+          onFirst={() => table.setPageIndex(0)}
+          onPrev={() => table.previousPage()}
+          onNext={() => table.nextPage()}
+          onLast={() => table.setPageIndex(pageCount - 1)}
+        />
       </div>
-      {note ? <div className="mt-1 text-sm text-muted-foreground">{note}</div> : null}
-      <ListToolbar
-        className="mt-3"
-        pageIndex={pageIndex}
-        pageCount={table.getPageCount()}
-        canPreviousPage={table.getCanPreviousPage()}
-        canNextPage={table.getCanNextPage()}
-        onFirst={() => table.setPageIndex(0)}
-        onPrev={() => table.previousPage()}
-        onNext={() => table.nextPage()}
-        onLast={() => table.setPageIndex(table.getPageCount() - 1)}
-      />
       <DataTable
         table={table}
         columns={columns}
@@ -202,96 +233,84 @@ function RekeyTable({
 }
 
 const EMPTY: Row[] = [];
+const NO_ACCOUNTS: string[] = [];
 
 /** At a past round, the pairs begun by then. */
 const begun = (p: RekeyPair, round: number | undefined) => round === undefined || p.firstRound <= round;
 /** At a past round, the pair's txns and last round include later rekeys. */
 const later = (p: RekeyPair, round: number | undefined) => round !== undefined && p.lastRound > round;
 
-/** Both sides of the account's rekey history, from surf idx. */
-function RekeyHistory({ address }: { address: string }): JSX.Element {
+/** One side of the account's rekey history, from surf idx. */
+function RekeyHistory({ address, side }: { address: string; side: Side }): JSX.Element {
   const caps = useSurfIdxCaps();
   const { round } = useRound();
-  const { data: rekeys, isError, error } = useRekeys(address);
-  // The account page's summary, for the totals when a list is cut.
+  // Both sides in one request, shared by the two tabs.
+  const { data, isError, error } = useRekeys(address);
+  const list = data?.[side];
+  // The account page's summary, for the whole list's count.
   const { data: summary } = useAccountSummary(address);
-  // The account page's own queries, no new requests: its authorizer at the page's round, and the
-  // accounts rekeyed to it now (the indexer has no history), which the page pages to the end.
+  // "to": the account's authorizer at the page's round, from the account page's own query.
   const { data: accountInfo, isPlaceholderData } = useAccount(address, round);
   // Not while the previous round's record stands in for this one's.
   const authAddr = accountInfo && !isPlaceholderData ? accountInfo.authAddr?.toString() ?? address : undefined;
-  const {
-    data: controllerData,
-    hasNextPage,
-    isFetchingNextPage,
-    isError: controllerError,
-  } = useControllingAccounts(address, round === undefined);
-  // Only the whole list says an account isn't rekeyed to this one: until the last page, unknown.
-  const controllerComplete = !!controllerData && !hasNextPage && !isFetchingNextPage && !controllerError;
-  const controlled = useMemo(
-    () =>
-      controllerComplete ? new Set(controllerData!.pages.flatMap((p) => p.accounts.map((a) => a.address))) : undefined,
-    [controllerComplete, controllerData],
-  );
+  // "from": the authorizer of each account at the page's round, from abel in bulk.
+  const accounts = useMemo(() => (side === "from" && list ? list.map((e) => e.address) : NO_ACCOUNTS), [side, list]);
+  const auths = useAuthAddrsOf(accounts, round);
 
-  // One memo per side, on that side's inputs: controller pages arriving rebuild only `from`.
-  const to = useMemo(
+  const rows = useMemo(
     (): Row[] =>
-      rekeys
-        ? rekeys.to.filter((p) => begun(p, round)).map((p) => ({
+      list
+        ? list.filter((p) => begun(p, round)).map((p) => ({
             ...p,
-            // The authorizer is algod's: two rekeys in one round aren't ordered in surf idx.
-            current: authAddr === undefined ? undefined : p.address === authAddr,
+            current:
+              side === "to"
+                ? // The authorizer is algod's: two rekeys in one round aren't ordered in surf idx.
+                  authAddr === undefined ? undefined : p.address === authAddr
+                : auths.has(p.address) ? auths.get(p.address) === address : undefined,
             later: later(p, round),
           }))
         : EMPTY,
-    [rekeys, round, authAddr],
-  );
-  const from = useMemo(
-    (): Row[] =>
-      rekeys
-        ? rekeys.from.filter((p) => begun(p, round)).map((p) => ({
-            ...p,
-            current: round === undefined && controlled ? controlled.has(p.address) : undefined,
-            later: later(p, round),
-          }))
-        : EMPTY,
-    [rekeys, round, controlled],
+    [list, side, round, authAddr, auths, address],
   );
 
   if (caps && !caps.rekeys) return <div className="mt-6 text-muted-foreground">{surfIdxOffMessage(caps, "rekeys")}</div>;
   if (isError) return <div className="mt-6 text-muted-foreground">{(error as Error).message}</div>;
-  if (!rekeys) {
+  if (!list || !caps) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
-
-  const neither = !to.length && !from.length;
+  if (!rows.length) {
+    return (
+      <div className="mt-6 text-muted-foreground">
+        {round === undefined ? SIDE_LABELS[side].empty : `${SIDE_LABELS[side].empty} by block ${round}`}
+      </div>
+    );
+  }
   return (
-    <div>
-      {neither ? (
-        <div className="mt-6 text-muted-foreground">
-          {round === undefined ? "No rekeys" : `No rekeys by block ${round}`}
-        </div>
-      ) : (
-        <>
-          {to.length ? <RekeyTable key={`to:${round}`} side="to" address={address} rows={to} fetched={rekeys.to.length} total={summary?.rekeysTo} round={round} /> : null}
-          {from.length ? (
-            <RekeyTable key={`from:${round}`} side="from" address={address} rows={from} fetched={rekeys.from.length} total={summary?.rekeysFrom} round={round} />
-          ) : null}
-        </>
-      )}
-    </div>
+    <RekeyTable
+      key={`${side}:${round}`}
+      side={side}
+      address={address}
+      rows={rows}
+      loaded={list.length}
+      total={side === "to" ? summary?.rekeysTo : summary?.rekeysFrom}
+      limit={caps.resultsLimit}
+      round={round}
+    />
   );
 }
 
-/** Keyed: a row's link opens another account's tab on this same route, which starts fresh tables. */
-function AccountRekeys(): JSX.Element {
+/**
+ * "to" (the Rekey history tab): the authorizers this account was rekeyed to. "from" (Controlling
+ * accounts' History): the accounts rekeyed to it. Keyed: a row's link opens another account's tab,
+ * which starts fresh tables.
+ */
+function AccountRekeys({ side = "to" }: { side?: Side }): JSX.Element {
   const { address } = useParams();
-  return <RekeyHistory key={address} address={address!} />;
+  return <RekeyHistory key={address} address={address!} side={side} />;
 }
 
 export default AccountRekeys;

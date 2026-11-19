@@ -201,6 +201,9 @@ const accountSubRoutes = new Set([
     "created-applications",
     "opted-applications",
     "controller",
+    "controller/current",
+    "controller/history",
+    "rekeys",
     "validator",
     "versions",
 ]);

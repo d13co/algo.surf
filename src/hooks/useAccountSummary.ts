@@ -61,7 +61,7 @@ export function useAccountSummary(address: string | undefined) {
  * "The N most recent" (of M, when the total is known), or null when the list isn't cut. Only a full
  * list is cut: the total is a separate query, which can be fresher than the list for a moment.
  */
-export function cutNote(rows: number, total: number | undefined): string | null {
-  if (rows < LIST_LIMIT || (total !== undefined && rows >= total)) return null;
+export function cutNote(rows: number, total: number | undefined, limit = LIST_LIMIT): string | null {
+  if (rows < limit || (total !== undefined && rows >= total)) return null;
   return `The ${rows.toLocaleString()} most recent${total !== undefined ? ` of ${total.toLocaleString()}` : ""}.`;
 }
