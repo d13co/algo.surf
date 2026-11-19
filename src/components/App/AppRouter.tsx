@@ -46,6 +46,7 @@ const ApplicationVersions = lazy(() => import("../Modules/Explorer/v2/Applicatio
 const Transaction = lazy(() => import("../Modules/Explorer/v2/Transaction/Transaction"));
 const Group = lazy(() => import("../Modules/Explorer/v2/Group/Group"));
 const GroupTransactions = lazy(() => import("../Modules/Explorer/v2/Group/GroupTransactions"));
+const GroupStateChanges = lazy(() => import("../Modules/Explorer/v2/Group/GroupStateChanges"));
 const Fees = lazy(() => import("../Modules/Explorer/v2/Fees/Fees"));
 const Tps = lazy(() => import("../Modules/Explorer/v2/Fees/Tps"));
 const Upgrades = lazy(() => import("../Modules/Explorer/v2/Upgrades/Upgrades"));
@@ -248,6 +249,7 @@ function AppRouter(): JSX.Element {
                             path="transactions"
                             element={<GroupTransactions></GroupTransactions>}
                           />
+                          <Route path="state-changes" element={<GroupStateChanges />} />
                           <Route
                             path=""
                             element={<NavigateKeepingSearch to="transactions" />}

@@ -5,11 +5,13 @@ import type { Change } from "src/utils/versionDelta";
 import { decodeBoxValue, DecodedEntry, DecodedEntryValue } from "./BoxValue";
 
 /** Values up to this many bytes show whole, old → new, with the format switcher. */
-const SHORT_VALUE = 32;
+export const SHORT_VALUE = 32;
 /** Hex dump lines hold 16 bytes, or 8 on a phone. */
 const WIDE_HEX = "(min-width: 640px)";
 /** Changed hex lines shown before the rest fold behind "+N more". */
 const MAX_LINES = 8;
+/** Lines of a full dump shown before "+N more": a 32 KiB box is 2,048 of them. */
+const MAX_FULL_LINES = 256;
 /** Longer runs of unchanged decoded lines fold into one. */
 const MAX_UNCHANGED = 3;
 
@@ -54,11 +56,14 @@ function ascii(byte: number): string {
  * whole line is new or gone, so it just takes its tone.
  */
 function HexLine({ offset, bytes, other, tone, row }: {
-  offset: number; bytes: Uint8Array; other: Uint8Array; tone: "added" | "removed"; row: number;
+  offset: number; bytes: Uint8Array; other: Uint8Array; tone?: "added" | "removed"; row: number;
 }) {
   const cells = Array.from({ length: row }, (_, i) => i);
+  // No tone: an unchanged line, in a full dump.
   const byteClass = (i: number) =>
-    !other.length ? toneClass[tone] : i >= other.length || bytes[i] !== other[i] ? changedByteClass[tone] : "text-muted-foreground";
+    !tone ? "text-muted-foreground"
+      : !other.length ? toneClass[tone]
+        : i >= other.length || bytes[i] !== other[i] ? changedByteClass[tone] : "text-muted-foreground";
   return (
     <div className="whitespace-pre">
       <Gutter tone={tone} />
@@ -79,17 +84,24 @@ function HexLine({ offset, bytes, other, tone, row }: {
   );
 }
 
-type HexItem = { offset: number; before: Uint8Array; after: Uint8Array } | { unchanged: number };
+type HexItem =
+  | { offset: number; before: Uint8Array; after: Uint8Array }
+  | { offset: number; same: Uint8Array }
+  | { unchanged: number };
 
-/** The lines of a hex dump that changed, with each run of unchanged bytes between them counted. */
-function hexItems(before: Uint8Array, after: Uint8Array, row: number): HexItem[] {
+/**
+ * The lines of a hex dump that changed, with each run of unchanged bytes
+ * between them counted; where `full`, every line, the unchanged ones once.
+ */
+function hexItems(before: Uint8Array, after: Uint8Array, row: number, full: boolean): HexItem[] {
   const items: HexItem[] = [];
   let unchanged = 0;
   for (let offset = 0; offset < Math.max(before.length, after.length); offset += row) {
     const b = before.subarray(offset, offset + row);
     const a = after.subarray(offset, offset + row);
     if (b.length === a.length && b.every((x, i) => x === a[i])) {
-      unchanged += b.length;
+      if (full) items.push({ offset, same: a });
+      else unchanged += b.length;
       continue;
     }
     if (unchanged) items.push({ unchanged });
@@ -100,12 +112,12 @@ function hexItems(before: Uint8Array, after: Uint8Array, row: number): HexItem[]
   return items;
 }
 
-/** A long value's changed bytes, as old and new hex dump lines. */
-function HexDiff({ before, after }: { before: Uint8Array; after: Uint8Array }) {
+/** A long value's changed bytes, as old and new hex dump lines; where `full`, the whole dump. */
+function HexDiff({ before, after, full = false }: { before: Uint8Array; after: Uint8Array; full?: boolean }) {
   const [showAll, setShowAll] = useState(false);
   const row = useHexRow();
-  const items = useMemo(() => hexItems(before, after, row), [before, after, row]);
-  const shown = showAll ? items : items.slice(0, MAX_LINES);
+  const items = useMemo(() => hexItems(before, after, row, full), [before, after, row, full]);
+  const shown = showAll ? items : items.slice(0, full ? MAX_FULL_LINES : MAX_LINES);
   return (
     <div className="font-mono text-[12px] leading-5 pl-3.5 overflow-x-auto">
       {shown.map((item, i) =>
@@ -113,6 +125,8 @@ function HexDiff({ before, after }: { before: Uint8Array; after: Uint8Array }) {
           <div key={`skip-${i}`} className="text-muted-foreground">
             ⋯ {item.unchanged.toLocaleString()} unchanged {item.unchanged === 1 ? "byte" : "bytes"}
           </div>
+        ) : "same" in item ? (
+          <HexLine key={item.offset} offset={item.offset} bytes={item.same} other={item.same} row={row} />
         ) : (
           <div key={item.offset}>
             {item.before.length ? <HexLine offset={item.offset} bytes={item.before} other={item.after} tone="removed" row={row} /> : null}
@@ -255,8 +269,12 @@ export function useDecodedBoxValues(before: string | null, after: string | null,
 /**
  * What a version did to a box value: decoded with the box value types where
  * they fit both sides, whole for short values, else the changed hex lines.
+ * Where `full`, the whole value: every decoded line, or the whole hex dump,
+ * the changes marked in it.
  */
-export function BoxValueDiff({ before, after, types }: { before: string | null; after: string | null; types?: string[] }) {
+export function BoxValueDiff({ before, after, types, full = false }: {
+  before: string | null; after: string | null; types?: string[]; full?: boolean;
+}) {
   const decoded = useDecodedBoxValues(before, after, types);
 
   const bytes = useMemo(
@@ -268,7 +286,7 @@ export function BoxValueDiff({ before, after, types }: { before: string | null; 
   );
 
   if (before === null && after === null) return null;
-  if (decoded) return <DecodedDiff before={decoded.before} after={decoded.after} />;
+  if (decoded) return <DecodedDiff key={String(full)} before={decoded.before} after={decoded.after} full={full} />;
 
   if (bytes.before.length <= SHORT_VALUE && bytes.after.length <= SHORT_VALUE) {
     const change: Change =
@@ -279,7 +297,7 @@ export function BoxValueDiff({ before, after, types }: { before: string | null; 
           : { path: [], kind: "changed", before: { $bytes: before }, after: { $bytes: after } };
     return <JsonDiffTree value={{ $change: change }} />;
   }
-  return <HexDiff before={bytes.before} after={bytes.after} />;
+  return <HexDiff before={bytes.before} after={bytes.after} full={full} />;
 }
 
 /** A box value's size, and what it was where that changed. */

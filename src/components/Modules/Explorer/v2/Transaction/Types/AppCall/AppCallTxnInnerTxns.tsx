@@ -521,6 +521,7 @@ function AppCallTxnInnerTxns({
               asset={asset}
               innerPath={currentEntry.path}
               txnId={txnId}
+              round={txnInstance.getBlock()}
             />
           ) : null}
         </DialogContent>

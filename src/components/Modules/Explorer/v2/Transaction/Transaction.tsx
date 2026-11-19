@@ -29,6 +29,8 @@ import TransactionMultiSig from "./Sections/TransactionMultiSig";
 import TransactionLogicSig from "./Sections/TransactionLogicSig";
 import TransactionPQSig from "./Sections/TransactionPQSig";
 import TransactionAdditionalDetails from "./Sections/TransactionAdditionalDetails";
+import TransactionGroupChanges from "./Sections/TransactionGroupChanges";
+import TransactionDeveloper from "./Sections/TransactionDeveloper";
 import { Chip, BadgesRow } from "src/components/v2/Chips";
 import { countInnerTxns } from "./Types/AppCall/AppCallTxnInnerTxns";
 import { getXChainOwner } from "./Sections/XChainOwner";
@@ -222,12 +224,20 @@ function Transaction(): JSX.Element {
                 {txnInstance.getType() === TXN_TYPES.HEARTBEAT ? (
                   <HeartbeatTransaction transaction={txnObj} />
                 ) : null}
+                {/* An app call shows it next to its State changes card. */}
+                {txnInstance.getType() !== TXN_TYPES.APP_CALL && txnInstance.getId() && txnInstance.getBlock() ? (
+                  <TransactionGroupChanges round={txnInstance.getBlock()} txId={txnInstance.getId()} groupId={txnInstance.getGroup() || undefined} />
+                ) : null}
 
                 <TransactionRekey transaction={txnObj} />
                 <TransactionNote transaction={txnObj} />
                 <TransactionMultiSig transaction={txnObj} />
                 <TransactionLogicSig transaction={txnObj} />
                 <TransactionPQSig transaction={txnObj} />
+                {/* Only app calls and logic sigs run programs. */}
+                {(txnInstance.getType() === TXN_TYPES.APP_CALL || txnInstance.isLogicSig()) && txnInstance.getId() && txnInstance.getBlock() ? (
+                  <TransactionDeveloper round={txnInstance.getBlock()} txId={txnInstance.getId()} groupId={txnInstance.getGroup() || undefined} />
+                ) : null}
                 <TransactionAdditionalDetails transaction={txnObj} />
               </div>
             )}

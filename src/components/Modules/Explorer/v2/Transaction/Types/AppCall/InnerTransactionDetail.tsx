@@ -18,11 +18,14 @@ function InnerTransactionDetail({
   asset,
   innerPath,
   txnId,
+  round,
 }: {
   txn: any;
   asset?: any;
   innerPath?: string;
   txnId?: string;
+  /** The round of the top-level transaction. */
+  round?: number;
 }): JSX.Element {
   const txnInstance = new CoreTransaction(txn);
   const pathLabel = innerPath ? innerPath.replace(/\//g, "-") : "";
@@ -79,7 +82,11 @@ function InnerTransactionDetail({
         <KeyRegTransaction transaction={txn} />
       ) : null}
       {txnInstance.getType() === TXN_TYPES.APP_CALL ? (
-        <AppCallTransaction transaction={txn} hideInnerTxns />
+        <AppCallTransaction
+          transaction={txn}
+          hideInnerTxns
+          inner={txnId && innerPath && round ? { round, txId: txnId, innerPath } : undefined}
+        />
       ) : null}
 
       <TransactionRekey transaction={txn} />

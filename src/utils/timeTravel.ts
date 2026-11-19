@@ -8,6 +8,7 @@ import {
   encodeJSON,
   indexerModels,
   isHistoryUnavailable,
+  isStateChangesTooLarge,
   LedgerStateDelta,
   modelsv2,
 } from "algosdk";
@@ -26,6 +27,8 @@ import { getApiBaseUrl, getApiHeaders } from "./nodeApi";
 import { nodeJson } from "./nodeJson";
 import { retryOptions } from "./retryWaits";
 import { omitMapKeys } from "./msgpackOmit";
+import type { SCRound } from "./txnStateChanges";
+import type { DevInclude, SCDevRound } from "./txnDevInfo";
 
 /**
  * Client for the experimental time-travel algod (dt-algorand), which serves
@@ -650,6 +653,70 @@ export function getLedgerDeltaAt(round: number, signal?: AbortSignal) {
     },
     signal,
   );
+}
+
+/**
+ * Whether the node serves per-transaction state changes (see
+ * getTxnStateChanges): `stateChanges` in its capabilities.
+ */
+export function getStateChangesSupport(): Promise<boolean> {
+  return requireDTAlgod().supportsStateChanges();
+}
+
+/**
+ * The app state changes of top-level transactions `txids` of `round`, with
+ * their inner transactions, as the node's JSON (see txnStateChanges.ts).
+ * Throws a TimeTravelError on the node's errors: 400 for an answer over its
+ * size limit, 404 where it doesn't serve the endpoint, doesn't store the
+ * block, or a txid is not in the round.
+ */
+export async function getTxnStateChanges(round: number, txids: string[], signal?: AbortSignal, full = false): Promise<SCRound> {
+  const base = requireDTAlgod().getTxnStateChangesForRound(round).txids(txids);
+  // With full(), also each group's account, holding, asset, app and local state changes.
+  const req = full ? base.full() : base;
+  try {
+    return nodeJson<SCRound>(await req.do(undefined, signal ? { signal } : undefined));
+  } catch (e) {
+    if (signal?.aborted) throw e;
+    if (isStateChangesTooLarge(e)) {
+      throw new TimeTravelError("Too many state changes for the node to send (its MaxAPIStateChangesResponseBytes)", 400);
+    }
+    throw asTimeTravelError(e);
+  }
+}
+
+/** Whether the node serves full deltas: what each group changed besides app state (`include` on state changes). */
+export function getFullDeltasSupport(): Promise<boolean> {
+  return requireDTAlgod().supportsFullDeltas();
+}
+
+/** Which of the developer include values (budget, reads, trace) the node serves; trace needs its EnableDeveloperAPI. */
+export async function getDevIncludes(): Promise<DevInclude[]> {
+  const algod = requireDTAlgod();
+  const all: DevInclude[] = ["budget", "reads", "trace"];
+  const served = await Promise.all(all.map((k) => algod.supportsStateChangesInclude(k)));
+  return all.filter((_, i) => served[i]);
+}
+
+/**
+ * `include` for top-level transactions `txids` of `round`, as the node's JSON
+ * (see txnDevInfo.ts). `trace` takes exactly one txid: the traces of its group.
+ */
+export async function getTxnDevInfo(round: number, txids: string[], include: DevInclude[], signal?: AbortSignal): Promise<SCDevRound> {
+  const base = requireDTAlgod().getTxnStateChangesForRound(round);
+  const summary = include.filter((k): k is "budget" | "reads" => k !== "trace");
+  let req = summary.length ? base.include(summary) : base;
+  // trace() adds to the include list and sets the one txid; the others narrow by txids.
+  req = include.includes("trace") ? req.trace(txids[0]) : req.txids(txids);
+  try {
+    return nodeJson<SCDevRound>(await req.do(undefined, signal ? { signal } : undefined));
+  } catch (e) {
+    if (signal?.aborted) throw e;
+    if (isStateChangesTooLarge(e)) {
+      throw new TimeTravelError("Too large for the node to send (its MaxAPIStateChangesResponseBytes)", 400);
+    }
+    throw asTimeTravelError(e);
+  }
 }
 
 /** BoxClient's reads, from the time-travel node at `round`. */

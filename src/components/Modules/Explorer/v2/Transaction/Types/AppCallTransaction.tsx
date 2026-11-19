@@ -22,7 +22,9 @@ import AppCallTxnLocalStateDelta from "./AppCall/AppCallTxnLocalStateDelta";
 import AppCallTxnLogs from "./AppCall/AppCallTxnLogs";
 import AppCallTxnInnerTxns from "./AppCall/AppCallTxnInnerTxns";
 import AppCallTxnStateChanges from "./AppCall/AppCallTxnStateChanges";
+import AppCallTxnExactStateChanges, { StateChangesTarget } from "./AppCall/AppCallTxnExactStateChanges";
 import BalanceImpact from "../../BalanceImpact";
+import TransactionGroupChanges from "../Sections/TransactionGroupChanges";
 
 /**
  * The accounts whose local state an app call touched: those with a local
@@ -38,9 +40,12 @@ function localStateAddresses(txn: CoreTransaction, onCompletion: string | undefi
 function AppCallTransaction({
   transaction,
   hideInnerTxns = false,
+  inner,
 }: {
   transaction: any;
   hideInnerTxns?: boolean;
+  /** For an inner transaction: its top-level transaction, round and inner path. */
+  inner?: StateChangesTarget;
 }): JSX.Element {
   const txnInstance = new CoreTransaction(transaction);
   const appCallPayload = txnInstance.getAppCallPayload();
@@ -78,6 +83,32 @@ function AppCallTransaction({
       }),
     enabled: showBalanceImpact,
   });
+
+  // The apply data's deltas, and the round's net change from the time-travel
+  // node: what shows where it doesn't serve exact per-txn state changes.
+  const deltas = (
+    <>
+      {txnInstance.hasGlobalStateDelta() ? (
+        <AppCallTxnGlobalStateDelta state={txnInstance.get().globalStateDelta} />
+      ) : null}
+
+      {txnInstance.hasLocalStateDelta() ? (
+        <AppCallTxnLocalStateDelta appId={txnInstance.getAppId()} state={txnInstance.get().localStateDelta} />
+      ) : null}
+
+      {/* Top-level calls only: an inner call's effect is its parent's. */}
+      {txnInstance.getId() && txnInstance.getBlock() ? (
+        <AppCallTxnStateChanges
+          appId={txnInstance.getAppId()}
+          round={txnInstance.getBlock()}
+          txId={txnInstance.getId()}
+          localAddresses={localStateAddresses(txnInstance, appCallPayload?.onCompletion)}
+        />
+      ) : null}
+    </>
+  );
+  const stateTarget: StateChangesTarget | undefined =
+    inner ?? (txnInstance.getId() && txnInstance.getBlock() ? { round: txnInstance.getBlock(), txId: txnInstance.getId() } : undefined);
 
   return (
     <div>
@@ -251,28 +282,16 @@ function AppCallTransaction({
         <AppCallTxnForeignAccounts accounts={appCallPayload?.accounts?.map(String)} />
       ) : null}
 
-      {txnInstance.hasGlobalStateDelta() ? (
-        <AppCallTxnGlobalStateDelta
-          state={txnInstance.get().globalStateDelta}
-        />
+      {/* A top-level app call's group changes; an inner txn's belong to its top-level txn's group. */}
+      {!inner && stateTarget ? (
+        <TransactionGroupChanges round={stateTarget.round} txId={stateTarget.txId} groupId={txnInstance.getGroup() || undefined} />
       ) : null}
 
-      {txnInstance.hasLocalStateDelta() ? (
-        <AppCallTxnLocalStateDelta
-          appId={txnInstance.getAppId()}
-          state={txnInstance.get().localStateDelta}
-        />
-      ) : null}
-
-      {/* Top-level calls only: an inner call's effect is its parent's. */}
-      {txnInstance.getId() && txnInstance.getBlock() ? (
-        <AppCallTxnStateChanges
-          appId={txnInstance.getAppId()}
-          round={txnInstance.getBlock()}
-          txId={txnInstance.getId()}
-          localAddresses={localStateAddresses(txnInstance, appCallPayload?.onCompletion)}
-        />
-      ) : null}
+      {stateTarget ? (
+        <AppCallTxnExactStateChanges target={stateTarget} hasInnerTxns={txnInstance.hasInnerTransactions()} fallback={deltas} />
+      ) : (
+        deltas
+      )}
 
       {txnInstance.hasInnerTransactions() && !hideInnerTxns ? (
         <AppCallTxnInnerTxns transaction={transaction} />

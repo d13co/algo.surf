@@ -1,9 +1,10 @@
 import React, { Suspense } from "react";
-import { Outlet, useParams } from "react-router-dom";
+import { matchPath, Outlet, useLocation, useParams } from "react-router-dom";
 import { useRoundNavigate } from "src/hooks/useRound";
 import { useQuery } from "@tanstack/react-query";
 import { CoreGroup } from "src/packages/core-sdk/classes/core/CoreGroup";
 import { useGroup } from "src/hooks/useGroup";
+import { useStateChangesCaps } from "src/hooks/useTxnStateChanges";
 import LoadingTile from "src/components/v2/LoadingTile";
 import CustomError from "../CustomError";
 import BalanceImpact from "../BalanceImpact";
@@ -39,6 +40,10 @@ function Group(): JSX.Element {
   const params = useParams();
   const { id, blockId } = params;
   const numBlockId = Number(blockId);
+  const { pathname } = useLocation();
+  const tabValue = matchPath("/group/:id/:blockId/state-changes", pathname) ? "state-changes" : "transactions";
+  const stateChangesCaps = useStateChangesCaps();
+  const stateChangesSupported = stateChangesCaps.supported;
 
   const { data: groupInfo, isLoading, isError, error } = useGroup(id!, numBlockId);
 
@@ -65,6 +70,8 @@ function Group(): JSX.Element {
 
   const txnTypes = groupInstance?.getTransactionsTypesCount() ?? {};
   const txnTypesList = Object.keys(txnTypes);
+  // Only app calls change app state; with full deltas, every group changes something (it pays fees).
+  const showStateChanges = tabValue === "state-changes" || !!stateChangesCaps.full || (!!stateChangesSupported && !!txnTypes.appl);
 
   return (
     <div className="mt-6">
@@ -158,9 +165,12 @@ function Group(): JSX.Element {
 
                 <div className="mt-6">
                   <TabsUnderline
-                    value="transactions"
+                    value={tabValue}
                     tabs={[
-                      { name: "Transactions", value: "transactions", onClick: () => navigate(`/group/${id}/${blockId}/transactions`) },
+                      { name: "Transactions", value: "transactions", onClick: () => navigate(`/group/${encodeURIComponent(id!)}/${blockId}/transactions`) },
+                      ...(showStateChanges
+                        ? [{ name: stateChangesCaps.full ? "Changes" : "State changes", value: "state-changes", onClick: () => navigate(`/group/${encodeURIComponent(id!)}/${blockId}/state-changes`) }]
+                        : []),
                     ]}
                   />
 

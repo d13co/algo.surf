@@ -17,7 +17,7 @@ overrides:
   # dt-algosdk: algosdk with time-travel support (reads at past rounds,
   # versions, queries) and the retry policy, one copy everywhere. Pinned
   # exactly, as a ^ range on a dt prerelease takes later breaking releases.
-  algosdk: npm:dt-algosdk@3.9.0-dt.5.2.0.0
+  algosdk: file:vendor/dt-algosdk-3.9.0-dt.5.2.0.0-57c8ac8-devtraces.tgz
   # dt-algokit-utils: algokit-utils on dt-algosdk (time travel, versions,
   # asset holders, queries, retry config), one copy everywhere: a stock
   # AlgorandClient type clashes with this one's. Pinned exactly, as algosdk.

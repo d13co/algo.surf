@@ -4,6 +4,7 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "src/lib/utils";
 import { formatUnits } from "src/utils/formatUnits";
 import MultiFormatViewer from "src/components/v2/MultiFormatViewer";
+import Copyable from "src/components/v2/Copyable";
 import {
   Change,
   DJson,
@@ -38,6 +39,8 @@ type Options = {
   truncateBytes?: number;
   numberFormat?: NumberFormatOf;
   keyAction?: (path: string[]) => React.ReactNode;
+  groupDigits?: boolean;
+  copyInts?: boolean;
 };
 
 const toneClass: Record<NonNullable<Tone>, string> = {
@@ -95,24 +98,48 @@ function Str({ value, truncateAt }: { value: string; truncateAt: number }) {
   );
 }
 
-/** An integer, as an amount where it has a format, with the raw count on hover. */
-function Int({ value, format, unit = true }: { value: number | bigint; format?: NumberFormat; unit?: boolean }) {
-  if (!format) return <span>{String(value)}</span>;
+/** An integer without a format: its digits, grouped in thousands where `group`. */
+function plainInt(v: number | bigint, group?: boolean): string {
+  return group ? formatUnits(v, 0) : String(v);
+}
+
+/**
+ * An integer, as an amount where it has a format, with the raw count on
+ * hover; with a button copying the raw count where `copy`.
+ */
+function Int({ value, format, unit = true, group, copy }: {
+  value: number | bigint; format?: NumberFormat; unit?: boolean; group?: boolean; copy?: boolean;
+}) {
+  const copyButton = copy ? <Copyable className="ml-0.5 my-0 opacity-60 hover:opacity-100" value={String(value)} /> : null;
+  // With a copy button, a flex row centres the icon on the digits.
+  const row = copy ? "inline-flex items-center" : undefined;
+  if (!format) {
+    return (
+      <span className={row} title={group ? String(value) : undefined}>
+        {plainInt(value, group)}
+        {copyButton}
+      </span>
+    );
+  }
   return (
-    <span title={String(value)}>
+    <span className={row} title={String(value)}>
       {formatUnits(value, format.decimals)}
-      {unit && format.unit ? <span className="opacity-70"> {format.unit}</span> : null}
+      {unit && format.unit ? <span className={cn("opacity-70", row && "ml-1")}> {format.unit}</span> : null}
+      {copyButton}
     </span>
   );
 }
 
-/** How much an integer changed by, in its format: "(+1.5)". */
-function IntDelta({ before, after, format }: { before: number | bigint; after: number | bigint; format?: NumberFormat }) {
+/** How much an integer changed by, in its format: "(+1.5)"; with a button copying the raw difference where `copy`. */
+function IntDelta({ before, after, format, group, copy }: {
+  before: number | bigint; after: number | bigint; format?: NumberFormat; group?: boolean; copy?: boolean;
+}) {
   const d = BigInt(after) - BigInt(before);
   return (
-    <span className="text-muted-foreground">
+    <span className={cn("text-muted-foreground", copy && "inline-flex items-center")} title={format || group ? String(d) : undefined}>
       ({d > 0n ? "+" : ""}
-      {format ? formatUnits(d, format.decimals) : String(d)})
+      {format ? formatUnits(d, format.decimals) : plainInt(d, group)})
+      {copy ? <Copyable className="ml-0.5 my-0 opacity-60 hover:opacity-100" value={String(d)} /> : null}
     </span>
   );
 }
@@ -125,7 +152,9 @@ function Leaf({ value, path, opts, unit }: { value: DJson; path: string[]; opts:
   if (isProgramLeaf(value)) return <Program b64={value.$program} />;
   if (typeof value === "string") return <Str value={value} truncateAt={opts.truncateAt} />;
   if (value === null || value === undefined) return <span>null</span>;
-  if (isInteger(value)) return <Int value={value} format={opts.numberFormat?.(path)} unit={unit} />;
+  if (isInteger(value)) {
+    return <Int value={value} format={opts.numberFormat?.(path)} unit={unit} group={opts.groupDigits} copy={opts.copyInts} />;
+  }
   return <span>{String(value)}</span>;
 }
 
@@ -303,6 +332,8 @@ function ChangeNode({ name, parent, path, change, depth, opts }: {
               before={change.before as number | bigint}
               after={change.after as number | bigint}
               format={opts.numberFormat?.(path)}
+              group={opts.groupDigits}
+              copy={opts.copyInts}
             />
           ) : null}
         </span>
@@ -328,6 +359,8 @@ export default function JsonDiffTree({
   truncateBytes,
   numberFormat,
   keyAction,
+  groupDigits,
+  copyInts,
   className,
 }: {
   /** A delta tree (`buildDeltaTree`) or a state with changes overlaid (`overlayChanges`). */
@@ -344,9 +377,13 @@ export default function JsonDiffTree({
   numberFormat?: NumberFormatOf;
   /** Shown after each key, on hover: an action on the value at `path`. */
   keyAction?: (path: string[]) => React.ReactNode;
+  /** Integers without a format show their thousands grouped ("1,234,567"). */
+  groupDigits?: boolean;
+  /** Integers get a button copying their raw count. */
+  copyInts?: boolean;
   className?: string;
 }): JSX.Element {
-  const opts = { collapseDepth, maxChildren, truncateAt, truncateBytes, numberFormat, keyAction };
+  const opts = { collapseDepth, maxChildren, truncateAt, truncateBytes, numberFormat, keyAction, groupDigits, copyInts };
   return (
     <div className={cn("font-mono text-[12px] leading-5 pl-3.5 min-w-0 wrap-anywhere", className)}>
       {isBranch(value) ? (
