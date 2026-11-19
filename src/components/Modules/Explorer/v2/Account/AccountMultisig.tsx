@@ -147,7 +147,7 @@ function MsigTable({ view, address }: { view: MsigView; address: string | undefi
             {numControlled ? (
               <>
                 {" "}They still control the{" "}
-                <Link href={`/account/${address}/controller`}>
+                <Link href={`/account/${address}/controller/current`}>
                   {numControlled === 1 ? "account" : `${numControlled} accounts`}
                 </Link>{" "}
                 rekeyed to this multisig, under Controlling accounts.

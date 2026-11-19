@@ -10,6 +10,8 @@ import { attachPqSig, parsePqSig } from "../utils/pqsig";
 import { withSignal } from "../utils/signal";
 
 export const ACCOUNTS_PAGE_SIZE = 100;
+/** Accounts rekeyed to one address, a page per getAuthAddr. */
+export const CONTROLLERS_PAGE_SIZE = 1000;
 
 /**
  * What algod leaves out of an account: each created app and asset comes back
@@ -99,7 +101,8 @@ export class AccountClient{
     }
 
     async getAuthAddr(address: string, token?: string): Promise<A_AccountsResponse> {
-        const req = this.indexer.searchAccounts().authAddr(address).limit(100);
+        // Only the totals are shown, and the list is paged to its end: no asset or app arrays, 1000 a page.
+        const req = this.indexer.searchAccounts().authAddr(address).exclude("all").limit(CONTROLLERS_PAGE_SIZE);
         if (token) {
             req.nextToken(token);
         }

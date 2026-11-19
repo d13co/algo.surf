@@ -12,6 +12,8 @@ export interface SurfIdxCaps {
   rekeys: boolean;
   /** Features turned on but still backfilling their history: off until done. */
   backfilling: string[];
+  /** The most entries a list returns (RESULTS_LIMIT): a larger limit is a 400. */
+  resultsLimit: number;
   /** Set when there is a surf idx but /v0/status failed: all features read as off until it answers. */
   unavailable?: boolean;
 }
@@ -26,7 +28,12 @@ interface Status {
   rekeys?: boolean;
   /** Left out when nothing is backfilling. */
   backfill?: Record<string, { roundsLeft: number }>;
+  /** Absent from a surf idx older than RESULTS_LIMIT, whose cap is 100,000. */
+  resultsLimit?: number;
 }
+
+/** The cap of a surf idx before RESULTS_LIMIT, and its default. */
+const RESULTS_LIMIT = 100_000;
 
 const NO_CAPS: SurfIdxCaps = {
   proposers: false,
@@ -35,6 +42,7 @@ const NO_CAPS: SurfIdxCaps = {
   msigs: false,
   rekeys: false,
   backfilling: [],
+  resultsLimit: RESULTS_LIMIT,
 };
 const UNAVAILABLE: SurfIdxCaps = { ...NO_CAPS, unavailable: true };
 
@@ -47,7 +55,8 @@ export function useSurfIdxCaps(): SurfIdxCaps | undefined {
     queryKey: ["surf-idx-caps"],
     // Only the flags: the rest of the status (maxRound, records, roundsLeft) would go stale in this cache.
     queryFn: async (): Promise<SurfIdxCaps> => {
-      const { proposers, voterRounds, lsigs, msigs, rekeys, backfill } = await surfIdxGet<Status>("/v0/status");
+      const { proposers, voterRounds, lsigs, msigs, rekeys, backfill, resultsLimit } =
+        await surfIdxGet<Status>("/v0/status");
       return {
         proposers,
         voterRounds,
@@ -55,6 +64,7 @@ export function useSurfIdxCaps(): SurfIdxCaps | undefined {
         msigs,
         rekeys: !!rekeys,
         backfilling: Object.keys(backfill ?? {}),
+        resultsLimit: resultsLimit ?? RESULTS_LIMIT,
       };
     },
     enabled: surfIdxSupported,

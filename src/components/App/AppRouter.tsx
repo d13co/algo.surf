@@ -29,6 +29,7 @@ const AccountValidator = lazy(() => import("../Modules/Explorer/v2/Account/Accou
 const AccountDelegations = lazy(() => import("../Modules/Explorer/v2/Account/AccountDelegations"));
 const AccountMultisig = lazy(() => import("../Modules/Explorer/v2/Account/AccountMultisig"));
 const AccountRekeys = lazy(() => import("../Modules/Explorer/v2/Account/AccountRekeys"));
+const AccountController = lazy(() => import("../Modules/Explorer/v2/Account/AccountController"));
 const AccountVersions = lazy(() => import("../Modules/Explorer/v2/Account/AccountVersions"));
 const AccountNfdHistory = lazy(() => import("../Modules/Explorer/v2/Account/AccountNfdHistory"));
 const Block = lazy(() => import("../Modules/Explorer/v2/Block/Block"));
@@ -134,10 +135,13 @@ function AppRouter(): JSX.Element {
                               <AccountOptedApplications></AccountOptedApplications>
                             }
                           />
-                          <Route
-                            path="controller"
-                            element={<LatestOnly what="The accounts rekeyed to this one"><AccountControllerTo /></LatestOnly>}
-                          />
+                          <Route path="controller" element={<AccountController />}>
+                            <Route
+                              path="current"
+                              element={<LatestOnly what="The accounts rekeyed to this one now"><AccountControllerTo /></LatestOnly>}
+                            />
+                            <Route path="history" element={<AccountRekeys side="from" />} />
+                          </Route>
                           <Route
                             path="delegations"
                             element={<LatestOnly what="Delegations"><AccountDelegations /></LatestOnly>}

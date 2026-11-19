@@ -134,7 +134,13 @@ function Account(): JSX.Element {
   const { data: lastSentTxn } = useAccountLastSent(address, round);
   // The indexer only knows which accounts are rekeyed to this one now, so
   // there is no list to show for a past round.
-  const { data: controllerData, fetchNextPage: fetchNextControllerPage, hasNextPage: hasNextControllerPage } = useControllingAccounts(address, round === undefined);
+  const {
+    data: controllerData,
+    fetchNextPage: fetchNextControllerPage,
+    hasNextPage: hasNextControllerPage,
+    isFetchingNextPage: isFetchingNextControllerPage,
+    isError: controllerError,
+  } = useControllingAccounts(address, round === undefined);
 
   const { data: addressBookData } = useAddressBook();
 
@@ -205,12 +211,13 @@ function Account(): JSX.Element {
     [controllerData]
   );
 
-  // Fetch more controller pages if available
+  // Page the controller list to the end, for the header's count. hasNextPage stays true page after
+  // page, so each fetch's end re-runs this.
   React.useEffect(() => {
-    if (hasNextControllerPage && round === undefined) {
+    if (hasNextControllerPage && !isFetchingNextControllerPage && !controllerError && round === undefined) {
       fetchNextControllerPage();
     }
-  }, [hasNextControllerPage, fetchNextControllerPage, round]);
+  }, [hasNextControllerPage, isFetchingNextControllerPage, controllerError, fetchNextControllerPage, round]);
 
   const numControlledAccounts = round === undefined ? controllingAccounts.length : 0;
 
@@ -239,9 +246,8 @@ function Account(): JSX.Element {
   const numDelegations = round === undefined ? (legacy ? delegations?.length : summary?.delegations) ?? 0 : 0;
   const numSubsigners = round === undefined ? (legacy ? subsigners?.length : summary?.signers) ?? 0 : 0;
   const numMsigsOf = round === undefined ? (legacy ? msigsOf?.length : summary?.multisigs) ?? 0 : 0;
-  const numRekeys = legacy
-    ? (rekeys?.to.length ?? 0) + (rekeys?.from.length ?? 0)
-    : (summary?.rekeysTo ?? 0) + (summary?.rekeysFrom ?? 0);
+  const numRekeysTo = (legacy ? rekeys?.to.length : summary?.rekeysTo) ?? 0;
+  const numRekeysFrom = (legacy ? rekeys?.from.length : summary?.rekeysFrom) ?? 0;
   // Delegations this account's key signed that can still send its txns.
   const liveDelegations = useMemo(
     () =>
@@ -275,7 +281,7 @@ function Account(): JSX.Element {
 
   const scrollToControllerTo = useCallback(
     (e: React.MouseEvent) => {
-      navigate(`/account/${address}/controller`);
+      navigate(`/account/${address}/controller/current`);
       if (tabsRef?.current) tabsRef.current.scrollIntoView();
       e.preventDefault();
     },
@@ -324,8 +330,8 @@ function Account(): JSX.Element {
   ) {
     tabValue = "opted-applications";
   } else if (
-    numControlledAccounts &&
-    matchPath("/account/:address/controller", pathname)
+    // Whatever the counts, as for rekeys: Current says it's latest only, History when there are none.
+    matchPath("/account/:address/controller/*", pathname)
   ) {
     tabValue = "controlling-accounts";
   } else if (
@@ -783,11 +789,11 @@ function Account(): JSX.Element {
                       ...(hasCreatedAssets ? [{ name: "Created assets", value: "created-assets", onClick: () => navigate("/account/" + address + "/created-assets") }] : []),
                       ...(hasCreatedApps ? [{ name: "Created apps", value: "created-applications", onClick: () => navigate("/account/" + address + "/created-applications") }] : []),
                       ...(hasOptedApps ? [{ name: "Opted applications", value: "opted-applications", onClick: () => navigate("/account/" + address + "/opted-applications") }] : []),
-                      ...(numControlledAccounts ? [{ name: "Controlling accounts", value: "controlling-accounts", onClick: () => navigate("/account/" + address + "/controller") }] : []),
+                      ...(numControlledAccounts || numRekeysFrom || tabValue === "controlling-accounts" ? [{ name: "Controlling accounts", value: "controlling-accounts", onClick: () => navigate("/account/" + address + "/controller") }] : []),
+                      ...(numRekeysTo || tabValue === "rekeys" ? [{ name: "Rekey history", value: "rekeys", onClick: () => navigate("/account/" + address + "/rekeys") }] : []),
                       ...(numDelegations ? [{ name: "Delegations", value: "delegations", onClick: () => navigate("/account/" + address + "/delegations") }] : []),
                       ...(numSubsigners ? [{ name: "Subsigners", value: "subsigners", onClick: () => navigate("/account/" + address + "/subsigners") }] : []),
                       ...(numMsigsOf ? [{ name: "Multisigs", value: "multisigs", onClick: () => navigate("/account/" + address + "/multisigs") }] : []),
-                      ...(numRekeys || tabValue === "rekeys" ? [{ name: "Rekeys", value: "rekeys", onClick: () => navigate("/account/" + address + "/rekeys") }] : []),
                       ...(hasValidatorData ? [{ name: "Validator Data", value: "validator", onClick: () => navigate("/account/" + address + "/validator") }] : []),
                       ...(hasVersions ? [{ name: "Versions", value: "versions", onClick: () => navigate("/account/" + address + "/versions") }] : []),
                       ...(hasNfdHistory || tabValue === "nfds" ? [{ name: "NFD history", value: "nfds", onClick: () => navigate("/account/" + address + "/nfds") }] : []),
