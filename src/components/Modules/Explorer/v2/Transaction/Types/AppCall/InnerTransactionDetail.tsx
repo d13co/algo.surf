@@ -45,30 +45,21 @@ function InnerTransactionDetail({
       </div>
 
       <div className="rounded-lg p-5 bg-background-card">
-        <div className="grid grid-cols-12 gap-4">
-          <div className="col-span-12 sm:col-span-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div>
             <div className="text-muted-foreground">Type</div>
             <div className="mt-2.5">
               {txnInstance.getTypeDisplayValue()}
             </div>
           </div>
 
-          <div className="col-span-12 sm:col-span-4">
+          <div>
             <div className="text-muted-foreground">Fee</div>
             <div className="mt-2.5 inline-flex items-center gap-1">
               {microalgosToAlgos(txnInstance.getFee())}
               <AlgoIcon />
             </div>
           </div>
-
-          {txnInstance.getGroup() ? (
-            <div className="col-span-12 sm:col-span-4">
-              <div className="text-muted-foreground">Group</div>
-              <div className="mt-2.5 text-xs break-all">
-                {txnInstance.getGroup()}
-              </div>
-            </div>
-          ) : null}
         </div>
       </div>
 

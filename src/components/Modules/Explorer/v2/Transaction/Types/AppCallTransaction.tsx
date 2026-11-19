@@ -60,6 +60,9 @@ function AppCallTransaction({
     false,
   );
   const [codeTabValue, setCodeTabValue] = React.useState("approval");
+  // In the inner txn dialog the fields are short (an app sender shows as
+  // "App <id> <addr…>"), so they sit evenly in a 2x2 / 4-up grid.
+  const compact = hideInnerTxns;
 
   // A grouped app call gets its balance impact from the group page; a lone one
   // has nowhere else to show what its inner txns moved. The txn is already in
@@ -80,8 +83,8 @@ function AppCallTransaction({
     <div>
       <div className="mt-7">
         <div className="rounded-lg p-5 bg-background-card">
-          <div className="grid grid-cols-12 gap-4">
-          <div className="col-span-12 sm:col-span-6 md:col-span-4">
+          <div className={`grid gap-4 ${compact ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-12"}`}>
+          <div className={compact ? "min-w-0" : "col-span-12 sm:col-span-6 md:col-span-4"}>
             <div className="text-muted-foreground">Application ID</div>
             <div className="mt-2.5">
               <LinkToApplication
@@ -92,26 +95,26 @@ function AppCallTransaction({
             </div>
           </div>
 
-          <div className="col-span-12 sm:col-span-6 md:col-span-4">
+          <div className={compact ? "min-w-0" : "col-span-12 sm:col-span-6 md:col-span-4"}>
             <div className="text-muted-foreground">Action</div>
             <div className="mt-2.5">{isCreate ? "Creation" : "Call"}</div>
           </div>
 
-          <div className="col-span-12 sm:col-span-6 md:col-span-4">
+          <div className={compact ? "min-w-0" : "col-span-12 sm:col-span-6 md:col-span-4"}>
             <div className="text-muted-foreground">On completion</div>
             <div className="mt-2.5">
               {capitalizeFirst(appCallPayload?.onCompletion)}
             </div>
           </div>
 
-          <div className="col-span-12">
+          <div className={compact ? "min-w-0" : "col-span-12"}>
             <div className="text-muted-foreground">Sender</div>
             <div className="mt-2.5 text-[13px] break-words overflow-hidden">
               <LinkToAccount copySize="m" address={txnInstance.getFrom()} />
             </div>
           </div>
 
-          <XChainOwnerField transaction={transaction} className="col-span-12" />
+          <XChainOwnerField transaction={transaction} className={compact ? "col-span-2 sm:col-span-4" : "col-span-12"} />
           </div>
         </div>
       </div>
