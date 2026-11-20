@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import type { Arc56Contract } from "@algorandfoundation/algokit-utils/types/app-arc56";
 import { describe, expect, it } from "vitest";
 import { matchSpec, type SourceMapping, type SrcLine } from "./arc56Source";
-import { rangeIndex, tealRanges, type TealRange } from "./tealRanges";
+import { fileLines, lineText, rangeIndex, tealRanges, type TealRange } from "./tealRanges";
 import type { Program } from "./traceStepper";
 
 function program(lines: { pc?: number; text: string }[], hash = "P"): Program {
@@ -159,5 +159,32 @@ describe("TEAL ranges, Escreg", () => {
   it("marks library code", () => {
     expect(at(1).library).toBe("Contract.approvalProgram");
     expect(at(195).library).toBe("itoa");
+  });
+});
+
+describe("lineText", () => {
+  const line = (text: string, part?: boolean): SrcLine => ({ file: "a.algo.ts", line: 2, text, pcs: [], ...(part ? { part } : {}) });
+  const files = fileLines({ "a.algo.ts": "class A {\n  if (n > 100) {\n}" });
+
+  it("takes a whole-line quote over the file", () => {
+    expect(lineText(line("if (n > 100) {"), files)).toBe("if (n > 100) {");
+    expect(lineText(line("stale"), files)).toBe("stale");
+  });
+
+  it("takes the file's line where the spec quotes none, or part of it", () => {
+    expect(lineText(line(""), files)).toBe("if (n > 100) {");
+    expect(lineText(line("n > 100", true), files)).toBe("if (n > 100) {");
+  });
+
+  it("keeps the quote when the file's line doesn't have it (a file that differs from the build)", () => {
+    expect(lineText(line("n > 200", true), files)).toBe("n > 200");
+    // Nor where it only starts the same: `n > 10` isn't in `n > 100`.
+    expect(lineText(line("n > 10", true), files)).toBe("n > 10");
+  });
+
+  it("keeps the quote, or nothing, without the file's line", () => {
+    expect(lineText(line("n > 100", true), fileLines(undefined))).toBe("n > 100");
+    expect(lineText(line(""), fileLines({ "b.ts": "x" }))).toBe("");
+    expect(lineText({ ...line(""), line: 9 }, files)).toBe("");
   });
 });

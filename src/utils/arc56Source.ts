@@ -30,8 +30,12 @@ export type ProgramKind = "approval" | "clear";
  */
 export type Loc = { file: string; line: number; text: string; end?: number; quoted?: string[]; part?: boolean };
 
-/** One TEAL op: its text without comments, its TEAL line (1-based), its source line and subroutine. */
-export type TealOp = { op: string; line: number; loc?: Loc; sub?: string };
+/**
+ * One TEAL op: its text without comments, its TEAL line (1-based), its
+ * source line and subroutine, and the line's `//` comment when it is the
+ * line's only op, in TEALScript's TEAL (`frame_dig -1 // limit: uint64`).
+ */
+export type TealOp = { op: string; line: number; loc?: Loc; sub?: string; note?: string };
 
 /** A distinct source line and the pcs of its ops, in program order. */
 export type SrcLine = Loc & { pcs: number[] };
@@ -56,6 +60,14 @@ export type SourceMapping = {
   stackIn?: Map<number, string[]>;
   /** The spec's byteCode hashes to the program's hash: the same program, byte for byte. */
   exact?: boolean;
+  /**
+   * With TEALScript's TEAL: each subroutine's frame slots' names (by its
+   * first op's pc), from the TEAL's `frame_dig` / `frame_bury` comments:
+   * slot -k its argument k, slot j its local j.
+   */
+  frameNames?: Map<number, Map<number, string>>;
+  /** With TEALScript's TEAL: the pcs of the `frame_bury 0`s that put a subroutine's return value in slot 0. */
+  frameReturns?: Set<number>;
   /** The TEAL is TEALScript's: its files are `.algo.ts` like Algorand TypeScript's, so the files can't tell. */
   tealscript?: boolean;
   /** Why the `.puya.map` given doesn't fit the program; the TEAL match stands without it. */
@@ -166,13 +178,18 @@ export function isTealscript(teal: string): boolean {
  * nor `//` inside a base64 literal (`base64 ab//cd`, `b64(ab//cd)`).
  */
 function codeOf(line: string): string[] {
+  return splitLine(line).ops;
+}
+
+/** A TEAL line's ops (see codeOf) and its `//` comment, trimmed, if it has one. */
+function splitLine(line: string): { ops: string[]; comment?: string } {
   const ops: string[] = [];
   let start = 0;
   let tok = -1;
   let prev = "";
   let inStr = false;
   const b64 = (i: number) => prev === "base64" || prev === "b64" || /^(base64|b64)\([^)]*$/.test(line.slice(tok, i));
-  const done = () => ops.map((o) => o.trim()).filter(Boolean);
+  const done = (comment?: string) => ({ ops: ops.map((o) => o.trim()).filter(Boolean), comment });
   for (let i = 0; i < line.length; i++) {
     const c = line[i];
     if (inStr) {
@@ -189,7 +206,7 @@ function codeOf(line: string): string[] {
     if (c === '"') inStr = true;
     else if (c === "/" && line[i + 1] === "/" && !b64(i)) {
       ops.push(line.slice(start, i));
-      return done();
+      return done(line.slice(i + 2).trim());
     } else if (c === ";") {
       ops.push(line.slice(start, i));
       start = i + 1;
@@ -265,7 +282,8 @@ export function parseTeal(teal: string): TealOp[] {
     }
     quoting = 0;
     if (!t || t.startsWith("#")) return;
-    for (let op of codeOf(t)) {
+    const { ops: code, comment } = splitLine(t);
+    for (let op of code) {
       // A label, alone or before an op on its line.
       const f = fields(op);
       if (f[0].endsWith(":")) {
@@ -277,7 +295,10 @@ export function parseTeal(teal: string): TealOp[] {
         }
       }
       sig = undefined;
-      if (op) ops.push({ op, line: i + 1, loc, sub });
+      if (!op) continue;
+      const o: TealOp = { op, line: i + 1, loc, sub };
+      if (ts && comment && code.length === 1) o.note = comment;
+      ops.push(o);
     }
   });
   return ops;
@@ -495,8 +516,46 @@ export function matchProgram(prog: Program, teal: string, operands = true, info?
   }
   const lines = [...byLine.values()].sort((a, b) => fileOrder.indexOf(a.file) - fileOrder.indexOf(b.file) || a.line - b.line);
   const m: SourceMapping = { byPc, lines, subs, errors: new Map() };
-  if (isTealscript(teal)) m.tealscript = true;
+  if (isTealscript(teal)) {
+    m.tealscript = true;
+    const { frames, returns } = tealscriptFrames(ours, ops, subs);
+    if (frames.size) m.frameNames = frames;
+    if (returns.size) m.frameReturns = returns;
+  }
   return m;
+}
+
+// TEALScript's comment on a frame op: the variable and its type, `next: uint64`.
+const FRAME_NOTE = /^([A-Za-z_$][\w$]*)\s*:/;
+
+/**
+ * Each subroutine's frame slots' names, by its first op's pc (a `subs`
+ * key): from its `frame_dig` / `frame_bury` ops' comments. A slot that
+ * holds different variables in turn has their names joined with ` / `.
+ */
+function tealscriptFrames(ours: ProgOp[], ops: TealOp[], subs: Map<number, string>): { frames: Map<number, Map<number, string>>; returns: Set<number> } {
+  const frames = new Map<number, Map<number, string>>();
+  const returns = new Set<number>();
+  let at: number | undefined;
+  ours.forEach(({ pc }, i) => {
+    const { op, note } = ops[i];
+    const name = opName(op);
+    // Only a subroutine that starts a frame has one (a route, say, doesn't).
+    if (subs.has(pc)) at = name === "proto" ? pc : undefined;
+    // `frame_bury 0` with no variable named, then the subroutine's end: its return value, put in slot 0.
+    const next = opName(ops[i + 1]?.op);
+    if (at !== undefined && !note && name === "frame_bury" && Number(fields(op)[1]) === 0 && (next === "retsub" || next === "popn")) returns.add(pc);
+    if (at === undefined || !note || (name !== "frame_dig" && name !== "frame_bury")) return;
+    const slot = Number(fields(op)[1]);
+    const v = FRAME_NOTE.exec(note);
+    if (!Number.isInteger(slot) || !v) return;
+    let slots = frames.get(at);
+    if (!slots) frames.set(at, (slots = new Map()));
+    const had = slots.get(slot);
+    if (had === undefined) slots.set(slot, v[1]);
+    else if (!had.split(" / ").includes(v[1])) slots.set(slot, `${had} / ${v[1]}`);
+  });
+  return { frames, returns };
 }
 
 /**

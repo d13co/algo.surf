@@ -40,7 +40,7 @@ import {
 } from "src/utils/traceStepper";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "src/components/v2/ui/tooltip";
 import { lineBreakpointPositions, lineStart, mergePositions, runToLine, stepBackOverSource, stepBackSource, stepIntoSource, stepOverSource } from "src/utils/sourceStepper";
-import { alignNames, stackNamesAt } from "src/utils/stackNames";
+import { alignNames, frameNamesAt, stackNamesAt } from "src/utils/stackNames";
 import { useTraceSource } from "./useTraceSource";
 import { LineBreakpoints, lineBpCount, SourceLoc, SourcePanel } from "./SourcePanel";
 import { SourceBar } from "./AddSpec";
@@ -227,7 +227,7 @@ const SourceLine = memo(function SourceLine({ prog, i, hits, bp, mark, match, sr
  * The disassembly. With a source mapping (`map`), cut into ranges of ops
  * from one source line, the line beside each (see RangedTeal).
  */
-function Source({ T, f, curPc, sitePcs, matchPcs, bps, onGutter, onRun, map, lineBps, onLineBp, onRunLine }: {
+function Source({ T, f, curPc, sitePcs, matchPcs, bps, onGutter, onRun, map, sources, lineBps, onLineBp, onRunLine }: {
   T: Stepper;
   f: Frame;
   curPc?: number;
@@ -237,6 +237,8 @@ function Source({ T, f, curPc, sitePcs, matchPcs, bps, onGutter, onRun, map, lin
   onGutter: (pc: number) => void;
   onRun: (pc: number) => void;
   map?: SourceMapping;
+  /** The source files added to the spec, by path: their lines where the spec quotes none, or part of one. */
+  sources?: Record<string, string>;
   lineBps: Set<string>;
   onLineBp: (pcs: number[]) => void;
   onRunLine: (pcs: number[]) => void;
@@ -301,6 +303,7 @@ function Source({ T, f, curPc, sitePcs, matchPcs, bps, onGutter, onRun, map, lin
           key={f.hash}
           hash={f.hash}
           map={map}
+          sources={sources}
           ranges={ranges}
           curRange={curLine === undefined ? -1 : rangeOf[curLine]}
           hitRanges={hitRanges}
@@ -885,7 +888,8 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
   const pushed = i > 0 && !isRestated(f, i - 1) ? f.steps[i - 1]["stack-additions"]?.length ?? 0 : 0;
   const pops = s ? Number(s["stack-pop-count"] ?? 0) : 0;
   const n = st.stack.length;
-  const stackNames = useMemo(() => alignNames(stackNamesAt(names.map(f), f, i), n), [names, f, i, n]);
+  // A .puya.map names the stack from its top; TEALScript, a subroutine's frame slots.
+  const stackNames = useMemo(() => frameNamesAt(names.map(f), f, i, st.calls, n) ?? alignNames(stackNamesAt(names.map(f), f, i), n), [names, f, i, n, st]);
   // The next op's reference, and the names it gives the values it takes (A, B…).
   const avmOps = useAvmOps();
   const opDesc = useMemo(() => (avmOps && s ? describeOp(avmOps, lineText(f.prog, Number(s.pc))) : undefined), [avmOps, f, s]);
@@ -988,6 +992,7 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
               onGutter={onGutter}
               onRun={onRun}
               map={src.colOf(f.hash) ? src.lineMap(f.hash) : undefined}
+              sources={f.hash ? src.srcs.get(f.hash)?.rec.sources : undefined}
               lineBps={src.lineBps}
               onLineBp={onLineBp}
               onRunLine={onRunLine}

@@ -60,7 +60,8 @@ export type Frame = {
 };
 
 export type ScratchSlot = { v: AvmValue; at: number };
-export type SubCall = { step: number; pc: number; label: string };
+/** A subroutine call: its callsub's step and pc, its label, and the stack's height there (its frame pointer). */
+export type SubCall = { step: number; pc: number; label: string; fp: number };
 /** A run's state before one of its ops. */
 export type RunState = { stack: AvmValue[]; scratch: Map<number, ScratchSlot>; calls: SubCall[] };
 
@@ -282,7 +283,7 @@ export function applyStep(f: Frame, i: number, st: RunState): void {
   const text = lineText(f.prog, Number(s.pc));
   if (text !== undefined) {
     const op = opName(text);
-    if (op === "callsub") st.calls.push({ step: i, pc: Number(s.pc), label: text.trim().split(/\s+/)[1] ?? "?" });
+    if (op === "callsub") st.calls.push({ step: i, pc: Number(s.pc), label: text.trim().split(/\s+/)[1] ?? "?", fp: st.stack.length });
     else if (op === "retsub") st.calls.pop();
   }
 }

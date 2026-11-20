@@ -3,7 +3,7 @@ import { cn } from "src/lib/utils";
 import { splitSub, type SourceMapping, type SrcLine } from "src/utils/arc56Source";
 import { lineBpKey } from "src/utils/sourceStepper";
 import { isMethodLine } from "src/utils/sourceRows";
-import { srcKey, type TealRange } from "src/utils/tealRanges";
+import { fileLines, lineText, srcKey, type TealRange } from "src/utils/tealRanges";
 
 /**
  * The TEAL view's source column: each range of ops from one source line
@@ -67,8 +67,10 @@ const Ribbon = memo(function Ribbon({ rows, tone, line }: {
 });
 
 /** A range's cell in the source column: its line, or why it has none. */
-const RangeSrc = memo(function RangeSrc({ r, k, cur, tone, bp, ran, match, onBp, onRun, onPart }: {
+const RangeSrc = memo(function RangeSrc({ r, text, k, cur, tone, bp, ran, match, onBp, onRun, onPart }: {
   r: TealRange;
+  /** Its line's text (see lineText); empty when neither the spec nor a source file has it. */
+  text: string;
   k: number;
   cur: boolean;
   tone: Tone;
@@ -106,6 +108,14 @@ const RangeSrc = memo(function RangeSrc({ r, k, cur, tone, bp, ran, match, onBp,
   }
   const key = srcKey(l);
   const more = l.end !== undefined ? l.end - l.line : 0;
+  // The line, and for TEALScript's quote of part of it, that part: what its ops do.
+  const said = !text
+    ? "The spec doesn't quote this line, and no added source file has it."
+    : l.quoted && (!l.part || l.quoted.length > 1)
+      ? l.quoted.join("\n")
+      : l.part && l.text && l.text !== text
+        ? `${text}\n\nIts ops: ${l.text}`
+        : text;
   return (
     <div className={rule}>
       <div
@@ -119,7 +129,7 @@ const RangeSrc = memo(function RangeSrc({ r, k, cur, tone, bp, ran, match, onBp,
           match && "shadow-[inset_2px_0_0_#fb923c]",
         )}
         onDoubleClick={ran ? () => (window.getSelection()?.removeAllRanges(), onRun(l.pcs)) : undefined}
-        title={`${l.file}:${l.line}${more ? `-${l.end}` : ""}\n${(l.quoted ?? [l.text]).join("\n")}${ran ? "\n\nDouble-click to run to this line" : "\n\nNever ran"}`}
+        title={`${l.file}:${l.line}${more ? `-${l.end}` : ""}\n${said}${ran ? "\n\nDouble-click to run to this line" : "\n\nNever ran"}`}
       >
         <button
           type="button"
@@ -132,8 +142,8 @@ const RangeSrc = memo(function RangeSrc({ r, k, cur, tone, bp, ran, match, onBp,
           <span className={cn("h-2 w-2 rounded-full", bp ? "bg-red-500" : "group-hover:bg-red-500/40")} />
         </button>
         <span className={cn("text-right", match ? "text-orange-400" : "text-muted")}>{l.line}</span>
-        <span className={cn("min-w-0 truncate", isMethodLine(l.text) ? "font-medium text-primary" : cur ? "text-foreground" : "text-muted-foreground")}>
-          {l.text || <span className="text-muted">(line {l.line})</span>}
+        <span className={cn("min-w-0 truncate", isMethodLine(text) ? "font-medium text-primary" : cur ? "text-foreground" : "text-muted-foreground")}>
+          {text || <span className="italic text-muted">not quoted</span>}
           {more ? <span className="ml-1.5 text-muted">+{more}</span> : null}
         </span>
         {r.parts > 1 ? (
@@ -169,9 +179,11 @@ export function AsideChip({ line }: { line: SrcLine }) {
   );
 }
 
-export function RangedTeal({ hash, map, ranges, curRange, hitRanges, hm, lineBps, onLineBp, onRunLine, renderOps }: {
+export function RangedTeal({ hash, map, sources, ranges, curRange, hitRanges, hm, lineBps, onLineBp, onRunLine, renderOps }: {
   hash: string;
   map: SourceMapping;
+  /** The source files added to the spec, by path (see lineText). */
+  sources?: Record<string, string>;
   ranges: TealRange[];
   /** The range of the current op, or -1. */
   curRange: number;
@@ -187,6 +199,7 @@ export function RangedTeal({ hash, map, ranges, curRange, hitRanges, hm, lineBps
   const box = useRef<HTMLDivElement>(null);
   const [hl, setHl] = useState<string>();
   const ran = useMemo(() => new Set(map.lines.filter((l) => l.pcs.some((pc) => hm.get(pc)))), [map, hm]);
+  const files = useMemo(() => fileLines(sources), [sources]);
 
   // Stable handlers, so the cells don't re-render on every step.
   const runRef = useRef(onRunLine);
@@ -239,6 +252,7 @@ export function RangedTeal({ hash, map, ranges, curRange, hitRanges, hm, lineBps
               />
               <RangeSrc
                 r={r}
+                text={l ? lineText(l, files) : ""}
                 k={k}
                 cur={k === curRange}
                 tone={tone}

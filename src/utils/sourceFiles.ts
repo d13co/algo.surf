@@ -67,7 +67,7 @@ function quotes(lines: SrcLine[]): Map<number, Quote> {
 const IDENT = /[\w$]/;
 
 /** Whether `part` is in `line` with no identifier character running on either side: `next > 100` isn't in `next > 1000`. */
-function hasPart(line: string, part: string): boolean {
+export function hasPart(line: string, part: string): boolean {
   for (let i = line.indexOf(part); i >= 0; i = line.indexOf(part, i + 1)) {
     const before = IDENT.test(part[0]) && IDENT.test(line[i - 1] ?? "");
     const after = IDENT.test(part[part.length - 1]) && IDENT.test(line[i + part.length] ?? "");

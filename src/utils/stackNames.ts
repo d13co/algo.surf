@@ -1,5 +1,5 @@
 import type { SourceMapping } from "./arc56Source";
-import { lineText, opName, type Frame } from "./traceStepper";
+import { lineText, opName, type Frame, type SubCall } from "./traceStepper";
 
 /**
  * Names for the stack values from a `.puya.map`'s `pc_events`.
@@ -55,6 +55,39 @@ export function alignNames(names: string[] | undefined, n: number): (string | un
   for (let k = 0; k < names.length; k++) out[n - names.length + k] = names[k];
   return out;
 }
+
+/**
+ * The names of a TEALScript subroutine's frame slots on a stack of `n`
+ * values (index 0 the bottom), from the mapping's frameNames: inside the
+ * innermost call (`calls`' last), its argument k is at its frame pointer
+ * less k, and its local j at the frame pointer plus j. Values above its
+ * locals, and outside any call, have none. Before op i: once the return
+ * value is put in slot 0 (just before the `popn`s and `retsub` that end
+ * the subroutine), slot 0 is that.
+ */
+export function frameNamesAt(map: SourceMapping | undefined, f: Frame, i: number, calls: SubCall[], n: number): (string | undefined)[] | undefined {
+  const call = calls[calls.length - 1];
+  const sub = call && f.steps[call.step + 1];
+  const slots = sub && map?.frameNames?.get(Number(sub.pc));
+  if (!slots) return undefined;
+  const out: (string | undefined)[] = new Array(n).fill(undefined);
+  for (const [slot, name] of slots) {
+    const at = call.fp + slot;
+    if (at >= 0 && at < n) out[at] = name;
+  }
+  for (let k = i - 1; k > call.step; k--) {
+    const pc = Number(f.steps[k].pc);
+    if (map.frameReturns?.has(pc)) {
+      if (call.fp < n) out[call.fp] = RETURN_NAME;
+      break;
+    }
+    if (opName(lineText(f.prog, pc)) !== "popn") break;
+  }
+  return out;
+}
+
+/** What a TEALScript subroutine's slot 0 is called once its return value is there. */
+export const RETURN_NAME = "(return value)";
 
 /**
  * A stack name as shown: without Puya's SSA versions (`appId#0` → `appId`,

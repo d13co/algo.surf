@@ -1,4 +1,5 @@
 import { splitSub, subInFiles, type SourceMapping, type SrcLine } from "./arc56Source";
+import { hasPart } from "./sourceFiles";
 import type { Program } from "./traceStepper";
 
 /**
@@ -105,3 +106,24 @@ export function rangeIndex(ranges: TealRange[], n: number): Int32Array {
 
 /** A source line's key, as rows and chips carry it for highlighting. */
 export const srcKey = (l: { file: string; line: number }) => `${l.file}:${l.line}`;
+
+/** Source files' lines, by path: what lineText reads. */
+export type FileLines = Map<string, string[]>;
+
+/** Each source file's lines. */
+export function fileLines(sources: Record<string, string> | undefined): FileLines {
+  return new Map(Object.entries(sources ?? {}).map(([path, text]) => [path, text.split(/\r?\n/)]));
+}
+
+/**
+ * A source line's text to show: the spec's quote of the whole line, else the
+ * line from its added source file (the spec quotes none of it, or part, as
+ * TEALScript does: `next > 100` from `if (next > 100) {`) and has it (a
+ * file that differs from the build may not), else the quote. Empty when
+ * there is neither.
+ */
+export function lineText(l: SrcLine, files: FileLines): string {
+  if (l.text && !l.part) return l.text;
+  const line = files.get(l.file)?.[l.line - 1]?.trim();
+  return line && (!l.text || hasPart(line, l.text)) ? line : l.text;
+}
