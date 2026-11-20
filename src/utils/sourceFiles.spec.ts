@@ -172,7 +172,7 @@ describe("merging files into a saved spec", () => {
     const bare = { ...target(), map: { ...mapping, lines: [] } };
     const r = mergeFiles([bare], [], [{ name: "contract.algo.ts", text: fileFor(ESCREG) }]);
     expect(r.recs).toEqual([]);
-    expect(r.notes).toEqual([{ text: expect.stringMatching(/no TypeScript view to show contract\.algo\.ts in: not added\.$/), bad: true }]);
+    expect(r.notes).toEqual([{ text: expect.stringMatching(/no source view to show contract\.algo\.ts in: not added\.$/), bad: true }]);
   });
 });
 

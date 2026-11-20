@@ -1,7 +1,7 @@
 import type { SrcLine } from "./arc56Source";
 
 /**
- * The rows of the debugger's TypeScript view: the lines the spec's TEAL
+ * The rows of the debugger's source view: the lines the spec's TEAL
  * quotes, or a whole source file.
  */
 

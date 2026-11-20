@@ -1,6 +1,6 @@
 import React, { memo, useCallback, useMemo, useRef, useState } from "react";
 import { cn } from "src/lib/utils";
-import type { SourceMapping, SrcLine } from "src/utils/arc56Source";
+import { splitSub, type SourceMapping, type SrcLine } from "src/utils/arc56Source";
 import { lineBpKey } from "src/utils/sourceStepper";
 import { isMethodLine } from "src/utils/sourceRows";
 import { srcKey, type TealRange } from "src/utils/tealRanges";
@@ -14,14 +14,6 @@ import { srcKey, type TealRange } from "src/utils/tealRanges";
  */
 
 // Below 34rem of panel width (@max-[34rem], written out in full for Tailwind to see), the line goes above its ops.
-
-/** A subroutine header, `file::Class.name(params) -> ret`: its name and the rest. */
-function splitSub(header: string) {
-  const at = header.indexOf("::");
-  const s = at >= 0 ? header.slice(at + 2) : header;
-  const p = s.indexOf("(");
-  return { name: (p >= 0 ? s.slice(0, p) : s).trim() || header, sig: p >= 0 ? s.slice(p) : "" };
-}
 
 const SubBand = memo(function SubBand({ header }: { header: string }) {
   const { name, sig } = splitSub(header);

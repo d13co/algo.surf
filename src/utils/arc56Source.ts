@@ -7,7 +7,9 @@ import { opName, type Program } from "./traceStepper";
  *
  * The spec's `source.approval` / `source.clear` TEAL has, before each run of
  * ops, a `// <file>:<line>` comment and the quoted source line(s), and before
- * each subroutine a `// <file>::<signature>:` header. Its ops are the
+ * each subroutine a header: `// <file>::<signature>:` from Algorand
+ * TypeScript, `// <module>.<Class>.<name>(<params>) -> <ret>:` from Algorand
+ * Python. Its ops are the
  * program's ops in the same order, so the n-th TEAL op pairs with the node's
  * disassembly's n-th op, which has the pc. An optional `.puya.map` (not part
  * of ARC-56) pairs the same way and names the stack values.
@@ -33,7 +35,7 @@ export type SourceMapping = {
   byPc: Map<number, SrcLine>;
   /** Each distinct (file, line): files in program order, lines ascending. */
   lines: SrcLine[];
-  /** A subroutine's header (`file::signature`) at its first op. */
+  /** A subroutine's header (`file::signature`, or Python's `module.Class.name(…) -> ret`) at its first op. */
   subs: Map<number, string>;
   /** Failure messages by pc, from `sourceInfo` (and a `.puya.map`'s `error`). */
   errors: Map<number, string>;
@@ -48,6 +50,8 @@ export type SourceMapping = {
   stackIn?: Map<number, string[]>;
   /** The spec's byteCode hashes to the program's hash: the same program, byte for byte. */
   exact?: boolean;
+  /** The TEAL is TEALScript's: its files are `.algo.ts` like Algorand TypeScript's, so the files can't tell. */
+  tealscript?: boolean;
   /** Why the `.puya.map` given doesn't fit the program; the TEAL match stands without it. */
   mapMismatch?: string;
 };
@@ -66,7 +70,78 @@ export type PcEvent = { op?: string; subroutine?: string; error?: string; stack_
 
 // A path with an extension, then a line or a range: `contracts/a.algo.ts:28-33`.
 const LOC = /^(\S+\.\w+):(\d+)(?:-(\d+))?$/;
+// A subroutine header: Algorand TypeScript's `a.algo.ts::C.f(x: uint64) -> void:`,
+// or Algorand Python's `pkg.contract.C.f[routing](x: uint64) -> void:`.
 const SUB = /^(.+::.+):$/;
+const PY_SUB = /^([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)+(?:\[[^\]()]*\])?\(.*\)\s*->\s*.+):$/;
+
+/**
+ * The source view's name: `TEALScript` for TEALScript's TEAL, else by its
+ * files' language: `TypeScript`, `Python`, or `Source` when mixed or neither.
+ */
+export function sourceLang({ lines, tealscript }: Pick<SourceMapping, "lines" | "tealscript">): string {
+  if (tealscript) return "TEALScript";
+  const langs = new Set(lines.map(({ file }) => (/\.py$/i.test(file) ? "Python" : /\.[cm]?ts$/i.test(file) ? "TypeScript" : "Source")));
+  return langs.size === 1 ? [...langs][0] : "Source";
+}
+
+/**
+ * A subroutine header's parts: its short name (`C.f`), its signature
+ * (`(x: uint64) -> void`), and for a TypeScript header its file. A Python
+ * header's dotted path (`pkg.contract.C.f`) is cut at its last capitalised
+ * part before the name, the class (modules may be capitalised too, as in
+ * `pkg.NttManager.NttManager.f`), or else keeps just the name.
+ */
+export function splitSub(header: string): { name: string; sig: string; file?: string } {
+  const at = header.indexOf("::");
+  const s = at >= 0 ? header.slice(at + 2) : header;
+  const p = s.indexOf("(");
+  const path = (p >= 0 ? s.slice(0, p) : s).trim();
+  const sig = p >= 0 ? s.slice(p) : "";
+  if (at >= 0) return { name: path || header, sig, file: header.slice(0, at) };
+  const parts = path.split(".");
+  if (parts.length < 2) return { name: path || header, sig };
+  let k = parts.length - 2;
+  while (k > 0 && !/^[A-Z]/.test(parts[k])) k--;
+  if (k === 0 && !/^[A-Z]/.test(parts[0])) k = parts.length - 1;
+  return { name: parts.slice(k).join("."), sig };
+}
+
+/** A Python file's path as module parts: `./src/pkg/contract.py` → `src pkg contract`, `pkg/__init__.py` → `pkg`. */
+function moduleParts(file: string): string[] {
+  const parts = file
+    .replace(/\.py$/i, "")
+    .split(/[\\/]/)
+    .filter((x) => x && x !== "." && x !== "..");
+  if (parts[parts.length - 1] === "__init__") parts.pop();
+  return parts;
+}
+
+/** Whether `a` ends with `b`, part by part. */
+const endsWith = (a: string[], b: string[]) => b.length > 0 && b.length <= a.length && b.every((x, i) => a[a.length - b.length + i] === x);
+
+/**
+ * Whether a subroutine header is from one of `files` (the source lines'
+ * files). A TypeScript header names its file. A Python header's dotted path
+ * starts with its module: one of its leading runs of parts (without the
+ * name) that is a file's path (as parts, without `.py`) or its end, or that
+ * ends with one, for paths relative to elsewhere (`contract.py` and
+ * `pkg.contract`, `venv/…/site-packages/pkg/lib.py` and `pkg.lib`).
+ */
+export function subInFiles(header: string, files: ReadonlySet<string>): boolean {
+  const { file } = splitSub(header);
+  if (file !== undefined) return files.has(file);
+  // The compiler's own: never the contract's, whatever its files are called (`state.py` and `algopy.state`).
+  if (/^(algopy|_puya_lib)\./.test(header)) return false;
+  const p = header.indexOf("(");
+  const parts = (p >= 0 ? header.slice(0, p) : header).trim().split(".");
+  const mods = [...files].map(moduleParts);
+  for (let k = parts.length - 1; k > 0; k--) {
+    const prefix = parts.slice(0, k);
+    if (mods.some((m) => endsWith(m, prefix) || endsWith(prefix, m))) return true;
+  }
+  return false;
+}
 
 /**
  * A TEAL line's code, split into ops at `;`, without its `//` comment. As
@@ -142,7 +217,7 @@ export function parseTeal(teal: string): TealOp[] {
         loc.quoted?.push(body);
         quoting--;
       } else {
-        const s = SUB.exec(body);
+        const s = SUB.exec(body) ?? PY_SUB.exec(body);
         if (s) {
           sub = s[1];
           loc = undefined;

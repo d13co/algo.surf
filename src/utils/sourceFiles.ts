@@ -3,7 +3,7 @@ import type { SpecRecord } from "./specStore";
 import type { Program } from "./traceStepper";
 
 /**
- * Source files (`.ts`) and `.puya.map`s added to an ARC-56 spec on the
+ * Source files (`.ts`, `.py`) and `.puya.map`s added to an ARC-56 spec on the
  * debugger: which of the spec's source paths each file is, whether it is
  * the file the program was built from, and merging them into saved specs.
  */
@@ -184,9 +184,9 @@ export function mergeFiles(targets: Target[], maps: MapFile[], files: SourceFile
 
   const lines = targets.flatMap((t) => t.map.lines);
   if (files.length && !lines.length) {
-    notes.push({ text: `This spec's TEAL has no source lines (no \`// file:line\` comments), so there is no TypeScript view to show ${list(files.map(shown))} in: not added.`, bad: true });
+    notes.push({ text: `This spec's TEAL has no source lines (no \`// file:line\` comments), so there is no source view to show ${list(files.map(shown))} in: not added.`, bad: true });
   } else if (files.length) {
-    // Only the files the TEAL quotes: the TypeScript view shows those.
+    // Only the files the TEAL quotes: the source view shows those.
     const pathsOf = targets.map((t) => [...new Set(t.map.lines.map((l) => l.file))]);
     const paths = [...new Set(pathsOf.flat())];
     const r = matchSourceFiles(paths, lines, files);

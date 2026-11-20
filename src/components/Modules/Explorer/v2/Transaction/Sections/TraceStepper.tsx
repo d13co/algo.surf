@@ -767,7 +767,7 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
   const matchPcs = f.hash ? search.result?.pcs.get(f.hash) : undefined;
   const onLineBp = useCallback((pcs: number[]) => f.hash && src.toggleLineBp(f.hash, pcs), [f.hash, src.toggleLineBp]);
   const fMap = src.mapFor(f.hash);
-  // In the TypeScript view, Into, Over, Back and Back over step by source line;
+  // In the source view, Into, Over, Back and Back over step by source line;
   // the op steps (. and ,) go one TEAL op, showing the line's ops.
   const srcOn = !!fMap;
   // Until the first move, once the spec's source lines arrive: open at the run's first op with a line, not its constant blocks.
@@ -785,7 +785,7 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
     },
     [seek, pickMode],
   );
-  // A find hit, a move like Continue's: in the TypeScript view, with its line's ops open, so the op found shows.
+  // A find hit, a move like Continue's: in the source view, with its line's ops open, so the op found shows.
   const goHit = useCallback(
     (q: number) => {
       step(q);
@@ -826,8 +826,8 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
         if (q !== undefined) goHit(q);
         return true;
       },
-      // The keyboard's way to set one: on the next op's line. In the TypeScript
-      // view, its TypeScript line, or for an op without one (a subroutine's
+      // The keyboard's way to set one: on the next op's line. In the source
+      // view, its source line, or for an op without one (a subroutine's
       // proto, the constant blocks), the run's next op's that has one.
       toggleBp: () => {
         if (!s || !f.hash) return;
@@ -925,7 +925,7 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
                     <span>{t}</span>
                   </div>
                 ))}
-                <div className="mt-1.5">In the TypeScript view, the steps go by line, and . and , by TEAL op.</div>
+                <div className="mt-1.5">In the TypeScript, TEALScript or Python view, the steps go by line, and . and , by TEAL op.</div>
                 <div className="mt-1.5">Click a line's gutter for a breakpoint; double-click a line to run to it.</div>
               </TooltipContent>
             </Tooltip>

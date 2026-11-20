@@ -28,7 +28,7 @@ export type ProgramMatch = {
   /**
    * Worth saving: any approval program match (TEAL without `// file:line`
    * comments, from Puya at debug level 0 or other compilers, gives no
-   * TypeScript view but still names methods, keys and failures), and a clear
+   * source view but still names methods, keys and failures), and a clear
    * program match only with source lines: Puya's default clear program is
    * many apps', and names little.
    */

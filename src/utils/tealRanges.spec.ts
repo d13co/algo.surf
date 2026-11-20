@@ -104,6 +104,16 @@ describe("TEAL ranges", () => {
     expect(tealRanges(q, mapping({ 2: 1 }, { 1: "c.algo.ts::C.g() -> void" }))[0].library).toBeUndefined();
   });
 
+  it("names Python library code by its module", () => {
+    const p = program(ops(6, { 4: "sub" }));
+    const m = mapping(
+      { 2: 1, 3: 1, 6: 3 },
+      { 1: "algopy.arc4.ARC4Contract.approval_program() -> uint64", 4: "smart_contracts.proposal.contract.Proposal.pay(receiver: bytes, amount: uint64) -> void", 6: "smart_contracts.proposal.contract.Proposal.create[routing]() -> void" },
+      "smart_contracts/proposal/contract.py",
+    );
+    expect(tealRanges(p, m).map((r) => r.library ?? null)).toEqual(["ARC4Contract.approval_program", null, null, null]);
+  });
+
   it("indexes each line's range", () => {
     const p = program(ops(4, { 3: "l" }));
     const rs = tealRanges(p, mapping({ 1: 1, 2: 1, 3: 2, 4: 2 }));

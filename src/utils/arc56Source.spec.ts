@@ -5,6 +5,9 @@ import {
   matchProgram,
   matchSpec,
   parseTeal,
+  sourceLang,
+  splitSub,
+  subInFiles,
   programHash,
   sourceErrors,
   specTeal,
@@ -306,6 +309,77 @@ describe("parseTeal", () => {
   it("starts a subroutine's ops without the previous location", () => {
     const ops = parseTeal(["// a.ts:1", "// x", "retsub", "", "// a.ts::g() -> void:", "g:", "proto 0 0"].join("\n"));
     expect(ops[1]).toMatchObject({ op: "proto 0 0", loc: undefined, sub: "a.ts::g() -> void" });
+  });
+
+  it("reads Algorand Python's subroutine headers", () => {
+    const ops = parseTeal(
+      [
+        "// pkg/contract.py:5",
+        "// def pay(self) -> None:",
+        "pop",
+        "",
+        "// pkg.contract.C.pay(receiver: bytes, amount: uint64) -> void:",
+        "pay:",
+        "proto 2 0",
+        "// pkg.contract.C.create[routing]() -> void:",
+        "create_x:",
+        "pop",
+        "// pkg.contract.C.f[uint64, algopy.Bytes](a: uint64) -> bytes:",
+        "f:",
+        "pop",
+        "// max depth: 1",
+        "pop",
+      ].join("\n"),
+    );
+    expect(ops.map((o) => o.sub)).toEqual([undefined, "pkg.contract.C.pay(receiver: bytes, amount: uint64) -> void", "pkg.contract.C.create[routing]() -> void", "pkg.contract.C.f[uint64, algopy.Bytes](a: uint64) -> bytes", "pkg.contract.C.f[uint64, algopy.Bytes](a: uint64) -> bytes"]);
+    expect(ops[0].loc?.text).toBe("def pay(self) -> None:");
+  });
+});
+
+describe("splitSub", () => {
+  it("splits TypeScript and Python headers", () => {
+    expect(splitSub("contracts/a.algo.ts::Escreg.register(x: uint64) -> void")).toEqual({ name: "Escreg.register", sig: "(x: uint64) -> void", file: "contracts/a.algo.ts" });
+    expect(splitSub("smart_contracts.proposal.contract.Proposal.create[routing]() -> void")).toEqual({ name: "Proposal.create[routing]", sig: "() -> void" });
+    expect(splitSub("pkg.helpers.add(a: uint64, b: uint64) -> uint64")).toEqual({ name: "add", sig: "(a: uint64, b: uint64) -> uint64" });
+    // A module named as its class.
+    expect(splitSub("ntt_contracts.ntt_manager.NttManager.NttManager._transfer() -> void").name).toBe("NttManager._transfer");
+    expect(splitSub("algopy.arc4.ARC4Contract.approval_program() -> uint64").name).toBe("ARC4Contract.approval_program");
+    expect(splitSub("itoa")).toEqual({ name: "itoa", sig: "" });
+    expect(splitSub("C.pay(x: uint64) -> void").name).toBe("C.pay");
+  });
+
+  it("tells a contract's own subroutines from library ones", () => {
+    const py = new Set(["smart_contracts/proposal/contract.py"]);
+    expect(subInFiles("smart_contracts.proposal.contract.Proposal.pay() -> void", py)).toBe(true);
+    expect(subInFiles("algopy.arc4.ARC4Contract.approval_program() -> uint64", py)).toBe(false);
+    // Paths relative to elsewhere than the module root, either way.
+    expect(subInFiles("smart_contracts.proposal.contract.Proposal.pay() -> void", new Set(["contract.py"]))).toBe(true);
+    expect(subInFiles("contract.Proposal.pay() -> void", py)).toBe(true);
+    // Modules named as their class, files under a venv, a package's __init__.py, ../ and Windows paths.
+    const ntt = new Set(["ntt_contracts/ntt_manager/NttManager.py", "venv/lib/python3.12/site-packages/folks_contracts/library/RateLimiter.py", "ntt_contracts/library/TrimmedAmountLib.py"]);
+    expect(subInFiles("ntt_contracts.ntt_manager.NttManager.NttManager._transfer() -> void", ntt)).toBe(true);
+    expect(subInFiles("folks_contracts.library.RateLimiter.RateLimiter._update() -> void", ntt)).toBe(true);
+    expect(subInFiles("ntt_contracts.library.TrimmedAmountLib.scale(amt: uint64) -> uint64", ntt)).toBe(true);
+    expect(subInFiles("algopy.arc4.ARC4Contract.approval_program() -> uint64", ntt)).toBe(false);
+    expect(subInFiles("pkg.C.f() -> void", new Set(["pkg/__init__.py"]))).toBe(true);
+    expect(subInFiles("smart_contracts.proposal.contract.Proposal.pay() -> void", new Set(["../proposal/contract.py"]))).toBe(true);
+    expect(subInFiles("smart_contracts.proposal.contract.Proposal.pay() -> void", new Set([".\\contract.py"]))).toBe(true);
+    expect(subInFiles("pkg.contract.myContract.f() -> void", new Set(["pkg/contract.py"]))).toBe(true);
+    // A file named as a compiler module.
+    expect(subInFiles("algopy.state.Box.get() -> bytes", new Set(["state.py"]))).toBe(false);
+    expect(subInFiles("a.algo.ts::C.f() -> void", new Set(["a.algo.ts"]))).toBe(true);
+    expect(subInFiles("puya-ts::itoa(i: uint64) -> bytes", new Set(["a.algo.ts"]))).toBe(false);
+  });
+});
+
+describe("sourceLang", () => {
+  const at = (...files: string[]) => ({ lines: files.map((file) => ({ file, line: 1, text: "", pcs: [] })) });
+  it("names the source view by its files, or as TEALScript", () => {
+    expect(sourceLang(at("a.algo.ts", "b.ts"))).toBe("TypeScript");
+    expect(sourceLang(at("pkg/contract.py"))).toBe("Python");
+    expect(sourceLang(at("a.algo.ts", "b.py"))).toBe("Source");
+    expect(sourceLang(at())).toBe("Source");
+    expect(sourceLang({ ...at("a.algo.ts"), tealscript: true })).toBe("TEALScript");
   });
 });
 

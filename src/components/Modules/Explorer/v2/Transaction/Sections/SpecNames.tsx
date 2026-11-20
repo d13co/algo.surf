@@ -10,7 +10,7 @@ import type { TraceSource } from "./useTraceSource";
 
 /**
  * The debugger's names from ARC-56 specs: for a run whose program has a
- * matched spec (in the TypeScript or the TEAL view), the ABI method it was
+ * matched spec (in the source or the TEAL view), the ABI method it was
  * called with, its subroutines, failure messages, state keys and values, and
  * logged events and return values. Without a spec, each shows nothing new.
  */

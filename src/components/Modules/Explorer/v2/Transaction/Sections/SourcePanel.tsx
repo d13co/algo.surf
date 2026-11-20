@@ -10,7 +10,7 @@ import type { TraceSource } from "./useTraceSource";
 import { OpToken } from "src/components/Modules/Explorer/v2/TealCode";
 
 /**
- * The TypeScript view of a program run, from its ARC-56 spec: the source
+ * The source view of a program run, from its ARC-56 spec: the source
  * lines the spec's TEAL quotes, grouped by file, each with how many times it ran,
  * a breakpoint gutter, and its TEAL ops when expanded. With the spec's source
  * files added, whole files instead, one at a time (following the current

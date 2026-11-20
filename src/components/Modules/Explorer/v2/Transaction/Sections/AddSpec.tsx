@@ -1,6 +1,7 @@
 import React, { useRef, useState } from "react";
 import { FileCode2, FilePlus2, Upload, X } from "lucide-react";
 import { cn } from "src/lib/utils";
+import { sourceLang } from "src/utils/arc56Source";
 import { specSourcePaths, type Note } from "src/utils/sourceFiles";
 import type { SpecRecord } from "src/utils/specStore";
 import { fitsBetter, folderSources, folderSpecs, readAddedFiles, readSpecFiles, type FolderFit, type ReadFile, type SpecInput } from "src/utils/traceSpecs";
@@ -8,7 +9,7 @@ import type { Frame } from "src/utils/traceStepper";
 import type { Added, TraceSource } from "./useTraceSource";
 
 /**
- * The source panel's bar: the TEAL / TypeScript switch for a program with a
+ * The source panel's bar: the TEAL / source switch for a program with a
  * spec with source lines (a spec without them only names things), else "Add ARC-56 spec" (a drop zone, a
  * project folder to find the spec in, and a paste box), specs saved
  * for an older version of the app to try, and the saved specs to remove.
@@ -32,11 +33,11 @@ function matchLines(ms: Added[], spec?: SpecInput): Msg[] {
       continue;
     }
     const exact = r.exact ? ", exactly (the same bytecode)" : "";
-    const bare = r.lines.length ? "" : "; its TEAL has no source lines (no `// file:line` comments), so there's no TypeScript view, but its names are used";
-    if (!m.save) out.push({ text: `Matches ${prog}${exact}, but the spec's TEAL has no source lines (no \`// file:line\` comments), so there is no TypeScript view. Not saved.`, bad: m.current });
+    const bare = r.lines.length ? "" : "; its TEAL has no source lines (no `// file:line` comments), so there's no source view, but its names are used";
+    if (!m.save) out.push({ text: `Matches ${prog}${exact}, but the spec's TEAL has no source lines (no \`// file:line\` comments), so there is no source view. Not saved.`, bad: m.current });
     else if (m.stored === false) out.push({ text: `Matches ${prog}${exact}${bare}. Kept for this page only: the browser didn't store it.`, bad: true });
     else out.push({ text: `Matches ${prog}${exact}${bare}. Saved in this browser.` });
-    if (r.mapMismatch) out.push({ text: `The .puya.map doesn't fit the ${m.kind} program (${r.mapMismatch}). The TypeScript view works without stack names.`, bad: true });
+    if (r.mapMismatch) out.push({ text: `The .puya.map doesn't fit the ${m.kind} program (${r.mapMismatch}). ${r.lines.length ? `The ${sourceLang(r)} view works without stack names.` : "Its other names are still used."}`, bad: true });
   }
   if (spec?.unplaced && !ms.some((m) => m.puyaMap === spec.unplaced)) {
     out.push({ text: "The .puya.map whose name says neither approval nor clear fits neither program: left out.", bad: true });
@@ -233,7 +234,7 @@ export function SourceBar({ f, src }: { f: Frame; src: TraceSource }) {
             {have.map.lines.length ? (
               <span className="inline-flex overflow-hidden rounded border border-border/50" role="group" aria-label="Show the program as">
                 <Seg on={view === "teal"} onClick={() => src.setView(hash, "teal")}>TEAL</Seg>
-                <Seg on={view === "ts"} onClick={() => src.setView(hash, "ts")}>TypeScript</Seg>
+                <Seg on={view === "ts"} onClick={() => src.setView(hash, "ts")}>{sourceLang(have.map)}</Seg>
               </span>
             ) : null}
             {have.map.lines.length && view === "teal" ? (
@@ -249,7 +250,7 @@ export function SourceBar({ f, src }: { f: Frame; src: TraceSource }) {
                 have.map.mapMismatch
                   ? `The .puya.map doesn't fit: ${have.map.mapMismatch}`
                   : !have.map.lines.length
-                    ? "Its TEAL has no source lines (no // file:line comments), so there's no TypeScript view; its names are used"
+                    ? "Its TEAL has no source lines (no // file:line comments), so there's no source view; its names are used"
                     : undefined
               }
             >

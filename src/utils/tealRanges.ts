@@ -1,4 +1,4 @@
-import type { SourceMapping, SrcLine } from "./arc56Source";
+import { splitSub, subInFiles, type SourceMapping, type SrcLine } from "./arc56Source";
 import type { Program } from "./traceStepper";
 
 /**
@@ -33,19 +33,6 @@ export type TealRange = {
 
 /** The longest run of ops from another line folded into the range around it. */
 export const FOLD = 2;
-
-/** A subroutine header's short name: `file::Class.name(…) -> ret` → `Class.name`. */
-function subName(header: string): string {
-  const at = header.indexOf("::");
-  const s = at >= 0 ? header.slice(at + 2) : header;
-  const p = s.indexOf("(");
-  return (p >= 0 ? s.slice(0, p) : s).trim() || header;
-}
-
-const subFile = (header: string) => {
-  const at = header.indexOf("::");
-  return at >= 0 ? header.slice(0, at) : undefined;
-};
 
 type Raw = TealRange & { ops: number[]; curSub?: string };
 
@@ -103,8 +90,7 @@ export function tealRanges(prog: Program, map: SourceMapping, fold = FOLD): Teal
       r.parts = parts.get(r.line)!;
     } else {
       r.part = r.parts = 1;
-      const sf = cs !== undefined ? subFile(cs) : undefined;
-      if (cs !== undefined && (sf === undefined || !files.has(sf))) r.library = subName(cs);
+      if (cs !== undefined && !subInFiles(cs, files)) r.library = splitSub(cs).name;
     }
     return r;
   });

@@ -7,13 +7,13 @@ import { appPrograms, isApp, matchOnApp, worthSaving, type ProgramMatch, type Sp
 import type { Frame, Program, Stepper } from "src/utils/traceStepper";
 
 /**
- * The debugger's TypeScript view, by program hash: the ARC-56 specs saved
+ * The debugger's source view, by program hash: the ARC-56 specs saved
  * for the trace's programs and their mappings, which programs are shown as
- * TypeScript or TEAL, and source-line breakpoints. This browser keeps all
+ * source or TEAL, and source-line breakpoints. This browser keeps all
  * three (specs in IndexedDB, the rest in localStorage), and whether the
  * TEAL view shows the source lines beside the ops. A mapping without
  * source lines (TEAL without `// file:line` comments) still names things
- * (see SpecNames), but has no TypeScript view or source stepping.
+ * (see SpecNames), but has no source view or source stepping.
  */
 
 export type ProgSource = { rec: SpecRecord; map: SourceMapping };
@@ -21,7 +21,7 @@ export type View = "ts" | "teal";
 /** A match, and whether this browser stored it (else it lasts for the page). */
 export type Added = ProgramMatch & { stored?: boolean };
 
-// A new key since TEAL became the default: adding a spec used to store "ts" under `trace-src-view:`, which would now read as a choice of TypeScript.
+// A new key since TEAL became the default: adding a spec used to store "ts" under `trace-src-view:`, which would now read as a choice of the source view.
 const viewKey = (hash: string) => `trace-view:${hash}`;
 const colKey = (hash: string) => `trace-src-col:${hash}`;
 const lineBpStoreKey = (hash: string) => `trace-src-bp:${hash}`;
@@ -136,7 +136,7 @@ export function useTraceSource(T: Stepper) {
     const m = hash ? srcs.get(hash)?.map : undefined;
     return m?.lines.length ? m : undefined;
   }, [srcs]);
-  // TEAL (with its source lines beside it) unless TypeScript was chosen.
+  // TEAL (with its source lines beside it) unless the source view was chosen.
   const viewOf = useCallback((hash: string | undefined): View => (lineMap(hash) && views.get(hash!) === "ts" ? "ts" : "teal"), [lineMap, views]);
   const setView = useCallback((hash: string, v: View) => {
     writeStore(viewKey(hash), v);
@@ -153,7 +153,7 @@ export function useTraceSource(T: Stepper) {
       return next;
     });
   }, []);
-  /** The mapping of each program shown as TypeScript. */
+  /** The mapping of each program shown as source. */
   const mapFor: MapFor = useCallback((hash) => (hash && views.get(hash) === "ts" ? lineMap(hash) : undefined), [lineMap, views]);
 
   const toggleLineBp = useCallback(
@@ -172,7 +172,7 @@ export function useTraceSource(T: Stepper) {
   /**
    * Saves the matches worth saving, with the spec's source files that are
    * theirs; they show in the view last chosen for the program (TEAL with
-   * source lines unless TypeScript was). `notes` tells about the files.
+   * source lines unless the source view was). `notes` tells about the files.
    */
   const apply = useCallback(async (ms: ProgramMatch[], spec: SpecInput): Promise<{ added: Added[]; notes: Note[] }> => {
     const added: Added[] = [];
