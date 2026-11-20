@@ -45,6 +45,8 @@ import { useTraceSource } from "./useTraceSource";
 import { LineBreakpoints, lineBpCount, SourceLoc, SourcePanel } from "./SourcePanel";
 import { SourceBar } from "./AddSpec";
 import { FailureReason, KeyName, OpHints, RunMethod, runFailure, StackName, StateValue, SubName, useSpecNames, type SpecNames } from "./SpecNames";
+import { Code, OpDoc, useAvmOps } from "src/components/Modules/Explorer/v2/TealCode";
+import { describe as describeOp, opIO, popNames, type IOValue, type OpDesc, type Wide } from "src/utils/avmOps";
 
 // React 18's (the app renders with createRoot), which the project's React 17 types don't declare.
 const useDeferredValue = (React as unknown as { useDeferredValue: <V>(value: V) => V }).useDeferredValue;
@@ -97,7 +99,7 @@ function typeTag(v: AvmValue) {
 }
 
 /** A stack or scratch value: its index, type, name (from a .puya.map) and short form; click for every format. */
-const ValueRow = memo(function ValueRow({ v, index, mark, name }: { v: AvmValue; index: number; mark?: "pop" | "new"; name?: string }) {
+const ValueRow = memo(function ValueRow({ v, index, mark, name, arg }: { v: AvmValue; index: number; mark?: "pop" | "new"; name?: string; arg?: string }) {
   const [open, setOpen] = useState(false);
   return (
     <button
@@ -113,6 +115,11 @@ const ValueRow = memo(function ValueRow({ v, index, mark, name }: { v: AvmValue;
       <span className="text-right text-muted">{index}</span>
       <span className="text-muted">{typeTag(v)}</span>
       <span className="min-w-0 truncate">
+        {arg ? (
+          <span className="mr-1.5 text-red-300" title={`The next op's ${arg}`}>
+            {arg}
+          </span>
+        ) : null}
         {name ? <StackName name={name} /> : null}
         <Short v={v} />
       </span>
@@ -145,30 +152,6 @@ function useLabels(T: Stepper, txId: string) {
 
 // ---------------------------------------------------------------------------
 // Source
-
-/** A disassembly line, coloured: the opcode, numbers, hex, branch labels and comments. */
-function Code({ text }: { text: string }) {
-  if (/^\s*[A-Za-z_][\w.]*:\s*$/.test(text)) return <span className="text-primary">{text}</span>;
-  if (/^#pragma/.test(text)) return <span className="text-muted">{text}</span>;
-  const ci = text.indexOf(" //");
-  const body = ci >= 0 ? text.slice(0, ci) : text;
-  const comment = ci >= 0 ? text.slice(ci) : "";
-  const parts = body.split(/(\s+)/);
-  const branch = /^(b|bz|bnz|callsub|match|switch)$/.test(parts[0]);
-  return (
-    <>
-      {parts.map((p, i) => {
-        if (i === 0) return <span key={i} className="text-foreground">{p}</span>;
-        if (!p.trim()) return p;
-        if (/^0x[0-9a-fA-F]*$/.test(p)) return <span key={i} className="text-amber-300">{p.length > 70 ? `${p.slice(0, 70)}…` : p}</span>;
-        if (/^-?\d+$/.test(p)) return <span key={i} className="text-sky-300">{p}</span>;
-        if (branch) return <span key={i} className="text-primary">{p}</span>;
-        return <span key={i} className="text-muted-foreground">{p}</span>;
-      })}
-      {comment ? <span className="text-muted">{comment}</span> : null}
-    </>
-  );
-}
 
 const hitText = (h: number) => (!h ? "" : h > 999 ? `${Math.round(h / 100) / 10}k` : String(h));
 
@@ -219,7 +202,7 @@ const SourceLine = memo(function SourceLine({ prog, i, hits, bp, mark, onGutter,
       <span className="text-right text-muted">{has ? pc : ""}</span>
       <span className="min-w-0 overflow-hidden text-ellipsis">
         {mark === "cur" ? <span className="text-primary">▶ </span> : null}
-        {prog.synthetic ? <span className="text-muted">pc {pc} · no disassembly</span> : <Code text={l.text} />}
+        {prog.synthetic ? <span className="text-muted">pc {pc} · no disassembly</span> : <Code text={l.text} tip short />}
       </span>
     </div>
   );
@@ -780,6 +763,10 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
   const pops = s ? Number(s["stack-pop-count"] ?? 0) : 0;
   const n = st.stack.length;
   const stackNames = useMemo(() => alignNames(stackNamesAt(names.map(f), f, i), n), [names, f, i, n]);
+  // The next op's reference, and the names it gives the values it takes (A, B…).
+  const avmOps = useAvmOps();
+  const opDesc = useMemo(() => (avmOps && s ? describeOp(avmOps, lineText(f.prog, Number(s.pc))) : undefined), [avmOps, f, s]);
+  const argNames = useMemo(() => popNames(opDesc, n, s), [opDesc, n, s]);
   const slots = [...st.scratch.entries()].sort((a, b) => a[0] - b[0]);
   const willWrite = new Set((s?.["scratch-changes"] ?? []).map((c) => Number(c.slot)));
 
@@ -871,13 +858,13 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
         </Panel>
 
         <div className="order-1 flex min-w-0 flex-col gap-3 lg:order-none lg:min-h-0">
-          <NextOp T={T} f={f} i={i} top={st.stack[n - 1]} last={pos >= T.N - 1} where={labels.where} names={names} loc={s && src.lineMap(f.hash) ? <SourceLoc map={src.lineMap(f.hash)!} pc={Number(s.pc)} /> : null} />
+          <NextOp T={T} f={f} i={i} stack={st.stack} d={opDesc} last={pos >= T.N - 1} where={labels.where} names={names} loc={s && src.lineMap(f.hash) ? <SourceLoc map={src.lineMap(f.hash)!} pc={Number(s.pc)} /> : null} />
           <Panel className="lg:min-h-[8rem] lg:flex-1" title="Stack" meta={`${n} ${n === 1 ? "value" : "values"}`}>
             <div className="max-h-64 min-h-0 overflow-auto py-1 lg:max-h-none lg:flex-1">
               {n ? (
                 st.stack
                   // Keyed on the value too, so an expanded row doesn't stay open for another value pushed in its place.
-                  .map((v, j) => <ValueRow key={`${f.id}:${j}:${v.type}:${v.uint ?? v.bytes ?? ""}`} v={v} index={j} name={stackNames[j]} mark={j >= n - pops ? "pop" : j >= n - pushed ? "new" : undefined} />)
+                  .map((v, j) => <ValueRow key={`${f.id}:${j}:${v.type}:${v.uint ?? v.bytes ?? ""}`} v={v} index={j} name={stackNames[j]} arg={argNames.get(j)} mark={j >= n - pops ? "pop" : j >= n - pushed ? "new" : undefined} />)
                   .reverse()
               ) : (
                 <Empty>The stack is empty.</Empty>
@@ -1050,9 +1037,51 @@ const Breakpoints = memo(function Breakpoints({ T, list, bpPos, onRemove }: {
   );
 });
 
+/** What an op takes from the stack or gives to it: each value under the name its doc gives it, where the trace's count matches. */
+function IORows({ label, xs, wide, className }: { label: string; xs: IOValue[]; wide: Wide[]; className: string }) {
+  if (!xs.length) return null;
+  return (
+    <>
+      {xs.map((x, k) => (
+        <div key={k} className="grid grid-cols-[5ch_3ch_minmax(0,1fr)_auto] gap-x-2">
+          <span className="text-muted">{k ? "" : label}</span>
+          <span className={className}>{x.name ?? ""}</span>
+          <span className="min-w-0 break-all">
+            <Short v={x.v} />
+            {x.type === "bool" && x.v.type === 2 ? <span className="text-muted"> ({Number(x.v.uint ?? 0) ? "true" : "false"})</span> : null}
+          </span>
+          <span className="text-muted">{x.type && x.type !== "any" ? x.type : ""}</span>
+        </div>
+      ))}
+      {wide.map((w) => (
+        <div key={w.names} className="grid grid-cols-[5ch_3ch_minmax(0,1fr)] gap-x-2" title="Two uint64s read as one 128-bit number: high, low">
+          <span />
+          <span className={className}>{w.names}</span>
+          <span className="min-w-0 break-all text-sky-300">
+            {grouped(w.value)} <span className="whitespace-nowrap text-muted">(128-bit)</span>
+          </span>
+        </div>
+      ))}
+    </>
+  );
+}
+
 /** The op about to run and what it will do, or at a run's end, how it ended. */
-function NextOp({ T, f, i, top, last, where, names, loc }: { T: Stepper; f: Frame; i: number; top?: AvmValue; last: boolean; where: (f: Frame) => string; names: SpecNames; loc?: React.ReactNode }) {
+function NextOp({ T, f, i, stack, d, last, where, names, loc }: {
+  T: Stepper;
+  f: Frame;
+  i: number;
+  /** The stack before it. */
+  stack: AvmValue[];
+  /** Its reference, once loaded. */
+  d?: OpDesc;
+  last: boolean;
+  where: (f: Frame) => string;
+  names: SpecNames;
+  loc?: React.ReactNode;
+}) {
   const s = f.steps[i];
+  const top = stack[stack.length - 1];
   if (!s) {
     const failure = runFailure(names, T, f);
     return (
@@ -1073,11 +1102,12 @@ function NextOp({ T, f, i, top, last, where, names, loc }: { T: Stepper; f: Fram
   }
   const text = lineText(f.prog, Number(s.pc));
   const restated = isRestated(f, i);
-  const pop = Number(s["stack-pop-count"] ?? 0);
   const kids = f.children.get(i) ?? [];
+  // A run's last op, where the trace records what ops push (a trace without
+  // stack changes would make every run's last op look failed).
+  const lastOp = i === f.steps.length - 1 && f.steps.some((x) => x["stack-additions"]?.length);
+  const io = opIO(d, stack, s, { restated, last: lastOp });
   const fx: React.ReactNode[] = [];
-  if (pop) fx.push(<span key="p" className="text-red-400">pops {pop}</span>);
-  if (!restated) s["stack-additions"]?.forEach((a, k) => fx.push(<span key={`a${k}`}>push <Short v={a} /></span>));
   s["scratch-changes"]?.forEach((c) => fx.push(<span key={`s${c.slot}`}>scratch[{c.slot}] = <Short v={c["new-value"]} /></span>));
   s["state-changes"]?.forEach((c, k) =>
     fx.push(
@@ -1096,9 +1126,18 @@ function NextOp({ T, f, i, top, last, where, names, loc }: { T: Stepper; f: Fram
     <Panel title="Next op" meta={`pc ${s.pc}`}>
       <div className="space-y-1.5 px-3 py-2 text-xs">
         {loc}
-        <div className="max-h-[4.5rem] overflow-auto break-all font-mono text-[13px]">{text !== undefined ? <Code text={text} /> : <span className="text-muted">pc {s.pc}</span>}</div>
+        <div className="max-h-[4.5rem] overflow-auto break-all font-mono text-[13px]">{text !== undefined ? <Code text={text} short /> : <span className="text-muted">pc {s.pc}</span>}</div>
+        {d ? <OpDoc key={`${f.id}:${s.pc}`} d={d} /> : null}
         <OpHints names={names} f={f} s={s} top={top} />
-        {fx.length ? <div className="flex flex-col gap-0.5 font-mono break-all">{fx}</div> : <div className="text-muted">No stack, scratch or state effect.</div>}
+        {io.inputs.length || io.outputs.length ? (
+          <div className="flex flex-col gap-0.5 font-mono">
+            <IORows label="takes" xs={io.inputs} wide={io.wideIn} className="text-red-300" />
+            <IORows label="gives" xs={io.outputs} wide={io.wideOut} className="text-primary" />
+          </div>
+        ) : null}
+        {io.failed ? <div className="text-red-400">It failed here: the trace has no result for it.</div> : null}
+        {fx.length ? <div className="flex flex-col gap-0.5 font-mono break-all">{fx}</div> : null}
+        {!fx.length && !io.inputs.length && !io.outputs.length && !io.failed ? <div className="text-muted">No stack, scratch or state effect.</div> : null}
         {kids.length ? (
           <div className="text-muted-foreground">
             Runs {kids.length} inner {kids.length === 1 ? "transaction" : "transactions"}:{" "}

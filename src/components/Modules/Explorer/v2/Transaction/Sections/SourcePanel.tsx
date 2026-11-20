@@ -7,6 +7,7 @@ import { fileRows, quotedRows, type Row } from "src/utils/sourceRows";
 import { lineBpKey, linePasses, parseLineBpKey } from "src/utils/sourceStepper";
 import { bpKey, frameAt, lineText, type Frame, type Stepper } from "src/utils/traceStepper";
 import type { TraceSource } from "./useTraceSource";
+import { OpToken } from "src/components/Modules/Explorer/v2/TealCode";
 
 /**
  * The TypeScript view of a program run, from its ARC-56 spec: the source
@@ -24,10 +25,10 @@ function Op({ text }: { text: string }) {
   const t = text.trim();
   const sp = t.search(/\s/);
   return sp < 0 ? (
-    <span className="text-foreground">{t}</span>
+    <OpToken text={t}>{t}</OpToken>
   ) : (
     <>
-      <span className="text-foreground">{t.slice(0, sp)}</span>
+      <OpToken text={t}>{t.slice(0, sp)}</OpToken>
       <span className="text-muted-foreground">{t.slice(sp)}</span>
     </>
   );
