@@ -85,6 +85,12 @@ describe("subroutines", () => {
     expect(shortSub("plain")).toBe("plain");
   });
 
+  it("shortens TEALScript headers", () => {
+    expect(shortSub("contracts/counter.algo.ts::add(by: uint64): uint64")).toBe("add");
+    expect(shortSub("contracts/counter.algo.ts::add[routing](uint64)uint64")).toBe("add");
+    expect(shortSub("contracts/counter.algo.ts::call_NoOp")).toBe("call_NoOp");
+  });
+
   it("names a callsub's subroutine from the op it went to", () => {
     // pc 218 is `callsub label15`; the op after it is the subroutine's first.
     const at = prog.lines.findIndex((l) => l.text === "label15:");

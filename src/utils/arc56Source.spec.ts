@@ -15,6 +15,7 @@ import {
   type PuyaMap,
   type SourceMapping,
 } from "./arc56Source";
+import { checkSource } from "./sourceFiles";
 import type { Program } from "./traceStepper";
 
 const fixture = (name: string) => JSON.parse(readFileSync(new URL(`./__fixtures__/${name}`, import.meta.url), "utf8"));
@@ -501,5 +502,143 @@ describe("sourceErrors", () => {
     const bad = [null, { pc: 10, errorMessage: "x" }, { pc: ["8"], errorMessage: "y" }, { pc: [8], errorMessage: 5 }, { pc: [10], errorMessage: "no" }];
     expect(sourceErrors({ pcOffsetMethod: "none", sourceInfo: bad } as never, prog)).toEqual(new Map([[10, "no"]]));
     expect(sourceErrors({ pcOffsetMethod: "none", sourceInfo: "x" } as never, prog).size).toBe(0);
+  });
+});
+
+describe("a TEALScript spec", () => {
+  // contracts/counter.algo.ts, built by TEALScript 0.106.1; the program as localnet's node disassembled it.
+  const counter: Arc56Contract = fixture("Counter.arc56.json");
+  const p = fixture("Counter.approval.disassembly.json");
+  const prog = program(p.lines, p.hash);
+  const teal = specTeal(counter, "approval")!;
+  const info = counter.sourceInfo!.approval;
+  const FILE = "contracts/counter.algo.ts";
+  const at = (m: SourceMapping, pc: number) => {
+    const l = m.byPc.get(pc);
+    return l && `${l.line} ${l.text}`;
+  };
+  const lines = (m: SourceMapping) => [...m.byPc].map(([pc, l]) => [pc, l.line]);
+
+  it("matches byte for byte and is labelled TEALScript", () => {
+    const m = ok(matchSpec(prog, counter, "approval"));
+    expect(m.exact).toBe(true);
+    expect(m.tealscript).toBe(true);
+    expect(sourceLang(m)).toBe("TEALScript");
+    const puya = ok(matchSpec(fromMap(approvalMap, programHash(bytes(spec.byteCode!.approval))), spec, "approval", approvalMap));
+    expect(puya.tealscript).toBeUndefined();
+    expect(sourceLang(puya)).toBe("TypeScript");
+  });
+
+  it("places ops by sourceInfo's lines, quoting the TEAL's comments", () => {
+    const m = ok(matchSpec(prog, counter, "approval"));
+    expect(new Set(m.lines.map((l) => l.file))).toEqual(new Set([FILE]));
+    expect(at(m, 67)).toBe("9 assert(limit > 0, 'limit must be positive')");
+    // Ops without a comment above them: the method's retsub, the if's jump past its else.
+    expect(at(m, 147)).toBe("24 next > 100");
+    // Method lines (and the router's, the class's), which no comment quotes: no text.
+    expect(at(m, 79)).toBe("8 ");
+    expect(at(m, 164)).toBe("21 ");
+    expect(at(m, 19)).toBe("3 ");
+    // The comments alone leave those ops on the line before.
+    const bare = ok(matchProgram(prog, teal));
+    expect(at(bare, 79)).toBe("11 this.count.value = 0");
+    expect(at(bare, 147)).toBe("25 next = this.clamp(next)");
+  });
+
+  it("names subroutines, routes and the router's branches", () => {
+    const m = ok(matchSpec(prog, counter, "approval"));
+    const subs = {
+      54: "NOT_IMPLEMENTED",
+      55: "createApplication[routing](uint64)void",
+      64: "createApplication(limit: uint64): void",
+      80: "clamp(n: uint64): uint64",
+      97: "add[routing](uint64)uint64",
+      115: "add(by: uint64): uint64",
+      165: "create_NoOp",
+      179: "call_NoOp",
+    };
+    // In Puya's `file::` form, by the file of each one's first op.
+    expect(Object.fromEntries(m.subs)).toEqual(Object.fromEntries(Object.entries(subs).map(([pc, s]) => [pc, `${FILE}::${s}`])));
+    // The contract's own code, not a library's.
+    expect([...m.subs.values()].every((s) => subInFiles(s, new Set([FILE])))).toBe(true);
+    expect(splitSub(m.subs.get(97)!)).toEqual({ name: "add[routing]", sig: "(uint64)uint64", file: FILE });
+  });
+
+  it("names failures from sourceInfo", () => {
+    const m = ok(matchSpec(prog, counter, "approval"));
+    expect(m.errors.get(71)).toBe("limit must be positive");
+    expect(m.errors.get(124)).toBe("nothing to add");
+  });
+
+  it("places ops by sourceInfo's pcs without its TEAL lines, `cblocks` pcs too", () => {
+    const want = lines(ok(matchSpec(prog, counter, "approval")));
+    const noTeal = info.sourceInfo.map(({ teal: _, ...e }) => e);
+    // The first op after the constant blocks is at pc 19: `cblocks` pcs are 18 less.
+    const cblocks = noTeal.map((e) => ({ ...e, pc: e.pc.map((pc) => pc - 18) }));
+    for (const si of [
+      { pcOffsetMethod: "none" as const, sourceInfo: noTeal },
+      { pcOffsetMethod: "cblocks" as const, sourceInfo: cblocks },
+    ]) {
+      expect(lines(ok(matchProgram(prog, teal, true, si)))).toEqual(want);
+    }
+  });
+
+  it("falls back to the comments when sourceInfo has no source lines, or places too few ops", () => {
+    const bare = lines(ok(matchProgram(prog, teal)));
+    const errorsOnly = { ...info, sourceInfo: info.sourceInfo.map(({ source: _, ...e }) => e) };
+    expect(lines(ok(matchProgram(prog, teal, true, errorsOnly)))).toEqual(bare);
+    expect(lines(ok(matchProgram(prog, teal, true, { ...info, sourceInfo: info.sourceInfo.slice(0, 10) })))).toEqual(bare);
+    // Malformed entries are skipped.
+    const bad = { ...info, sourceInfo: [null, { source: 5, teal: 30 }, { source: "nowhere", teal: 30 }, ...info.sourceInfo] };
+    expect(lines(ok(matchProgram(prog, teal, true, bad as never)))).toEqual(lines(ok(matchSpec(prog, counter, "approval"))));
+  });
+
+  it("names subroutines as the contract's without sourceInfo's lines", () => {
+    const m = ok(matchProgram(prog, teal));
+    expect(m.subs.get(64)).toBe(`${FILE}::createApplication(limit: uint64): void`);
+    expect(m.subs.get(54)).toBe(`${FILE}::NOT_IMPLEMENTED`);
+    expect([...m.subs.values()].every((s) => s.startsWith(`${FILE}::`))).toBe(true);
+  });
+
+  it("goes by pcs when sourceInfo's TEAL lines aren't this TEAL's", () => {
+    const shifted = { ...info, sourceInfo: info.sourceInfo.map((e) => ({ ...e, teal: e.teal! + 2 })) };
+    expect(lines(ok(matchProgram(prog, teal, true, shifted)))).toEqual(lines(ok(matchSpec(prog, counter, "approval"))));
+  });
+
+  it("checks a source file against its statements, part of its lines", () => {
+    const m = ok(matchSpec(prog, counter, "approval"));
+    const text = readFileSync(new URL("./__fixtures__/counter.algo.ts.txt", import.meta.url), "utf8");
+    expect(m.lines.every((l) => l.part)).toBe(true);
+    expect(checkSource(m.lines, text)).toBeUndefined();
+    const changed = text.replace("if (next > 100) {", "if (next > 200) {");
+    expect(checkSource(m.lines, changed)).toEqual({ line: 24, spec: "next > 100", file: "if (next > 200) {", more: 0 });
+    // Not a statement that only starts or ends the same.
+    const longer = text.replace("if (next > 100) {", "if (next > 1000) {");
+    expect(checkSource(m.lines, longer)).toEqual({ line: 24, spec: "next > 100", file: "if (next > 1000) {", more: 0 });
+    // A quote of part of a line can't tell a statement that goes on past it, though.
+    const wider = text.replace("let next = this.count.value + by;", "let next = this.count.value + by + 1;");
+    expect(checkSource(m.lines, wider)).toBeUndefined();
+    // Puya's quotes are whole lines.
+    const puya = ok(matchSpec(escregProg(), escreg, "approval", escregMap));
+    expect(puya.lines.some((l) => l.part)).toBe(false);
+  });
+});
+
+describe("TEALScript subroutine labels", () => {
+  const body = ["// gas(): void", "//", "// a doc line", "gas:", "  proto 0 0", "// other(): void", "label:", "  retsub", "*if0_else:", "  err"].join("\n");
+
+  it("start a subroutine under a signature of the same name", () => {
+    const head = "// This TEAL was generated by TEALScript v0.106.1\n";
+    expect(parseTeal(head + body).map((o) => o.sub)).toEqual(["gas(): void", "gas(): void", "gas(): void"]);
+  });
+
+  it("not under a signature that code comments followed", () => {
+    const head = "// This TEAL was generated by TEALScript v0.106.1\n";
+    const teal = ["// foo(): void", "// a.algo.ts:3", "// x = 1", "foo:", "  retsub"].join("\n");
+    expect(parseTeal(head + teal).map((o) => o.sub)).toEqual([undefined]);
+  });
+
+  it("only in TEALScript's TEAL", () => {
+    expect(parseTeal(body).map((o) => o.sub)).toEqual([undefined, undefined, undefined]);
   });
 });

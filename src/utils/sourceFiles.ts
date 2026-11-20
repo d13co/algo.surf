@@ -50,35 +50,56 @@ const fileLines = (text: string) => text.split(/\r?\n/);
 /** Where a file differs from the lines the spec's TEAL quotes from it: the first such line, and how many more. */
 export type Differs = { line: number; spec: string; file: string; more: number };
 
+type Quote = { text: string; part?: boolean };
+
 /** Every line the spec quotes from source lines `lines`, by line number: a range's every line. */
-function quotes(lines: SrcLine[]): Map<number, string> {
-  const out = new Map<number, string>();
+function quotes(lines: SrcLine[]): Map<number, Quote> {
+  const out = new Map<number, Quote>();
   for (const l of lines) {
     const q = l.quoted ?? [l.text];
     q.forEach((t, k) => {
-      if (t && !out.has(l.line + k)) out.set(l.line + k, t.trim());
+      if (t && !out.has(l.line + k)) out.set(l.line + k, { text: t.trim(), part: l.part });
     });
   }
   return out;
 }
 
+const IDENT = /[\w$]/;
+
+/** Whether `part` is in `line` with no identifier character running on either side: `next > 100` isn't in `next > 1000`. */
+function hasPart(line: string, part: string): boolean {
+  for (let i = line.indexOf(part); i >= 0; i = line.indexOf(part, i + 1)) {
+    const before = IDENT.test(part[0]) && IDENT.test(line[i - 1] ?? "");
+    const after = IDENT.test(part[part.length - 1]) && IDENT.test(line[i + part.length] ?? "");
+    if (!before && !after) return true;
+  }
+  return false;
+}
+
+/** Whether a file's line is what the spec quotes: the whole line, trimmed, or for part of one (TEALScript's), in it. */
+const fits = (fileLine: string | undefined, q: Quote) => {
+  const f = (fileLine ?? "").trim();
+  return q.part ? hasPart(f, q.text) : f === q.text;
+};
+
 /**
  * Checks a source file against the lines the spec quotes from it (`lines`,
  * that file's; every line of a range), whitespace-trimmed: undefined when
- * every quoted line is the file's line at that number.
+ * every quoted line is the file's line at that number (or has it, for part
+ * of a line).
  */
 export function checkSource(lines: SrcLine[], text: string): Differs | undefined {
   const fl = fileLines(text);
-  const bad = [...quotes(lines)].filter(([n, t]) => (fl[n - 1] ?? "").trim() !== t).sort((a, b) => a[0] - b[0]);
+  const bad = [...quotes(lines)].filter(([n, q]) => !fits(fl[n - 1], q)).sort((a, b) => a[0] - b[0]);
   if (!bad.length) return undefined;
-  const [n, t] = bad[0];
-  return { line: n, spec: t, file: (fl[n - 1] ?? "").trim(), more: bad.length - 1 };
+  const [n, q] = bad[0];
+  return { line: n, spec: q.text, file: (fl[n - 1] ?? "").trim(), more: bad.length - 1 };
 }
 
 /** How many of the lines the spec quotes from `path` a file has at their numbers. */
 function agreement(lines: SrcLine[], path: string, text: string): number {
   const fl = fileLines(text);
-  return [...quotes(lines.filter((l) => l.file === path))].filter(([n, t]) => (fl[n - 1] ?? "").trim() === t).length;
+  return [...quotes(lines.filter((l) => l.file === path))].filter(([n, q]) => fits(fl[n - 1], q)).length;
 }
 
 export type SourceMatch = {

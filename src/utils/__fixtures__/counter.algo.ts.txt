@@ -1,0 +1,32 @@
+import { Contract } from '@algorandfoundation/tealscript';
+
+export class Counter extends Contract {
+  count = GlobalStateKey<uint64>();
+
+  limit = GlobalStateKey<uint64>();
+
+  createApplication(limit: uint64): void {
+    assert(limit > 0, 'limit must be positive');
+    this.limit.value = limit;
+    this.count.value = 0;
+  }
+
+  private clamp(n: uint64): uint64 {
+    if (n > this.limit.value) {
+      return this.limit.value;
+    }
+    return n;
+  }
+
+  add(by: uint64): uint64 {
+    assert(by !== 0, 'nothing to add');
+    let next = this.count.value + by;
+    if (next > 100) {
+      next = this.clamp(next);
+    } else {
+      next = next + 1;
+    }
+    this.count.value = next;
+    return next;
+  }
+}

@@ -1,0 +1,820 @@
+{
+  "name": "Counter",
+  "desc": "",
+  "methods": [
+    {
+      "name": "createApplication",
+      "args": [
+        {
+          "name": "limit",
+          "type": "uint64"
+        }
+      ],
+      "returns": {
+        "type": "void"
+      },
+      "actions": {
+        "create": [
+          "NoOp"
+        ],
+        "call": []
+      }
+    },
+    {
+      "name": "add",
+      "args": [
+        {
+          "name": "by",
+          "type": "uint64"
+        }
+      ],
+      "returns": {
+        "type": "uint64"
+      },
+      "actions": {
+        "create": [],
+        "call": [
+          "NoOp"
+        ]
+      }
+    }
+  ],
+  "arcs": [
+    4,
+    56
+  ],
+  "structs": {},
+  "state": {
+    "schema": {
+      "global": {
+        "bytes": 0,
+        "ints": 2
+      },
+      "local": {
+        "bytes": 0,
+        "ints": 0
+      }
+    },
+    "keys": {
+      "global": {
+        "count": {
+          "key": "Y291bnQ=",
+          "keyType": "AVMBytes",
+          "valueType": "uint64"
+        },
+        "limit": {
+          "key": "bGltaXQ=",
+          "keyType": "AVMBytes",
+          "valueType": "uint64"
+        }
+      },
+      "local": {},
+      "box": {}
+    },
+    "maps": {
+      "global": {},
+      "local": {},
+      "box": {}
+    }
+  },
+  "bareActions": {
+    "create": [],
+    "call": []
+  },
+  "sourceInfo": {
+    "approval": {
+      "sourceInfo": [
+        {
+          "teal": 1,
+          "source": "contracts/counter.algo.ts:3",
+          "pc": [
+            0
+          ]
+        },
+        {
+          "teal": 2,
+          "source": "contracts/counter.algo.ts:3",
+          "pc": [
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        {
+          "teal": 3,
+          "source": "contracts/counter.algo.ts:3",
+          "pc": [
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18
+          ]
+        },
+        {
+          "teal": 15,
+          "source": "contracts/counter.algo.ts:3",
+          "pc": [
+            19,
+            20
+          ]
+        },
+        {
+          "teal": 16,
+          "source": "contracts/counter.algo.ts:3",
+          "pc": [
+            21
+          ]
+        },
+        {
+          "teal": 17,
+          "source": "contracts/counter.algo.ts:3",
+          "pc": [
+            22,
+            23
+          ]
+        },
+        {
+          "teal": 18,
+          "source": "contracts/counter.algo.ts:3",
+          "pc": [
+            24
+          ]
+        },
+        {
+          "teal": 19,
+          "source": "contracts/counter.algo.ts:3",
+          "pc": [
+            25,
+            26
+          ]
+        },
+        {
+          "teal": 20,
+          "source": "contracts/counter.algo.ts:3",
+          "pc": [
+            27
+          ]
+        },
+        {
+          "teal": 21,
+          "source": "contracts/counter.algo.ts:3",
+          "pc": [
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42,
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49,
+            50,
+            51,
+            52,
+            53
+          ]
+        },
+        {
+          "teal": 25,
+          "source": "contracts/counter.algo.ts:3",
+          "errorMessage": "The requested action is not implemented in this contract. Are you using the correct OnComplete? Did you set your app ID?",
+          "pc": [
+            54
+          ]
+        },
+        {
+          "teal": 30,
+          "source": "contracts/counter.algo.ts:8",
+          "pc": [
+            55,
+            56,
+            57
+          ]
+        },
+        {
+          "teal": 31,
+          "source": "contracts/counter.algo.ts:8",
+          "pc": [
+            58
+          ]
+        },
+        {
+          "teal": 34,
+          "source": "contracts/counter.algo.ts:8",
+          "pc": [
+            59,
+            60,
+            61
+          ]
+        },
+        {
+          "teal": 35,
+          "source": "contracts/counter.algo.ts:8",
+          "pc": [
+            62
+          ]
+        },
+        {
+          "teal": 36,
+          "source": "contracts/counter.algo.ts:8",
+          "pc": [
+            63
+          ]
+        },
+        {
+          "teal": 40,
+          "source": "contracts/counter.algo.ts:8",
+          "pc": [
+            64,
+            65,
+            66
+          ]
+        },
+        {
+          "teal": 44,
+          "source": "contracts/counter.algo.ts:9",
+          "pc": [
+            67,
+            68
+          ]
+        },
+        {
+          "teal": 45,
+          "source": "contracts/counter.algo.ts:9",
+          "pc": [
+            69
+          ]
+        },
+        {
+          "teal": 46,
+          "source": "contracts/counter.algo.ts:9",
+          "pc": [
+            70
+          ]
+        },
+        {
+          "teal": 49,
+          "source": "contracts/counter.algo.ts:9",
+          "errorMessage": "limit must be positive",
+          "pc": [
+            71
+          ]
+        },
+        {
+          "teal": 53,
+          "source": "contracts/counter.algo.ts:10",
+          "pc": [
+            72
+          ]
+        },
+        {
+          "teal": 54,
+          "source": "contracts/counter.algo.ts:10",
+          "pc": [
+            73,
+            74
+          ]
+        },
+        {
+          "teal": 55,
+          "source": "contracts/counter.algo.ts:10",
+          "pc": [
+            75
+          ]
+        },
+        {
+          "teal": 59,
+          "source": "contracts/counter.algo.ts:11",
+          "pc": [
+            76
+          ]
+        },
+        {
+          "teal": 60,
+          "source": "contracts/counter.algo.ts:11",
+          "pc": [
+            77
+          ]
+        },
+        {
+          "teal": 61,
+          "source": "contracts/counter.algo.ts:11",
+          "pc": [
+            78
+          ]
+        },
+        {
+          "teal": 62,
+          "source": "contracts/counter.algo.ts:8",
+          "pc": [
+            79
+          ]
+        },
+        {
+          "teal": 66,
+          "source": "contracts/counter.algo.ts:14",
+          "pc": [
+            80,
+            81,
+            82
+          ]
+        },
+        {
+          "teal": 71,
+          "source": "contracts/counter.algo.ts:15",
+          "pc": [
+            83,
+            84
+          ]
+        },
+        {
+          "teal": 72,
+          "source": "contracts/counter.algo.ts:15",
+          "pc": [
+            85
+          ]
+        },
+        {
+          "teal": 73,
+          "source": "contracts/counter.algo.ts:15",
+          "pc": [
+            86
+          ]
+        },
+        {
+          "teal": 74,
+          "source": "contracts/counter.algo.ts:15",
+          "pc": [
+            87
+          ]
+        },
+        {
+          "teal": 75,
+          "source": "contracts/counter.algo.ts:15",
+          "pc": [
+            88,
+            89,
+            90
+          ]
+        },
+        {
+          "teal": 80,
+          "source": "contracts/counter.algo.ts:16",
+          "pc": [
+            91
+          ]
+        },
+        {
+          "teal": 81,
+          "source": "contracts/counter.algo.ts:16",
+          "pc": [
+            92
+          ]
+        },
+        {
+          "teal": 82,
+          "source": "contracts/counter.algo.ts:16",
+          "pc": [
+            93
+          ]
+        },
+        {
+          "teal": 87,
+          "source": "contracts/counter.algo.ts:18",
+          "pc": [
+            94,
+            95
+          ]
+        },
+        {
+          "teal": 88,
+          "source": "contracts/counter.algo.ts:14",
+          "pc": [
+            96
+          ]
+        },
+        {
+          "teal": 93,
+          "source": "contracts/counter.algo.ts:21",
+          "pc": [
+            97,
+            98,
+            99,
+            100,
+            101,
+            102
+          ]
+        },
+        {
+          "teal": 96,
+          "source": "contracts/counter.algo.ts:21",
+          "pc": [
+            103,
+            104,
+            105
+          ]
+        },
+        {
+          "teal": 97,
+          "source": "contracts/counter.algo.ts:21",
+          "pc": [
+            106
+          ]
+        },
+        {
+          "teal": 100,
+          "source": "contracts/counter.algo.ts:21",
+          "pc": [
+            107,
+            108,
+            109
+          ]
+        },
+        {
+          "teal": 101,
+          "source": "contracts/counter.algo.ts:21",
+          "pc": [
+            110
+          ]
+        },
+        {
+          "teal": 102,
+          "source": "contracts/counter.algo.ts:21",
+          "pc": [
+            111
+          ]
+        },
+        {
+          "teal": 103,
+          "source": "contracts/counter.algo.ts:21",
+          "pc": [
+            112
+          ]
+        },
+        {
+          "teal": 104,
+          "source": "contracts/counter.algo.ts:21",
+          "pc": [
+            113
+          ]
+        },
+        {
+          "teal": 105,
+          "source": "contracts/counter.algo.ts:21",
+          "pc": [
+            114
+          ]
+        },
+        {
+          "teal": 109,
+          "source": "contracts/counter.algo.ts:21",
+          "pc": [
+            115,
+            116,
+            117
+          ]
+        },
+        {
+          "teal": 112,
+          "source": "contracts/counter.algo.ts:21",
+          "pc": [
+            118,
+            119
+          ]
+        },
+        {
+          "teal": 116,
+          "source": "contracts/counter.algo.ts:22",
+          "pc": [
+            120,
+            121
+          ]
+        },
+        {
+          "teal": 117,
+          "source": "contracts/counter.algo.ts:22",
+          "pc": [
+            122
+          ]
+        },
+        {
+          "teal": 118,
+          "source": "contracts/counter.algo.ts:22",
+          "pc": [
+            123
+          ]
+        },
+        {
+          "teal": 121,
+          "source": "contracts/counter.algo.ts:22",
+          "errorMessage": "nothing to add",
+          "pc": [
+            124
+          ]
+        },
+        {
+          "teal": 125,
+          "source": "contracts/counter.algo.ts:23",
+          "pc": [
+            125
+          ]
+        },
+        {
+          "teal": 126,
+          "source": "contracts/counter.algo.ts:23",
+          "pc": [
+            126
+          ]
+        },
+        {
+          "teal": 127,
+          "source": "contracts/counter.algo.ts:23",
+          "pc": [
+            127,
+            128
+          ]
+        },
+        {
+          "teal": 128,
+          "source": "contracts/counter.algo.ts:23",
+          "pc": [
+            129
+          ]
+        },
+        {
+          "teal": 129,
+          "source": "contracts/counter.algo.ts:23",
+          "pc": [
+            130,
+            131
+          ]
+        },
+        {
+          "teal": 134,
+          "source": "contracts/counter.algo.ts:24",
+          "pc": [
+            132,
+            133
+          ]
+        },
+        {
+          "teal": 135,
+          "source": "contracts/counter.algo.ts:24",
+          "pc": [
+            134,
+            135
+          ]
+        },
+        {
+          "teal": 136,
+          "source": "contracts/counter.algo.ts:24",
+          "pc": [
+            136
+          ]
+        },
+        {
+          "teal": 137,
+          "source": "contracts/counter.algo.ts:24",
+          "pc": [
+            137,
+            138,
+            139
+          ]
+        },
+        {
+          "teal": 142,
+          "source": "contracts/counter.algo.ts:25",
+          "pc": [
+            140,
+            141
+          ]
+        },
+        {
+          "teal": 143,
+          "source": "contracts/counter.algo.ts:25",
+          "pc": [
+            142,
+            143,
+            144
+          ]
+        },
+        {
+          "teal": 144,
+          "source": "contracts/counter.algo.ts:25",
+          "pc": [
+            145,
+            146
+          ]
+        },
+        {
+          "teal": 145,
+          "source": "contracts/counter.algo.ts:24",
+          "pc": [
+            147,
+            148,
+            149
+          ]
+        },
+        {
+          "teal": 150,
+          "source": "contracts/counter.algo.ts:27",
+          "pc": [
+            150,
+            151
+          ]
+        },
+        {
+          "teal": 151,
+          "source": "contracts/counter.algo.ts:27",
+          "pc": [
+            152
+          ]
+        },
+        {
+          "teal": 152,
+          "source": "contracts/counter.algo.ts:27",
+          "pc": [
+            153
+          ]
+        },
+        {
+          "teal": 153,
+          "source": "contracts/counter.algo.ts:27",
+          "pc": [
+            154,
+            155
+          ]
+        },
+        {
+          "teal": 158,
+          "source": "contracts/counter.algo.ts:29",
+          "pc": [
+            156
+          ]
+        },
+        {
+          "teal": 159,
+          "source": "contracts/counter.algo.ts:29",
+          "pc": [
+            157,
+            158
+          ]
+        },
+        {
+          "teal": 160,
+          "source": "contracts/counter.algo.ts:29",
+          "pc": [
+            159
+          ]
+        },
+        {
+          "teal": 164,
+          "source": "contracts/counter.algo.ts:30",
+          "pc": [
+            160,
+            161
+          ]
+        },
+        {
+          "teal": 167,
+          "source": "contracts/counter.algo.ts:21",
+          "pc": [
+            162,
+            163
+          ]
+        },
+        {
+          "teal": 168,
+          "source": "contracts/counter.algo.ts:21",
+          "pc": [
+            164
+          ]
+        },
+        {
+          "teal": 171,
+          "source": "contracts/counter.algo.ts:3",
+          "pc": [
+            165,
+            166,
+            167,
+            168,
+            169,
+            170
+          ]
+        },
+        {
+          "teal": 172,
+          "source": "contracts/counter.algo.ts:3",
+          "pc": [
+            171,
+            172,
+            173
+          ]
+        },
+        {
+          "teal": 173,
+          "source": "contracts/counter.algo.ts:3",
+          "pc": [
+            174,
+            175,
+            176,
+            177
+          ]
+        },
+        {
+          "teal": 176,
+          "source": "contracts/counter.algo.ts:3",
+          "errorMessage": "this contract does not implement the given ABI method for create NoOp",
+          "pc": [
+            178
+          ]
+        },
+        {
+          "teal": 179,
+          "source": "contracts/counter.algo.ts:3",
+          "pc": [
+            179,
+            180,
+            181,
+            182,
+            183,
+            184
+          ]
+        },
+        {
+          "teal": 180,
+          "source": "contracts/counter.algo.ts:3",
+          "pc": [
+            185,
+            186,
+            187
+          ]
+        },
+        {
+          "teal": 181,
+          "source": "contracts/counter.algo.ts:3",
+          "pc": [
+            188,
+            189,
+            190,
+            191
+          ]
+        },
+        {
+          "teal": 184,
+          "source": "contracts/counter.algo.ts:3",
+          "errorMessage": "this contract does not implement the given ABI method for call NoOp",
+          "pc": [
+            192
+          ]
+        }
+      ],
+      "pcOffsetMethod": "none"
+    },
+    "clear": {
+      "sourceInfo": [],
+      "pcOffsetMethod": "none"
+    }
+  },
+  "source": {
+    "approval": "I3ByYWdtYSB2ZXJzaW9uIDEwCmludGNibG9jayAwIDEKYnl0ZWNibG9jayAweDZjNjk2ZDY5NzQgMHg2MzZmNzU2ZTc0CgovLyBUaGlzIFRFQUwgd2FzIGdlbmVyYXRlZCBieSBURUFMU2NyaXB0IHYwLjEwNi4xCi8vIGh0dHBzOi8vZ2l0aHViLmNvbS9hbGdvcmFuZGZvdW5kYXRpb24vVEVBTFNjcmlwdAoKLy8gVGhpcyBjb250cmFjdCBpcyBjb21wbGlhbnQgd2l0aCBhbmQvb3IgaW1wbGVtZW50cyB0aGUgZm9sbG93aW5nIEFSQ3M6IFsgQVJDNCBdCgovLyBUaGUgZm9sbG93aW5nIHRlbiBsaW5lcyBvZiBURUFMIGhhbmRsZSBpbml0aWFsIHByb2dyYW0gZmxvdwovLyBUaGlzIHBhdHRlcm4gaXMgdXNlZCB0byBtYWtlIGl0IGVhc3kgZm9yIGFueW9uZSB0byBwYXJzZSB0aGUgc3RhcnQgb2YgdGhlIHByb2dyYW0gYW5kIGRldGVybWluZSBpZiBhIHNwZWNpZmljIGFjdGlvbiBpcyBhbGxvd2VkCi8vIEhlcmUsIGFjdGlvbiByZWZlcnMgdG8gdGhlIE9uQ29tcGxldGUgaW4gY29tYmluYXRpb24gd2l0aCB3aGV0aGVyIHRoZSBhcHAgaXMgYmVpbmcgY3JlYXRlZCBvciBjYWxsZWQKLy8gRXZlcnkgcG9zc2libGUgYWN0aW9uIGZvciB0aGlzIGNvbnRyYWN0IGlzIHJlcHJlc2VudGVkIGluIHRoZSBzd2l0Y2ggc3RhdGVtZW50Ci8vIElmIHRoZSBhY3Rpb24gaXMgbm90IGltcGxlbWVudGVkIGluIHRoZSBjb250cmFjdCwgaXRzIHJlc3BlY3RpdmUgYnJhbmNoIHdpbGwgYmUgIipOT1RfSU1QTEVNRU5URUQiIHdoaWNoIGp1c3QgY29udGFpbnMgImVyciIKdHhuIEFwcGxpY2F0aW9uSUQKIQpwdXNoaW50IDYKKgp0eG4gT25Db21wbGV0aW9uCisKc3dpdGNoICpjYWxsX05vT3AgKk5PVF9JTVBMRU1FTlRFRCAqTk9UX0lNUExFTUVOVEVEICpOT1RfSU1QTEVNRU5URUQgKk5PVF9JTVBMRU1FTlRFRCAqTk9UX0lNUExFTUVOVEVEICpjcmVhdGVfTm9PcCAqTk9UX0lNUExFTUVOVEVEICpOT1RfSU1QTEVNRU5URUQgKk5PVF9JTVBMRU1FTlRFRCAqTk9UX0lNUExFTUVOVEVEICpOT1RfSU1QTEVNRU5URUQKCipOT1RfSU1QTEVNRU5URUQ6CgkvLyBUaGUgcmVxdWVzdGVkIGFjdGlvbiBpcyBub3QgaW1wbGVtZW50ZWQgaW4gdGhpcyBjb250cmFjdC4gQXJlIHlvdSB1c2luZyB0aGUgY29ycmVjdCBPbkNvbXBsZXRlPyBEaWQgeW91IHNldCB5b3VyIGFwcCBJRD8KCWVycgoKLy8gY3JlYXRlQXBwbGljYXRpb24odWludDY0KXZvaWQKKmFiaV9yb3V0ZV9jcmVhdGVBcHBsaWNhdGlvbjoKCS8vIGxpbWl0OiB1aW50NjQKCXR4bmEgQXBwbGljYXRpb25BcmdzIDEKCWJ0b2kKCgkvLyBleGVjdXRlIGNyZWF0ZUFwcGxpY2F0aW9uKHVpbnQ2NCl2b2lkCgljYWxsc3ViIGNyZWF0ZUFwcGxpY2F0aW9uCglpbnRjIDEgLy8gMQoJcmV0dXJuCgovLyBjcmVhdGVBcHBsaWNhdGlvbihsaW1pdDogdWludDY0KTogdm9pZApjcmVhdGVBcHBsaWNhdGlvbjoKCXByb3RvIDEgMAoKCS8vIGNvbnRyYWN0cy9jb3VudGVyLmFsZ28udHM6OQoJLy8gYXNzZXJ0KGxpbWl0ID4gMCwgJ2xpbWl0IG11c3QgYmUgcG9zaXRpdmUnKQoJZnJhbWVfZGlnIC0xIC8vIGxpbWl0OiB1aW50NjQKCWludGMgMCAvLyAwCgk+CgoJLy8gbGltaXQgbXVzdCBiZSBwb3NpdGl2ZQoJYXNzZXJ0CgoJLy8gY29udHJhY3RzL2NvdW50ZXIuYWxnby50czoxMAoJLy8gdGhpcy5saW1pdC52YWx1ZSA9IGxpbWl0CglieXRlYyAwIC8vICAibGltaXQiCglmcmFtZV9kaWcgLTEgLy8gbGltaXQ6IHVpbnQ2NAoJYXBwX2dsb2JhbF9wdXQKCgkvLyBjb250cmFjdHMvY291bnRlci5hbGdvLnRzOjExCgkvLyB0aGlzLmNvdW50LnZhbHVlID0gMAoJYnl0ZWMgMSAvLyAgImNvdW50IgoJaW50YyAwIC8vIDAKCWFwcF9nbG9iYWxfcHV0CglyZXRzdWIKCi8vIGNsYW1wKG46IHVpbnQ2NCk6IHVpbnQ2NApjbGFtcDoKCXByb3RvIDEgMQoKCS8vICppZjBfY29uZGl0aW9uCgkvLyBjb250cmFjdHMvY291bnRlci5hbGdvLnRzOjE1CgkvLyBuID4gdGhpcy5saW1pdC52YWx1ZQoJZnJhbWVfZGlnIC0xIC8vIG46IHVpbnQ2NAoJYnl0ZWMgMCAvLyAgImxpbWl0IgoJYXBwX2dsb2JhbF9nZXQKCT4KCWJ6ICppZjBfZW5kCgoJLy8gKmlmMF9jb25zZXF1ZW50CgkvLyBjb250cmFjdHMvY291bnRlci5hbGdvLnRzOjE2CgkvLyByZXR1cm4gdGhpcy5saW1pdC52YWx1ZTsKCWJ5dGVjIDAgLy8gICJsaW1pdCIKCWFwcF9nbG9iYWxfZ2V0CglyZXRzdWIKCippZjBfZW5kOgoJLy8gY29udHJhY3RzL2NvdW50ZXIuYWxnby50czoxOAoJLy8gcmV0dXJuIG47CglmcmFtZV9kaWcgLTEgLy8gbjogdWludDY0CglyZXRzdWIKCi8vIGFkZCh1aW50NjQpdWludDY0CiphYmlfcm91dGVfYWRkOgoJLy8gVGhlIEFCSSByZXR1cm4gcHJlZml4CglwdXNoYnl0ZXMgMHgxNTFmN2M3NQoKCS8vIGJ5OiB1aW50NjQKCXR4bmEgQXBwbGljYXRpb25BcmdzIDEKCWJ0b2kKCgkvLyBleGVjdXRlIGFkZCh1aW50NjQpdWludDY0CgljYWxsc3ViIGFkZAoJaXRvYgoJY29uY2F0Cglsb2cKCWludGMgMSAvLyAxCglyZXR1cm4KCi8vIGFkZChieTogdWludDY0KTogdWludDY0CmFkZDoKCXByb3RvIDEgMQoKCS8vIFB1c2ggZW1wdHkgYnl0ZXMgYWZ0ZXIgdGhlIGZyYW1lIHBvaW50ZXIgdG8gcmVzZXJ2ZSBzcGFjZSBmb3IgbG9jYWwgdmFyaWFibGVzCglwdXNoYnl0ZXMgMHgKCgkvLyBjb250cmFjdHMvY291bnRlci5hbGdvLnRzOjIyCgkvLyBhc3NlcnQoYnkgIT09IDAsICdub3RoaW5nIHRvIGFkZCcpCglmcmFtZV9kaWcgLTEgLy8gYnk6IHVpbnQ2NAoJaW50YyAwIC8vIDAKCSE9CgoJLy8gbm90aGluZyB0byBhZGQKCWFzc2VydAoKCS8vIGNvbnRyYWN0cy9jb3VudGVyLmFsZ28udHM6MjMKCS8vIG5leHQgPSB0aGlzLmNvdW50LnZhbHVlICsgYnkKCWJ5dGVjIDEgLy8gICJjb3VudCIKCWFwcF9nbG9iYWxfZ2V0CglmcmFtZV9kaWcgLTEgLy8gYnk6IHVpbnQ2NAoJKwoJZnJhbWVfYnVyeSAwIC8vIG5leHQ6IHVpbnQ2NAoKCS8vICppZjFfY29uZGl0aW9uCgkvLyBjb250cmFjdHMvY291bnRlci5hbGdvLnRzOjI0CgkvLyBuZXh0ID4gMTAwCglmcmFtZV9kaWcgMCAvLyBuZXh0OiB1aW50NjQKCXB1c2hpbnQgMTAwCgk+CglieiAqaWYxX2Vsc2UKCgkvLyAqaWYxX2NvbnNlcXVlbnQKCS8vIGNvbnRyYWN0cy9jb3VudGVyLmFsZ28udHM6MjUKCS8vIG5leHQgPSB0aGlzLmNsYW1wKG5leHQpCglmcmFtZV9kaWcgMCAvLyBuZXh0OiB1aW50NjQKCWNhbGxzdWIgY2xhbXAKCWZyYW1lX2J1cnkgMCAvLyBuZXh0OiB1aW50NjQKCWIgKmlmMV9lbmQKCippZjFfZWxzZToKCS8vIGNvbnRyYWN0cy9jb3VudGVyLmFsZ28udHM6MjcKCS8vIG5leHQgPSBuZXh0ICsgMQoJZnJhbWVfZGlnIDAgLy8gbmV4dDogdWludDY0CglpbnRjIDEgLy8gMQoJKwoJZnJhbWVfYnVyeSAwIC8vIG5leHQ6IHVpbnQ2NAoKKmlmMV9lbmQ6CgkvLyBjb250cmFjdHMvY291bnRlci5hbGdvLnRzOjI5CgkvLyB0aGlzLmNvdW50LnZhbHVlID0gbmV4dAoJYnl0ZWMgMSAvLyAgImNvdW50IgoJZnJhbWVfZGlnIDAgLy8gbmV4dDogdWludDY0CglhcHBfZ2xvYmFsX3B1dAoKCS8vIGNvbnRyYWN0cy9jb3VudGVyLmFsZ28udHM6MzAKCS8vIHJldHVybiBuZXh0OwoJZnJhbWVfZGlnIDAgLy8gbmV4dDogdWludDY0CgoJLy8gc2V0IHRoZSBzdWJyb3V0aW5lIHJldHVybiB2YWx1ZQoJZnJhbWVfYnVyeSAwCglyZXRzdWIKCipjcmVhdGVfTm9PcDoKCXB1c2hieXRlcyAweDk3M2I2MTZmIC8vIG1ldGhvZCAiY3JlYXRlQXBwbGljYXRpb24odWludDY0KXZvaWQiCgl0eG5hIEFwcGxpY2F0aW9uQXJncyAwCgltYXRjaCAqYWJpX3JvdXRlX2NyZWF0ZUFwcGxpY2F0aW9uCgoJLy8gdGhpcyBjb250cmFjdCBkb2VzIG5vdCBpbXBsZW1lbnQgdGhlIGdpdmVuIEFCSSBtZXRob2QgZm9yIGNyZWF0ZSBOb09wCgllcnIKCipjYWxsX05vT3A6CglwdXNoYnl0ZXMgMHhmZjlhNzNkNiAvLyBtZXRob2QgImFkZCh1aW50NjQpdWludDY0IgoJdHhuYSBBcHBsaWNhdGlvbkFyZ3MgMAoJbWF0Y2ggKmFiaV9yb3V0ZV9hZGQKCgkvLyB0aGlzIGNvbnRyYWN0IGRvZXMgbm90IGltcGxlbWVudCB0aGUgZ2l2ZW4gQUJJIG1ldGhvZCBmb3IgY2FsbCBOb09wCgllcnI=",
+    "clear": "I3ByYWdtYSB2ZXJzaW9uIDEw"
+  },
+  "byteCode": {
+    "approval": "CiACAAEmAgVsaW1pdAVjb3VudDEYFIEGCzEZCI0MAH0AAAAAAAAAAAAAAG8AAAAAAAAAAAAAADYaAReIAAIjQ4oBAIv/Ig1EKIv/ZykiZ4mKAQGL/yhkDUEAAyhkiYv/iYAEFR98dTYaAReIAAUWULAjQ4oBAYAAi/8iE0QpZIv/CIwAiwCBZA1BAAqLAIj/v4wAQgAGiwAjCIwAKYsAZ4sAjACJgASXO2FvNhoAjgH/hQCABP+ac9Y2GgCOAf+hAA==",
+    "clear": "Cg=="
+  },
+  "compilerInfo": {
+    "compiler": "algod",
+    "compilerVersion": {
+      "major": 5,
+      "minor": 0,
+      "patch": 5,
+      "commitHash": "e911f7b2+"
+    }
+  }
+}
