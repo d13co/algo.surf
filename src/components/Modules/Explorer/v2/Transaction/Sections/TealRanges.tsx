@@ -38,21 +38,24 @@ const BG: Record<Tone, string> = { cur: "bg-primary/25", alt: "bg-white/[0.06]",
 
 /**
  * A range's ribbon: from the whole height of its ops on the left, curving in
- * to its line's row on the right, as a Sankey diagram joins a flow to a node
- * (the line's row, in the same shade). Drawn to the range's row count, so it
- * fits its ops without measuring them.
+ * to its line's rows on the right, as a Sankey diagram joins a flow to a
+ * node (the line's rows, in the same shade). Drawn to the range's row
+ * counts, so it fits its ops and its line without measuring them.
  */
-const Ribbon = memo(function Ribbon({ rows, tone, line }: {
+const Ribbon = memo(function Ribbon({ rows, lines = 1, tone, line }: {
   rows: number;
+  /** Its line's rows: one, or each line of a range the TEAL quotes. */
+  lines?: number;
   tone: Tone;
   /** Its line's key: hovering the ribbon lights up the line, and the line lights it up. */
   line?: string;
 }) {
-  const h = rows * ROW;
+  // The taller side sets the row's height.
+  const h = Math.max(rows, lines) * ROW;
   // A half-pixel inset at each end, so neighbouring ribbons part.
   const top = 0.5;
-  const bot = h - 0.5;
-  const end = ROW - 0.5;
+  const bot = rows * ROW - 0.5;
+  const end = lines * ROW - 0.5;
   const mid = RIB / 2;
   const d = `M0,${top} L${RIB},${top} L${RIB},${end} C${mid},${end} ${mid},${bot} 0,${bot} Z`;
   return (
@@ -66,7 +69,23 @@ const Ribbon = memo(function Ribbon({ rows, tone, line }: {
   );
 });
 
-/** A range's cell in the source column: its line, or why it has none. */
+/** The most lines a range shows in the source column; the rest are "+N", and all of them are in its tooltip. */
+const MAX_LINES = 8;
+
+/** A source line's text: each line the TEAL quotes of a range, or its one line. */
+const allLines = (l: SrcLine) => (l.quoted?.length ? l.quoted : [l.text]);
+
+/** A source line's rows in the source column: its lines, up to MAX_LINES. */
+const shownLines = (l: SrcLine) => allLines(l).slice(0, MAX_LINES);
+
+/** A quoted line's indent, past the least of its range's. */
+function indent(l: SrcLine, i: number, base: number): React.CSSProperties | undefined {
+  if (!l.quoted?.[i]) return undefined;
+  const n = (l.indents?.[i] ?? 0) - base;
+  return n > 0 ? { paddingLeft: `${n}ch` } : undefined;
+}
+
+/** A range's cell in the source column: its line (each line of a range), or why it has none. */
 const RangeSrc = memo(function RangeSrc({ r, text, k, cur, tone, bp, ran, match, onBp, onRun, onPart }: {
   r: TealRange;
   /** Its line's text (see lineText); empty when neither the spec nor a source file has it. */
@@ -108,11 +127,21 @@ const RangeSrc = memo(function RangeSrc({ r, text, k, cur, tone, bp, ran, match,
   }
   const key = srcKey(l);
   const more = l.end !== undefined ? l.end - l.line : 0;
-  // The line, and for TEALScript's quote of part of it, that part: what its ops do.
+  const all = allLines(l);
+  const texts = all.slice(0, MAX_LINES);
+  // A range's lines not shown: past MAX_LINES, or not quoted (a later location cut the quote short).
+  const rest = more + 1 - texts.length;
+  // The least indent of the lines with text: a blank line's 0 doesn't count.
+  const base = Math.min(...all.flatMap((t, i) => (t ? [l.indents?.[i] ?? 0] : [])), 0x7fffffff);
+  // A quoted comment line (`// …`, or Python's `# …`) is dimmed like a comment.
+  const comment = (t: string) => t.startsWith("//") || (/\.py$/i.test(l.file) && t.startsWith("#"));
+  const tint = (t: string) =>
+    isMethodLine(t) ? "font-medium text-primary" : comment(t) ? "italic text-muted" : cur ? "text-foreground" : "text-muted-foreground";
+  // The line, and for TEALScript's quote of part of it, that part: what its ops do. A range's lines keep their indent.
   const said = !text
     ? "The spec doesn't quote this line, and no added source file has it."
     : l.quoted && (!l.part || l.quoted.length > 1)
-      ? l.quoted.join("\n")
+      ? l.quoted.map((t, i) => " ".repeat(Math.max(0, (l.indents?.[i] ?? 0) - base)) + t).join("\n")
       : l.part && l.text && l.text !== text
         ? `${text}\n\nIts ops: ${l.text}`
         : text;
@@ -142,9 +171,9 @@ const RangeSrc = memo(function RangeSrc({ r, text, k, cur, tone, bp, ran, match,
           <span className={cn("h-2 w-2 rounded-full", bp ? "bg-red-500" : "group-hover:bg-red-500/40")} />
         </button>
         <span className={cn("text-right", match ? "text-orange-400" : "text-muted")}>{l.line}</span>
-        <span className={cn("min-w-0 truncate", isMethodLine(text) ? "font-medium text-primary" : cur ? "text-foreground" : "text-muted-foreground")}>
+        <span className={cn("min-w-0 truncate", tint(text))} style={indent(l, 0, base)}>
           {text || <span className="italic text-muted">not quoted</span>}
-          {more ? <span className="ml-1.5 text-muted">+{more}</span> : null}
+          {texts.length === 1 && rest > 0 ? <span className="ml-1.5 text-muted">+{rest}</span> : null}
         </span>
         {r.parts > 1 ? (
           <button
@@ -159,6 +188,17 @@ const RangeSrc = memo(function RangeSrc({ r, text, k, cur, tone, bp, ran, match,
         ) : (
           <span />
         )}
+        {texts.slice(1).map((text, j) => (
+          <React.Fragment key={j}>
+            <span />
+            <span className="text-right text-muted">{l.line + j + 1}</span>
+            <span className={cn("min-w-0 truncate", tint(text))} style={indent(l, j + 1, base)}>
+              {text}
+              {j === texts.length - 2 && rest > 0 ? <span className="ml-1.5 text-muted">+{rest}</span> : null}
+            </span>
+            <span />
+          </React.Fragment>
+        ))}
       </div>
     </div>
   );
@@ -247,6 +287,7 @@ export function RangedTeal({ hash, map, sources, ranges, curRange, hitRanges, hm
               <div className="min-w-0">{renderOps(r)}</div>
               <Ribbon
                 rows={r.last - r.first + 1}
+                lines={l ? shownLines(l).length : 1}
                 tone={tone}
                 line={l ? srcKey(l) : undefined}
               />

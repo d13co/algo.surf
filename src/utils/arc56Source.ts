@@ -24,11 +24,12 @@ export type ProgramKind = "approval" | "clear";
 /**
  * A source line: `text` is the line as the TEAL quotes it, trimmed. A range
  * (`<file>:<a>-<b>`) is line a, with `end` b and `quoted` every line the
- * TEAL quotes from it (a's first), trimmed. `part`: `text` is part of the
+ * TEAL quotes from it (a's first), trimmed, and `indents` how far each was
+ * indented in the quote (Puya keeps a statement's lines' relative indent). `part`: `text` is part of the
  * line, not all of it (TEALScript quotes a statement, `next > 100` from
  * `if (next > 100) {`).
  */
-export type Loc = { file: string; line: number; text: string; end?: number; quoted?: string[]; part?: boolean };
+export type Loc = { file: string; line: number; text: string; end?: number; quoted?: string[]; indents?: number[]; part?: boolean };
 
 /**
  * One TEAL op: its text without comments, its TEAL line (1-based), its
@@ -85,6 +86,12 @@ export type PuyaMap = {
   pc_events: Record<string, PcEvent>;
 };
 export type PcEvent = { op?: string; subroutine?: string; error?: string; stack_in?: string[]; stack_out?: string[] };
+
+/** A quoted line's indent after `//` and its one space, tabs as 4. */
+function indentOf(after: string): number {
+  const lead = /^[ \t]*/.exec(after)![0].replace(/\t/g, "    ");
+  return Math.max(0, lead.length - 1);
+}
 
 // A path with an extension, then a line or a range: `contracts/a.algo.ts:28-33`.
 const LOC = /^(\S+\.\w+):(\d+)(?:-(\d+))?$/;
@@ -262,7 +269,7 @@ export function parseTeal(teal: string): TealOp[] {
       if (l) {
         const a = Number(l[2]);
         const b = l[3] ? Number(l[3]) : a;
-        loc = b > a ? { file: l[1], line: a, text: "", end: b, quoted: [] } : { file: l[1], line: a, text: "" };
+        loc = b > a ? { file: l[1], line: a, text: "", end: b, quoted: [], indents: [] } : { file: l[1], line: a, text: "" };
         quoting = Math.max(1, b - a + 1);
         quoted = 0;
         // Code, not a subroutine's header comments.
@@ -270,6 +277,7 @@ export function parseTeal(teal: string): TealOp[] {
       } else if (quoting > 0) {
         if (quoted++ === 0) loc.text = body;
         loc.quoted?.push(body);
+        loc.indents?.push(indentOf(t.slice(2)));
         quoting--;
       } else {
         const s = SUB.exec(body) ?? PY_SUB.exec(body);
@@ -495,6 +503,7 @@ export function matchProgram(prog: Program, teal: string, operands = true, info?
       // The same line quoted again as a longer range (Puya gives one statement's ops 291-297 and 291-298): the widest.
       s.end = loc.end;
       s.quoted = loc.quoted;
+      s.indents = loc.indents;
     }
     s.pcs.push(pc);
     byPc.set(pc, s);

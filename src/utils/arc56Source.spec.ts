@@ -253,6 +253,8 @@ describe("parseTeal", () => {
     expect(ops[0].line).toBe(8);
     // The range's end and every line it quotes; a single line has neither.
     expect([ops[0].loc?.end, ops[0].loc?.quoted]).toEqual([5, ["foo({", "fee:0", "})"]]);
+    // Each quoted line's indent after `// `: the statement's shape.
+    expect(ops[0].loc?.indents).toEqual([0, 2, 0]);
     expect(ops[2].loc).toEqual({ file: "a.ts", line: 7, text: "return" });
   });
 
@@ -262,6 +264,8 @@ describe("parseTeal", () => {
     expect(l?.end).toBe(298);
     expect(l?.quoted?.length).toBe(8);
     expect(l?.quoted?.[0]).toBe("itxn");
+    // Its lines' indents come with them, from the same quote.
+    expect(l?.indents).toEqual([0, 2, 4, 4, 4, 4, 2, 2]);
   });
 
   it("starts a new location on a location comment, quoted lines or not", () => {
