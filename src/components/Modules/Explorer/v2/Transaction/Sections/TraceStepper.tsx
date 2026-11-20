@@ -42,6 +42,7 @@ import { alignNames, stackNamesAt } from "src/utils/stackNames";
 import { useTraceSource } from "./useTraceSource";
 import { LineBreakpoints, lineBpCount, SourceLoc, SourcePanel } from "./SourcePanel";
 import { SourceBar } from "./AddSpec";
+import { OpSearchField, stepHit, useOpSearch } from "./OpSearch";
 import { FailureReason, KeyName, OpHints, RunMethod, runFailure, StackName, StateValue, SubName, useSpecNames, type SpecNames } from "./SpecNames";
 
 // React 18's (the app renders with createRoot), which the project's React 17 types don't declare.
@@ -172,12 +173,14 @@ const hitText = (h: number) => (!h ? "" : h > 999 ? `${Math.round(h / 100) / 10}
 
 type LineMark = "cur" | "site" | undefined;
 
-const SourceLine = memo(function SourceLine({ prog, i, hits, bp, mark, onGutter, onRun }: {
+const SourceLine = memo(function SourceLine({ prog, i, hits, bp, mark, match, onGutter, onRun }: {
   prog: Program;
   i: number;
   hits: number;
   bp: boolean;
   mark: LineMark;
+  /** A find bar hit. */
+  match?: boolean;
   onGutter: (pc: number) => void;
   onRun: (pc: number) => void;
 }) {
@@ -193,6 +196,7 @@ const SourceLine = memo(function SourceLine({ prog, i, hits, bp, mark, onGutter,
         has && !hits && "opacity-45",
         mark === "cur" && "bg-primary/25",
         mark === "site" && "bg-primary/10",
+        match && "shadow-[inset_2px_0_0_#fb923c]",
       )}
       onDoubleClick={has && hits ? () => (window.getSelection()?.removeAllRanges(), onRun(pc)) : undefined}
       title={!has ? undefined : hits ? "Double-click to run to here (or back to it, if it doesn't run again)" : "Never ran"}
@@ -213,7 +217,7 @@ const SourceLine = memo(function SourceLine({ prog, i, hits, bp, mark, onGutter,
       ) : (
         <span />
       )}
-      <span className="text-right text-muted">{hitText(hits)}</span>
+      <span className={cn("text-right", match ? "text-orange-400" : "text-muted")}>{hitText(hits)}</span>
       <span className="text-right text-muted">{has ? pc : ""}</span>
       <span className="min-w-0 overflow-hidden text-ellipsis">
         {mark === "cur" ? <span className="text-primary">▶ </span> : null}
@@ -223,11 +227,12 @@ const SourceLine = memo(function SourceLine({ prog, i, hits, bp, mark, onGutter,
   );
 });
 
-function Source({ T, f, curPc, sitePcs, bps, onGutter, onRun }: {
+function Source({ T, f, curPc, sitePcs, matchPcs, bps, onGutter, onRun }: {
   T: Stepper;
   f: Frame;
   curPc?: number;
   sitePcs: Set<number>;
+  matchPcs?: Set<number>;
   bps: Set<string>;
   onGutter: (pc: number) => void;
   onRun: (pc: number) => void;
@@ -259,6 +264,7 @@ function Source({ T, f, curPc, sitePcs, bps, onGutter, onRun }: {
             hits={has ? hm.get(pc) ?? 0 : 0}
             bp={has && !!f.hash && bps.has(bpKey(f.hash, pc))}
             mark={i === curLine ? "cur" : has && sitePcs.has(pc) ? "site" : undefined}
+            match={has && !!matchPcs?.has(pc)}
             onGutter={onGutter}
             onRun={onRun}
           />
@@ -326,11 +332,24 @@ const KEYS: [string, string][] = [
   ["Shift+C", "reverse continue"],
   ["F9", "breakpoint on the next op's line"],
   ["Home / End", "start / end"],
+  ["/", "find an op"],
+  ["F3 / Shift+F3", "next / previous find hit"],
 ];
 
 /** The timeline's marks, drawn again only when the trace or the breakpoints change, not on every step. */
-const TimelineMarks = memo(function TimelineMarks({ T, bpPos }: { T: Stepper; bpPos: number[] }) {
+const TimelineMarks = memo(function TimelineMarks({ T, bpPos, hits }: { T: Stepper; bpPos: number[]; hits?: Int32Array }) {
   const pct = (q: number) => `${(q / Math.max(1, T.N)) * 100}%`;
+  // Find hits, at most one mark per thousandth of the width: a search can match tens of thousands of ops.
+  const hitMarks = useMemo(() => {
+    const out: number[] = [];
+    let last = -1;
+    for (const q of hits ?? []) {
+      const b = Math.floor((q / Math.max(1, T.N)) * 1000);
+      if (b !== last) out.push(q);
+      last = b;
+    }
+    return out;
+  }, [hits, T.N]);
   const maxD = T.frames.reduce((m, f) => Math.max(m, f.depthIn), 0);
   const band = 100 / (maxD + 1);
   return (
@@ -349,6 +368,9 @@ const TimelineMarks = memo(function TimelineMarks({ T, bpPos }: { T: Stepper; bp
       {T.writes.map((w, k) => (
         <div key={k} className="absolute bottom-0 h-1.5 w-[1.5px] bg-green-400" style={{ left: pct(w.pos) }} />
       ))}
+      {hitMarks.map((q) => (
+        <div key={`h${q}`} className="absolute top-2 bottom-2 w-[2px] rounded-[1px] bg-orange-400/85" style={{ left: pct(q) }} />
+      ))}
       {bpPos.map((q) => (
         <div key={q} className="absolute top-0 h-1.5 w-[1.5px] bg-red-500" style={{ left: pct(q) }} />
       ))}
@@ -356,11 +378,11 @@ const TimelineMarks = memo(function TimelineMarks({ T, bpPos }: { T: Stepper; bp
   );
 });
 
-/** Execution order along the width: runs by how deep, state writes below, breakpoints above, the position as a line. Drag to scrub. */
-function Timeline({ T, bpPos, pos, onSeek }: { T: Stepper; bpPos: number[]; pos: number; onSeek: (q: number) => void }) {
+/** Execution order along the width: runs by how deep, state writes below, breakpoints above, find hits across, the position as a line. Drag to scrub. */
+function Timeline({ T, bpPos, hits, pos, onSeek }: { T: Stepper; bpPos: number[]; hits?: Int32Array; pos: number; onSeek: (q: number) => void }) {
   return (
     <div className="relative h-9 rounded-md border border-border/40 bg-background-muted overflow-hidden has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary">
-      <TimelineMarks T={T} bpPos={bpPos} />
+      <TimelineMarks T={T} bpPos={bpPos} hits={hits} />
       <div className="absolute inset-y-0 w-0.5 -ml-px bg-foreground" style={{ left: `${((pos + 0.5) / Math.max(1, T.N)) * 100}%` }} />
       <input
         type="range"
@@ -495,6 +517,16 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
     },
     [T, f.hash, seek],
   );
+  const search = useOpSearch(T, f);
+  const matchPcs = f.hash ? search.result?.pcs.get(f.hash) : undefined;
+  // A find hit: in the TypeScript view, with its line's ops open, so the op found shows.
+  const goHit = useCallback(
+    (q: number) => {
+      seek(q);
+      setOpAt(q);
+    },
+    [seek],
+  );
   const fMap = src.mapFor(f.hash);
   // In the TypeScript view, Into, Over, Back and Back over step by source line;
   // the op steps (. and ,) go one TEAL op, showing the line's ops.
@@ -528,6 +560,17 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
       revCont: () => seek([...bpPos].reverse().find((q) => q < pos) ?? 0),
       restart: () => seek(home),
       end: () => seek(T.N - 1),
+      find: () => {
+        search.inputRef.current?.focus();
+        search.inputRef.current?.select();
+      },
+      // Whether there is a search (F3 is the browser's find when there isn't).
+      findStep: (back: boolean) => {
+        if (!search.result) return false;
+        const q = stepHit(search.result, pos, back);
+        if (q !== undefined) goHit(q);
+        return true;
+      },
       // The keyboard's way to set one: on the next op's line. In the TypeScript
       // view, its TypeScript line, or for an op without one (a subroutine's
       // proto, the constant blocks), the run's next op's that has one.
@@ -542,7 +585,7 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
         toggleBp(f.hash, Number(s.pc));
       },
     }),
-    [T, pos, isBp, bpPos, seek, s, i, f, home, toggleBp, srcOn, fMap, src.mapFor, src.toggleLineBp],
+    [T, pos, isBp, bpPos, seek, s, i, f, home, toggleBp, srcOn, fMap, src.mapFor, src.toggleLineBp, search.result, search.inputRef, goHit],
   );
   const bpList = useMemo(() => bpEntries(T, bps), [T, bps]);
   const nLineBps = lineBpCount(src);
@@ -556,6 +599,10 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
       if (e.metaKey || e.ctrlKey || e.altKey || e.isComposing) return;
       const t = e.target as HTMLElement | null;
       if (t?.closest?.(IGNORE_KEYS_IN)) return;
+      if (e.key === "F3") {
+        if (actRef.current.findStep(e.shiftKey)) e.preventDefault();
+        return;
+      }
       const a = KEY_ACTIONS[e.key];
       if (!a) return;
       e.preventDefault();
@@ -563,6 +610,20 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
+  }, []);
+  // On this page `/` is the find bar's, not the site search's, which listens on
+  // the document too: taken first (window, capture) and stopped there.
+  useEffect(() => {
+    const onSlash = (e: KeyboardEvent) => {
+      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey || e.isComposing) return;
+      const t = e.target as HTMLElement | null;
+      if (t?.closest?.(IGNORE_KEYS_IN)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      actRef.current.find();
+    };
+    window.addEventListener("keydown", onSlash, true);
+    return () => window.removeEventListener("keydown", onSlash, true);
   }, []);
 
   // What the last op pushed and what the next one pops, on the stack.
@@ -586,6 +647,7 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
           <ToolButton label="Step one TEAL op, into subroutines and inner transactions (back one: ,)" keys="." shortcuts=". ," onClick={act.opNext} disabled={pos >= T.N - 1}><ChevronRight />Op</ToolButton>
         ) : null}
         <ToolButton label="Continue to the next breakpoint" keys="C or F8" shortcuts="C F8" onClick={act.cont} disabled={pos >= T.N - 1}><SkipForward /></ToolButton>
+        <OpSearchField T={T} search={search} pos={pos} onGo={goHit} />
         <span className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
           <span aria-live="polite" aria-atomic="true">
             Step {grouped(pos + 1)} of {grouped(T.N)}
@@ -612,7 +674,7 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
         </span>
       </div>
 
-      <Timeline T={T} bpPos={bpPos} pos={pos} onSeek={seek} />
+      <Timeline T={T} bpPos={bpPos} hits={search.result?.hits} pos={pos} onSeek={seek} />
 
       <div className="grid gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(16rem,22rem)_minmax(0,1fr)_minmax(20rem,28rem)]">
         <div className="order-2 flex min-w-0 flex-col gap-3 lg:order-none lg:min-h-0">
@@ -691,9 +753,9 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
         >
           <SourceBar key={f.hash} f={f} src={src} />
           {fMap ? (
-            <SourcePanel key={f.hash} T={T} f={f} map={fMap} curPc={s ? Number(s.pc) : undefined} showOps={opAt === pos} sitePcs={sitePcs} src={src} bps={bps} onGutter={onGutter} onRunLine={onRunLine} />
+            <SourcePanel key={f.hash} T={T} f={f} map={fMap} curPc={s ? Number(s.pc) : undefined} showOps={opAt === pos} sitePcs={sitePcs} matchPcs={matchPcs} src={src} bps={bps} onGutter={onGutter} onRunLine={onRunLine} />
           ) : (
-            <Source T={T} f={f} curPc={s ? Number(s.pc) : undefined} sitePcs={sitePcs} bps={bps} onGutter={onGutter} onRun={onRun} />
+            <Source T={T} f={f} curPc={s ? Number(s.pc) : undefined} sitePcs={sitePcs} matchPcs={matchPcs} bps={bps} onGutter={onGutter} onRun={onRun} />
           )}
         </Panel>
 

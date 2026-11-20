@@ -44,7 +44,7 @@ const Gutter = ({ on, label, onClick }: { on: boolean; label: string; onClick: (
  * and text. `noOps`: a line no op came from, plain. `cont`: a later line of
  * the range `line` starts, marked and run to with it.
  */
-const LineRow = memo(function LineRow({ line, k, text, noOps, cont, hits, bp, mark, open, onToggle, onBp, onRun }: {
+const LineRow = memo(function LineRow({ line, k, text, noOps, cont, hits, bp, mark, match, open, onToggle, onBp, onRun }: {
   line: SrcLine;
   k: string;
   text?: string;
@@ -53,6 +53,8 @@ const LineRow = memo(function LineRow({ line, k, text, noOps, cont, hits, bp, ma
   hits: number;
   bp: boolean;
   mark?: "cur" | "site";
+  /** One of its ops is a find bar hit. */
+  match?: boolean;
   open: boolean;
   onToggle: (k: string) => void;
   onBp: (pcs: number[]) => void;
@@ -81,6 +83,7 @@ const LineRow = memo(function LineRow({ line, k, text, noOps, cont, hits, bp, ma
           !hits && "opacity-60",
           mark === "cur" && "bg-primary/25",
           mark === "site" && "bg-primary/10",
+          match && "shadow-[inset_2px_0_0_#fb923c]",
         )}
         onDoubleClick={run}
         title={`Part of the statement at line ${line.line}${hits ? ". Double-click to run to it" : ""}`}
@@ -101,12 +104,13 @@ const LineRow = memo(function LineRow({ line, k, text, noOps, cont, hits, bp, ma
         !hits && "opacity-60",
         mark === "cur" && "bg-primary/25",
         mark === "site" && "bg-primary/10",
+        match && "shadow-[inset_2px_0_0_#fb923c]",
       )}
       onDoubleClick={run}
       title={hits ? `Ran ${hits} ${hits === 1 ? "time" : "times"}. Double-click to run to this line (or back to it, if it doesn't run again)` : "Never ran"}
     >
       <Gutter on={bp} label={bp ? `Remove the breakpoint on line ${line.line}` : `Stop at line ${line.line}`} onClick={() => onBp(line.pcs)} />
-      <span className="text-right text-muted">{hitText(hits)}</span>
+      <span className={cn("text-right", match ? "text-orange-400" : "text-muted")}>{hitText(hits)}</span>
       <button
         type="button"
         aria-label={open ? "Hide its TEAL ops" : "Show its TEAL ops"}
@@ -141,7 +145,7 @@ function shortPaths(paths: string[]): Map<string, string> {
   return out;
 }
 
-export function SourcePanel({ T, f, map, curPc, showOps, sitePcs, src, bps, onGutter, onRunLine }: {
+export function SourcePanel({ T, f, map, curPc, showOps, sitePcs, matchPcs, src, bps, onGutter, onRunLine }: {
   T: Stepper;
   f: Frame;
   map: SourceMapping;
@@ -149,6 +153,8 @@ export function SourcePanel({ T, f, map, curPc, showOps, sitePcs, src, bps, onGu
   /** Whether to open the current line's TEAL ops: after a step by op. */
   showOps?: boolean;
   sitePcs: Set<number>;
+  /** The find bar's hits in this program. */
+  matchPcs?: Set<number>;
   src: TraceSource;
   bps: Set<string>;
   onGutter: (pc: number) => void;
@@ -297,9 +303,10 @@ export function SourcePanel({ T, f, map, curPc, showOps, sitePcs, src, bps, onGu
         if (r.kind === "note") return <div key={r.k} className="px-3 pt-2 text-xs text-muted">{r.text}</div>;
         const l = r.line;
         if (r.noOps) return still.get(r);
+        const match = !!matchPcs && l.pcs.some((pc) => matchPcs.has(pc));
         if (r.cont !== undefined) {
           const k = `${l.file}:${r.cont}`;
-          return <LineRow key={k} line={l} k={k} text={r.text} cont={r.cont} hits={passes.get(l) ?? 0} bp={false} mark={l === cur ? "cur" : sites.has(l) ? "site" : undefined} open={false} onToggle={toggle} onBp={onBp} onRun={onRun} />;
+          return <LineRow key={k} line={l} k={k} text={r.text} cont={r.cont} hits={passes.get(l) ?? 0} bp={false} mark={l === cur ? "cur" : sites.has(l) ? "site" : undefined} match={match} open={false} onToggle={toggle} onBp={onBp} onRun={onRun} />;
         }
         const k = keyOf(l);
         const isOpen = open.has(k);
@@ -313,6 +320,7 @@ export function SourcePanel({ T, f, map, curPc, showOps, sitePcs, src, bps, onGu
               hits={hits}
               bp={src.lineBps.has(lineBpKey(hash, l.pcs))}
               mark={l === cur ? "cur" : sites.has(l) ? "site" : undefined}
+              match={match}
               open={isOpen}
               onToggle={toggle}
               onBp={onBp}
@@ -329,10 +337,11 @@ export function SourcePanel({ T, f, map, curPc, showOps, sitePcs, src, bps, onGu
                         "grid grid-cols-[1.25rem_4ch_1rem_5ch_minmax(0,1fr)] gap-x-2 pr-2 font-mono text-[11.5px] leading-5 whitespace-pre",
                         !h && "opacity-45",
                         pc === curPc ? "bg-primary/20" : "bg-white/[0.02]",
+                        matchPcs?.has(pc) && "shadow-[inset_2px_0_0_#fb923c]",
                       )}
                     >
                       <Gutter on={bp} label={bp ? `Remove the breakpoint at pc ${pc}` : `Stop at pc ${pc}`} onClick={() => onGutter(pc)} />
-                      <span className="text-right text-muted">{hitText(h)}</span>
+                      <span className={cn("text-right", matchPcs?.has(pc) ? "text-orange-400" : "text-muted")}>{hitText(h)}</span>
                       <span />
                       <span className="text-right text-muted">{pc}</span>
                       <span className="min-w-0 overflow-hidden text-ellipsis pl-3">
