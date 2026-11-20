@@ -7,8 +7,9 @@ import { srcKey, type TealRange } from "src/utils/tealRanges";
 
 /**
  * The TEAL view's source column: each range of ops from one source line
- * (see tealRanges) with the line beside it, a band at each subroutine, and
- * hovering a line (or an op's aside chip) lights up every op it gave. In a
+ * (see tealRanges) with the line beside it, joined by a ribbon that narrows
+ * from the ops to the line, a band at each subroutine, and hovering a line
+ * (or an op's aside chip, or a ribbon) lights up every op it gave. In a
  * narrow panel, the line sits above its ops instead.
  */
 
@@ -32,13 +33,53 @@ const SubBand = memo(function SubBand({ header }: { header: string }) {
   );
 });
 
+/** Every op and label row is this tall (leading-5), so a range's ops are 20px a row. */
+const ROW = 20;
+/** The ribbon's width, in px: its column's width. */
+const RIB = 28;
+
+/** A range's shade: the current op's range, every other range a touch lighter so neighbours part, or no line. */
+type Tone = "cur" | "alt" | "base" | "none";
+// Written out in full for Tailwind to see. The current range takes the current op row's colour.
+const FILL: Record<Tone, string> = { cur: "fill-primary/25", alt: "fill-white/[0.06]", base: "fill-white/[0.11]", none: "fill-white/[0.035]" };
+const BG: Record<Tone, string> = { cur: "bg-primary/25", alt: "bg-white/[0.06]", base: "bg-white/[0.11]", none: "bg-white/[0.035]" };
+
+/**
+ * A range's ribbon: from the whole height of its ops on the left, curving in
+ * to its line's row on the right, as a Sankey diagram joins a flow to a node
+ * (the line's row, in the same shade). Drawn to the range's row count, so it
+ * fits its ops without measuring them.
+ */
+const Ribbon = memo(function Ribbon({ rows, tone, line }: {
+  rows: number;
+  tone: Tone;
+  /** Its line's key: hovering the ribbon lights up the line, and the line lights it up. */
+  line?: string;
+}) {
+  const h = rows * ROW;
+  // A half-pixel inset at each end, so neighbouring ribbons part.
+  const top = 0.5;
+  const bot = h - 0.5;
+  const end = ROW - 0.5;
+  const mid = RIB / 2;
+  const d = `M0,${top} L${RIB},${top} L${RIB},${end} C${mid},${end} ${mid},${bot} 0,${bot} Z`;
+  return (
+    <div className="relative min-w-0 @max-[34rem]:hidden" data-src-l={line}>
+      <svg className="absolute inset-0 h-full w-full" viewBox={`0 0 ${RIB} ${h}`} preserveAspectRatio="none" aria-hidden="true">
+        <path d={d} className={FILL[tone]} />
+        {/* Clear until its line is hovered: then tinted over the shade, as the line's row and ops are. */}
+        <path d={d} data-rib={line} fill="transparent" />
+      </svg>
+    </div>
+  );
+});
+
 /** A range's cell in the source column: its line, or why it has none. */
-const RangeSrc = memo(function RangeSrc({ r, k, cur, alt, bp, ran, match, onBp, onRun, onPart }: {
+const RangeSrc = memo(function RangeSrc({ r, k, cur, tone, bp, ran, match, onBp, onRun, onPart }: {
   r: TealRange;
   k: number;
   cur: boolean;
-  /** Every other range's rule is fainter, so neighbours part. */
-  alt: boolean;
+  tone: Tone;
   bp: boolean;
   ran: boolean;
   /** One of the range's own ops is a find bar hit: marked as SourcePanel marks a line. */
@@ -47,10 +88,10 @@ const RangeSrc = memo(function RangeSrc({ r, k, cur, alt, bp, ran, match, onBp, 
   onRun: (pcs: number[]) => void;
   onPart: (k: number) => void;
 }) {
+  // Wide, the ribbon joins the cell to its ops; narrow, a rule above the line parts the ranges.
   const rule = cn(
-    "ml-1 min-w-0 border-l-2",
-    cur ? "border-primary" : alt ? "border-white/[0.12]" : "border-white/[0.24]",
-    "@max-[34rem]:order-first @max-[34rem]:ml-0 @max-[34rem]:border-l-0 @max-[34rem]:border-t @max-[34rem]:border-dashed",
+    "min-w-0",
+    "@max-[34rem]:order-first @max-[34rem]:border-t @max-[34rem]:border-dashed",
     // Narrow, the current range keeps its colour on the rule above it.
     cur ? "@max-[34rem]:border-primary" : "@max-[34rem]:border-white/[0.08]",
   );
@@ -61,6 +102,7 @@ const RangeSrc = memo(function RangeSrc({ r, k, cur, alt, bp, ran, match, onBp, 
         <div
           className={cn(
             "sticky top-0 truncate pr-2 pl-[calc(0.75rem+4ch+0.75rem)] text-[11.5px] leading-5 italic text-muted @max-[34rem]:static",
+            BG[tone],
             match && "shadow-[inset_2px_0_0_#fb923c]",
           )}
           title={r.library ? `No source line: code from ${r.library}, outside the contract's files` : "No source line: ops the compiler added (constant blocks, a subroutine's prologue, routing)"}
@@ -80,6 +122,7 @@ const RangeSrc = memo(function RangeSrc({ r, k, cur, alt, bp, ran, match, onBp, 
         className={cn(
           "sticky top-0 grid grid-cols-[0.75rem_4ch_minmax(0,1fr)_auto] items-start gap-x-1.5 pr-2 pl-1 font-mono text-[12px] leading-5",
           "@max-[34rem]:static @max-[34rem]:pl-[calc(1.25rem+4ch+0.5rem)]",
+          BG[tone],
           !ran && "opacity-60",
           match && "shadow-[inset_2px_0_0_#fb923c]",
         )}
@@ -183,19 +226,30 @@ export function RangedTeal({ hash, map, ranges, curRange, hitRanges, hm, lineBps
     <div ref={box} data-teal-src="" onMouseOver={onOver} onMouseLeave={() => setHl(undefined)}>
       {/* One rule lights up the hovered line's ops, so the rows themselves don't re-render. */}
       {/* A background image, so it tints over the current row's colour and leaves the find bar's inset shadow showing. */}
-      {hl ? <style>{`[data-teal-src] [data-l="${CSS.escape(hl)}"]{background-image:linear-gradient(rgb(252 211 77 / 0.13),rgb(252 211 77 / 0.13))}`}</style> : null}
+      {hl ? (
+        <style>
+          {`[data-teal-src] [data-l="${CSS.escape(hl)}"]{background-image:linear-gradient(rgb(252 211 77 / 0.13),rgb(252 211 77 / 0.13))}` +
+            `[data-teal-src] [data-rib="${CSS.escape(hl)}"]{fill:rgb(252 211 77 / 0.13)}`}
+        </style>
+      ) : null}
       {ranges.map((r, k) => {
         const l = r.line;
+        const tone: Tone = k === curRange ? "cur" : !l ? "none" : k % 2 === 1 ? "alt" : "base";
         return (
           <React.Fragment key={r.first}>
             {r.sub ? <SubBand header={r.sub} /> : null}
-            <div data-range={k} className={"grid grid-cols-[minmax(0,1fr)_minmax(0,44%)] @max-[34rem]:grid-cols-1"}>
+            <div data-range={k} className={"grid grid-cols-[minmax(0,1fr)_1.75rem_minmax(0,44%)] @max-[34rem]:grid-cols-1"}>
               <div className="min-w-0">{renderOps(r)}</div>
+              <Ribbon
+                rows={r.last - r.first + 1}
+                tone={tone}
+                line={l ? srcKey(l) : undefined}
+              />
               <RangeSrc
                 r={r}
                 k={k}
                 cur={k === curRange}
-                alt={k % 2 === 1}
+                tone={tone}
                 bp={!!l && lineBps.has(lineBpKey(hash, l.pcs))}
                 ran={!l || ran.has(l)}
                 match={!!hitRanges?.has(k)}
