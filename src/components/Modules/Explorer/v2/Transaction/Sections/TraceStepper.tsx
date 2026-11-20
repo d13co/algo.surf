@@ -21,6 +21,7 @@ import {
   buildStepper,
   callStack,
   frameAt,
+  isRealHash,
   isRestated,
   lineText,
   opName,
@@ -35,6 +36,9 @@ import {
   type Stepper,
 } from "src/utils/traceStepper";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "src/components/v2/ui/tooltip";
+
+// React 18's (the app renders with createRoot), which the project's React 17 types don't declare.
+const useDeferredValue = (React as unknown as { useDeferredValue: <V>(value: V) => V }).useDeferredValue;
 
 const grouped = (v: number | bigint) => formatUnits(v, 0);
 const KIND = { approval: "Approval", clear: "Clear state", lsig: "Logic sig", none: "No program" };
@@ -84,11 +88,12 @@ function typeTag(v: AvmValue) {
 }
 
 /** A stack or scratch value: its index, type and short form; click for every format. */
-function ValueRow({ v, index, mark }: { v: AvmValue; index: number; mark?: "pop" | "new" }) {
+const ValueRow = memo(function ValueRow({ v, index, mark }: { v: AvmValue; index: number; mark?: "pop" | "new" }) {
   const [open, setOpen] = useState(false);
   return (
     <button
       type="button"
+      aria-expanded={open}
       onClick={() => setOpen(!open)}
       className={cn(
         "grid w-full grid-cols-[3ch_4.5ch_minmax(0,1fr)] gap-x-2 px-2 py-0.5 text-left font-mono text-[12px] leading-5 hover:bg-white/5 cursor-pointer",
@@ -113,7 +118,7 @@ function ValueRow({ v, index, mark }: { v: AvmValue; index: number; mark?: "pop"
       ) : null}
     </button>
   );
-}
+});
 
 // ---------------------------------------------------------------------------
 // Labels
@@ -175,7 +180,8 @@ const SourceLine = memo(function SourceLine({ prog, i, hits, bp, mark, onGutter,
     <div
       data-i={i}
       className={cn(
-        "grid grid-cols-[1.25rem_4ch_5ch_minmax(0,1fr)] gap-x-2 pr-2 font-mono text-[12px] leading-5 whitespace-pre",
+        // Lines out of view skip layout and paint (a disassembly can run to thousands).
+        "grid grid-cols-[1.25rem_4ch_5ch_minmax(0,1fr)] gap-x-2 pr-2 font-mono text-[12px] leading-5 whitespace-pre [content-visibility:auto] [contain-intrinsic-size:auto_20px]",
         has && !hits && "opacity-45",
         mark === "cur" && "bg-primary/25",
         mark === "site" && "bg-primary/10",
@@ -184,11 +190,15 @@ const SourceLine = memo(function SourceLine({ prog, i, hits, bp, mark, onGutter,
       title={!has ? undefined : hits ? "Double-click to run to here (or back to it, if it doesn't run again)" : "Never ran"}
     >
       {has ? (
+        // Out of the tab order (F9 sets one from the keyboard); a double-click
+        // on it toggles twice and must not also run to the line.
         <button
           type="button"
+          tabIndex={-1}
           aria-label={bp ? `Remove the breakpoint at pc ${pc}` : `Stop at pc ${pc}`}
           className="group flex items-center justify-center cursor-pointer"
           onClick={() => onGutter(pc)}
+          onDoubleClick={(e) => e.stopPropagation()}
         >
           <span className={cn("h-2.5 w-2.5 rounded-full", bp ? "bg-red-500" : "group-hover:bg-red-500/40")} />
         </button>
@@ -273,12 +283,21 @@ function keyLabel(b64: string) {
   return printable(u) ? latin(u) : `0x${toHex(u)}`;
 }
 
-function ToolButton({ label, keys, onClick, disabled, children }: { label: string; keys: string; onClick: () => void; disabled?: boolean; children: React.ReactNode }) {
+function ToolButton({ label, keys, shortcuts, onClick, disabled, children }: {
+  label: string;
+  /** As shown; `shortcuts` as aria-keyshortcuts has them. */
+  keys: string;
+  shortcuts: string;
+  onClick: () => void;
+  disabled?: boolean;
+  children: React.ReactNode;
+}) {
   return (
     <button
       type="button"
       title={`${label} (${keys})`}
       aria-label={label}
+      aria-keyshortcuts={shortcuts}
       disabled={disabled}
       onClick={onClick}
       className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border/50 px-2 text-xs hover:bg-primary/15 disabled:opacity-40 disabled:pointer-events-none cursor-pointer [&_svg]:size-4"
@@ -290,21 +309,23 @@ function ToolButton({ label, keys, onClick, disabled, children }: { label: strin
 
 const KEYS: [string, string][] = [
   ["→ or S", "step into"],
-  ["↓ or N", "step over"],
+  ["↓, N or F10", "step over"],
   ["↑ or U", "step out"],
   ["← or B", "step back"],
   ["Shift+N", "step back over"],
-  ["C / Shift+C", "continue / reverse continue"],
+  ["C or F8", "continue"],
+  ["Shift+C", "reverse continue"],
+  ["F9", "breakpoint on the next op's line"],
   ["Home / End", "start / end"],
 ];
 
-/** Execution order along the width: runs by how deep, state writes below, breakpoints above, the position as a line. Drag to scrub. */
-const Timeline = memo(function Timeline({ T, bpPos, pos, onSeek }: { T: Stepper; bpPos: number[]; pos: number; onSeek: (q: number) => void }) {
+/** The timeline's marks, drawn again only when the trace or the breakpoints change, not on every step. */
+const TimelineMarks = memo(function TimelineMarks({ T, bpPos }: { T: Stepper; bpPos: number[] }) {
   const pct = (q: number) => `${(q / Math.max(1, T.N)) * 100}%`;
-  const maxD = Math.max(0, ...T.frames.map((f) => f.depthIn));
+  const maxD = T.frames.reduce((m, f) => Math.max(m, f.depthIn), 0);
   const band = 100 / (maxD + 1);
   return (
-    <div className="relative h-9 rounded-md border border-border/40 bg-background-muted overflow-hidden">
+    <>
       <div className="absolute inset-x-0 top-1 bottom-1.5">
         {T.frames
           .filter((f) => f.kind !== "none")
@@ -322,10 +343,20 @@ const Timeline = memo(function Timeline({ T, bpPos, pos, onSeek }: { T: Stepper;
       {bpPos.map((q) => (
         <div key={q} className="absolute top-0 h-1.5 w-[1.5px] bg-red-500" style={{ left: pct(q) }} />
       ))}
+    </>
+  );
+});
+
+/** Execution order along the width: runs by how deep, state writes below, breakpoints above, the position as a line. Drag to scrub. */
+function Timeline({ T, bpPos, pos, onSeek }: { T: Stepper; bpPos: number[]; pos: number; onSeek: (q: number) => void }) {
+  return (
+    <div className="relative h-9 rounded-md border border-border/40 bg-background-muted overflow-hidden has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary">
+      <TimelineMarks T={T} bpPos={bpPos} />
       <div className="absolute inset-y-0 w-0.5 -ml-px bg-foreground" style={{ left: `${((pos + 0.5) / Math.max(1, T.N)) * 100}%` }} />
       <input
         type="range"
         aria-label="Position in the trace"
+        aria-valuetext={`Step ${pos + 1} of ${T.N}`}
         min={0}
         max={Math.max(0, T.N - 1)}
         value={pos}
@@ -334,19 +365,23 @@ const Timeline = memo(function Timeline({ T, bpPos, pos, onSeek }: { T: Stepper;
       />
     </div>
   );
-});
+}
 
 // ---------------------------------------------------------------------------
 // Breakpoints, kept per program in this browser
 
 const bpStoreKey = (hash: string) => `trace-bp:${hash}`;
 
+/** The trace's programs that breakpoints are kept for: not those without a hash of their own. */
+const keptHashes = (T: Stepper) => [...new Set(T.frames.map((f) => f.hash).filter((h): h is string => !!h && isRealHash(h)))];
+
 function loadBps(T: Stepper): Set<string> {
   const out = new Set<string>();
-  for (const h of new Set(T.frames.map((f) => f.hash).filter((h): h is string => !!h))) {
+  for (const h of keptHashes(T)) {
     try {
-      const pcs = JSON.parse(localStorage.getItem(bpStoreKey(h)) ?? "[]") as number[];
-      for (const pc of pcs) out.add(bpKey(h, pc));
+      const pcs: unknown = JSON.parse(localStorage.getItem(bpStoreKey(h)) ?? "[]");
+      if (!Array.isArray(pcs)) continue;
+      for (const pc of pcs.slice(0, 1000)) if (Number.isInteger(pc) && pc >= 0) out.add(bpKey(h, pc));
     } catch {
       // Storage off or unreadable: no saved breakpoints.
     }
@@ -354,13 +389,15 @@ function loadBps(T: Stepper): Set<string> {
   return out;
 }
 
-function saveBps(hash: string, bps: Set<string>) {
-  const pcs = [...bps].filter((k) => k.startsWith(`${hash}@`)).map((k) => Number(k.slice(hash.length + 1)));
-  try {
-    if (pcs.length) localStorage.setItem(bpStoreKey(hash), JSON.stringify(pcs));
-    else localStorage.removeItem(bpStoreKey(hash));
-  } catch {
-    // Storage off: breakpoints last for this page only.
+function saveBps(T: Stepper, bps: Set<string>) {
+  for (const h of keptHashes(T)) {
+    const pcs = [...bps].filter((k) => k.startsWith(`${h}@`)).map((k) => Number(k.slice(h.length + 1)));
+    try {
+      if (pcs.length) localStorage.setItem(bpStoreKey(h), JSON.stringify(pcs));
+      else localStorage.removeItem(bpStoreKey(h));
+    } catch {
+      // Storage off: breakpoints last for this page only.
+    }
   }
 }
 
@@ -374,27 +411,60 @@ function saveBps(hash: string, bps: Set<string>) {
  * Opens at `txId`'s first program run.
  */
 export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; budget?: SCBudgetRun[]; txId: string }) {
-  const T = useMemo(() => buildStepper(dev, budget), [dev, budget]);
+  // Budget runs, which usually arrive after the trace, only relabel the runs:
+  // the rebuild keeps the programs (so the source lines stay memoized) and
+  // what was worked out about each run.
+  const base = useMemo(() => buildStepper(dev), [dev]);
+  const T = useMemo(() => (budget?.length ? buildStepper(dev, budget, base) : base), [dev, budget, base]);
   const labels = useLabels(T, txId);
-  const start = useMemo(() => {
-    const top = T.tops.findIndex((t) => t.txid === txId);
-    const first = top >= 0 ? T.tops[top].frames.find((f) => f.kind !== "none") : undefined;
-    return first ? first.seqStart : 0;
-  }, [T, txId]);
 
-  // Budget runs only relabel runs; the positions stay the same.
-  const [pos, setPos] = useState(start);
+  // Mounted per transaction (keyed on it), so another starts afresh. The
+  // positions are the same with or without the budget runs.
+  const [rawPos, setPos] = useState(() => startOf(T, txId));
+  const pos = Math.min(rawPos, T.N - 1);
   const [bps, setBps] = useState<Set<string>>(() => loadBps(T));
+  const bpsChanged = useRef(false);
   useEffect(() => {
-    setPos(start);
-    setBps(loadBps(T));
-    // Not on T: budget runs arriving later rebuild it with the same positions.
-  }, [dev, txId]);
+    if (bpsChanged.current) saveBps(T, bps);
+  }, [T, bps]);
 
   const bpPos = useMemo(() => breakpointPositions(T, bps), [T, bps]);
   const bpSet = useMemo(() => new Set(bpPos), [bpPos]);
   const isBp = useCallback((q: number) => bpSet.has(q), [bpSet]);
   const seek = useCallback((q: number) => setPos(Math.max(0, Math.min(T.N - 1, q))), [T]);
+
+  const f = frameAt(T, pos);
+  const i = T.seqS[pos];
+  const s = f.steps[i];
+  const st = useMemo(() => stateAt(T, f, i), [T, f, i]);
+  const sitePcs = useMemo(() => new Set(st.calls.map((c) => c.pc)), [st]);
+  // The side panels may lag a little while the timeline is dragged.
+  const lagPos = useDeferredValue(pos);
+  const calls = useMemo(() => callStack(T, lagPos), [T, lagPos]);
+  const writes = useMemo(() => writesBefore(T, lagPos), [T, lagPos]);
+
+  const toggleBp = useCallback((hash: string, pc: number) => {
+    bpsChanged.current = true;
+    setBps((prev) => {
+      const next = new Set(prev);
+      const k = bpKey(hash, pc);
+      if (next.has(k)) next.delete(k);
+      else next.add(k);
+      return next;
+    });
+  }, []);
+  const onGutter = useCallback((pc: number) => f.hash && toggleBp(f.hash, pc), [f.hash, toggleBp]);
+  // Reads the position from a ref, so the source lines keep one handler from step to step.
+  const posRef = useRef(pos);
+  posRef.current = pos;
+  const onRun = useCallback(
+    (pc: number) => {
+      if (!f.hash) return;
+      const q = runTo(T, posRef.current, f.hash, pc);
+      if (q !== undefined) seek(q);
+    },
+    [T, f.hash, seek],
+  );
 
   const act = useMemo(
     () => ({
@@ -407,49 +477,25 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
       revCont: () => seek([...bpPos].reverse().find((q) => q < pos) ?? 0),
       restart: () => seek(0),
       end: () => seek(T.N - 1),
+      // The keyboard's way to set one: on the next op's line.
+      toggleBp: () => {
+        if (s && f.hash) toggleBp(f.hash, Number(s.pc));
+      },
     }),
-    [T, pos, isBp, bpPos, seek],
+    [T, pos, isBp, bpPos, seek, s, f.hash, toggleBp],
   );
+  const bpList = useMemo(() => bpEntries(T, bps), [T, bps]);
 
-  const f = frameAt(T, pos);
-  const i = T.seqS[pos];
-  const s = f.steps[i];
-  const st = stateAt(T, f, i);
-  const calls = useMemo(() => callStack(T, pos), [T, pos]);
-  const writes = useMemo(() => writesBefore(T, pos), [T, pos]);
-  const sitePcs = useMemo(() => new Set(st.calls.map((c) => c.pc)), [st]);
-
-  const toggleBp = useCallback(
-    (hash: string, pc: number) =>
-      setBps((prev) => {
-        const next = new Set(prev);
-        const k = bpKey(hash, pc);
-        if (next.has(k)) next.delete(k);
-        else next.add(k);
-        saveBps(hash, next);
-        return next;
-      }),
-    [],
-  );
-  const onGutter = useCallback((pc: number) => f.hash && toggleBp(f.hash, pc), [f.hash, toggleBp]);
-  const onRun = useCallback((pc: number) => {
-    if (!f.hash) return;
-    const q = runTo(T, pos, f.hash, pc);
-    if (q !== undefined) seek(q);
-  }, [T, pos, f.hash, seek]);
-
-  // Keys work anywhere on the page, except in a field or an open dialog.
+  // Keys work anywhere on the page, except where they mean something else: in
+  // a field, a dialog, a menu or a list, or on a control that opens one.
   const actRef = useRef(act);
   actRef.current = act;
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey || e.isComposing) return;
       const t = e.target as HTMLElement | null;
-      if (t?.closest?.("input:not([type=range]), textarea, select, [contenteditable], [role=dialog]") || e.metaKey || e.ctrlKey || e.altKey) return;
-      const map: Record<string, keyof typeof act> = {
-        ArrowRight: "into", s: "into", ArrowLeft: "back", b: "back", ArrowDown: "over", n: "over", N: "backOver",
-        ArrowUp: "out", u: "out", c: "cont", C: "revCont", Home: "restart", End: "end", F10: "over", F11: e.shiftKey ? "out" : "into", F8: "cont",
-      };
-      const a = map[e.key];
+      if (t?.closest?.(IGNORE_KEYS_IN)) return;
+      const a = KEY_ACTIONS[e.key];
       if (!a) return;
       e.preventDefault();
       actRef.current[a]();
@@ -459,26 +505,24 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
   }, []);
 
   // What the last op pushed and what the next one pops, on the stack.
-  const pushed = i > 0 && !isRestated(T, f, i - 1) ? f.steps[i - 1]["stack-additions"]?.length ?? 0 : 0;
-  const pops = s && !isRestated(T, f, i) ? Number(s["stack-pop-count"] ?? 0) : 0;
+  const pushed = i > 0 && !isRestated(f, i - 1) ? f.steps[i - 1]["stack-additions"]?.length ?? 0 : 0;
+  const pops = s ? Number(s["stack-pop-count"] ?? 0) : 0;
   const n = st.stack.length;
   const slots = [...st.scratch.entries()].sort((a, b) => a[0] - b[0]);
   const willWrite = new Set((s?.["scratch-changes"] ?? []).map((c) => Number(c.slot)));
-  const ancestors = new Set<number>();
-  for (let p = f.parent; p; p = p.parent) ancestors.add(p.id);
 
   return (
-    <div className="flex flex-col gap-2 lg:min-h-0 lg:flex-1" aria-label="Trace debugger">
-      <div className="flex flex-wrap items-center gap-1.5">
-        <ToolButton label="Restart" keys="Home" onClick={act.restart} disabled={pos === 0}><ChevronFirst /></ToolButton>
-        <ToolButton label="Reverse continue: back to the previous breakpoint" keys="Shift+C" onClick={act.revCont} disabled={pos === 0}><SkipBack /></ToolButton>
-        <ToolButton label="Step back" keys="← or B" onClick={act.back} disabled={pos === 0}><ChevronLeft /></ToolButton>
-        <ToolButton label="Step into" keys="→ or S" onClick={act.into} disabled={pos >= T.N - 1}><ArrowDownToLine />Into</ToolButton>
-        <ToolButton label="Step over subroutines and inner transactions" keys="↓ or N" onClick={act.over} disabled={pos >= T.N - 1}><Redo2 />Over</ToolButton>
-        <ToolButton label="Step out of the subroutine or program" keys="↑ or U" onClick={act.out} disabled={pos >= T.N - 1}><ArrowUpFromLine />Out</ToolButton>
-        <ToolButton label="Continue to the next breakpoint" keys="C" onClick={act.cont} disabled={pos >= T.N - 1}><SkipForward /></ToolButton>
+    <section className="flex flex-col gap-2 lg:min-h-0 lg:flex-1" aria-label="Trace debugger">
+      <div className="flex flex-wrap items-center gap-1.5" role="toolbar" aria-label="Stepping">
+        <ToolButton label="Restart" keys="Home" shortcuts="Home" onClick={act.restart} disabled={pos === 0}><ChevronFirst /></ToolButton>
+        <ToolButton label="Reverse continue: back to the previous breakpoint" keys="Shift+C" shortcuts="Shift+C" onClick={act.revCont} disabled={pos === 0}><SkipBack /></ToolButton>
+        <ToolButton label="Step back" keys="← or B" shortcuts="ArrowLeft B" onClick={act.back} disabled={pos === 0}><ChevronLeft /></ToolButton>
+        <ToolButton label="Step into" keys="→ or S" shortcuts="ArrowRight S" onClick={act.into} disabled={pos >= T.N - 1}><ArrowDownToLine />Into</ToolButton>
+        <ToolButton label="Step over subroutines and inner transactions" keys="↓, N or F10" shortcuts="ArrowDown N F10" onClick={act.over} disabled={pos >= T.N - 1}><Redo2 />Over</ToolButton>
+        <ToolButton label="Step out of the subroutine or program" keys="↑ or U" shortcuts="ArrowUp U" onClick={act.out} disabled={pos >= T.N - 1}><ArrowUpFromLine />Out</ToolButton>
+        <ToolButton label="Continue to the next breakpoint" keys="C or F8" shortcuts="C F8" onClick={act.cont} disabled={pos >= T.N - 1}><SkipForward /></ToolButton>
         <span className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
-          <span>
+          <span aria-live="polite" aria-atomic="true">
             Step {grouped(pos + 1)} of {grouped(T.N)}
           </span>
           <TooltipProvider>
@@ -490,7 +534,7 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
               </TooltipTrigger>
               <TooltipContent className="bg-black text-white border-border max-w-xs text-xs p-3">
                 {KEYS.map(([k, t]) => (
-                  <div key={k} className="grid grid-cols-[11ch_1fr] gap-x-2">
+                  <div key={k} className="grid grid-cols-[12ch_1fr] gap-x-2">
                     <span className="font-mono">{k}</span>
                     <span>{t}</span>
                   </div>
@@ -507,42 +551,7 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
       <div className="grid gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(16rem,22rem)_minmax(0,1fr)_minmax(20rem,28rem)]">
         <div className="order-2 flex min-w-0 flex-col gap-3 lg:order-none lg:min-h-0">
         <Panel className="lg:min-h-0 lg:flex-1" title="Program runs" meta={`${grouped(T.frames.reduce((t, x) => t + x.steps.length, 0))} ops`}>
-          <div className="max-h-64 min-h-0 overflow-auto py-1 text-xs lg:max-h-none lg:flex-1">
-            {T.tops.map((t, k) => (
-              <div key={k}>
-                <div className="px-3 pt-1.5 pb-0.5 text-muted-foreground">{labels.txn(k)}</div>
-                {!t.frames.length ? <Empty>No program ran.</Empty> : null}
-                {t.frames.flatMap(function rows(x: Frame): React.ReactNode[] {
-                  const isCur = x.id === f.id;
-                  return [
-                    <button
-                      key={x.id}
-                      type="button"
-                      disabled={x.kind === "none"}
-                      onClick={() => seek(x.seqStart)}
-                      style={{ paddingLeft: `${0.75 + x.depthIn}rem` }}
-                      className={cn(
-                        "flex w-full items-baseline gap-2 pr-3 py-0.5 text-left hover:bg-white/5 cursor-pointer disabled:cursor-default disabled:text-muted",
-                        isCur && "bg-primary/20",
-                        ancestors.has(x.id) && "bg-primary/10",
-                      )}
-                    >
-                      <span>
-                        {x.path.length > 1 ? `Inner ${explorerInnerPath(x.path)} · ` : ""}
-                        {KIND[x.kind]}
-                      </span>
-                      {x.rollback ? <span className="text-red-400">rolled back</span> : null}
-                      <span className="ml-auto text-muted">{appText(x)}</span>
-                      {x.kind !== "none" ? (
-                        <span className="w-[9ch] text-right text-muted">{x.budget ? `${grouped(x.budget.cost)} cost` : `${grouped(x.steps.length)} ops`}</span>
-                      ) : null}
-                    </button>,
-                    ...x.kids.flatMap(rows),
-                  ];
-                })}
-              </div>
-            ))}
-          </div>
+          <RunsList T={T} cur={f} labels={labels} onSeek={seek} />
         </Panel>
 
         <Panel className="lg:min-h-0 lg:flex-1" title="State written so far" meta={writes.count ? `${writes.count} ${writes.count === 1 ? "write" : "writes"}` : undefined}>
@@ -557,7 +566,7 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
                     type="button"
                     title="Go to the op that wrote it"
                     onClick={() => seek(w.pos)}
-                    className={cn("block w-full px-3 py-1 text-left hover:bg-white/5 cursor-pointer", w.pos === pos - 1 && "bg-green-400/10")}
+                    className={cn("block w-full px-3 py-1 text-left hover:bg-white/5 cursor-pointer", w.pos === lagPos - 1 && "bg-green-400/10")}
                   >
                     <span className="flex items-baseline gap-2">
                       <span className="text-muted">{STATE_TYPE[c["app-state-type"]]}</span>
@@ -583,8 +592,8 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
           </div>
         </Panel>
 
-        <Panel className="lg:max-h-[25%] lg:shrink-0" title="Breakpoints" meta={bpEntries(T, bps).length || undefined}>
-          <Breakpoints T={T} bps={bps} bpPos={bpPos} onRemove={toggleBp} />
+        <Panel className="lg:max-h-[25%] lg:shrink-0" title="Breakpoints" meta={bpList.length || undefined}>
+          <Breakpoints T={T} list={bpList} bpPos={bpPos} onRemove={toggleBp} />
         </Panel>
         </div>
 
@@ -615,7 +624,8 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
             <div className="max-h-64 min-h-0 overflow-auto py-1 lg:max-h-none lg:flex-1">
               {n ? (
                 st.stack
-                  .map((v, j) => <ValueRow key={`${f.id}:${j}`} v={v} index={j} mark={j >= n - pops ? "pop" : j >= n - pushed ? "new" : undefined} />)
+                  // Keyed on the value too, so an expanded row doesn't stay open for another value pushed in its place.
+                  .map((v, j) => <ValueRow key={`${f.id}:${j}:${v.type}:${v.uint ?? v.bytes ?? ""}`} v={v} index={j} mark={j >= n - pops ? "pop" : j >= n - pushed ? "new" : undefined} />)
                   .reverse()
               ) : (
                 <Empty>The stack is empty.</Empty>
@@ -625,7 +635,7 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
           <Panel className="lg:max-h-[30%] lg:shrink-0" title="Scratch" meta={slots.length ? `${slots.length} ${slots.length === 1 ? "slot" : "slots"}` : undefined}>
             <div className="max-h-48 min-h-0 overflow-auto py-1 lg:max-h-none">
               {slots.length ? (
-                slots.map(([k, x]) => <ValueRow key={`${f.id}:${k}`} v={x.v} index={k} mark={willWrite.has(k) ? "pop" : x.at === i - 1 ? "new" : undefined} />)
+                slots.map(([k, x]) => <ValueRow key={`${f.id}:${k}:${x.at}`} v={x.v} index={k} mark={willWrite.has(k) ? "pop" : x.at === i - 1 ? "new" : undefined} />)
               ) : (
                 <Empty>No scratch slot written yet in this run.</Empty>
               )}
@@ -664,8 +674,72 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
           </Panel>
         </div>
       </div>
+    </section>
+  );
+}
+
+/** The group's program runs, nested by inner transaction; the current one and the ones that ran it highlighted. */
+const RunsList = memo(function RunsList({ T, cur, labels, onSeek }: {
+  T: Stepper;
+  cur: Frame;
+  labels: ReturnType<typeof useLabels>;
+  onSeek: (q: number) => void;
+}) {
+  const ancestors = new Set<number>();
+  for (let p = cur.parent; p; p = p.parent) ancestors.add(p.id);
+  return (
+    <div className="max-h-64 min-h-0 overflow-auto py-1 text-xs lg:max-h-none lg:flex-1">
+      {T.tops.map((t, k) => (
+        <div key={k}>
+          <div className="px-3 pt-1.5 pb-0.5 text-muted-foreground">{labels.txn(k)}</div>
+          {!t.frames.length ? <Empty>No program ran.</Empty> : null}
+          {t.frames.flatMap(function rows(x: Frame): React.ReactNode[] {
+            const isCur = x.id === cur.id;
+            return [
+              <button
+                key={x.id}
+                type="button"
+                disabled={x.kind === "none"}
+                aria-current={isCur ? "step" : undefined}
+                onClick={() => onSeek(x.seqStart)}
+                style={{ paddingLeft: `${0.75 + x.depthIn}rem` }}
+                className={cn(
+                  "flex w-full items-baseline gap-2 pr-3 py-0.5 text-left hover:bg-white/5 cursor-pointer disabled:cursor-default disabled:text-muted",
+                  isCur && "bg-primary/20",
+                  ancestors.has(x.id) && "bg-primary/10",
+                )}
+              >
+                <span>
+                  {x.path.length > 1 ? `Inner ${explorerInnerPath(x.path)} · ` : ""}
+                  {KIND[x.kind]}
+                </span>
+                {x.rollback ? <span className="text-red-400">rolled back</span> : null}
+                <span className="ml-auto text-muted">{appText(x)}</span>
+                {x.kind !== "none" ? (
+                  <span className="w-[9ch] text-right text-muted">{x.budget ? `${grouped(x.budget.cost)} cost` : `${grouped(x.steps.length)} ops`}</span>
+                ) : null}
+              </button>,
+              ...x.kids.flatMap(rows),
+            ];
+          })}
+        </div>
+      ))}
     </div>
   );
+});
+
+const IGNORE_KEYS_IN =
+  "input:not([type=range]), textarea, select, [contenteditable], [role=dialog], [role=menu], [role=listbox], [role=combobox], [aria-haspopup]:not([aria-haspopup=false])";
+
+const KEY_ACTIONS: Record<string, "into" | "back" | "over" | "backOver" | "out" | "cont" | "revCont" | "restart" | "end" | "toggleBp"> = {
+  ArrowRight: "into", s: "into", ArrowLeft: "back", b: "back", ArrowDown: "over", n: "over", F10: "over", N: "backOver",
+  ArrowUp: "out", u: "out", c: "cont", F8: "cont", C: "revCont", Home: "restart", End: "end", F9: "toggleBp",
+};
+
+/** Where `txId`'s first program run starts. */
+function startOf(T: Stepper, txId: string): number {
+  const top = T.tops.find((t) => t.txid === txId);
+  return top?.frames.find((f) => f.kind !== "none")?.seqStart ?? 0;
 }
 
 const bpEntries = (T: Stepper, bps: Set<string>) =>
@@ -676,17 +750,30 @@ const bpEntries = (T: Stepper, bps: Set<string>) =>
     })
     .filter((b) => T.frames.some((x) => x.hash === b.hash));
 
-function Breakpoints({ T, bps, bpPos, onRemove }: { T: Stepper; bps: Set<string>; bpPos: number[]; onRemove: (hash: string, pc: number) => void }) {
-  const list = bpEntries(T, bps);
-  if (!list.length) return <Empty>Click the gutter left of a line to stop there. Breakpoints apply to every run of that program, and this browser keeps them.</Empty>;
+const Breakpoints = memo(function Breakpoints({ T, list, bpPos, onRemove }: {
+  T: Stepper;
+  list: ReturnType<typeof bpEntries>;
+  bpPos: number[];
+  onRemove: (hash: string, pc: number) => void;
+}) {
+  // How often each one stops.
+  const hitsOf = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const q of bpPos) {
+      const x = frameAt(T, q);
+      const k = bpKey(x.hash ?? "", Number(x.steps[T.seqS[q]].pc));
+      m.set(k, (m.get(k) ?? 0) + 1);
+    }
+    return m;
+  }, [T, bpPos]);
+  if (!list.length) {
+    return <Empty>Click the gutter left of a line, or press F9 for the next op's, to stop there. Breakpoints apply to every run of that program, and this browser keeps them.</Empty>;
+  }
   return (
     <div className="min-h-0 overflow-auto py-1 text-xs">
       {list.map((b) => {
-        const prog = T.frames.find((x) => x.hash === b.hash)?.prog;
-        const hits = bpPos.filter((q) => {
-          const x = frameAt(T, q);
-          return x.hash === b.hash && Number(x.steps[T.seqS[q]].pc) === b.pc;
-        }).length;
+        const prog = T.programs.get(b.hash);
+        const hits = hitsOf.get(b.k) ?? 0;
         return (
           <div key={b.k} className="flex items-center gap-2 px-3 py-0.5">
             <span className="h-2 w-2 shrink-0 rounded-full bg-red-500" />
@@ -702,7 +789,7 @@ function Breakpoints({ T, bps, bpPos, onRemove }: { T: Stepper; bps: Set<string>
       })}
     </div>
   );
-}
+});
 
 /** The op about to run and what it will do, or at a run's end, how it ended. */
 function NextOp({ T, f, i, top, last, where }: { T: Stepper; f: Frame; i: number; top?: AvmValue; last: boolean; where: (f: Frame) => string }) {
@@ -724,11 +811,11 @@ function NextOp({ T, f, i, top, last, where }: { T: Stepper; f: Frame; i: number
     );
   }
   const text = lineText(f.prog, Number(s.pc));
-  const restated = isRestated(T, f, i);
+  const restated = isRestated(f, i);
   const pop = Number(s["stack-pop-count"] ?? 0);
   const kids = f.children.get(i) ?? [];
   const fx: React.ReactNode[] = [];
-  if (pop && !restated) fx.push(<span key="p" className="text-red-400">pops {pop}</span>);
+  if (pop) fx.push(<span key="p" className="text-red-400">pops {pop}</span>);
   if (!restated) s["stack-additions"]?.forEach((a, k) => fx.push(<span key={`a${k}`}>push <Short v={a} /></span>));
   s["scratch-changes"]?.forEach((c) => fx.push(<span key={`s${c.slot}`}>scratch[{c.slot}] = <Short v={c["new-value"]} /></span>));
   s["state-changes"]?.forEach((c, k) =>
@@ -756,7 +843,7 @@ function NextOp({ T, f, i, top, last, where }: { T: Stepper; f: Frame; i: number
         ) : null}
         {restated ? (
           <div className="text-warning">
-            The trace says this op pushes {s["stack-additions"]?.length} values, but itxn_submit leaves the stack alone: they are the top of the stack again. go-algorand's simulate tracer shares one stack height across programs, so the inner app call overwrote it. They're ignored here.
+            The trace says this op pushes {s["stack-additions"]?.length} {s["stack-additions"]?.length === 1 ? "value" : "values"}, but itxn_submit leaves the stack alone. go-algorand's simulate tracer shares one stack height across programs, so after an inner app call it reports values already on the stack as pushed. They're ignored here.
           </div>
         ) : null}
         {opName(text) === "callsub" ? <div className="text-muted-foreground">Calls a subroutine. Step over runs it to its retsub.</div> : null}

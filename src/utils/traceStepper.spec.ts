@@ -114,14 +114,14 @@ describe("trace stepper", () => {
 
   it("ignores an itxn_submit's restated stack", () => {
     expect(uints(stateAt(T, callerF, 6))).toEqual([7]);
-    expect(isRestated(T, callerF, 5)).toBe(true);
-    expect(isRestated(T, callerF, 0)).toBe(false);
+    expect(isRestated(callerF, 5)).toBe(true);
+    expect(isRestated(callerF, 0)).toBe(false);
     expect(uints(stateAt(T, callerF, 7))).toEqual([]);
-    // A real push by an op that ran inner transactions is applied.
-    const f = { ...callerF, steps: [{ pc: 1, "spawned-inners": [0], "stack-additions": [u(3)] }], restated: new Set<number>() } as Frame;
-    const st: RunState = { stack: [u(7)], scratch: new Map(), calls: [] };
+    // Whatever it re-reports, not only the top of the stack again: itxn_submit never pushes.
+    const f = { ...callerF, steps: [{ pc: 5, "spawned-inners": [0], "stack-additions": [u(3)] }] } as Frame;
+    const st: RunState = { stack: [], scratch: new Map(), calls: [] };
     applyStep(f, 0, st);
-    expect(uints(st)).toEqual([7, 3]);
+    expect(uints(st)).toEqual([]);
   });
 
   it("tracks scratch slots and subroutine calls", () => {
@@ -146,6 +146,31 @@ describe("trace stepper", () => {
     expect(stepOut(T, innerF.pos[0])).toBe(callerF.pos[6]);
     // Past a run's end: the next run.
     expect(stepOver(T, byKind("lsig").pos[1])).toBe(byKind("clear").seqStart);
+  });
+
+  it("steps out of one of a submit's inner runs to its caller, and back from a run's end inside a subroutine", () => {
+    // `itxn_submit` runs two inner app calls; the second program returns inside a subroutine.
+    const prog = { hash: "P", lines: [{ pc: 1, text: "callsub s" }, { pc: 4, text: "itxn_submit" }, { pc: 5, text: "int 1" }, { text: "s:" }, { pc: 6, text: "int 1" }, { pc: 7, text: "return" }] };
+    const T2 = buildStepper({
+      traces: [{
+        txid: "A",
+        "exec-trace": {
+          "approval-program-hash": "P",
+          "approval-program-trace": [{ pc: 4, "spawned-inners": [0, 1] }, { pc: 5, "stack-additions": [u(1)] }],
+          "inner-trace": [
+            { "approval-program-hash": "Q", "approval-program-trace": [{ pc: 1 }, { pc: 2 }] },
+            { "approval-program-hash": "P", "approval-program-trace": [{ pc: 1 }, { pc: 6, "stack-additions": [u(1)] }, { pc: 7, "stack-pop-count": 1 }] },
+          ],
+        },
+      }],
+      programs: [prog],
+    });
+    const [caller, first, second] = T2.frames;
+    expect(stepOut(T2, first.pos[0])).toBe(caller.pos[1]);
+    expect(stepOut(T2, first.pos[0], (q) => q === second.pos[0])).toBe(second.pos[0]);
+    // The second ends in subroutine s: back over from its end is its last op, not its callsub.
+    expect(depthAt(T2, second.pos[2])).toBe(1);
+    expect(stepBackOver(T2, second.seqEnd)).toBe(second.pos[2]);
   });
 
   it("stops at breakpoints on the way", () => {
@@ -177,5 +202,18 @@ describe("trace stepper", () => {
     const end = writesBefore(T, T.N - 1);
     expect(end.count).toBe(1);
     expect(end.rows[0]).toMatchObject({ frame: innerF, n: 1 });
+  });
+
+  it("keeps two apps' writes to one key apart without budget runs", () => {
+    const write = { pc: 1, "state-changes": [{ "app-state-type": "g" as const, operation: "w" as const, key, "new-value": u(1) }] };
+    const T0 = buildStepper({
+      traces: [
+        { txid: "A", "exec-trace": { "approval-program-hash": "H1", "approval-program-trace": [write] } },
+        { txid: "B", "exec-trace": { "approval-program-hash": "H2", "approval-program-trace": [write] } },
+        { txid: "C", "exec-trace": { "approval-program-hash": "H1", "approval-program-trace": [write] } },
+      ],
+    });
+    const rows = writesBefore(T0, T0.N).rows;
+    expect(rows.map((w) => [w.frame.hash, w.n])).toEqual([["H1", 2], ["H2", 1]]);
   });
 });

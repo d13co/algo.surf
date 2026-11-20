@@ -1,5 +1,5 @@
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
-import { lazy, Suspense } from "react";
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useMatch } from "react-router-dom";
+import React, { lazy, Suspense } from "react";
 import Explorer from "../Modules/Explorer/Explorer/Explorer";
 import Loader from "../Common/Loader/Loader";
 import AppSnackbar from "./AppSnackbar";
@@ -57,6 +57,31 @@ const SearchFromPath = lazy(() => import("./SearchFromPath"));
 const SearchResults = lazy(() => import("../Modules/Explorer/Search/SearchResults"));
 const TraceDebug = lazy(() => import("../Modules/Explorer/v2/Transaction/TraceDebug"));
 
+/**
+ * The page around the explorer. The debugger's fills the window: no time
+ * travel bar, page width, margins or footer. One tree either way (the
+ * wrappers it doesn't need step aside with `display: contents`), so moving
+ * to or from the debugger keeps the explorer and its providers mounted.
+ */
+function Layout({ children }: { children: React.ReactNode }): JSX.Element {
+  const full = !!useMatch("/debug/:id");
+  return (
+    <>
+      {full ? null : <TimeTravelBar />}
+      <div className={full ? "flex min-h-svh flex-col px-3 pt-2.5 md:px-5 lg:h-svh" : "flex flex-col items-center justify-start"}>
+        <div className={full ? "contents" : "w-full max-w-[1280px]"}>
+          <div className={full ? "contents" : "overflow-auto min-h-svh flex flex-col"}>
+            <div className={full ? "contents" : "grow mx-5 mt-2.5 md:mx-[100px] md:mt-5"}>
+              <Explorer className={full ? "flex min-h-0 flex-1 flex-col" : undefined}>{children}</Explorer>
+            </div>
+            {full ? null : <Footer />}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 /** A redirect that keeps the query string, so `?round=` survives it. */
 function NavigateKeepingSearch({ to }: { to: string }): JSX.Element {
   const { search } = useLocation();
@@ -70,228 +95,197 @@ function AppRouter(): JSX.Element {
         <QueryClientProvider client={queryClient}>
           <GlobalUIProvider>
           <AbelAssetsProvider>
-            <Routes>
-              {/* The debugger fills the window: no page width, margins or footer. */}
-              <Route
-                path="/debug/:id"
-                element={
-                  <div className="flex min-h-svh flex-col px-3 pt-2.5 md:px-5 lg:h-svh">
-                    <Explorer className="flex min-h-0 flex-1 flex-col">
+                    <Layout>
                       <Suspense fallback={<LoadingTile />}>
-                        <TraceDebug />
+                      <Routes>
+                        <Route index element={<Home></Home>} />
+                        <Route
+                          path="/explorer/home"
+                          element={<NavigateKeepingSearch to="/" />}
+                        />
+                        <Route
+                          path="/accounts"
+                          element={<Accounts></Accounts>}
+                        />
+                        <Route
+                          path="/transactions"
+                          element={<Transactions></Transactions>}
+                        />
+                        <Route path="/assets" element={<Assets></Assets>} />
+                        <Route
+                          path="/applications"
+                          element={<Applications></Applications>}
+                        />
+                        <Route path="/fees" element={<Fees></Fees>} />
+                        <Route path="/tps" element={<Tps></Tps>} />
+                        <Route path="/upgrades" element={<Upgrades />} />
+                        <Route path="/lsigs" element={<LsigTemplates />} />
+                        <Route path="/lsigs/:template" element={<LsigTemplate />} />
+                        <Route
+                          path="/account/:address"
+                          element={<Account></Account>}
+                        >
+                          <Route
+                            path="assets"
+                            element={<AccountAssets></AccountAssets>}
+                          />
+                          <Route
+                            path="transactions"
+                            element={<NavigateKeepingSearch to=".." />}
+                          />
+                          <Route
+                            path="created-assets"
+                            element={
+                              <AccountCreatedAssets></AccountCreatedAssets>
+                            }
+                          />
+                          <Route
+                            path="created-applications"
+                            element={
+                              <AccountCreatedApplications></AccountCreatedApplications>
+                            }
+                          />
+                          <Route
+                            path="opted-applications"
+                            element={
+                              <AccountOptedApplications></AccountOptedApplications>
+                            }
+                          />
+                          <Route
+                            path="opted-applications/:id"
+                            element={
+                              <AccountOptedApplications></AccountOptedApplications>
+                            }
+                          />
+                          <Route path="controller" element={<AccountController />}>
+                            <Route
+                              path="current"
+                              element={<LatestOnly what="The accounts rekeyed to this one now"><AccountControllerTo /></LatestOnly>}
+                            />
+                            <Route path="history" element={<AccountRekeys side="from" />} />
+                          </Route>
+                          <Route
+                            path="delegations"
+                            element={<LatestOnly what="Delegations"><AccountDelegations /></LatestOnly>}
+                          />
+                          <Route
+                            path="subsigners"
+                            element={<LatestOnly what="Multisig signers"><AccountMultisig view="subsigners" /></LatestOnly>}
+                          />
+                          <Route
+                            path="multisigs"
+                            element={<LatestOnly what="Multisigs this key is in"><AccountMultisig view="multisigs" /></LatestOnly>}
+                          />
+                          <Route
+                            path="rekeys"
+                            element={<AccountRekeys />}
+                          />
+                          <Route
+                            path="validator"
+                            element={<AccountValidator />}
+                          />
+                          <Route
+                            path="versions/*"
+                            element={<AccountVersions />}
+                          />
+                          <Route
+                            path="nfds"
+                            element={<AccountNfdHistory />}
+                          />
+                          <Route
+                            path=""
+                            element={
+                              <AccountTransactions></AccountTransactions>
+                            }
+                          />
+                        </Route>
+                        <Route path="/block/:id" element={<Block></Block>}>
+                          <Route
+                            path="transactions"
+                            element={<BlockTransactions></BlockTransactions>}
+                          />
+                          <Route
+                            path="delta"
+                            element={<BlockStateChanges></BlockStateChanges>}
+                          />
+                          <Route
+                            path=""
+                            element={<NavigateKeepingSearch to="transactions" />}
+                          />
+                        </Route>
+                        <Route path="/asset/:id" element={<Asset></Asset>}>
+                          <Route
+                            path="transactions"
+                            element={<AssetTransactions></AssetTransactions>}
+                          />
+                          <Route
+                            path="versions/*"
+                            element={<AssetVersions />}
+                          />
+                          <Route
+                            path="holders"
+                            element={<AssetHolders />}
+                          />
+                          <Route
+                            path=""
+                            element={<NavigateKeepingSearch to="transactions" />}
+                          />
+                        </Route>
+                        <Route
+                          path="/application/:id"
+                          element={<Application></Application>}
+                        >
+                          <Route
+                            path="transactions"
+                            element={
+                              <ApplicationTransactions></ApplicationTransactions>
+                            }
+                          />
+                          <Route
+                            path="boxes/*"
+                            element={<ApplicationBoxes></ApplicationBoxes>}
+                          />
+                          <Route
+                            path="versions/*"
+                            element={<ApplicationVersions />}
+                          />
+                          <Route
+                            path=""
+                            element={<NavigateKeepingSearch to="transactions" />}
+                          />
+                        </Route>
+                        <Route
+                          path="/transaction/:id/inner/*"
+                          element={<Transaction></Transaction>}
+                        ></Route>
+                        <Route
+                          path="/transaction/:id"
+                          element={<Transaction></Transaction>}
+                        ></Route>
+                        <Route
+                          path="/group/:id/:blockId"
+                          element={<Group></Group>}
+                        >
+                          <Route
+                            path="transactions"
+                            element={<GroupTransactions></GroupTransactions>}
+                          />
+                          <Route path="state-changes" element={<GroupStateChanges />} />
+                          <Route
+                            path=""
+                            element={<NavigateKeepingSearch to="transactions" />}
+                          />
+                        </Route>
+                        <Route
+                          path="/explorer/*"
+                          element={<StripExplorerFromPath />}
+                        />
+                        <Route path="/search" element={<SearchResults />} />
+                        <Route path="/debug/:id" element={<TraceDebug />} />
+                        <Route path="*" element={<SearchFromPath />} />
+                      </Routes>
                       </Suspense>
-                    </Explorer>
-                  </div>
-                }
-              />
-              <Route
-                path="*"
-                element={
-                  <>
-                  <TimeTravelBar />
-                  <div className="flex flex-col items-center justify-start">
-                    <div className="w-full max-w-[1280px]">
-                      <div className="overflow-auto min-h-svh flex flex-col">
-                        <div className="grow mx-5 mt-2.5 md:mx-[100px] md:mt-5">
-                          <Explorer>
-                            <Suspense fallback={<LoadingTile />}>
-                            <Routes>
-                              <Route index element={<Home></Home>} />
-                              <Route
-                                path="/explorer/home"
-                                element={<NavigateKeepingSearch to="/" />}
-                              />
-                              <Route
-                                path="/accounts"
-                                element={<Accounts></Accounts>}
-                              />
-                              <Route
-                                path="/transactions"
-                                element={<Transactions></Transactions>}
-                              />
-                              <Route path="/assets" element={<Assets></Assets>} />
-                              <Route
-                                path="/applications"
-                                element={<Applications></Applications>}
-                              />
-                              <Route path="/fees" element={<Fees></Fees>} />
-                              <Route path="/tps" element={<Tps></Tps>} />
-                              <Route path="/upgrades" element={<Upgrades />} />
-                              <Route path="/lsigs" element={<LsigTemplates />} />
-                              <Route path="/lsigs/:template" element={<LsigTemplate />} />
-                              <Route
-                                path="/account/:address"
-                                element={<Account></Account>}
-                              >
-                                <Route
-                                  path="assets"
-                                  element={<AccountAssets></AccountAssets>}
-                                />
-                                <Route
-                                  path="transactions"
-                                  element={<NavigateKeepingSearch to=".." />}
-                                />
-                                <Route
-                                  path="created-assets"
-                                  element={
-                                    <AccountCreatedAssets></AccountCreatedAssets>
-                                  }
-                                />
-                                <Route
-                                  path="created-applications"
-                                  element={
-                                    <AccountCreatedApplications></AccountCreatedApplications>
-                                  }
-                                />
-                                <Route
-                                  path="opted-applications"
-                                  element={
-                                    <AccountOptedApplications></AccountOptedApplications>
-                                  }
-                                />
-                                <Route
-                                  path="opted-applications/:id"
-                                  element={
-                                    <AccountOptedApplications></AccountOptedApplications>
-                                  }
-                                />
-                                <Route path="controller" element={<AccountController />}>
-                                  <Route
-                                    path="current"
-                                    element={<LatestOnly what="The accounts rekeyed to this one now"><AccountControllerTo /></LatestOnly>}
-                                  />
-                                  <Route path="history" element={<AccountRekeys side="from" />} />
-                                </Route>
-                                <Route
-                                  path="delegations"
-                                  element={<LatestOnly what="Delegations"><AccountDelegations /></LatestOnly>}
-                                />
-                                <Route
-                                  path="subsigners"
-                                  element={<LatestOnly what="Multisig signers"><AccountMultisig view="subsigners" /></LatestOnly>}
-                                />
-                                <Route
-                                  path="multisigs"
-                                  element={<LatestOnly what="Multisigs this key is in"><AccountMultisig view="multisigs" /></LatestOnly>}
-                                />
-                                <Route
-                                  path="rekeys"
-                                  element={<AccountRekeys />}
-                                />
-                                <Route
-                                  path="validator"
-                                  element={<AccountValidator />}
-                                />
-                                <Route
-                                  path="versions/*"
-                                  element={<AccountVersions />}
-                                />
-                                <Route
-                                  path="nfds"
-                                  element={<AccountNfdHistory />}
-                                />
-                                <Route
-                                  path=""
-                                  element={
-                                    <AccountTransactions></AccountTransactions>
-                                  }
-                                />
-                              </Route>
-                              <Route path="/block/:id" element={<Block></Block>}>
-                                <Route
-                                  path="transactions"
-                                  element={<BlockTransactions></BlockTransactions>}
-                                />
-                                <Route
-                                  path="delta"
-                                  element={<BlockStateChanges></BlockStateChanges>}
-                                />
-                                <Route
-                                  path=""
-                                  element={<NavigateKeepingSearch to="transactions" />}
-                                />
-                              </Route>
-                              <Route path="/asset/:id" element={<Asset></Asset>}>
-                                <Route
-                                  path="transactions"
-                                  element={<AssetTransactions></AssetTransactions>}
-                                />
-                                <Route
-                                  path="versions/*"
-                                  element={<AssetVersions />}
-                                />
-                                <Route
-                                  path="holders"
-                                  element={<AssetHolders />}
-                                />
-                                <Route
-                                  path=""
-                                  element={<NavigateKeepingSearch to="transactions" />}
-                                />
-                              </Route>
-                              <Route
-                                path="/application/:id"
-                                element={<Application></Application>}
-                              >
-                                <Route
-                                  path="transactions"
-                                  element={
-                                    <ApplicationTransactions></ApplicationTransactions>
-                                  }
-                                />
-                                <Route
-                                  path="boxes/*"
-                                  element={<ApplicationBoxes></ApplicationBoxes>}
-                                />
-                                <Route
-                                  path="versions/*"
-                                  element={<ApplicationVersions />}
-                                />
-                                <Route
-                                  path=""
-                                  element={<NavigateKeepingSearch to="transactions" />}
-                                />
-                              </Route>
-                              <Route
-                                path="/transaction/:id/inner/*"
-                                element={<Transaction></Transaction>}
-                              ></Route>
-                              <Route
-                                path="/transaction/:id"
-                                element={<Transaction></Transaction>}
-                              ></Route>
-                              <Route
-                                path="/group/:id/:blockId"
-                                element={<Group></Group>}
-                              >
-                                <Route
-                                  path="transactions"
-                                  element={<GroupTransactions></GroupTransactions>}
-                                />
-                                <Route path="state-changes" element={<GroupStateChanges />} />
-                                <Route
-                                  path=""
-                                  element={<NavigateKeepingSearch to="transactions" />}
-                                />
-                              </Route>
-                              <Route
-                                path="/explorer/*"
-                                element={<StripExplorerFromPath />}
-                              />
-                              <Route path="/search" element={<SearchResults />} />
-                              <Route path="*" element={<SearchFromPath />} />
-                            </Routes>
-                            </Suspense>
-                          </Explorer>
-                        </div>
-                        <Footer />
-                      </div>
-                    </div>
-                  </div>
-                  </>
-                }
-              />
-            </Routes>
+                    </Layout>
             <Loader></Loader>
             {/* The toasts, stacked in one corner */}
             <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-3">

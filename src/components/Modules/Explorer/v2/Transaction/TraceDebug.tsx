@@ -45,7 +45,8 @@ export default function TraceDebug(): JSX.Element {
   else if (!dev.traces?.some((x) => x.txid === id && Object.keys(x["exec-trace"] ?? {}).length)) {
     body = <Notice>No program ran in this transaction.</Notice>;
   } else {
-    body = <TraceStepper dev={dev} budget={budget?.budget} txId={id} />;
+    // Keyed on the transaction: moving to another starts its position and breakpoints afresh.
+    body = <TraceStepper key={id} dev={dev} budget={budget?.budget} txId={id} />;
   }
 
   return (

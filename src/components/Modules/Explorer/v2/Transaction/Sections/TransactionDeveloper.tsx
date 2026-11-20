@@ -391,6 +391,9 @@ function TraceLegend() {
   );
 }
 
+/** The debugger page's code, fetched as the pointer or focus nears its link: the trace it needs is already loaded. */
+const preloadDebugger = () => void import("../TraceDebug");
+
 /** Fetched when the tab opens: traces are large. Steps through them in the debugger page. */
 function TracesTab({ round, txId }: { round: number; txId: string }) {
   const { data, error, isLoading } = useTxnDevInfo(round, [txId], ["trace"], true);
@@ -402,7 +405,7 @@ function TracesTab({ round, txId }: { round: number; txId: string }) {
     <div>
       <div className="flex items-center gap-3 mb-2">
         <Button asChild variant="outline" size="sm" className="border-border text-primary hover:bg-primary/10">
-          <Link to={`/debug/${txId}`}>
+          <Link to={`/debug/${txId}`} onMouseEnter={preloadDebugger} onFocus={preloadDebugger}>
             <Bug />
             Step through it in the debugger
           </Link>
