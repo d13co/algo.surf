@@ -246,6 +246,21 @@ function Source({ T, f, curPc, sitePcs, matchPcs, bps, onGutter, onRun, map, lin
   const curLine = prog && curPc !== undefined ? prog.pcLine.get(curPc) : undefined;
   const ranges = useMemo(() => (prog && map && !prog.synthetic ? tealRanges(prog, map) : undefined), [prog, map]);
   const rangeOf = useMemo(() => (prog && ranges ? rangeIndex(ranges, prog.lines.length) : undefined), [prog, ranges]);
+  // The ranges with a find bar hit among their own ops (not their asides, which are another line's).
+  const hitRanges = useMemo(() => {
+    if (!prog || !ranges || !matchPcs?.size) return undefined;
+    const out = new Set<number>();
+    ranges.forEach((r, k) => {
+      for (let i = r.first; i <= r.last; i++) {
+        const pc = prog.lines[i].pc;
+        if (pc !== undefined && matchPcs.has(pc) && !r.asides?.has(pc)) {
+          out.add(k);
+          break;
+        }
+      }
+    });
+    return out;
+  }, [prog, ranges, matchPcs]);
   // Keep the current line in view, scrolling the panel only (not the page).
   useLayoutEffect(() => {
     const el = box.current;
@@ -288,6 +303,7 @@ function Source({ T, f, curPc, sitePcs, matchPcs, bps, onGutter, onRun, map, lin
           map={map}
           ranges={ranges}
           curRange={curLine === undefined ? -1 : rangeOf[curLine]}
+          hitRanges={hitRanges}
           hm={hm}
           lineBps={lineBps}
           onLineBp={onLineBp}

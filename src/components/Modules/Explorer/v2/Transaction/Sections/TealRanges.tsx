@@ -33,7 +33,7 @@ const SubBand = memo(function SubBand({ header }: { header: string }) {
 });
 
 /** A range's cell in the source column: its line, or why it has none. */
-const RangeSrc = memo(function RangeSrc({ r, k, cur, alt, bp, ran, onBp, onRun, onPart }: {
+const RangeSrc = memo(function RangeSrc({ r, k, cur, alt, bp, ran, match, onBp, onRun, onPart }: {
   r: TealRange;
   k: number;
   cur: boolean;
@@ -41,6 +41,8 @@ const RangeSrc = memo(function RangeSrc({ r, k, cur, alt, bp, ran, onBp, onRun, 
   alt: boolean;
   bp: boolean;
   ran: boolean;
+  /** One of the range's own ops is a find bar hit: marked as SourcePanel marks a line. */
+  match: boolean;
   onBp: (pcs: number[]) => void;
   onRun: (pcs: number[]) => void;
   onPart: (k: number) => void;
@@ -57,7 +59,10 @@ const RangeSrc = memo(function RangeSrc({ r, k, cur, alt, bp, ran, onBp, onRun, 
     return (
       <div className={rule}>
         <div
-          className={"sticky top-0 truncate pr-2 pl-[calc(0.75rem+4ch+0.75rem)] text-[11.5px] leading-5 italic text-muted @max-[34rem]:static"}
+          className={cn(
+            "sticky top-0 truncate pr-2 pl-[calc(0.75rem+4ch+0.75rem)] text-[11.5px] leading-5 italic text-muted @max-[34rem]:static",
+            match && "shadow-[inset_2px_0_0_#fb923c]",
+          )}
           title={r.library ? `No source line: code from ${r.library}, outside the contract's files` : "No source line: ops the compiler added (constant blocks, a subroutine's prologue, routing)"}
         >
           {r.library ? `library code · ${r.library}` : "added by the compiler"}
@@ -76,6 +81,7 @@ const RangeSrc = memo(function RangeSrc({ r, k, cur, alt, bp, ran, onBp, onRun, 
           "sticky top-0 grid grid-cols-[0.75rem_4ch_minmax(0,1fr)_auto] items-start gap-x-1.5 pr-2 pl-1 font-mono text-[12px] leading-5",
           "@max-[34rem]:static @max-[34rem]:pl-[calc(1.25rem+4ch+0.5rem)]",
           !ran && "opacity-60",
+          match && "shadow-[inset_2px_0_0_#fb923c]",
         )}
         onDoubleClick={ran ? () => (window.getSelection()?.removeAllRanges(), onRun(l.pcs)) : undefined}
         title={`${l.file}:${l.line}${more ? `-${l.end}` : ""}\n${(l.quoted ?? [l.text]).join("\n")}${ran ? "\n\nDouble-click to run to this line" : "\n\nNever ran"}`}
@@ -90,7 +96,7 @@ const RangeSrc = memo(function RangeSrc({ r, k, cur, alt, bp, ran, onBp, onRun, 
         >
           <span className={cn("h-2 w-2 rounded-full", bp ? "bg-red-500" : "group-hover:bg-red-500/40")} />
         </button>
-        <span className="text-right text-muted">{l.line}</span>
+        <span className={cn("text-right", match ? "text-orange-400" : "text-muted")}>{l.line}</span>
         <span className={cn("min-w-0 truncate", isMethodLine(l.text) ? "font-medium text-primary" : cur ? "text-foreground" : "text-muted-foreground")}>
           {l.text || <span className="text-muted">(line {l.line})</span>}
           {more ? <span className="ml-1.5 text-muted">+{more}</span> : null}
@@ -128,12 +134,14 @@ export function AsideChip({ line }: { line: SrcLine }) {
   );
 }
 
-export function RangedTeal({ hash, map, ranges, curRange, hm, lineBps, onLineBp, onRunLine, renderOps }: {
+export function RangedTeal({ hash, map, ranges, curRange, hitRanges, hm, lineBps, onLineBp, onRunLine, renderOps }: {
   hash: string;
   map: SourceMapping;
   ranges: TealRange[];
   /** The range of the current op, or -1. */
   curRange: number;
+  /** The ranges with a find bar hit among their own ops. */
+  hitRanges?: Set<number>;
   /** Hits by pc. */
   hm: Map<number, number>;
   lineBps: Set<string>;
@@ -174,7 +182,8 @@ export function RangedTeal({ hash, map, ranges, curRange, hm, lineBps, onLineBp,
   return (
     <div ref={box} data-teal-src="" onMouseOver={onOver} onMouseLeave={() => setHl(undefined)}>
       {/* One rule lights up the hovered line's ops, so the rows themselves don't re-render. */}
-      {hl ? <style>{`[data-teal-src] [data-l="${CSS.escape(hl)}"]{box-shadow:inset 0 0 0 100vmax rgb(252 211 77 / 0.13)}`}</style> : null}
+      {/* A background image, so it tints over the current row's colour and leaves the find bar's inset shadow showing. */}
+      {hl ? <style>{`[data-teal-src] [data-l="${CSS.escape(hl)}"]{background-image:linear-gradient(rgb(252 211 77 / 0.13),rgb(252 211 77 / 0.13))}`}</style> : null}
       {ranges.map((r, k) => {
         const l = r.line;
         return (
@@ -189,6 +198,7 @@ export function RangedTeal({ hash, map, ranges, curRange, hm, lineBps, onLineBp,
                 alt={k % 2 === 1}
                 bp={!!l && lineBps.has(lineBpKey(hash, l.pcs))}
                 ran={!l || ran.has(l)}
+                match={!!hitRanges?.has(k)}
                 onBp={onBp}
                 onRun={onRun}
                 onPart={onPart}
