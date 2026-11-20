@@ -3,7 +3,7 @@ import { matchSpec, type ProgramKind, type SourceMapping } from "src/utils/arc56
 import { mergeFiles, type MapFile, type Note, type SourceFile, type Target } from "src/utils/sourceFiles";
 import { lineBpKey, parseLineBpKey, type MapFor } from "src/utils/sourceStepper";
 import { deleteSpec, getSpec, listSpecs, putSpec, specsForApp, type SpecRecord } from "src/utils/specStore";
-import { appPrograms, isApp, matchOnApp, worthSaving, type ProgramMatch, type SpecInput } from "src/utils/traceSpecs";
+import { appPrograms, isApp, matchOnApp, otherApps, worthSaving, type ProgramMatch, type SpecInput } from "src/utils/traceSpecs";
 import type { Frame, Program, Stepper } from "src/utils/traceStepper";
 
 /**
@@ -277,5 +277,7 @@ export function useTraceSource(T: Stepper) {
       return r;
     };
   }, [T]);
-  return { srcs, older, saved, hashes, viewOf, setView, colOf, setCol, mapFor, lineMap, lineBps, toggleLineBp, matchOnly, addSpec, tryRecord, addFiles, removeSpec, appPrograms: progsOf };
+  /** The trace's other apps than frame `f`'s: a run of each (see otherApps). */
+  const others = useCallback((f: Frame) => otherApps(T, f), [T]);
+  return { srcs, older, saved, hashes, viewOf, setView, colOf, setCol, mapFor, lineMap, lineBps, toggleLineBp, matchOnly, addSpec, tryRecord, addFiles, removeSpec, appPrograms: progsOf, otherApps: others };
 }

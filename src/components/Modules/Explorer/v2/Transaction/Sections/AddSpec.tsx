@@ -3,8 +3,8 @@ import { FileCode2, FilePlus2, Upload, X } from "lucide-react";
 import { cn } from "src/lib/utils";
 import { sourceLang } from "src/utils/arc56Source";
 import { specSourcePaths, type Note } from "src/utils/sourceFiles";
-import type { SpecRecord } from "src/utils/specStore";
-import { fitsBetter, folderSources, folderSpecs, readAddedFiles, readSpecFiles, type FolderFit, type ReadFile, type SpecInput } from "src/utils/traceSpecs";
+import { getSpec, type SpecRecord } from "src/utils/specStore";
+import { bestFit, folderSources, folderSpecs, readAddedFiles, readSpecFiles, type ReadFile, type SpecInput } from "src/utils/traceSpecs";
 import type { Frame } from "src/utils/traceStepper";
 import type { Added, TraceSource } from "./useTraceSource";
 
@@ -70,6 +70,36 @@ function folderList(list: FileList) {
   return { files, folder: files[0]?.path.split("/")[0] || "The folder" };
 }
 
+type FolderEntry = ReturnType<typeof folderList>["files"][number];
+
+/** A folder's spec, read: its path there, its files (the spec, then its maps), and the spec. */
+type Cand = { path: string; files: ReadFile[]; spec: SpecInput };
+
+/** Reads a folder's specs with their maps, once; and those that couldn't be read, with why. */
+async function readCands(all: { spec: FolderEntry; maps: FolderEntry[] }[]): Promise<{ cands: Cand[]; unread: string[] }> {
+  const cands: Cand[] = [];
+  const unread: string[] = [];
+  for (const c of all) {
+    const files = await Promise.all([c.spec, ...c.maps].map((x) => readOne(x.file)));
+    const { spec, errors } = readSpecFiles(files);
+    if (spec) cands.push({ path: c.spec.path, files, spec });
+    else unread.push(`${c.spec.path}: ${errors.join("; ")}`);
+  }
+  return { cands, unread };
+}
+
+/** A folder's source files at `paths`, read. */
+const readSources = (files: FolderEntry[], paths: string[]) => (paths.length ? Promise.all(folderSources(files, paths).map((x) => readOne(x.file))) : Promise.resolve([]));
+
+/** ` with 1 .puya.map and 2 source files`, or nothing. */
+function found(maps: number, sources: number): string {
+  const t = [`${maps} .puya.${maps === 1 ? "map" : "maps"}`, `${sources} source ${sources === 1 ? "file" : "files"}`].filter((x) => !x.startsWith("0 ")).join(" and ");
+  return t ? ` with ${t}` : "";
+}
+
+/** A frame's app, as a message names it. */
+const appOf = (g: Frame) => (g.appId !== undefined && Number(g.appId) ? `app ${g.appId}` : "an app without an ID");
+
 const msgClass = (m: Msg) => (m.bad ? "text-red-400" : m.info ? "text-muted-foreground" : "text-green-400");
 
 const smallBtn = "inline-flex items-center gap-1 rounded border border-border/50 px-1.5 py-0.5 hover:bg-primary/15 cursor-pointer [&_svg]:size-3.5";
@@ -90,17 +120,20 @@ export function SourceBar({ f, src }: { f: Frame; src: TraceSource }) {
   const view = src.viewOf(hash);
 
   const failed = (e: unknown) => setMsgs([{ text: `Couldn't read the spec: ${e instanceof Error ? e.message : String(e)}`, bad: true }]);
-  const run = async (files: ReadFile[], lead: Msg[] = []) => {
+  /** Matches a spec (with its maps and source files) with frame `g`'s app and saves it: what it says, and whether `g`'s program took it. */
+  const addTo = async (g: Frame, files: ReadFile[]): Promise<{ msgs: Msg[]; ok: boolean }> => {
+    const { spec, errors } = readSpecFiles(files);
+    const errs = errors.map((text) => ({ text, bad: true }));
+    if (!spec) return { msgs: errs, ok: false };
+    const { added: ms, notes } = await src.addSpec(g, spec);
+    return { msgs: [...errs, ...matchLines(ms, spec), ...notes], ok: ms.some((m) => m.current && m.save) };
+  };
+  const run = async (files: ReadFile[]) => {
     setBusy(true);
     try {
-      const { spec, errors } = readSpecFiles(files);
-      if (!spec) {
-        setMsgs([...lead, ...errors.map((text) => ({ text, bad: true }))]);
-        return;
-      }
-      const { added: ms, notes } = await src.addSpec(f, spec);
-      setMsgs([...lead, ...errors.map((text) => ({ text, bad: true })), ...matchLines(ms, spec), ...notes]);
-      if (ms.some((m) => m.current && m.save)) {
+      const r = await addTo(f, files);
+      setMsgs(r.msgs);
+      if (r.ok) {
         setOpen(false);
         setPaste("");
       }
@@ -111,103 +144,140 @@ export function SourceBar({ f, src }: { f: Frame; src: TraceSource }) {
     }
   };
   const onFiles = async (list: FileList | null) => {
-    if (!list?.length) return;
+    if (!list?.length || busy) return;
     try {
       await run(await readList(list));
     } catch (e) {
       failed(e);
     }
   };
-  // Files added to the saved spec: maps and source files.
-  const add = async (files: ReadFile[], from?: string) => {
+  /** Maps and source files added to the saved specs of frame `g`'s app. */
+  const filesTo = async (g: Frame, files: ReadFile[]): Promise<Msg[]> => {
+    const saved = src.appPrograms(g).flatMap((p) => src.srcs.get(p.hash)?.rec.arc56 ?? []);
+    const r = readAddedFiles(files, saved);
+    const notes = r.maps.length || r.files.length ? await src.addFiles(g, r.maps, r.files) : [];
+    return [...r.errors.map((text) => ({ text, bad: true })), ...notes];
+  };
+  const onAddFiles = async (list: FileList | null) => {
+    if (!list?.length || busy) return;
     setBusy(true);
     try {
-      const saved = src.appPrograms(f).flatMap((p) => src.srcs.get(p.hash)?.rec.arc56 ?? []);
-      const r = readAddedFiles(files, saved);
-      const notes = r.maps.length || r.files.length ? await src.addFiles(f, r.maps, r.files) : [];
-      const none = !files.length && from ? [{ text: `${from} has no file named as one of the spec's source files.`, bad: true }] : [];
-      setMsgs([...none, ...r.errors.map((text) => ({ text, bad: true })), ...notes]);
+      setMsgs(await filesTo(f, await readList(list)));
     } catch (e) {
       failed(e);
     } finally {
       setBusy(false);
     }
   };
-  const onAddFiles = async (list: FileList | null) => {
-    if (!list?.length) return;
-    try {
-      await add(await readList(list));
-    } catch (e) {
-      failed(e);
-    }
-  };
-  // A folder: only its files named as one of the spec's source files are read (not node_modules').
-  const onFolder = async (list: FileList | null) => {
-    if (!list?.length || !have) return;
-    // The source paths of every saved spec of the app's programs.
-    const paths = src.appPrograms(f).flatMap((p) => {
+  /** The source paths of the saved specs of frame `g`'s app. */
+  const savedPaths = (g: Frame) =>
+    src.appPrograms(g).flatMap((p) => {
       const h = src.srcs.get(p.hash);
       return h ? specSourcePaths(h.map.lines, h.rec.puyaMap) : [];
     });
+  /** The source paths of the saved specs of frame `g`'s app without a saved file: an app's files already saved stay as they are. */
+  const missingPaths = (g: Frame) =>
+    src.appPrograms(g).flatMap((p) => {
+      const h = src.srcs.get(p.hash);
+      return h ? specSourcePaths(h.map.lines, h.rec.puyaMap).filter((path) => h.rec.sources?.[path] === undefined) : [];
+    });
+  /**
+   * The trace's other apps without a saved spec: inner calls and the
+   * group's other app calls. From the store, not `src.srcs`, which is
+   * empty until the saved specs load: an app's saved spec (and its source
+   * files) is never replaced by a folder's.
+   */
+  const unsaved = async () => {
+    const out: Frame[] = [];
+    for (const g of src.otherApps(f)) {
+      const recs = await Promise.all(src.appPrograms(g).map((p) => getSpec(p.hash)));
+      if (!recs.some(Boolean)) out.push(g);
+    }
+    return out;
+  };
+  /** Each of `apps`' best fit among a folder's specs, saved with its maps and the folder's source files at its paths. */
+  const specsFor = async (apps: Frame[], files: FolderEntry[], cands: Cand[], also: boolean): Promise<Msg[]> => {
+    const out: Msg[] = [];
+    for (const g of apps) {
+      // Matching every spec with every app: the page paints between apps.
+      await new Promise((r) => setTimeout(r));
+      const best = bestFit(cands, (spec) => src.matchOnly(g, spec));
+      if (!best) continue;
+      const sources = await readSources(files, best.paths);
+      const r = await addTo(g, [...best.cand.files, ...sources]);
+      out.push({ text: `${also ? "Also using" : "Using"} ${best.cand.path}${found(best.cand.files.length - 1, sources.length)}, for ${appOf(g)}.`, info: true }, ...r.msgs);
+    }
+    return out;
+  };
+  /**
+   * A folder for a saved spec: its source files at the spec's paths. Also
+   * for the trace's other apps: source files their saved specs don't have
+   * yet (not replacing any they do), and the folder's specs for those
+   * without one.
+   */
+  const onFolder = async (list: FileList | null) => {
+    if (!list?.length || !have || busy) return;
     const { files, folder } = folderList(list);
+    setBusy(true);
     try {
-      await add(await Promise.all(folderSources(files, paths).map((x) => readOne(x.file))), folder);
+      const mine = await readSources(files, savedPaths(f));
+      const out: Msg[] = mine.length ? await filesTo(f, mine) : [];
+      for (const g of src.otherApps(f)) {
+        const theirs = await readSources(files, missingPaths(g));
+        if (theirs.length) out.push({ text: `For ${appOf(g)}:`, info: true }, ...(await filesTo(g, theirs)));
+      }
+      const apps = await unsaved();
+      if (apps.length) out.push(...(await specsFor(apps, files, (await readCands(folderSpecs(files))).cands, false)));
+      // Nothing for this spec: an error only when the folder gave nothing at all.
+      if (!mine.length) out.unshift({ text: `${folder} has no file named as one of this spec's source files.`, bad: !out.length, info: out.length > 0 });
+      setMsgs(out);
     } catch (e) {
       failed(e);
+    } finally {
+      setBusy(false);
     }
   };
   /**
    * A project or artifacts folder, before any spec: its ARC-56 spec that
    * fits this program best (see fitsBetter), with the .puya.maps beside it
-   * and the source files at its paths. Only those files are read.
+   * and the source files at its paths. Only those files are read. Its
+   * specs are tried against the trace's other apps without a saved spec
+   * too (inner calls, the group's other app calls).
    */
   const onSpecFolder = async (list: FileList | null) => {
-    if (!list?.length) return;
+    if (!list?.length || busy) return;
     const { files, folder } = folderList(list);
     setBusy(true);
     try {
-      const cands = folderSpecs(files);
-      if (!cands.length) {
+      const all = folderSpecs(files);
+      if (!all.length) {
         setMsgs([{ text: `${folder} has no ARC-56 spec (*.arc56.json) outside node_modules.`, bad: true }]);
         return;
       }
       // Every candidate is tried, the best fit kept (see fitsBetter): a spec copy without its maps loses to the build output with them.
-      let best: { files: ReadFile[]; path: string; paths: string[]; fit: FolderFit } | undefined;
-      const unread: string[] = [];
-      for (const c of cands) {
-        const read = await Promise.all([c.spec, ...c.maps].map((x) => readOne(x.file)));
-        const { spec, errors } = readSpecFiles(read);
-        if (!spec) {
-          unread.push(`${c.spec.path}: ${errors.join("; ")}`);
-          continue;
-        }
-        const ms = src.matchOnly(f, spec);
-        const cur = ms.find((m) => m.current);
-        if (!cur?.save || "mismatch" in cur.result) continue;
-        const fit: FolderFit = {
-          exact: !!cur.result.exact,
-          programs: ms.filter((m) => m.save && !("mismatch" in m.result)).length,
-          map: !!cur.puyaMap,
-          depth: c.spec.path.split("/").length,
-        };
-        if (fitsBetter(fit, best?.fit)) {
-          const paths = ms.flatMap((m) => ("mismatch" in m.result ? [] : specSourcePaths(m.result.lines, m.puyaMap)));
-          best = { files: read, path: c.spec.path, paths, fit };
-        }
-      }
-      if (!best) {
-        const list = cands.slice(0, 4).map((c) => c.spec.name).join(", ");
-        setMsgs([
-          { text: `None of the ${cands.length} ARC-56 ${cands.length === 1 ? "spec" : "specs"} in ${folder} (${list}${cands.length > 4 ? ", …" : ""}) matches this program.`, bad: true },
+      const { cands, unread } = await readCands(all);
+      const best = bestFit(cands, (spec) => src.matchOnly(f, spec));
+      const out: Msg[] = [];
+      let ok = false;
+      if (best) {
+        const sources = await readSources(files, best.paths);
+        const r = await addTo(f, [...best.cand.files, ...sources]);
+        out.push({ text: `Using ${best.cand.path}${found(best.cand.files.length - 1, sources.length)}.`, info: true }, ...r.msgs);
+        ok = r.ok;
+      } else {
+        const names = all.slice(0, 4).map((c) => c.spec.name).join(", ");
+        out.push(
+          { text: `None of the ${all.length} ARC-56 ${all.length === 1 ? "spec" : "specs"} in ${folder} (${names}${all.length > 4 ? ", …" : ""}) matches this program.`, bad: true },
           ...unread.slice(0, 3).map((text) => ({ text: `Couldn't read ${text}`, bad: true })),
           ...(unread.length > 3 ? [{ text: `…and ${unread.length - 3} more specs couldn't be read.`, bad: true }] : []),
-        ]);
-        return;
+        );
       }
-      const sources = await Promise.all(folderSources(files, best.paths).map((x) => readOne(x.file)));
-      const maps = best.files.length - 1;
-      const found = [`${maps} .puya.${maps === 1 ? "map" : "maps"}`, `${sources.length} source ${sources.length === 1 ? "file" : "files"}`].filter((t) => !t.startsWith("0 ")).join(" and ");
-      await run([...best.files, ...sources], [{ text: `Using ${best.path}${found ? ` with ${found}` : ""}.`, info: true }]);
+      out.push(...(await specsFor(await unsaved(), files, cands, !!best)));
+      setMsgs(out);
+      if (ok) {
+        setOpen(false);
+        setPaste("");
+      }
     } catch (e) {
       failed(e);
     } finally {
@@ -334,7 +404,7 @@ export function SourceBar({ f, src }: { f: Frame; src: TraceSource }) {
                   className={smallBtn}
                   disabled={busy}
                   onClick={() => folderInput.current?.click()}
-                  title="A project or artifacts folder: its *.arc56.json that matches this program is used, with the .puya.maps beside it and its source files. Only those files are read."
+                  title="A project or artifacts folder: its *.arc56.json that matches this program is used, with the .puya.maps beside it and its source files, and those that match the trace's other apps (inner calls too). Only those files are read."
                 >
                   choose folder
                 </button>
@@ -402,7 +472,7 @@ function AddFiles({ busy, onFiles, onFolder }: { busy: boolean; onFiles: (l: Fil
         <button type="button" className={smallBtn} disabled={busy} onClick={() => files.current?.click()}>
           choose files
         </button>
-        <button type="button" className={smallBtn} disabled={busy} onClick={() => folder.current?.click()} title="Only the folder's files named as the spec's source files are read">
+        <button type="button" className={smallBtn} disabled={busy} onClick={() => folder.current?.click()} title="The spec's source files from a folder, and those of the trace's other apps; their specs too, for apps without one">
           choose folder
         </button>
         <input ref={files} type="file" multiple accept=".map,.ts,.py,application/json" className="hidden" aria-label="Files to add to the spec" onChange={(e) => (onFiles(e.target.files), (e.target.value = ""))} />

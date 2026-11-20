@@ -1,6 +1,6 @@
 import type { Arc56Contract } from "@algorandfoundation/algokit-utils/types/app-arc56";
 import { matchSpec, type Mismatch, type ProgramKind, type PuyaMap, type SourceMapping } from "./arc56Source";
-import { isSourceName, suffixLength, type MapFile, type SourceFile } from "./sourceFiles";
+import { isSourceName, specSourcePaths, suffixLength, type MapFile, type SourceFile } from "./sourceFiles";
 import type { Frame, Program, Stepper } from "./traceStepper";
 
 /**
@@ -51,6 +51,27 @@ export function appPrograms(T: Stepper, f: Frame): { hash: string; kind: Program
   const out = [{ hash: f.hash, kind: f.kind, prog: f.prog, appId, current: true }];
   const other = appId === undefined ? undefined : T.frames.find((g) => isApp(g) && g.kind !== f.kind && appNum(g) === appId && g.hash !== f.hash);
   if (other && isApp(other)) out.push({ hash: other.hash, kind: other.kind, prog: other.prog, appId, current: false });
+  return out;
+}
+
+/**
+ * The trace's other apps: a run of each app that isn't `f`'s, one per app
+ * (an app's approval and clear programs are one; apps running the same
+ * program are one too, as specs are saved by program), in trace order. Inner
+ * calls, and the group's other app calls. An app is its approval
+ * program's first run where the trace has one: a clear program alone
+ * (Puya's default one has no source lines) doesn't save a spec.
+ */
+export function otherApps(T: Stepper, f: Frame): Frame[] {
+  const seen = new Set(appPrograms(T, f).map((p) => p.hash));
+  const out: Frame[] = [];
+  for (const g of T.frames) {
+    if (!isApp(g) || seen.has(g.hash)) continue;
+    const progs = appPrograms(T, g);
+    for (const p of progs) seen.add(p.hash);
+    const approval = g.kind === "clear" ? progs.find((p) => p.kind === "approval") : undefined;
+    out.push((approval && T.frames.find((h) => isApp(h) && h.hash === approval.hash)) || g);
+  }
   return out;
 }
 
@@ -233,6 +254,28 @@ export function folderSources<F extends FolderFile>(files: F[], paths: string[])
     const rel = f.path.slice(f.path.indexOf("/") + 1);
     return paths.some((p) => suffixLength(p, rel) === segCount(rel) || suffixLength(p, f.path) === segCount(p));
   });
+}
+
+/**
+ * Of a folder's specs, the one that fits a program best (see fitsBetter),
+ * by `match`ing each with it (and its app's other program), and the source
+ * paths of the matches it saves. None when no spec saves for the program.
+ */
+export function bestFit<C extends { path: string; spec: SpecInput }>(cands: C[], match: (spec: SpecInput) => ProgramMatch[]): { cand: C; paths: string[]; fit: FolderFit } | undefined {
+  let best: { cand: C; paths: string[]; fit: FolderFit } | undefined;
+  for (const c of cands) {
+    const ms = match(c.spec);
+    const cur = ms.find((m) => m.current);
+    if (!cur?.save || "mismatch" in cur.result) continue;
+    const fit: FolderFit = {
+      exact: !!cur.result.exact,
+      programs: ms.filter((m) => m.save && !("mismatch" in m.result)).length,
+      map: !!cur.puyaMap,
+      depth: c.path.split("/").length,
+    };
+    if (fitsBetter(fit, best?.fit)) best = { cand: c, paths: ms.flatMap((m) => (!m.save || "mismatch" in m.result ? [] : specSourcePaths(m.result.lines, m.puyaMap))), fit };
+  }
+  return best;
 }
 
 /** How well a folder's spec fits a program: see fitsBetter. */

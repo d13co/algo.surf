@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { programHash, type SourceMapping } from "./arc56Source";
 import { buildStepper, type Frame } from "./traceStepper";
-import { appPrograms, fitsBetter, folderSources, folderSpecs, mapKind, matchOnApp, readSpecFiles, worthSaving } from "./traceSpecs";
+import { appPrograms, bestFit, fitsBetter, folderSources, folderSpecs, mapKind, matchOnApp, otherApps, readSpecFiles, worthSaving } from "./traceSpecs";
 import type { SCDevRound } from "./txnDevInfo";
 
 const text = (name: string) => readFileSync(new URL(`./__fixtures__/${name}`, import.meta.url), "utf8");
@@ -106,6 +106,58 @@ describe("trace specs", () => {
     expect((a.result as SourceMapping).errors.size).toBeGreaterThan(0);
     expect(a.save).toBe(true);
     expect(worthSaving("clear", a.result)).toBe(false);
+  });
+});
+
+describe("the trace's other apps", () => {
+  const counter = JSON.parse(text("Counter.approval.disassembly.json")) as typeof disasm;
+  // App 1006's approval and clear programs, then app 2000's approval program twice.
+  const three: SCDevRound = {
+    ...dev,
+    traces: [
+      ...dev.traces,
+      { txid: "C", "exec-trace": { "approval-program-hash": counter.hash, "approval-program-trace": [{ pc: 1 }] } },
+      { txid: "D", "exec-trace": { "approval-program-hash": counter.hash, "approval-program-trace": [{ pc: 1 }] } },
+    ],
+    programs: [disasm, clearProg, counter],
+  };
+  const T = buildStepper(three, [
+    ...budget,
+    { path: [2], txid: "C", kind: "approval" as const, "app-id": 2000, cost: 1, "budget-before": 697, "budget-after": 696 },
+    { path: [3], txid: "D", kind: "approval" as const, "app-id": 2000, cost: 1, "budget-before": 696, "budget-after": 695 },
+  ]);
+  const escreg = T.frames.find((f) => f.hash === disasm.hash) as Frame;
+  const ctr = T.frames.find((f) => f.hash === counter.hash) as Frame;
+
+  it("lists each other app once, by its first run", () => {
+    expect(otherApps(T, escreg).map((g) => [g.hash, g.appId])).toEqual([[counter.hash, ctr.appId]]);
+    expect(otherApps(T, escreg)[0]).toBe(ctr);
+    // App 1006's approval and clear programs are one app.
+    expect(otherApps(T, ctr).map((g) => g.hash)).toEqual([disasm.hash]);
+  });
+
+  it("stands for an app by its approval run, even after a clear run", () => {
+    const [a, b, c, d] = three.traces;
+    const T2 = buildStepper({ ...three, traces: [b, a, c, d] }, [
+      { ...budget[1], path: [0] },
+      { ...budget[0], path: [1] },
+      { path: [2], txid: "C", kind: "approval" as const, "app-id": 2000, cost: 1, "budget-before": 697, "budget-after": 696 },
+      { path: [3], txid: "D", kind: "approval" as const, "app-id": 2000, cost: 1, "budget-before": 696, "budget-after": 695 },
+    ]);
+    const ctr2 = T2.frames.find((f) => f.hash === counter.hash) as Frame;
+    expect(otherApps(T2, ctr2).map((g) => g.kind)).toEqual(["approval"]);
+  });
+
+  it("picks each app's spec from a folder's", () => {
+    const escregSpec = readSpecFiles(files).spec!;
+    const counterSpec = readSpecFiles([{ name: "Counter.arc56.json", text: text("Counter.arc56.json") }]).spec!;
+    const cands = [
+      { path: "proj/artifacts/Counter.arc56.json", spec: counterSpec },
+      { path: "proj/artifacts/Escreg.arc56.json", spec: escregSpec },
+    ];
+    expect(bestFit(cands, (spec) => matchOnApp(T, escreg, spec))?.cand.path).toBe("proj/artifacts/Escreg.arc56.json");
+    expect(bestFit(cands, (spec) => matchOnApp(T, ctr, spec))?.cand.path).toBe("proj/artifacts/Counter.arc56.json");
+    expect(bestFit(cands.slice(1), (spec) => matchOnApp(T, ctr, spec))).toBeUndefined();
   });
 });
 
