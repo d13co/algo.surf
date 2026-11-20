@@ -1,0 +1,431 @@
+import { readFileSync } from "node:fs";
+import type { Arc56Contract } from "@algorandfoundation/algokit-utils/types/app-arc56";
+import { describe, expect, it } from "vitest";
+import {
+  matchProgram,
+  matchSpec,
+  parseTeal,
+  programHash,
+  sourceErrors,
+  specTeal,
+  type Mismatch,
+  type PuyaMap,
+  type SourceMapping,
+} from "./arc56Source";
+import type { Program } from "./traceStepper";
+
+const fixture = (name: string) => JSON.parse(readFileSync(new URL(`./__fixtures__/${name}`, import.meta.url), "utf8"));
+const spec: Arc56Contract = fixture("TimeSeek.arc56.json");
+const approvalMap: PuyaMap = fixture("TimeSeek.approval.puya.map");
+const clearMap: PuyaMap = fixture("TimeSeek.clear.puya.map");
+const escreg: Arc56Contract = fixture("Escreg.arc56.json");
+const escregMap: PuyaMap = fixture("Escreg.approval.puya.map");
+
+const bytes = (b64: string) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+
+function program(lines: { pc?: number; text: string }[], hash = "H"): Program {
+  return { hash, lines, pcLine: new Map(lines.flatMap((l, i) => (l.pc === undefined ? [] : [[l.pc, i]]))) };
+}
+
+/** A disassembly made from a map's pc_events: a pragma, then each op at its pc. */
+function fromMap(map: PuyaMap, hash?: string): Program {
+  const ops = Object.entries(map.pc_events)
+    .map(([pc, e]) => ({ pc: Number(pc), text: e.op }))
+    .sort((a, b) => a.pc - b.pc);
+  return program([{ text: "#pragma version 11" }, ...ops], hash);
+}
+
+/** Escreg's approval program as a localnet node disassembled it (from a trace's `programs`). */
+const escregProg = (): Program => {
+  const p = fixture("Escreg.approval.disassembly.json");
+  return program(p.lines, p.hash);
+};
+
+function ok(m: SourceMapping | Mismatch): SourceMapping {
+  if ("mismatch" in m) throw new Error(m.mismatch);
+  return m;
+}
+
+/** A v3 source map's `mappings`: per generated line (here, per pc), its first segment's source line (1-based). */
+function mapLines(map: PuyaMap): Map<number, number> {
+  const B = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  const vlq = (s: string) => {
+    const out: number[] = [];
+    let v = 0;
+    let sh = 0;
+    for (const ch of s) {
+      const d = B.indexOf(ch);
+      v += (d & 31) << sh;
+      if (d & 32) sh += 5;
+      else {
+        out.push(v & 1 ? -(v >> 1) : v >> 1);
+        v = sh = 0;
+      }
+    }
+    return out;
+  };
+  const byGen = new Map<number, number>();
+  let line = 0;
+  map.mappings.split(";").forEach((g, gen) => {
+    for (const seg of g ? g.split(",") : []) {
+      const f = vlq(seg);
+      if (f.length < 4) continue;
+      line += f[2];
+      if (!byGen.has(gen)) byGen.set(gen, line + 1);
+    }
+  });
+  return byGen;
+}
+
+/** Every pc where the map has a source line: ours agrees. */
+function agreesWithMappings(m: SourceMapping, map: PuyaMap) {
+  const lines = mapLines(map);
+  const off = map.op_pc_offset ?? 0;
+  let n = 0;
+  for (const pc of Object.keys(map.pc_events).map(Number)) {
+    const want = lines.get(pc + off);
+    if (want === undefined) continue;
+    expect([pc, m.byPc.get(pc)?.line]).toEqual([pc, want]);
+    n++;
+  }
+  return n;
+}
+
+const FILE = "contracts/time_seek/contract.algo.ts";
+
+describe("the TimeSeek spec", () => {
+  const hash = programHash(bytes(spec.byteCode.approval));
+  const prog = fromMap(approvalMap, hash);
+  const teal = specTeal(spec, "approval");
+
+  it("has as many ops as the program, with the same names", () => {
+    expect(parseTeal(teal)).toHaveLength(505);
+    expect(prog.lines.filter((l) => l.pc !== undefined)).toHaveLength(505);
+    ok(matchProgram(prog, teal));
+  });
+
+  it("maps pcs to source lines", () => {
+    const m = ok(matchSpec(prog, spec, "approval", approvalMap));
+    expect(m.exact).toBe(true);
+    // intcblock, before the first location comment.
+    expect(m.byPc.get(1)).toBeUndefined();
+    expect(m.byPc.get(10)).toMatchObject({ file: FILE, line: 49, text: "export class TimeSeek extends Contract {" });
+    expect(m.byPc.get(31)).toMatchObject({ file: FILE, line: 41, text: expect.stringMatching(/^function timestampAt\(at: uint64/) });
+    // itxn_begin, under a 28-33 range.
+    expect(m.byPc.get(89)).toMatchObject({ file: FILE, line: 28, text: "itxn" });
+    const l28 = m.lines.find((l) => l.line === 28);
+    expect(m.byPc.get(89)).toBe(l28);
+    expect(l28.pcs).toContain(89);
+    expect(l28.pcs).toEqual([...l28.pcs].sort((a, b) => a - b));
+    expect(m.lines.map((l) => l.line)).toEqual([...new Set(m.lines.map((l) => l.line))].sort((a, b) => a - b));
+    expect(m.lines.reduce((n, l) => n + l.pcs.length, 0)).toBe(m.byPc.size);
+  });
+
+  it("agrees with the .puya.map's mappings", () => {
+    expect(agreesWithMappings(ok(matchSpec(prog, spec, "approval")), approvalMap)).toBeGreaterThan(400);
+  });
+
+  it("names subroutines, failures and stack values", () => {
+    const m = ok(matchSpec(prog, spec, "approval", approvalMap));
+    expect([...m.subs.keys()]).toEqual([1, 31, 137, 877]);
+    expect(m.subs.get(31)).toBe(`${FILE}::timestampAt(at: uint64, home: uint64, round: uint64) -> bytes`);
+    expect(m.subs.get(1)).toMatch(/::Contract\.approvalProgram\(\) -> uint64$/);
+    // The map names the same subroutines' first ops.
+    const mapSubs = Object.entries(approvalMap.pc_events).flatMap(([pc, e]) => (e.subroutine ? [Number(pc)] : []));
+    expect([...m.subs.keys()]).toEqual(mapSubs);
+    expect(m.errors.get(148)).toBe("invalid number of bytes for arc4.uint64");
+    expect(m.errors.get(158)).toBe("invalid number of bytes for arc4.uint64");
+    expect(m.stackOut.get(10)).toEqual(["Method(roundAt(uint64,uint64)(uint64,uint64,uint64,uint64))"]);
+    expect(m.mapMismatch).toBeUndefined();
+  });
+
+  it("matches the clear program with source.clear, not source.approval", () => {
+    const clear = fromMap(clearMap, programHash(bytes(spec.byteCode.clear)));
+    const m = ok(matchSpec(clear, spec, "clear", clearMap));
+    expect(m.byPc.size).toBe(0);
+    expect(m.subs.get(1)).toMatch(/::BaseContract\.clearStateProgram\(\) -> uint64$/);
+    expect(matchSpec(clear, spec, "approval")).toEqual({ mismatch: "the spec's byteCode is a different program" });
+    expect(matchProgram(clear, teal)).toEqual({ mismatch: "op 1 (pc 1, TEAL line 6): the program has `pushint`, the spec `intcblock`" });
+  });
+
+  it("keeps the TEAL match when the map is for another program", () => {
+    const m = ok(matchSpec(prog, spec, "approval", clearMap));
+    expect(m.mapMismatch).toBe("op 1 (pc 10, map pc 1): the program has `pushbytes`, the .puya.map has `pushint`");
+    expect(m.stackOut).toBeUndefined();
+    expect(m.byPc.get(89)?.line).toBe(28);
+  });
+
+  it("names the first differing op", () => {
+    const lines = prog.lines.map((l) => (l.pc === 31 ? { ...l, text: "dup" } : l));
+    expect(matchProgram(program(lines), teal)).toEqual({ mismatch: "op 10 (pc 31, TEAL line 27): the program has `dup`, the spec `proto`" });
+  });
+
+  it("counts ops, naming the first extra one", () => {
+    const short = program(prog.lines.slice(0, -1));
+    expect(matchProgram(short, teal)).toEqual({
+      mismatch: expect.stringMatching(/^the program has 504 ops, the spec 505: the spec's op 505 \(`\w+`, TEAL line \d+\) is extra$/),
+    });
+    const long = program([...prog.lines, { pc: 9999, text: "retsub" }]);
+    expect(matchProgram(long, teal)).toEqual({ mismatch: "the program has 506 ops, the spec 505: the program's op 506 (`retsub` at pc 9999) is extra" });
+  });
+
+  it("has no match without a disassembly", () => {
+    expect(matchProgram({ ...prog, synthetic: true }, teal)).toHaveProperty("mismatch");
+  });
+});
+
+describe("the Escreg spec, against a node's disassembly", () => {
+  const prog = escregProg();
+
+  it("matches byte for byte, with its map", () => {
+    const m = ok(matchSpec(prog, escreg, "approval", escregMap));
+    expect(m.exact).toBe(true);
+    expect(m.mapMismatch).toBeUndefined();
+    expect(m.stackOut.size).toBeGreaterThan(0);
+    expect(agreesWithMappings(m, escregMap)).toBeGreaterThan(400);
+    for (const pc of m.errors.keys()) expect(prog.pcLine.has(pc)).toBe(true);
+  });
+
+  it("matches its constants: `bytecblock \"counter\" …` is the node's `bytecblock 0x636f756e746572 …`", () => {
+    ok(matchProgram(prog, specTeal(escreg, "approval")));
+  });
+
+  it("refuses another program's hash", () => {
+    expect(matchSpec({ ...prog, hash: "X" }, escreg, "approval")).toEqual({ mismatch: "the spec's byteCode is a different program" });
+  });
+
+  it("refuses a changed constant when there is no byteCode", () => {
+    const noCode = { ...escreg, byteCode: undefined };
+    ok(matchSpec(prog, noCode, "approval"));
+    const lines = prog.lines.map((l) => (l.pc === 1 ? { ...l, text: "intcblock 0 1 8 33" } : l));
+    expect(matchSpec(program(lines), noCode, "approval")).toEqual({
+      mismatch: "op 1 (pc 1, TEAL line 6): `intcblock` value 4 is 33 in the program, 32 in the spec",
+    });
+    const counter = prog.lines.map((l) => (l.pc === 7 ? { ...l, text: l.text.replace("0x636f756e746572", "0x636f756e746573") } : l));
+    expect(matchSpec(program(counter), noCode, "approval")).toEqual({
+      mismatch: "op 2 (pc 7, TEAL line 7): `bytecblock` value 1 is 636f756e746573 in the program, 636f756e746572 in the spec",
+    });
+  });
+
+  it("matches by ops alone with template variables", () => {
+    const tmpl = { ...escreg, templateVariables: { X: { type: "uint64" } } } as Arc56Contract;
+    const m = ok(matchSpec({ ...prog, hash: "X" }, tmpl, "approval"));
+    expect(m.exact).toBeUndefined();
+  });
+
+  it("refuses a map whose pcs aren't the program's", () => {
+    const pc_events = Object.fromEntries(Object.entries(escregMap.pc_events).map(([pc, e], i) => [String(Number(pc) + (i > 3 ? 1 : 0)), e]));
+    const m = ok(matchSpec(prog, escreg, "approval", { ...escregMap, pc_events }));
+    expect(m.mapMismatch).toMatch(/^op 5 is at pc \d+ in the program, \d+ in the \.puya\.map$/);
+  });
+});
+
+describe("parseTeal", () => {
+  it("keeps a range's first line, and later ops on the latest location", () => {
+    const ops = parseTeal(
+      [
+        "#pragma version 11",
+        "// a.ts::f() -> void:",
+        "f:",
+        "    // a.ts:3-5",
+        "    // foo({",
+        "    //   fee:0",
+        "    // })",
+        "    itxn_begin",
+        "",
+        "f_next@1:",
+        "    itxn_submit",
+        "    //   a.ts:7",
+        "    // return",
+        "    retsub",
+      ].join("\n"),
+    );
+    expect(ops.map((o) => [o.op, o.loc?.line, o.loc?.text])).toEqual([
+      ["itxn_begin", 3, "foo({"],
+      ["itxn_submit", 3, "foo({"],
+      ["retsub", 7, "return"],
+    ]);
+    expect(ops.every((o) => o.sub === "a.ts::f() -> void")).toBe(true);
+    expect(ops[0].line).toBe(8);
+    // The range's end and every line it quotes; a single line has neither.
+    expect([ops[0].loc?.end, ops[0].loc?.quoted]).toEqual([5, ["foo({", "fee:0", "})"]]);
+    expect(ops[2].loc).toEqual({ file: "a.ts", line: 7, text: "return" });
+  });
+
+  it("keeps the widest range that starts on a line", () => {
+    const m = ok(matchSpec(escregProg(), escreg, "approval"));
+    const l = m.lines.find((x) => x.file === "smart_contracts/escreg/contract.algo.ts" && x.line === 291);
+    expect(l?.end).toBe(298);
+    expect(l?.quoted?.length).toBe(8);
+    expect(l?.quoted?.[0]).toBe("itxn");
+  });
+
+  it("starts a new location on a location comment, quoted lines or not", () => {
+    const ops = parseTeal(["// a.ts:1-3", "// x(", "// a.ts:9", "", "pop", "// a.ts:4", "// a.ts:5", "// y", "pop"].join("\n"));
+    expect(ops.map((o) => [o.loc?.line, o.loc?.text])).toEqual([
+      [9, ""],
+      [5, "y"],
+    ]);
+  });
+
+  it("takes the first quoted line even when blank, and ignores prose", () => {
+    const ops = parseTeal(["// a.ts:1-2", "//", "// y", "pop", "// max depth:64", "pop"].join("\n"));
+    expect(ops.map((o) => [o.loc?.line, o.loc?.text])).toEqual([
+      [1, ""],
+      [1, ""],
+    ]);
+  });
+
+  it("drops trailing comments, but not inside strings or base64", () => {
+    const ops = parseTeal(
+      [
+        "intc_2 // 1000",
+        'pushbytes "a // b: c" // comment',
+        'byte "say \\"hi//\\"" // x',
+        "byte base64 ab//cd== // x",
+        "byte b64(ab//cd==)// x",
+        'pushbytes 0x6c91aaa1 // method "f()void"',
+        "int 1; int 2 // two ops",
+        "label: // a label",
+        "main: txn Sender // a label and an op",
+      ].join("\n"),
+    );
+    expect(ops.map((o) => o.op)).toEqual([
+      "intc_2",
+      'pushbytes "a // b: c"',
+      'byte "say \\"hi//\\""',
+      "byte base64 ab//cd==",
+      "byte b64(ab//cd==)",
+      "pushbytes 0x6c91aaa1",
+      "int 1",
+      "int 2",
+      "txn Sender",
+    ]);
+  });
+
+  it("starts a subroutine's ops without the previous location", () => {
+    const ops = parseTeal(["// a.ts:1", "// x", "retsub", "", "// a.ts::g() -> void:", "g:", "proto 0 0"].join("\n"));
+    expect(ops[1]).toMatchObject({ op: "proto 0 0", loc: undefined, sub: "a.ts::g() -> void" });
+  });
+});
+
+describe("matchProgram", () => {
+  // As the node disassembles it: its own labels and constant comments.
+  const disasm = program([
+    { text: "#pragma version 10" },
+    { pc: 1, text: "intcblock 1 18446744073709551615" },
+    { pc: 12, text: "txna ApplicationArgs 0" },
+    { pc: 15, text: "bz label1" },
+    { pc: 18, text: "intc_1 // 18446744073709551615" },
+    { pc: 19, text: "callsub label2" },
+    { pc: 22, text: "return" },
+    { text: "label1:" },
+    { pc: 23, text: "pushint 7" },
+    { pc: 25, text: "return" },
+    { text: "label2:" },
+    { pc: 26, text: "proto 1 1" },
+    { pc: 29, text: "retsub" },
+  ]);
+  const teal = [
+    "#pragma version 10",
+    "// a.ts::main() -> uint64:",
+    "main:",
+    "    intcblock 1 TMPL_LIMIT",
+    "    // a.ts:2",
+    "    // if (x) {",
+    "    txn ApplicationArgs 0 // array field",
+    "    bz main_else@1",
+    "    // a.ts:3",
+    "    // return f(LIMIT)",
+    "    int TMPL_LIMIT",
+    "    callsub f",
+    "    return",
+    "",
+    "main_else@1:",
+    "    // a.ts:5",
+    "    // return 7",
+    "    pushint 0x07",
+    "    return",
+    "",
+    "",
+    "// a.ts::f(n: uint64) -> uint64:",
+    "f:",
+    "    // a.ts:9",
+    "    // function f(n: uint64): uint64 {",
+    "    proto 1 1",
+    "    retsub",
+  ].join("\n");
+
+  it("pairs ops by order, through template variables and pseudo-ops", () => {
+    const m = ok(matchProgram(disasm, teal));
+    expect(m.byPc.get(1)).toBeUndefined();
+    expect(m.byPc.get(18)).toMatchObject({ file: "a.ts", line: 3, text: "return f(LIMIT)" });
+    expect(m.byPc.get(23)?.line).toBe(5);
+    expect(m.lines.map((l) => [l.line, l.pcs])).toEqual([
+      [2, [12, 15]],
+      [3, [18, 19, 22]],
+      [5, [23, 25]],
+      [9, [26, 29]],
+    ]);
+    expect(m.subs).toEqual(
+      new Map([
+        [1, "a.ts::main() -> uint64"],
+        [26, "a.ts::f(n: uint64) -> uint64"],
+      ]),
+    );
+  });
+
+  it("refuses a changed constant", () => {
+    expect(matchProgram(disasm, teal.replace("pushint 0x07", "pushint 8"))).toEqual({
+      mismatch: "op 7 (pc 23, TEAL line 18): `pushint` value 1 is 7 in the program, 8 in the spec",
+    });
+  });
+
+  it("skips constant blocks the assembler added", () => {
+    const noBlock = teal.replace("    intcblock 1 TMPL_LIMIT\n", "");
+    expect(ok(matchProgram(disasm, noBlock)).subs.get(12)).toBe("a.ts::main() -> uint64");
+    // Both blocks added.
+    const both = program([{ pc: 1, text: "intcblock 1" }, { pc: 4, text: "bytecblock 0x01" }, ...disasm.lines.slice(2)]);
+    expect(ok(matchProgram(both, noBlock)).subs.get(12)).toBe("a.ts::main() -> uint64");
+    // The TEAL's own intcblock, and a bytecblock the assembler added before it.
+    const added = program([{ pc: 1, text: "bytecblock 0x01" }, ...disasm.lines.slice(1).map((l) => (l.pc === 1 ? { ...l, pc: 4 } : l))]);
+    const m = ok(matchProgram(added, teal));
+    expect(m.subs.get(4)).toBe("a.ts::main() -> uint64");
+    expect(m.byPc.get(12)?.line).toBe(2);
+  });
+
+  it("names a one-op difference", () => {
+    const other = teal.replace("bz main_else@1", "bnz main_else@1");
+    expect(matchProgram(disasm, other)).toEqual({ mismatch: "op 3 (pc 15, TEAL line 8): the program has `bz`, the spec `bnz`" });
+  });
+
+  it("counts ops", () => {
+    expect(matchProgram(disasm, teal + "\n    retsub")).toEqual({
+      mismatch: "the program has 10 ops, the spec 11: the spec's op 11 (`retsub`, TEAL line 28) is extra",
+    });
+  });
+});
+
+describe("sourceErrors", () => {
+  const prog = program([
+    { pc: 1, text: "intcblock 1" },
+    { pc: 4, text: "bytecblock 0x01" },
+    { pc: 8, text: "txn Sender" },
+    { pc: 10, text: "assert" },
+  ]);
+
+  it("offsets `cblocks` pcs by the pc after the constant blocks, less one", () => {
+    const e = sourceErrors({ pcOffsetMethod: "cblocks", sourceInfo: [{ pc: [3], errorMessage: "no" }] }, prog);
+    expect(e).toEqual(new Map([[10, "no"]]));
+  });
+
+  it("keeps only pcs the program has", () => {
+    const e = sourceErrors({ pcOffsetMethod: "none", sourceInfo: [{ pc: [10, 11], errorMessage: "no" }, { pc: [8] }] }, prog);
+    expect(e).toEqual(new Map([[10, "no"]]));
+  });
+  it("skips malformed entries", () => {
+    const bad = [null, { pc: 10, errorMessage: "x" }, { pc: ["8"], errorMessage: "y" }, { pc: [8], errorMessage: 5 }, { pc: [10], errorMessage: "no" }];
+    expect(sourceErrors({ pcOffsetMethod: "none", sourceInfo: bad } as never, prog)).toEqual(new Map([[10, "no"]]));
+    expect(sourceErrors({ pcOffsetMethod: "none", sourceInfo: "x" } as never, prog).size).toBe(0);
+  });
+});

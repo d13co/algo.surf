@@ -36,6 +36,12 @@ import {
   type Stepper,
 } from "src/utils/traceStepper";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "src/components/v2/ui/tooltip";
+import { lineBreakpointPositions, mergePositions, runToLine, stepIntoSource, stepOverSource } from "src/utils/sourceStepper";
+import { alignNames, stackNamesAt } from "src/utils/stackNames";
+import { useTraceSource } from "./useTraceSource";
+import { LineBreakpoints, lineBpCount, SourceLoc, SourcePanel } from "./SourcePanel";
+import { SourceBar } from "./AddSpec";
+import { FailureReason, KeyName, OpHints, RunMethod, runFailure, StackName, StateValue, SubName, useSpecNames, type SpecNames } from "./SpecNames";
 
 // React 18's (the app renders with createRoot), which the project's React 17 types don't declare.
 const useDeferredValue = (React as unknown as { useDeferredValue: <V>(value: V) => V }).useDeferredValue;
@@ -87,8 +93,8 @@ function typeTag(v: AvmValue) {
   return v.type === 2 ? "uint" : `${bytesOf(v.bytes).length}B`;
 }
 
-/** A stack or scratch value: its index, type and short form; click for every format. */
-const ValueRow = memo(function ValueRow({ v, index, mark }: { v: AvmValue; index: number; mark?: "pop" | "new" }) {
+/** A stack or scratch value: its index, type, name (from a .puya.map) and short form; click for every format. */
+const ValueRow = memo(function ValueRow({ v, index, mark, name }: { v: AvmValue; index: number; mark?: "pop" | "new"; name?: string }) {
   const [open, setOpen] = useState(false);
   return (
     <button
@@ -104,6 +110,7 @@ const ValueRow = memo(function ValueRow({ v, index, mark }: { v: AvmValue; index
       <span className="text-right text-muted">{index}</span>
       <span className="text-muted">{typeTag(v)}</span>
       <span className="min-w-0 truncate">
+        {name ? <StackName name={name} /> : null}
         <Short v={v} />
       </span>
       {open ? (
@@ -416,6 +423,8 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
   // what was worked out about each run.
   const base = useMemo(() => buildStepper(dev), [dev]);
   const T = useMemo(() => (budget?.length ? buildStepper(dev, budget, base) : base), [dev, budget, base]);
+  const src = useTraceSource(T);
+  const names = useSpecNames(T, src);
   const labels = useLabels(T, txId);
 
   // Mounted per transaction (keyed on it), so another starts afresh. The
@@ -428,7 +437,8 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
     if (bpsChanged.current) saveBps(T, bps);
   }, [T, bps]);
 
-  const bpPos = useMemo(() => breakpointPositions(T, bps), [T, bps]);
+  const lineBpPos = useMemo(() => lineBreakpointPositions(T, src.lineBps), [T, src.lineBps]);
+  const bpPos = useMemo(() => mergePositions(breakpointPositions(T, bps), lineBpPos), [T, bps, lineBpPos]);
   const bpSet = useMemo(() => new Set(bpPos), [bpPos]);
   const isBp = useCallback((q: number) => bpSet.has(q), [bpSet]);
   const seek = useCallback((q: number) => setPos(Math.max(0, Math.min(T.N - 1, q))), [T]);
@@ -465,12 +475,23 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
     },
     [T, f.hash, seek],
   );
+  const onRunLine = useCallback(
+    (pcs: number[]) => {
+      if (!f.hash) return;
+      const q = runToLine(T, posRef.current, f.hash, pcs);
+      if (q !== undefined) seek(q);
+    },
+    [T, f.hash, seek],
+  );
+  const fMap = src.mapFor(f.hash);
+  // In the TypeScript view, Into and Over step by source line.
+  const srcOn = !!fMap;
 
   const act = useMemo(
     () => ({
-      into: () => seek(pos + 1),
+      into: () => seek(srcOn ? stepIntoSource(T, src.mapFor, pos, isBp) : pos + 1),
       back: () => seek(pos - 1),
-      over: () => seek(stepOver(T, pos, isBp)),
+      over: () => seek(srcOn ? stepOverSource(T, src.mapFor, pos, isBp) : stepOver(T, pos, isBp)),
       backOver: () => seek(stepBackOver(T, pos, isBp)),
       out: () => seek(stepOut(T, pos, isBp)),
       cont: () => seek(bpPos.find((q) => q > pos) ?? T.N - 1),
@@ -482,9 +503,10 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
         if (s && f.hash) toggleBp(f.hash, Number(s.pc));
       },
     }),
-    [T, pos, isBp, bpPos, seek, s, f.hash, toggleBp],
+    [T, pos, isBp, bpPos, seek, s, f.hash, toggleBp, srcOn, src.mapFor],
   );
   const bpList = useMemo(() => bpEntries(T, bps), [T, bps]);
+  const nLineBps = lineBpCount(src);
 
   // Keys work anywhere on the page, except where they mean something else: in
   // a field, a dialog, a menu or a list, or on a control that opens one.
@@ -508,6 +530,7 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
   const pushed = i > 0 && !isRestated(f, i - 1) ? f.steps[i - 1]["stack-additions"]?.length ?? 0 : 0;
   const pops = s ? Number(s["stack-pop-count"] ?? 0) : 0;
   const n = st.stack.length;
+  const stackNames = useMemo(() => alignNames(stackNamesAt(names.map(f), f, i), n), [names, f, i, n]);
   const slots = [...st.scratch.entries()].sort((a, b) => a[0] - b[0]);
   const willWrite = new Set((s?.["scratch-changes"] ?? []).map((c) => Number(c.slot)));
 
@@ -517,8 +540,8 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
         <ToolButton label="Restart" keys="Home" shortcuts="Home" onClick={act.restart} disabled={pos === 0}><ChevronFirst /></ToolButton>
         <ToolButton label="Reverse continue: back to the previous breakpoint" keys="Shift+C" shortcuts="Shift+C" onClick={act.revCont} disabled={pos === 0}><SkipBack /></ToolButton>
         <ToolButton label="Step back" keys="← or B" shortcuts="ArrowLeft B" onClick={act.back} disabled={pos === 0}><ChevronLeft /></ToolButton>
-        <ToolButton label="Step into" keys="→ or S" shortcuts="ArrowRight S" onClick={act.into} disabled={pos >= T.N - 1}><ArrowDownToLine />Into</ToolButton>
-        <ToolButton label="Step over subroutines and inner transactions" keys="↓, N or F10" shortcuts="ArrowDown N F10" onClick={act.over} disabled={pos >= T.N - 1}><Redo2 />Over</ToolButton>
+        <ToolButton label="Step into" keys="→ or S" shortcuts="ArrowRight S" onClick={act.into} disabled={pos >= T.N - 1}><ArrowDownToLine />Into{srcOn ? " line" : ""}</ToolButton>
+        <ToolButton label="Step over subroutines and inner transactions" keys="↓, N or F10" shortcuts="ArrowDown N F10" onClick={act.over} disabled={pos >= T.N - 1}><Redo2 />Over{srcOn ? " line" : ""}</ToolButton>
         <ToolButton label="Step out of the subroutine or program" keys="↑ or U" shortcuts="ArrowUp U" onClick={act.out} disabled={pos >= T.N - 1}><ArrowUpFromLine />Out</ToolButton>
         <ToolButton label="Continue to the next breakpoint" keys="C or F8" shortcuts="C F8" onClick={act.cont} disabled={pos >= T.N - 1}><SkipForward /></ToolButton>
         <span className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
@@ -551,7 +574,7 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
       <div className="grid gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(16rem,22rem)_minmax(0,1fr)_minmax(20rem,28rem)]">
         <div className="order-2 flex min-w-0 flex-col gap-3 lg:order-none lg:min-h-0">
         <Panel className="lg:min-h-0 lg:flex-1" title="Program runs" meta={`${grouped(T.frames.reduce((t, x) => t + x.steps.length, 0))} ops`}>
-          <RunsList T={T} cur={f} labels={labels} onSeek={seek} />
+          <RunsList T={T} cur={f} labels={labels} names={names} onSeek={seek} />
         </Panel>
 
         <Panel className="lg:min-h-0 lg:flex-1" title="State written so far" meta={writes.count ? `${writes.count} ${writes.count === 1 ? "write" : "writes"}` : undefined}>
@@ -570,14 +593,16 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
                   >
                     <span className="flex items-baseline gap-2">
                       <span className="text-muted">{STATE_TYPE[c["app-state-type"]]}</span>
-                      <span className="min-w-0 truncate font-mono">{keyLabel(c.key)}</span>
+                      <span className="min-w-0 truncate font-mono">
+                        <KeyName names={names} f={w.frame} c={c} fallback={keyLabel(c.key)} />
+                      </span>
                       <span className="ml-auto shrink-0 text-muted">
                         step {grouped(w.pos + 1)}
                         {w.n > 1 ? ` · ×${w.n}` : ""}
                       </span>
                     </span>
                     <span className="flex items-baseline gap-2">
-                      <span className="min-w-0 truncate font-mono">{c.operation === "d" ? <span className="text-red-400">deleted</span> : c["new-value"] ? <Short v={c["new-value"]} /> : null}</span>
+                      <span className="min-w-0 truncate font-mono">{c.operation === "d" ? <span className="text-red-400">deleted</span> : c["new-value"] ? <StateValue names={names} f={w.frame} c={c} raw={<Short v={c["new-value"]} />} /> : null}</span>
                       <span className="ml-auto shrink-0 text-muted">
                         {app !== undefined ? `app ${grouped(app)}` : ""}
                         {c.account ? ` · ${shortAddr(c.account)}` : ""}
@@ -592,8 +617,9 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
           </div>
         </Panel>
 
-        <Panel className="lg:max-h-[25%] lg:shrink-0" title="Breakpoints" meta={bpList.length || undefined}>
-          <Breakpoints T={T} list={bpList} bpPos={bpPos} onRemove={toggleBp} />
+        <Panel className="lg:max-h-[25%] lg:shrink-0" title="Breakpoints" meta={bpList.length + nLineBps || undefined}>
+          <LineBreakpoints T={T} src={src} at={lineBpPos} />
+          {bpList.length || !nLineBps ? <Breakpoints T={T} list={bpList} bpPos={bpPos} onRemove={toggleBp} /> : null}
         </Panel>
         </div>
 
@@ -602,7 +628,12 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
           title={`${labels.where(f)} · ${KIND[f.kind]}`}
           meta={
             <span className="flex flex-wrap justify-end gap-x-3">
-              {appText(f) ? <span>{appText(f)}</span> : null}
+              {appText(f) ? (
+                <span>
+                  {appText(f)}
+                  <RunMethod names={names} f={f} />
+                </span>
+              ) : null}
               <span>
                 op {grouped(Math.min(i + 1, f.steps.length))} of {grouped(f.steps.length)}
               </span>
@@ -615,17 +646,22 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
             </span>
           }
         >
-          <Source T={T} f={f} curPc={s ? Number(s.pc) : undefined} sitePcs={sitePcs} bps={bps} onGutter={onGutter} onRun={onRun} />
+          <SourceBar key={f.hash} f={f} src={src} />
+          {fMap ? (
+            <SourcePanel key={f.hash} T={T} f={f} map={fMap} curPc={s ? Number(s.pc) : undefined} sitePcs={sitePcs} src={src} bps={bps} onGutter={onGutter} onRunLine={onRunLine} />
+          ) : (
+            <Source T={T} f={f} curPc={s ? Number(s.pc) : undefined} sitePcs={sitePcs} bps={bps} onGutter={onGutter} onRun={onRun} />
+          )}
         </Panel>
 
         <div className="order-1 flex min-w-0 flex-col gap-3 lg:order-none lg:min-h-0">
-          <NextOp T={T} f={f} i={i} top={st.stack[n - 1]} last={pos >= T.N - 1} where={labels.where} />
+          <NextOp T={T} f={f} i={i} top={st.stack[n - 1]} last={pos >= T.N - 1} where={labels.where} names={names} loc={s && src.lineMap(f.hash) ? <SourceLoc map={src.lineMap(f.hash)!} pc={Number(s.pc)} /> : null} />
           <Panel className="lg:min-h-[8rem] lg:flex-1" title="Stack" meta={`${n} ${n === 1 ? "value" : "values"}`}>
             <div className="max-h-64 min-h-0 overflow-auto py-1 lg:max-h-none lg:flex-1">
               {n ? (
                 st.stack
                   // Keyed on the value too, so an expanded row doesn't stay open for another value pushed in its place.
-                  .map((v, j) => <ValueRow key={`${f.id}:${j}:${v.type}:${v.uint ?? v.bytes ?? ""}`} v={v} index={j} mark={j >= n - pops ? "pop" : j >= n - pushed ? "new" : undefined} />)
+                  .map((v, j) => <ValueRow key={`${f.id}:${j}:${v.type}:${v.uint ?? v.bytes ?? ""}`} v={v} index={j} name={stackNames[j]} mark={j >= n - pops ? "pop" : j >= n - pushed ? "new" : undefined} />)
                   .reverse()
               ) : (
                 <Empty>The stack is empty.</Empty>
@@ -652,7 +688,7 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
                 >
                   {c.kind === "sub" ? (
                     <>
-                      <span className="font-mono text-primary">{c.label}</span>
+                      <SubName names={names} T={T} c={c} />
                       <span className="ml-auto text-muted">callsub at pc {c.pc}</span>
                     </>
                   ) : c.kind === "submit" ? (
@@ -665,7 +701,10 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
                       <span className={c.current ? "font-semibold" : undefined}>
                         {labels.where(c.frame)} · {KIND[c.frame.kind]}
                       </span>
-                      <span className="ml-auto text-muted">{appText(c.frame)}</span>
+                      <span className="ml-auto min-w-0 truncate text-muted">
+                        {appText(c.frame)}
+                        <RunMethod names={names} f={c.frame} />
+                      </span>
                     </>
                   )}
                 </button>
@@ -679,10 +718,11 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
 }
 
 /** The group's program runs, nested by inner transaction; the current one and the ones that ran it highlighted. */
-const RunsList = memo(function RunsList({ T, cur, labels, onSeek }: {
+const RunsList = memo(function RunsList({ T, cur, labels, names, onSeek }: {
   T: Stepper;
   cur: Frame;
   labels: ReturnType<typeof useLabels>;
+  names: SpecNames;
   onSeek: (q: number) => void;
 }) {
   const ancestors = new Set<number>();
@@ -714,7 +754,10 @@ const RunsList = memo(function RunsList({ T, cur, labels, onSeek }: {
                   {KIND[x.kind]}
                 </span>
                 {x.rollback ? <span className="text-red-400">rolled back</span> : null}
-                <span className="ml-auto text-muted">{appText(x)}</span>
+                <span className="ml-auto min-w-0 truncate text-muted">
+                  {appText(x)}
+                  <RunMethod names={names} f={x} />
+                </span>
                 {x.kind !== "none" ? (
                   <span className="w-[9ch] text-right text-muted">{x.budget ? `${grouped(x.budget.cost)} cost` : `${grouped(x.steps.length)} ops`}</span>
                 ) : null}
@@ -792,19 +835,21 @@ const Breakpoints = memo(function Breakpoints({ T, list, bpPos, onRemove }: {
 });
 
 /** The op about to run and what it will do, or at a run's end, how it ended. */
-function NextOp({ T, f, i, top, last, where }: { T: Stepper; f: Frame; i: number; top?: AvmValue; last: boolean; where: (f: Frame) => string }) {
+function NextOp({ T, f, i, top, last, where, names, loc }: { T: Stepper; f: Frame; i: number; top?: AvmValue; last: boolean; where: (f: Frame) => string; names: SpecNames; loc?: React.ReactNode }) {
   const s = f.steps[i];
   if (!s) {
+    const failure = runFailure(names, T, f);
     return (
       <Panel title="Run finished">
         <div className="space-y-1 px-3 py-2 text-xs">
           {f.rollback ? (
             <div className="text-red-400">It failed and its changes were rolled back ({f.rollback}). The account is opted out anyway.</div>
-          ) : (
+          ) : failure ? null : (
             <div>
               Stack top at the end: {top ? <Short v={top} /> : "empty"}. It approved: a block holds only transactions that passed.
             </div>
           )}
+          {failure ? <FailureReason r={failure} /> : null}
           <div className="text-muted">{last ? "This is the end of the trace." : `Step on to ${f.parent ? "return to the program that ran it." : "go to the next program run."}`}</div>
         </div>
       </Panel>
@@ -820,11 +865,12 @@ function NextOp({ T, f, i, top, last, where }: { T: Stepper; f: Frame; i: number
   s["scratch-changes"]?.forEach((c) => fx.push(<span key={`s${c.slot}`}>scratch[{c.slot}] = <Short v={c["new-value"]} /></span>));
   s["state-changes"]?.forEach((c, k) =>
     fx.push(
-      <span key={`c${k}`} className="text-green-400">
-        {STATE_TYPE[c["app-state-type"]]} {c.operation === "d" ? "delete" : "put"} {keyLabel(c.key)}
+      // Keyed by the op too: a value's raw / decoded switch is per op.
+      <span key={`c${f.id}:${i}:${k}`} className="text-green-400">
+        {STATE_TYPE[c["app-state-type"]]} {c.operation === "d" ? "delete" : "put"} <KeyName names={names} f={f} c={c} fallback={keyLabel(c.key)} />
         {c["new-value"] ? (
           <>
-            {" "}= <Short v={c["new-value"]} />
+            {" "}= <StateValue names={names} f={f} c={c} raw={<Short v={c["new-value"]} />} />
           </>
         ) : null}
       </span>,
@@ -833,7 +879,9 @@ function NextOp({ T, f, i, top, last, where }: { T: Stepper; f: Frame; i: number
   return (
     <Panel title="Next op" meta={`pc ${s.pc}`}>
       <div className="space-y-1.5 px-3 py-2 text-xs">
+        {loc}
         <div className="max-h-[4.5rem] overflow-auto break-all font-mono text-[13px]">{text !== undefined ? <Code text={text} /> : <span className="text-muted">pc {s.pc}</span>}</div>
+        <OpHints names={names} f={f} s={s} top={top} />
         {fx.length ? <div className="flex flex-col gap-0.5 font-mono break-all">{fx}</div> : <div className="text-muted">No stack, scratch or state effect.</div>}
         {kids.length ? (
           <div className="text-muted-foreground">

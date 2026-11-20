@@ -1,0 +1,2859 @@
+{
+"hash": "Bis+kSqQ9Ib+1+0GNjE0Z0vcAyI8nOsZ2GCFa/rc+OQ=",
+"lines": [
+{
+"text": "#pragma version 11"
+},
+{
+"pc": 1,
+"text": "intcblock 0 1 8 32"
+},
+{
+"pc": 7,
+"text": "bytecblock 0x636f756e746572 0x151f7c75 0x63 0x0000 0x30313233343536373839 0x4552523a343034 0x0001 0x0a8101 0x4552523a524356 0x4552523a414d54 0x6170704944"
+},
+{
+"pc": 75,
+"text": "txn ApplicationID"
+},
+{
+"pc": 77,
+"text": "bnz label1"
+},
+{
+"pc": 80,
+"text": "bytec_0 // \"counter\""
+},
+{
+"pc": 81,
+"text": "intc_0 // 0"
+},
+{
+"pc": 82,
+"text": "app_global_put"
+},
+{
+"text": "label1:"
+},
+{
+"pc": 83,
+"text": "txn NumAppArgs"
+},
+{
+"pc": 85,
+"text": "bz label2"
+},
+{
+"pc": 88,
+"text": "txn OnCompletion"
+},
+{
+"pc": 90,
+"text": "!"
+},
+{
+"pc": 91,
+"text": "assert"
+},
+{
+"pc": 92,
+"text": "txn ApplicationID"
+},
+{
+"pc": 94,
+"text": "assert"
+},
+{
+"pc": 95,
+"text": "pushbytess 0xf7e99a83 0x72bf6dc4 0x4c9fb656 0x89e79924 0x40e65262 0x193625f8 0x90c9550f 0xb561c256 0x82b435f8 0x4118ecbf 0x3d75f0c4 0xeaee7fbd"
+},
+{
+"pc": 157,
+"text": "txna ApplicationArgs 0"
+},
+{
+"pc": 160,
+"text": "match label3 label4 label5 label6 label7 label8 label9 label10 label11 label12 label13 label14"
+},
+{
+"pc": 186,
+"text": "err"
+},
+{
+"text": "label2:"
+},
+{
+"pc": 187,
+"text": "txn OnCompletion"
+},
+{
+"pc": 189,
+"text": "!"
+},
+{
+"pc": 190,
+"text": "txn ApplicationID"
+},
+{
+"pc": 192,
+"text": "!"
+},
+{
+"pc": 193,
+"text": "&&"
+},
+{
+"pc": 194,
+"text": "return"
+},
+{
+"text": "label15:"
+},
+{
+"pc": 195,
+"text": "proto 1 1"
+},
+{
+"pc": 198,
+"text": "frame_dig -1"
+},
+{
+"pc": 200,
+"text": "pushint 10"
+},
+{
+"pc": 202,
+"text": "<"
+},
+{
+"pc": 203,
+"text": "bz label16"
+},
+{
+"pc": 206,
+"text": "bytec 4 // \"0123456789\""
+},
+{
+"pc": 208,
+"text": "frame_dig -1"
+},
+{
+"pc": 210,
+"text": "intc_1 // 1"
+},
+{
+"pc": 211,
+"text": "extract3"
+},
+{
+"pc": 212,
+"text": "retsub"
+},
+{
+"text": "label16:"
+},
+{
+"pc": 213,
+"text": "frame_dig -1"
+},
+{
+"pc": 215,
+"text": "pushint 10"
+},
+{
+"pc": 217,
+"text": "/"
+},
+{
+"pc": 218,
+"text": "callsub label15"
+},
+{
+"pc": 221,
+"text": "frame_dig -1"
+},
+{
+"pc": 223,
+"text": "pushint 10"
+},
+{
+"pc": 225,
+"text": "%"
+},
+{
+"pc": 226,
+"text": "bytec 4 // \"0123456789\""
+},
+{
+"pc": 228,
+"text": "swap"
+},
+{
+"pc": 229,
+"text": "intc_1 // 1"
+},
+{
+"pc": 230,
+"text": "extract3"
+},
+{
+"pc": 231,
+"text": "concat"
+},
+{
+"pc": 232,
+"text": "retsub"
+},
+{
+"text": "label3:"
+},
+{
+"pc": 233,
+"text": "txna ApplicationArgs 1"
+},
+{
+"pc": 236,
+"text": "btoi"
+},
+{
+"pc": 237,
+"text": "dup"
+},
+{
+"pc": 238,
+"text": "global CurrentApplicationAddress"
+},
+{
+"pc": 240,
+"text": "acct_params_get AcctMinBalance"
+},
+{
+"pc": 242,
+"text": "swap"
+},
+{
+"pc": 243,
+"text": "cover 2"
+},
+{
+"pc": 245,
+"text": "assert"
+},
+{
+"pc": 246,
+"text": "callsub label17"
+},
+{
+"pc": 249,
+"text": "dup"
+},
+{
+"pc": 250,
+"text": "box_len"
+},
+{
+"pc": 251,
+"text": "bury 1"
+},
+{
+"pc": 253,
+"text": "bnz label18"
+},
+{
+"pc": 256,
+"text": "intc_0 // 0"
+},
+{
+"pc": 257,
+"text": "bytec_0 // \"counter\""
+},
+{
+"pc": 258,
+"text": "app_global_get_ex"
+},
+{
+"pc": 259,
+"text": "assert"
+},
+{
+"pc": 260,
+"text": "intc_1 // 1"
+},
+{
+"pc": 261,
+"text": "+"
+},
+{
+"pc": 262,
+"text": "bytec_0 // \"counter\""
+},
+{
+"pc": 263,
+"text": "swap"
+},
+{
+"pc": 264,
+"text": "app_global_put"
+},
+{
+"pc": 265,
+"text": "uncover 2"
+},
+{
+"pc": 267,
+"text": "itob"
+},
+{
+"pc": 268,
+"text": "swap"
+},
+{
+"pc": 269,
+"text": "dup"
+},
+{
+"pc": 270,
+"text": "box_del"
+},
+{
+"pc": 271,
+"text": "pop"
+},
+{
+"pc": 272,
+"text": "swap"
+},
+{
+"pc": 273,
+"text": "box_put"
+},
+{
+"text": "label21:"
+},
+{
+"pc": 274,
+"text": "txn Sender"
+},
+{
+"pc": 276,
+"text": "swap"
+},
+{
+"pc": 277,
+"text": "callsub label19"
+},
+{
+"pc": 280,
+"text": "intc_1 // 1"
+},
+{
+"pc": 281,
+"text": "return"
+},
+{
+"text": "label18:"
+},
+{
+"pc": 282,
+"text": "uncover 2"
+},
+{
+"pc": 284,
+"text": "callsub label20"
+},
+{
+"pc": 287,
+"text": "b label21"
+},
+{
+"text": "label4:"
+},
+{
+"pc": 290,
+"text": "txna ApplicationArgs 1"
+},
+{
+"pc": 293,
+"text": "dup"
+},
+{
+"pc": 294,
+"text": "global CurrentApplicationAddress"
+},
+{
+"pc": 296,
+"text": "acct_params_get AcctMinBalance"
+},
+{
+"pc": 298,
+"text": "swap"
+},
+{
+"pc": 299,
+"text": "cover 2"
+},
+{
+"pc": 301,
+"text": "assert"
+},
+{
+"pc": 302,
+"text": "intc_0 // 0"
+},
+{
+"pc": 303,
+"text": "extract_uint16"
+},
+{
+"pc": 304,
+"text": "intc_0 // 0"
+},
+{
+"text": "label24:"
+},
+{
+"pc": 305,
+"text": "dup"
+},
+{
+"pc": 306,
+"text": "dig 2"
+},
+{
+"pc": 308,
+"text": "<"
+},
+{
+"pc": 309,
+"text": "bz label22"
+},
+{
+"pc": 312,
+"text": "dig 3"
+},
+{
+"pc": 314,
+"text": "extract 2 0"
+},
+{
+"pc": 317,
+"text": "dig 1"
+},
+{
+"pc": 319,
+"text": "intc_2 // 8"
+},
+{
+"pc": 320,
+"text": "*"
+},
+{
+"pc": 321,
+"text": "extract_uint64"
+},
+{
+"pc": 322,
+"text": "dup"
+},
+{
+"pc": 323,
+"text": "cover 2"
+},
+{
+"pc": 325,
+"text": "callsub label17"
+},
+{
+"pc": 328,
+"text": "dup"
+},
+{
+"pc": 329,
+"text": "box_len"
+},
+{
+"pc": 330,
+"text": "bury 1"
+},
+{
+"pc": 332,
+"text": "bnz label23"
+},
+{
+"pc": 335,
+"text": "intc_0 // 0"
+},
+{
+"pc": 336,
+"text": "bytec_0 // \"counter\""
+},
+{
+"pc": 337,
+"text": "app_global_get_ex"
+},
+{
+"pc": 338,
+"text": "assert"
+},
+{
+"pc": 339,
+"text": "intc_1 // 1"
+},
+{
+"pc": 340,
+"text": "+"
+},
+{
+"pc": 341,
+"text": "bytec_0 // \"counter\""
+},
+{
+"pc": 342,
+"text": "swap"
+},
+{
+"pc": 343,
+"text": "app_global_put"
+},
+{
+"pc": 344,
+"text": "uncover 2"
+},
+{
+"pc": 346,
+"text": "itob"
+},
+{
+"pc": 347,
+"text": "swap"
+},
+{
+"pc": 348,
+"text": "dup"
+},
+{
+"pc": 349,
+"text": "box_del"
+},
+{
+"pc": 350,
+"text": "pop"
+},
+{
+"pc": 351,
+"text": "swap"
+},
+{
+"pc": 352,
+"text": "box_put"
+},
+{
+"text": "label25:"
+},
+{
+"pc": 353,
+"text": "intc_1 // 1"
+},
+{
+"pc": 354,
+"text": "+"
+},
+{
+"pc": 355,
+"text": "b label24"
+},
+{
+"text": "label23:"
+},
+{
+"pc": 358,
+"text": "uncover 2"
+},
+{
+"pc": 360,
+"text": "callsub label20"
+},
+{
+"pc": 363,
+"text": "b label25"
+},
+{
+"text": "label22:"
+},
+{
+"pc": 366,
+"text": "popn 2"
+},
+{
+"pc": 368,
+"text": "txn Sender"
+},
+{
+"pc": 370,
+"text": "swap"
+},
+{
+"pc": 371,
+"text": "callsub label19"
+},
+{
+"pc": 374,
+"text": "intc_1 // 1"
+},
+{
+"pc": 375,
+"text": "return"
+},
+{
+"text": "label5:"
+},
+{
+"pc": 376,
+"text": "txna ApplicationArgs 1"
+},
+{
+"pc": 379,
+"text": "callsub label26"
+},
+{
+"pc": 382,
+"text": "intc_0 // 0"
+},
+{
+"pc": 383,
+"text": "!="
+},
+{
+"pc": 384,
+"text": "pushbytes 0x00 // 0x00"
+},
+{
+"pc": 387,
+"text": "intc_0 // 0"
+},
+{
+"pc": 388,
+"text": "uncover 2"
+},
+{
+"pc": 390,
+"text": "setbit"
+},
+{
+"pc": 391,
+"text": "bytec_1 // 0x151f7c75"
+},
+{
+"pc": 392,
+"text": "swap"
+},
+{
+"pc": 393,
+"text": "concat"
+},
+{
+"pc": 394,
+"text": "log"
+},
+{
+"pc": 395,
+"text": "intc_1 // 1"
+},
+{
+"pc": 396,
+"text": "return"
+},
+{
+"text": "label6:"
+},
+{
+"pc": 397,
+"text": "txna ApplicationArgs 1"
+},
+{
+"pc": 400,
+"text": "callsub label26"
+},
+{
+"pc": 403,
+"text": "itob"
+},
+{
+"pc": 404,
+"text": "bytec_1 // 0x151f7c75"
+},
+{
+"pc": 405,
+"text": "swap"
+},
+{
+"pc": 406,
+"text": "concat"
+},
+{
+"pc": 407,
+"text": "log"
+},
+{
+"pc": 408,
+"text": "intc_1 // 1"
+},
+{
+"pc": 409,
+"text": "return"
+},
+{
+"text": "label7:"
+},
+{
+"pc": 410,
+"text": "txna ApplicationArgs 1"
+},
+{
+"pc": 413,
+"text": "callsub label26"
+},
+{
+"pc": 416,
+"text": "dup"
+},
+{
+"pc": 417,
+"text": "bnz label27"
+},
+{
+"pc": 420,
+"text": "bytec 5 // \"ERR:404\""
+},
+{
+"pc": 422,
+"text": "log"
+},
+{
+"pc": 423,
+"text": "err"
+},
+{
+"text": "label27:"
+},
+{
+"pc": 424,
+"text": "itob"
+},
+{
+"pc": 425,
+"text": "bytec_1 // 0x151f7c75"
+},
+{
+"pc": 426,
+"text": "swap"
+},
+{
+"pc": 427,
+"text": "concat"
+},
+{
+"pc": 428,
+"text": "log"
+},
+{
+"pc": 429,
+"text": "intc_1 // 1"
+},
+{
+"pc": 430,
+"text": "return"
+},
+{
+"text": "label8:"
+},
+{
+"pc": 431,
+"text": "txna ApplicationArgs 1"
+},
+{
+"pc": 434,
+"text": "dup"
+},
+{
+"pc": 435,
+"text": "callsub label26"
+},
+{
+"pc": 438,
+"text": "swap"
+},
+{
+"pc": 439,
+"text": "acct_params_get AcctAuthAddr"
+},
+{
+"pc": 441,
+"text": "assert"
+},
+{
+"pc": 442,
+"text": "callsub label26"
+},
+{
+"pc": 445,
+"text": "swap"
+},
+{
+"pc": 446,
+"text": "itob"
+},
+{
+"pc": 447,
+"text": "swap"
+},
+{
+"pc": 448,
+"text": "itob"
+},
+{
+"pc": 449,
+"text": "concat"
+},
+{
+"pc": 450,
+"text": "bytec_1 // 0x151f7c75"
+},
+{
+"pc": 451,
+"text": "swap"
+},
+{
+"pc": 452,
+"text": "concat"
+},
+{
+"pc": 453,
+"text": "log"
+},
+{
+"pc": 454,
+"text": "intc_1 // 1"
+},
+{
+"pc": 455,
+"text": "return"
+},
+{
+"text": "label9:"
+},
+{
+"pc": 456,
+"text": "txna ApplicationArgs 1"
+},
+{
+"pc": 459,
+"text": "bytec_3 // 0x0000"
+},
+{
+"pc": 460,
+"text": "txna ApplicationArgs 1"
+},
+{
+"pc": 463,
+"text": "intc_0 // 0"
+},
+{
+"pc": 464,
+"text": "extract_uint16"
+},
+{
+"pc": 465,
+"text": "intc_0 // 0"
+},
+{
+"text": "label29:"
+},
+{
+"pc": 466,
+"text": "dup"
+},
+{
+"pc": 467,
+"text": "dig 2"
+},
+{
+"pc": 469,
+"text": "<"
+},
+{
+"pc": 470,
+"text": "bz label28"
+},
+{
+"pc": 473,
+"text": "dig 3"
+},
+{
+"pc": 475,
+"text": "extract 2 0"
+},
+{
+"pc": 478,
+"text": "dig 1"
+},
+{
+"pc": 480,
+"text": "intc_3 // 32"
+},
+{
+"pc": 481,
+"text": "*"
+},
+{
+"pc": 482,
+"text": "intc_3 // 32"
+},
+{
+"pc": 483,
+"text": "extract3"
+},
+{
+"pc": 484,
+"text": "dup"
+},
+{
+"pc": 485,
+"text": "callsub label26"
+},
+{
+"pc": 488,
+"text": "swap"
+},
+{
+"pc": 489,
+"text": "acct_params_get AcctAuthAddr"
+},
+{
+"pc": 491,
+"text": "assert"
+},
+{
+"pc": 492,
+"text": "callsub label26"
+},
+{
+"pc": 495,
+"text": "swap"
+},
+{
+"pc": 496,
+"text": "itob"
+},
+{
+"pc": 497,
+"text": "swap"
+},
+{
+"pc": 498,
+"text": "itob"
+},
+{
+"pc": 499,
+"text": "concat"
+},
+{
+"pc": 500,
+"text": "uncover 3"
+},
+{
+"pc": 502,
+"text": "dup"
+},
+{
+"pc": 503,
+"text": "intc_0 // 0"
+},
+{
+"pc": 504,
+"text": "extract_uint16"
+},
+{
+"pc": 505,
+"text": "intc_1 // 1"
+},
+{
+"pc": 506,
+"text": "+"
+},
+{
+"pc": 507,
+"text": "itob"
+},
+{
+"pc": 508,
+"text": "extract 6 0"
+},
+{
+"pc": 511,
+"text": "replace2 0"
+},
+{
+"pc": 513,
+"text": "swap"
+},
+{
+"pc": 514,
+"text": "concat"
+},
+{
+"pc": 515,
+"text": "cover 2"
+},
+{
+"pc": 517,
+"text": "intc_1 // 1"
+},
+{
+"pc": 518,
+"text": "+"
+},
+{
+"pc": 519,
+"text": "b label29"
+},
+{
+"text": "label28:"
+},
+{
+"pc": 522,
+"text": "popn 2"
+},
+{
+"pc": 524,
+"text": "bytec_1 // 0x151f7c75"
+},
+{
+"pc": 525,
+"text": "swap"
+},
+{
+"pc": 526,
+"text": "concat"
+},
+{
+"pc": 527,
+"text": "log"
+},
+{
+"pc": 528,
+"text": "intc_1 // 1"
+},
+{
+"pc": 529,
+"text": "return"
+},
+{
+"text": "label10:"
+},
+{
+"pc": 530,
+"text": "txna ApplicationArgs 1"
+},
+{
+"pc": 533,
+"text": "bytec_3 // 0x0000"
+},
+{
+"pc": 534,
+"text": "txna ApplicationArgs 1"
+},
+{
+"pc": 537,
+"text": "intc_0 // 0"
+},
+{
+"pc": 538,
+"text": "extract_uint16"
+},
+{
+"pc": 539,
+"text": "intc_0 // 0"
+},
+{
+"text": "label31:"
+},
+{
+"pc": 540,
+"text": "dup"
+},
+{
+"pc": 541,
+"text": "dig 2"
+},
+{
+"pc": 543,
+"text": "<"
+},
+{
+"pc": 544,
+"text": "bz label30"
+},
+{
+"pc": 547,
+"text": "dig 3"
+},
+{
+"pc": 549,
+"text": "extract 2 0"
+},
+{
+"pc": 552,
+"text": "dig 1"
+},
+{
+"pc": 554,
+"text": "intc_3 // 32"
+},
+{
+"pc": 555,
+"text": "*"
+},
+{
+"pc": 556,
+"text": "intc_3 // 32"
+},
+{
+"pc": 557,
+"text": "extract3"
+},
+{
+"pc": 558,
+"text": "callsub label26"
+},
+{
+"pc": 561,
+"text": "itob"
+},
+{
+"pc": 562,
+"text": "bytec 6 // 0x0001"
+},
+{
+"pc": 564,
+"text": "swap"
+},
+{
+"pc": 565,
+"text": "concat"
+},
+{
+"pc": 566,
+"text": "dup"
+},
+{
+"pc": 567,
+"text": "extract 2 0"
+},
+{
+"pc": 570,
+"text": "swap"
+},
+{
+"pc": 571,
+"text": "intc_0 // 0"
+},
+{
+"pc": 572,
+"text": "extract_uint16"
+},
+{
+"pc": 573,
+"text": "uncover 4"
+},
+{
+"pc": 575,
+"text": "dup"
+},
+{
+"pc": 576,
+"text": "cover 2"
+},
+{
+"pc": 578,
+"text": "intc_0 // 0"
+},
+{
+"pc": 579,
+"text": "extract_uint16"
+},
+{
+"pc": 580,
+"text": "+"
+},
+{
+"pc": 581,
+"text": "itob"
+},
+{
+"pc": 582,
+"text": "extract 6 0"
+},
+{
+"pc": 585,
+"text": "replace2 0"
+},
+{
+"pc": 587,
+"text": "swap"
+},
+{
+"pc": 588,
+"text": "concat"
+},
+{
+"pc": 589,
+"text": "cover 2"
+},
+{
+"pc": 591,
+"text": "intc_1 // 1"
+},
+{
+"pc": 592,
+"text": "+"
+},
+{
+"pc": 593,
+"text": "b label31"
+},
+{
+"text": "label30:"
+},
+{
+"pc": 596,
+"text": "popn 2"
+},
+{
+"pc": 598,
+"text": "bytec_1 // 0x151f7c75"
+},
+{
+"pc": 599,
+"text": "swap"
+},
+{
+"pc": 600,
+"text": "concat"
+},
+{
+"pc": 601,
+"text": "log"
+},
+{
+"pc": 602,
+"text": "intc_1 // 1"
+},
+{
+"pc": 603,
+"text": "return"
+},
+{
+"text": "label11:"
+},
+{
+"pc": 604,
+"text": "txna ApplicationArgs 1"
+},
+{
+"pc": 607,
+"text": "bytec_3 // 0x0000"
+},
+{
+"pc": 608,
+"text": "txna ApplicationArgs 1"
+},
+{
+"pc": 611,
+"text": "intc_0 // 0"
+},
+{
+"pc": 612,
+"text": "extract_uint16"
+},
+{
+"pc": 613,
+"text": "swap"
+},
+{
+"pc": 614,
+"text": "intc_0 // 0"
+},
+{
+"text": "label34:"
+},
+{
+"pc": 615,
+"text": "dup"
+},
+{
+"pc": 616,
+"text": "dig 3"
+},
+{
+"pc": 618,
+"text": "<"
+},
+{
+"pc": 619,
+"text": "bz label32"
+},
+{
+"pc": 622,
+"text": "dig 3"
+},
+{
+"pc": 624,
+"text": "extract 2 0"
+},
+{
+"pc": 627,
+"text": "dig 1"
+},
+{
+"pc": 629,
+"text": "intc_3 // 32"
+},
+{
+"pc": 630,
+"text": "*"
+},
+{
+"pc": 631,
+"text": "intc_3 // 32"
+},
+{
+"pc": 632,
+"text": "extract3"
+},
+{
+"pc": 633,
+"text": "callsub label26"
+},
+{
+"pc": 636,
+"text": "dup"
+},
+{
+"pc": 637,
+"text": "bnz label33"
+},
+{
+"pc": 640,
+"text": "bytec 5 // \"ERR:404\""
+},
+{
+"pc": 642,
+"text": "log"
+},
+{
+"pc": 643,
+"text": "err"
+},
+{
+"text": "label33:"
+},
+{
+"pc": 644,
+"text": "itob"
+},
+{
+"pc": 645,
+"text": "bytec 6 // 0x0001"
+},
+{
+"pc": 647,
+"text": "swap"
+},
+{
+"pc": 648,
+"text": "concat"
+},
+{
+"pc": 649,
+"text": "dup"
+},
+{
+"pc": 650,
+"text": "extract 2 0"
+},
+{
+"pc": 653,
+"text": "swap"
+},
+{
+"pc": 654,
+"text": "intc_0 // 0"
+},
+{
+"pc": 655,
+"text": "extract_uint16"
+},
+{
+"pc": 656,
+"text": "uncover 3"
+},
+{
+"pc": 658,
+"text": "dup"
+},
+{
+"pc": 659,
+"text": "cover 2"
+},
+{
+"pc": 661,
+"text": "intc_0 // 0"
+},
+{
+"pc": 662,
+"text": "extract_uint16"
+},
+{
+"pc": 663,
+"text": "+"
+},
+{
+"pc": 664,
+"text": "itob"
+},
+{
+"pc": 665,
+"text": "extract 6 0"
+},
+{
+"pc": 668,
+"text": "replace2 0"
+},
+{
+"pc": 670,
+"text": "swap"
+},
+{
+"pc": 671,
+"text": "concat"
+},
+{
+"pc": 672,
+"text": "swap"
+},
+{
+"pc": 673,
+"text": "intc_1 // 1"
+},
+{
+"pc": 674,
+"text": "+"
+},
+{
+"pc": 675,
+"text": "b label34"
+},
+{
+"text": "label32:"
+},
+{
+"pc": 678,
+"text": "pop"
+},
+{
+"pc": 679,
+"text": "bytec_1 // 0x151f7c75"
+},
+{
+"pc": 680,
+"text": "swap"
+},
+{
+"pc": 681,
+"text": "concat"
+},
+{
+"pc": 682,
+"text": "log"
+},
+{
+"pc": 683,
+"text": "intc_1 // 1"
+},
+{
+"pc": 684,
+"text": "return"
+},
+{
+"text": "label12:"
+},
+{
+"pc": 685,
+"text": "txna ApplicationArgs 1"
+},
+{
+"pc": 688,
+"text": "btoi"
+},
+{
+"pc": 689,
+"text": "intc_0 // 0"
+},
+{
+"text": "label36:"
+},
+{
+"pc": 690,
+"text": "dup"
+},
+{
+"pc": 691,
+"text": "dig 2"
+},
+{
+"pc": 693,
+"text": "<"
+},
+{
+"pc": 694,
+"text": "bz label35"
+},
+{
+"pc": 697,
+"text": "itxn_begin"
+},
+{
+"pc": 698,
+"text": "pushint 5"
+},
+{
+"pc": 700,
+"text": "itxn_field OnCompletion"
+},
+{
+"pc": 702,
+"text": "bytec 7 // 0x0a8101"
+},
+{
+"pc": 704,
+"text": "itxn_field ClearStateProgramPages"
+},
+{
+"pc": 706,
+"text": "bytec 7 // 0x0a8101"
+},
+{
+"pc": 708,
+"text": "itxn_field ApprovalProgramPages"
+},
+{
+"pc": 710,
+"text": "pushint 6"
+},
+{
+"pc": 712,
+"text": "itxn_field TypeEnum"
+},
+{
+"pc": 714,
+"text": "intc_0 // 0"
+},
+{
+"pc": 715,
+"text": "itxn_field Fee"
+},
+{
+"pc": 717,
+"text": "itxn_submit"
+},
+{
+"pc": 718,
+"text": "intc_1 // 1"
+},
+{
+"pc": 719,
+"text": "+"
+},
+{
+"pc": 720,
+"text": "b label36"
+},
+{
+"text": "label35:"
+},
+{
+"pc": 723,
+"text": "intc_1 // 1"
+},
+{
+"pc": 724,
+"text": "return"
+},
+{
+"text": "label13:"
+},
+{
+"pc": 725,
+"text": "txna ApplicationArgs 1"
+},
+{
+"pc": 728,
+"text": "dup"
+},
+{
+"pc": 729,
+"text": "len"
+},
+{
+"pc": 730,
+"text": "intc_3 // 32"
+},
+{
+"pc": 731,
+"text": "=="
+},
+{
+"pc": 732,
+"text": "assert"
+},
+{
+"pc": 733,
+"text": "txn GroupIndex"
+},
+{
+"pc": 735,
+"text": "intc_1 // 1"
+},
+{
+"pc": 736,
+"text": "-"
+},
+{
+"pc": 737,
+"text": "dupn 2"
+},
+{
+"pc": 739,
+"text": "gtxns TypeEnum"
+},
+{
+"pc": 741,
+"text": "intc_1 // 1"
+},
+{
+"pc": 742,
+"text": "=="
+},
+{
+"pc": 743,
+"text": "assert"
+},
+{
+"pc": 744,
+"text": "gtxns Receiver"
+},
+{
+"pc": 746,
+"text": "global CurrentApplicationAddress"
+},
+{
+"pc": 748,
+"text": "=="
+},
+{
+"pc": 749,
+"text": "bnz label37"
+},
+{
+"pc": 752,
+"text": "bytec 8 // \"ERR:RCV\""
+},
+{
+"pc": 754,
+"text": "log"
+},
+{
+"pc": 755,
+"text": "err"
+},
+{
+"text": "label37:"
+},
+{
+"pc": 756,
+"text": "gtxns Amount"
+},
+{
+"pc": 758,
+"text": "dup"
+},
+{
+"pc": 759,
+"text": "bnz label38"
+},
+{
+"pc": 762,
+"text": "bytec 9 // \"ERR:AMT\""
+},
+{
+"pc": 764,
+"text": "log"
+},
+{
+"pc": 765,
+"text": "err"
+},
+{
+"text": "label38:"
+},
+{
+"pc": 766,
+"text": "bytec_2 // \"c\""
+},
+{
+"pc": 767,
+"text": "dig 2"
+},
+{
+"pc": 769,
+"text": "concat"
+},
+{
+"pc": 770,
+"text": "dup"
+},
+{
+"pc": 771,
+"text": "cover 2"
+},
+{
+"pc": 773,
+"text": "box_len"
+},
+{
+"pc": 774,
+"text": "bury 1"
+},
+{
+"pc": 776,
+"text": "bz label39"
+},
+{
+"pc": 779,
+"text": "dig 1"
+},
+{
+"pc": 781,
+"text": "box_get"
+},
+{
+"pc": 782,
+"text": "assert"
+},
+{
+"pc": 783,
+"text": "btoi"
+},
+{
+"text": "label40:"
+},
+{
+"pc": 784,
+"text": "global CurrentApplicationAddress"
+},
+{
+"pc": 786,
+"text": "acct_params_get AcctMinBalance"
+},
+{
+"pc": 788,
+"text": "assert"
+},
+{
+"pc": 789,
+"text": "swap"
+},
+{
+"pc": 790,
+"text": "uncover 2"
+},
+{
+"pc": 792,
+"text": "+"
+},
+{
+"pc": 793,
+"text": "itob"
+},
+{
+"pc": 794,
+"text": "uncover 2"
+},
+{
+"pc": 796,
+"text": "swap"
+},
+{
+"pc": 797,
+"text": "box_put"
+},
+{
+"pc": 798,
+"text": "callsub label19"
+},
+{
+"pc": 801,
+"text": "intc_1 // 1"
+},
+{
+"pc": 802,
+"text": "return"
+},
+{
+"text": "label39:"
+},
+{
+"pc": 803,
+"text": "intc_0 // 0"
+},
+{
+"pc": 804,
+"text": "b label40"
+},
+{
+"text": "label14:"
+},
+{
+"pc": 807,
+"text": "global CurrentApplicationAddress"
+},
+{
+"pc": 809,
+"text": "acct_params_get AcctMinBalance"
+},
+{
+"pc": 811,
+"text": "assert"
+},
+{
+"pc": 812,
+"text": "bytec_2 // \"c\""
+},
+{
+"pc": 813,
+"text": "txn Sender"
+},
+{
+"pc": 815,
+"text": "concat"
+},
+{
+"pc": 816,
+"text": "box_len"
+},
+{
+"pc": 817,
+"text": "bury 1"
+},
+{
+"pc": 819,
+"text": "bnz label41"
+},
+{
+"pc": 822,
+"text": "bytec 9 // \"ERR:AMT\""
+},
+{
+"pc": 824,
+"text": "log"
+},
+{
+"pc": 825,
+"text": "err"
+},
+{
+"text": "label41:"
+},
+{
+"pc": 826,
+"text": "bytec_2 // \"c\""
+},
+{
+"pc": 827,
+"text": "txn Sender"
+},
+{
+"pc": 829,
+"text": "concat"
+},
+{
+"pc": 830,
+"text": "box_get"
+},
+{
+"pc": 831,
+"text": "assert"
+},
+{
+"pc": 832,
+"text": "btoi"
+},
+{
+"pc": 833,
+"text": "bytec_2 // \"c\""
+},
+{
+"pc": 834,
+"text": "txn Sender"
+},
+{
+"pc": 836,
+"text": "concat"
+},
+{
+"pc": 837,
+"text": "box_del"
+},
+{
+"pc": 838,
+"text": "pop"
+},
+{
+"pc": 839,
+"text": "global CurrentApplicationAddress"
+},
+{
+"pc": 841,
+"text": "acct_params_get AcctMinBalance"
+},
+{
+"pc": 843,
+"text": "assert"
+},
+{
+"pc": 844,
+"text": "uncover 2"
+},
+{
+"pc": 846,
+"text": "swap"
+},
+{
+"pc": 847,
+"text": "-"
+},
+{
+"pc": 848,
+"text": "+"
+},
+{
+"pc": 849,
+"text": "itxn_begin"
+},
+{
+"pc": 850,
+"text": "txn Sender"
+},
+{
+"pc": 852,
+"text": "itxn_field Receiver"
+},
+{
+"pc": 854,
+"text": "itxn_field Amount"
+},
+{
+"pc": 856,
+"text": "intc_1 // 1"
+},
+{
+"pc": 857,
+"text": "itxn_field TypeEnum"
+},
+{
+"pc": 859,
+"text": "intc_0 // 0"
+},
+{
+"pc": 860,
+"text": "itxn_field Fee"
+},
+{
+"pc": 862,
+"text": "itxn_submit"
+},
+{
+"pc": 863,
+"text": "intc_1 // 1"
+},
+{
+"pc": 864,
+"text": "return"
+},
+{
+"text": "label17:"
+},
+{
+"pc": 865,
+"text": "proto 1 1"
+},
+{
+"pc": 868,
+"text": "frame_dig -1"
+},
+{
+"pc": 870,
+"text": "itob"
+},
+{
+"pc": 871,
+"text": "bytec 10 // \"appID\""
+},
+{
+"pc": 873,
+"text": "swap"
+},
+{
+"pc": 874,
+"text": "concat"
+},
+{
+"pc": 875,
+"text": "sha512_256"
+},
+{
+"pc": 876,
+"text": "substring 0 4"
+},
+{
+"pc": 879,
+"text": "retsub"
+},
+{
+"text": "label20:"
+},
+{
+"pc": 880,
+"text": "proto 2 0"
+},
+{
+"pc": 883,
+"text": "frame_dig -2"
+},
+{
+"pc": 885,
+"text": "box_len"
+},
+{
+"pc": 886,
+"text": "assert"
+},
+{
+"pc": 887,
+"text": "intc_0 // 0"
+},
+{
+"text": "label44:"
+},
+{
+"pc": 888,
+"text": "dig 1"
+},
+{
+"pc": 890,
+"text": "intc_2 // 8"
+},
+{
+"pc": 891,
+"text": "/"
+},
+{
+"pc": 892,
+"text": "dig 1"
+},
+{
+"pc": 894,
+"text": ">"
+},
+{
+"pc": 895,
+"text": "bz label42"
+},
+{
+"pc": 898,
+"text": "dup"
+},
+{
+"pc": 899,
+"text": "intc_2 // 8"
+},
+{
+"pc": 900,
+"text": "*"
+},
+{
+"pc": 901,
+"text": "frame_dig -2"
+},
+{
+"pc": 903,
+"text": "swap"
+},
+{
+"pc": 904,
+"text": "intc_2 // 8"
+},
+{
+"pc": 905,
+"text": "box_extract"
+},
+{
+"pc": 906,
+"text": "btoi"
+},
+{
+"pc": 907,
+"text": "frame_dig -1"
+},
+{
+"pc": 909,
+"text": "=="
+},
+{
+"pc": 910,
+"text": "bz label43"
+},
+{
+"pc": 913,
+"text": "retsub"
+},
+{
+"text": "label43:"
+},
+{
+"pc": 914,
+"text": "intc_1 // 1"
+},
+{
+"pc": 915,
+"text": "+"
+},
+{
+"pc": 916,
+"text": "b label44"
+},
+{
+"text": "label42:"
+},
+{
+"pc": 919,
+"text": "pop"
+},
+{
+"pc": 920,
+"text": "dup"
+},
+{
+"pc": 921,
+"text": "intc_2 // 8"
+},
+{
+"pc": 922,
+"text": "+"
+},
+{
+"pc": 923,
+"text": "frame_dig -2"
+},
+{
+"pc": 925,
+"text": "swap"
+},
+{
+"pc": 926,
+"text": "box_resize"
+},
+{
+"pc": 927,
+"text": "frame_dig -1"
+},
+{
+"pc": 929,
+"text": "itob"
+},
+{
+"pc": 930,
+"text": "frame_dig -2"
+},
+{
+"pc": 932,
+"text": "cover 2"
+},
+{
+"pc": 934,
+"text": "box_replace"
+},
+{
+"pc": 935,
+"text": "intc_0 // 0"
+},
+{
+"pc": 936,
+"text": "bytec_0 // \"counter\""
+},
+{
+"pc": 937,
+"text": "app_global_get_ex"
+},
+{
+"pc": 938,
+"text": "assert"
+},
+{
+"pc": 939,
+"text": "intc_1 // 1"
+},
+{
+"pc": 940,
+"text": "+"
+},
+{
+"pc": 941,
+"text": "bytec_0 // \"counter\""
+},
+{
+"pc": 942,
+"text": "swap"
+},
+{
+"pc": 943,
+"text": "app_global_put"
+},
+{
+"pc": 944,
+"text": "retsub"
+},
+{
+"text": "label26:"
+},
+{
+"pc": 945,
+"text": "proto 1 1"
+},
+{
+"pc": 948,
+"text": "frame_dig -1"
+},
+{
+"pc": 950,
+"text": "len"
+},
+{
+"pc": 951,
+"text": "intc_0 // 0"
+},
+{
+"pc": 952,
+"text": "dig 1"
+},
+{
+"pc": 954,
+"text": ">="
+},
+{
+"pc": 955,
+"text": "intc_0 // 0"
+},
+{
+"pc": 956,
+"text": "dig 2"
+},
+{
+"pc": 958,
+"text": "uncover 2"
+},
+{
+"pc": 960,
+"text": "select"
+},
+{
+"pc": 961,
+"text": "pushint 4"
+},
+{
+"pc": 963,
+"text": "dig 2"
+},
+{
+"pc": 965,
+"text": ">="
+},
+{
+"pc": 966,
+"text": "pushint 4"
+},
+{
+"pc": 968,
+"text": "uncover 3"
+},
+{
+"pc": 970,
+"text": "uncover 2"
+},
+{
+"pc": 972,
+"text": "select"
+},
+{
+"pc": 973,
+"text": "frame_dig -1"
+},
+{
+"pc": 975,
+"text": "cover 2"
+},
+{
+"pc": 977,
+"text": "substring3"
+},
+{
+"pc": 978,
+"text": "dup"
+},
+{
+"pc": 979,
+"text": "box_len"
+},
+{
+"pc": 980,
+"text": "bury 1"
+},
+{
+"pc": 982,
+"text": "bnz label45"
+},
+{
+"pc": 985,
+"text": "intc_0 // 0"
+},
+{
+"pc": 986,
+"text": "swap"
+},
+{
+"pc": 987,
+"text": "retsub"
+},
+{
+"text": "label45:"
+},
+{
+"pc": 988,
+"text": "dup"
+},
+{
+"pc": 989,
+"text": "box_len"
+},
+{
+"pc": 990,
+"text": "assert"
+},
+{
+"pc": 991,
+"text": "intc_2 // 8"
+},
+{
+"pc": 992,
+"text": "/"
+},
+{
+"pc": 993,
+"text": "swap"
+},
+{
+"pc": 994,
+"text": "intc_0 // 0"
+},
+{
+"text": "label48:"
+},
+{
+"pc": 995,
+"text": "dup"
+},
+{
+"pc": 996,
+"text": "dig 3"
+},
+{
+"pc": 998,
+"text": "<"
+},
+{
+"pc": 999,
+"text": "bz label46"
+},
+{
+"pc": 1002,
+"text": "dup"
+},
+{
+"pc": 1003,
+"text": "intc_2 // 8"
+},
+{
+"pc": 1004,
+"text": "*"
+},
+{
+"pc": 1005,
+"text": "dig 2"
+},
+{
+"pc": 1007,
+"text": "swap"
+},
+{
+"pc": 1008,
+"text": "intc_2 // 8"
+},
+{
+"pc": 1009,
+"text": "box_extract"
+},
+{
+"pc": 1010,
+"text": "btoi"
+},
+{
+"pc": 1011,
+"text": "dup"
+},
+{
+"pc": 1012,
+"text": "itob"
+},
+{
+"pc": 1013,
+"text": "bytec 10 // \"appID\""
+},
+{
+"pc": 1015,
+"text": "swap"
+},
+{
+"pc": 1016,
+"text": "concat"
+},
+{
+"pc": 1017,
+"text": "sha512_256"
+},
+{
+"pc": 1018,
+"text": "frame_dig -1"
+},
+{
+"pc": 1020,
+"text": "=="
+},
+{
+"pc": 1021,
+"text": "bz label47"
+},
+{
+"pc": 1024,
+"text": "bury 1"
+},
+{
+"pc": 1026,
+"text": "bury 1"
+},
+{
+"pc": 1028,
+"text": "bury 1"
+},
+{
+"pc": 1030,
+"text": "retsub"
+},
+{
+"text": "label47:"
+},
+{
+"pc": 1031,
+"text": "pop"
+},
+{
+"pc": 1032,
+"text": "intc_1 // 1"
+},
+{
+"pc": 1033,
+"text": "+"
+},
+{
+"pc": 1034,
+"text": "b label48"
+},
+{
+"text": "label46:"
+},
+{
+"pc": 1037,
+"text": "popn 3"
+},
+{
+"pc": 1039,
+"text": "intc_0 // 0"
+},
+{
+"pc": 1040,
+"text": "retsub"
+},
+{
+"text": "label19:"
+},
+{
+"pc": 1041,
+"text": "proto 2 0"
+},
+{
+"pc": 1044,
+"text": "global CurrentApplicationAddress"
+},
+{
+"pc": 1046,
+"text": "acct_params_get AcctMinBalance"
+},
+{
+"pc": 1048,
+"text": "swap"
+},
+{
+"pc": 1049,
+"text": "dup"
+},
+{
+"pc": 1050,
+"text": "uncover 2"
+},
+{
+"pc": 1052,
+"text": "assert"
+},
+{
+"pc": 1053,
+"text": "frame_dig -1"
+},
+{
+"pc": 1055,
+"text": "=="
+},
+{
+"pc": 1056,
+"text": "bz label49"
+},
+{
+"pc": 1059,
+"text": "retsub"
+},
+{
+"text": "label49:"
+},
+{
+"pc": 1060,
+"text": "dup"
+},
+{
+"pc": 1061,
+"text": "frame_dig -1"
+},
+{
+"pc": 1063,
+"text": ">"
+},
+{
+"pc": 1064,
+"text": "bz label50"
+},
+{
+"pc": 1067,
+"text": "frame_dig -1"
+},
+{
+"pc": 1069,
+"text": "-"
+},
+{
+"pc": 1070,
+"text": "bytec_2 // \"c\""
+},
+{
+"pc": 1071,
+"text": "frame_dig -2"
+},
+{
+"pc": 1073,
+"text": "concat"
+},
+{
+"pc": 1074,
+"text": "dup"
+},
+{
+"pc": 1075,
+"text": "box_len"
+},
+{
+"pc": 1076,
+"text": "bury 1"
+},
+{
+"pc": 1078,
+"text": "bz label51"
+},
+{
+"pc": 1081,
+"text": "dup"
+},
+{
+"pc": 1082,
+"text": "box_get"
+},
+{
+"pc": 1083,
+"text": "assert"
+},
+{
+"pc": 1084,
+"text": "btoi"
+},
+{
+"text": "label56:"
+},
+{
+"pc": 1085,
+"text": "dup"
+},
+{
+"pc": 1086,
+"text": "dig 3"
+},
+{
+"pc": 1088,
+"text": "<"
+},
+{
+"pc": 1089,
+"text": "bz label52"
+},
+{
+"pc": 1092,
+"text": "dig 2"
+},
+{
+"pc": 1094,
+"text": "dig 1"
+},
+{
+"pc": 1096,
+"text": "-"
+},
+{
+"text": "label55:"
+},
+{
+"pc": 1097,
+"text": "dup"
+},
+{
+"pc": 1098,
+"text": "bz label53"
+},
+{
+"pc": 1101,
+"text": "dup"
+},
+{
+"pc": 1102,
+"text": "callsub label15"
+},
+{
+"pc": 1105,
+"text": "pushbytes 0x4552523a4352443a3a // \"ERR:CRD::\""
+},
+{
+"pc": 1116,
+"text": "swap"
+},
+{
+"pc": 1117,
+"text": "concat"
+},
+{
+"pc": 1118,
+"text": "log"
+},
+{
+"text": "label53:"
+},
+{
+"pc": 1119,
+"text": "bz label54"
+},
+{
+"pc": 1122,
+"text": "pushbytes 0x4552523a435244 // \"ERR:CRD\""
+},
+{
+"pc": 1131,
+"text": "log"
+},
+{
+"pc": 1132,
+"text": "err"
+},
+{
+"text": "label54:"
+},
+{
+"pc": 1133,
+"text": "uncover 2"
+},
+{
+"pc": 1135,
+"text": "-"
+},
+{
+"pc": 1136,
+"text": "itob"
+},
+{
+"pc": 1137,
+"text": "box_put"
+},
+{
+"pc": 1138,
+"text": "retsub"
+},
+{
+"text": "label52:"
+},
+{
+"pc": 1139,
+"text": "intc_0 // 0"
+},
+{
+"pc": 1140,
+"text": "b label55"
+},
+{
+"text": "label51:"
+},
+{
+"pc": 1143,
+"text": "intc_0 // 0"
+},
+{
+"pc": 1144,
+"text": "b label56"
+},
+{
+"text": "label50:"
+},
+{
+"pc": 1147,
+"text": "frame_dig -1"
+},
+{
+"pc": 1149,
+"text": "swap"
+},
+{
+"pc": 1150,
+"text": "-"
+},
+{
+"pc": 1151,
+"text": "bytec_2 // \"c\""
+},
+{
+"pc": 1152,
+"text": "frame_dig -2"
+},
+{
+"pc": 1154,
+"text": "concat"
+},
+{
+"pc": 1155,
+"text": "dup"
+},
+{
+"pc": 1156,
+"text": "box_len"
+},
+{
+"pc": 1157,
+"text": "bury 1"
+},
+{
+"pc": 1159,
+"text": "bnz label57"
+},
+{
+"pc": 1162,
+"text": "bytec 8 // \"ERR:RCV\""
+},
+{
+"pc": 1164,
+"text": "log"
+},
+{
+"pc": 1165,
+"text": "err"
+},
+{
+"text": "label57:"
+},
+{
+"pc": 1166,
+"text": "dup"
+},
+{
+"pc": 1167,
+"text": "box_get"
+},
+{
+"pc": 1168,
+"text": "assert"
+},
+{
+"pc": 1169,
+"text": "btoi"
+},
+{
+"pc": 1170,
+"text": "uncover 2"
+},
+{
+"pc": 1172,
+"text": "+"
+},
+{
+"pc": 1173,
+"text": "itob"
+},
+{
+"pc": 1174,
+"text": "box_put"
+},
+{
+"pc": 1175,
+"text": "retsub"
+}
+]
+}
