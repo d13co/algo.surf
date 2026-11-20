@@ -96,16 +96,23 @@ function Diff({ before, after, numberFormat }: { before: DObject | null; after: 
   return <JsonDiffTree value={value} numberFormat={numberFormat} groupDigits copyInts maxChildren={Infinity} />;
 }
 
-function HistoryLinks({ href, round }: { href: string; round: number }) {
+/** Links to the object as it was before the round and after it; only to those that exist. */
+function HistoryLinks({ href, round, before = true, after = true }: { href: string; round: number; before?: boolean; after?: boolean }) {
+  const prev = before && round > 1;
+  if (!prev && !after) return null;
   return (
     <span className="ml-auto inline-flex items-center gap-3 text-xs">
       <History className="h-3.5 w-3.5 text-muted-foreground" />
-      <Link href={withRound(href, round - 1)} keepRound={false}>
-        at {round - 1}
-      </Link>
-      <Link href={withRound(href, round)} keepRound={false}>
-        at {round}
-      </Link>
+      {prev ? (
+        <Link href={withRound(href, round - 1)} keepRound={false}>
+          at {round - 1}
+        </Link>
+      ) : null}
+      {after ? (
+        <Link href={withRound(href, round)} keepRound={false}>
+          at {round}
+        </Link>
+      ) : null}
     </span>
   );
 }
@@ -203,7 +210,7 @@ function AccountRow({ row, round, units, unitsLoading }: {
       {open && a ? (
         <div className="mt-2 pl-1 sm:pl-6 text-sm">
           <div className="flex mb-1">
-            <HistoryLinks href={`/account/${row.address}`} round={round} />
+            <HistoryLinks href={`/account/${row.address}`} round={round} before={!!a.before} after={!!a.after} />
           </div>
           <Diff before={before} after={after} numberFormat={ALGO} />
         </div>
@@ -235,7 +242,7 @@ function AssetRow({ c, round }: { c: SCAssetChange; round: number }) {
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm mb-1">
         <LinkToAsset id={id} name={name} />
         <Status before={c.before} after={c.after} changed="reconfigured" />
-        <HistoryLinks href={`/asset/${id}`} round={round} />
+        <HistoryLinks href={`/asset/${id}`} round={round} before={!!c.before} after={!!c.after} />
       </div>
       <Diff before={before} after={after} />
     </div>
@@ -253,7 +260,7 @@ function AppRow({ c, round }: { c: SCAppChange; round: number }) {
           App <LinkToApplication id={id} copy="right" copySize="s" />
         </span>
         <Status before={c.before} after={c.after} />
-        <HistoryLinks href={`/application/${id}`} round={round} />
+        <HistoryLinks href={`/application/${id}`} round={round} before={!!c.before} after={!!c.after} />
       </div>
       <Diff before={before} after={after} />
     </div>
@@ -277,7 +284,9 @@ export default function GroupChangesView({ group, round, feeSink }: { group: SCG
   const sink = rows.find((r) => r.address === feeSink && r.account && !r.holdings.length && !r.locals.length);
   const shown = rows.filter((r) => showFeeSink || r !== sink);
 
-  // Units: a created asset's from the answer, any other's as it was at R-1.
+  // Units: an asset's in the answer from it; any other's from its current
+  // label, or, deleted since, as it was at R-1 (decimals and unit name never
+  // change: one created earlier in the round and still there has them now).
   const own = useMemo(
     () => new Map((group.assets ?? []).flatMap((a) => {
       const p = a.after ?? a.before;
@@ -313,9 +322,9 @@ export default function GroupChangesView({ group, round, feeSink }: { group: SCG
       ) : null}
       {sink ? (
         <div className="mt-2 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
-          <span>
+          <span title="Its whole balance change: the group's fees, and anything else paid to it">
             Fee sink {sinkChange >= 0n ? "+" : "−"}
-            {formatUnits(sinkChange >= 0n ? sinkChange : -sinkChange, 6)} ALGO in fees
+            {formatUnits(sinkChange >= 0n ? sinkChange : -sinkChange, 6)} ALGO
           </span>
           <button type="button" className="text-primary hover:underline cursor-pointer" onClick={() => setShowFeeSink(!showFeeSink)}>
             {showFeeSink ? "hide" : "show"}

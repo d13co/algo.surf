@@ -72,29 +72,35 @@ function GroupStateChanges(): JSX.Element {
           )}
         </div>
       ) : null}
-      {full && hasAppCalls ? <div className="text-muted-foreground -mb-3">App state, by transaction</div> : null}
-      {full && !hasAppCalls ? null : changed.length ? (
-        changed.map(({ index, txid, entry }) => (
-          <div key={txid} className="rounded-lg p-5 bg-background-card">
-            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-4 min-w-0">
-              <span className="text-muted-foreground shrink-0">
-                Transaction {index + 1} of {txns.length}
-              </span>
-              <span className="min-w-0 text-sm truncate">
-                <LinkToTransaction id={txid} />
-              </span>
-            </div>
-            <TxnStateChangesView changes={entry.changes} round={round} attribution={attributionOf(data, entry, txid)} />
+      {full && !hasAppCalls ? null : (
+        <section>
+          {full ? <div className="text-muted-foreground mb-3">App state, by transaction</div> : null}
+          <div className="space-y-6">
+            {changed.length ? (
+              changed.map(({ index, txid, entry }) => (
+                <div key={txid} className="rounded-lg p-5 bg-background-card">
+                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-4 min-w-0">
+                    <span className="text-muted-foreground shrink-0">
+                      Transaction {index + 1} of {txns.length}
+                    </span>
+                    <span className="min-w-0 text-sm truncate">
+                      <LinkToTransaction id={txid} />
+                    </span>
+                  </div>
+                  <TxnStateChangesView changes={entry.changes} round={round} attribution={attributionOf(data, entry, txid)} />
+                </div>
+              ))
+            ) : (
+              <div className="rounded-lg p-5 bg-background-card text-sm text-muted-foreground">No app state changes</div>
+            )}
           </div>
-        ))
-      ) : (
-        <div className="rounded-lg p-5 bg-background-card text-sm text-muted-foreground">No app state changes</div>
+          {changed.length && unchanged ? (
+            <div className="mt-3 text-xs text-muted-foreground">
+              {unchanged.toLocaleString()} other {unchanged === 1 ? "transaction" : "transactions"} in the group changed no app state.
+            </div>
+          ) : null}
+        </section>
       )}
-      {changed.length && unchanged && hasAppCalls ? (
-        <div className="text-xs text-muted-foreground">
-          {unchanged.toLocaleString()} other {unchanged === 1 ? "transaction" : "transactions"} in the group changed no app state.
-        </div>
-      ) : null}
     </div>
   );
 }

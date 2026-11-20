@@ -119,7 +119,7 @@ export default function AppCallTxnExactStateChanges({
   const txn = useMemo(() => (data ? findTxn(data, target.txId, target.innerPath) : undefined), [data, target.txId, target.innerPath]);
   const attribution = useMemo(() => (data && txn ? attributionOf(data, txn, target.txId) : undefined), [data, txn, target.txId]);
 
-  if (supported === undefined) return null;
+  // While the node's support is being checked, the apply data's deltas.
   if (!supported) return <>{fallback}</>;
   if (error) {
     return (
@@ -141,8 +141,10 @@ export default function AppCallTxnExactStateChanges({
         </span>
         {attribution ? <ViewSwitch byTxn={byTxn} setByTxn={setByTxn} /> : null}
       </div>
-      {isLoading || !txn || !data ? (
+      {isLoading || !data ? (
         <Pending className="h-5 w-48" />
+      ) : !txn ? (
+        <div className="text-sm text-muted-foreground">Unknown: the node's answer doesn't say where this transaction is in the block.</div>
       ) : attribution && byTxn ? (
         <ByTransaction answer={data} entry={txn} txId={target.txId} round={target.round} />
       ) : (

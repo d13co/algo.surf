@@ -47,8 +47,9 @@ describe("findTxn", () => {
   });
 
   it("gives no changes for a txn the answer leaves out", () => {
-    expect(findTxn(answer, "T1", "2").changes).toEqual([]);
-    expect(findTxn(answer, "T3").changes).toEqual([]);
+    expect(findTxn(answer, "T1", "2")?.changes).toEqual([]);
+    // Not in an answer about other transactions: not placed.
+    expect(findTxn(answer, "T3")).toBeUndefined();
   });
 });
 
@@ -132,6 +133,10 @@ describe("findTxn without the top-level entry", () => {
   });
 
   it("finds nothing without full deltas", () => {
-    expect(findTxn({ round: 1, txns: [inner] }, "T", "2")).toEqual({ path: [], txid: "T", changes: [] });
+    // An answer for T alone: its entries are all T's, so they give its payset index.
+    expect(findTxn({ round: 1, txns: [inner] }, "T", "2")).toBe(inner);
+    expect(findTxn({ round: 1, txns: [inner] }, "T")?.path).toEqual([inner.path[0]]);
+    // Nothing changed at all.
+    expect(findTxn({ round: 1, txns: [] }, "T", "2")?.changes).toEqual([]);
   });
 });

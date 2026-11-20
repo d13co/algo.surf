@@ -146,12 +146,20 @@ function AppChanges({ app, round, attribution }: { app: SCAppChanges; round: num
         </span>
         <span className="ml-auto inline-flex items-center gap-3 text-sm">
           <History className="h-4 w-4 text-muted-foreground" />
-          <Link href={withRound(`/application/${appId}`, round - 1)} keepRound={false}>
-            View app at {round - 1}
-          </Link>
-          <Link href={withRound(`/application/${appId}`, round)} keepRound={false}>
-            at {round}
-          </Link>
+          {round > 1 ? (
+            <>
+              <Link href={withRound(`/application/${appId}`, round - 1)} keepRound={false}>
+                View app at {round - 1}
+              </Link>
+              <Link href={withRound(`/application/${appId}`, round)} keepRound={false}>
+                at {round}
+              </Link>
+            </>
+          ) : (
+            <Link href={withRound(`/application/${appId}`, round)} keepRound={false}>
+              View app at {round}
+            </Link>
+          )}
         </span>
       </div>
 
@@ -199,7 +207,8 @@ export default function TxnStateChangesView({ changes, round, attribution, empty
   attribution?: Attribution;
   empty?: string;
 }): JSX.Element {
-  const apps = byApp(changes);
+  // An entry has a before, an after or both; one with neither changed nothing.
+  const apps = byApp(changes.filter((c) => c.before || c.after));
   if (!apps.length) return <div className="text-sm text-muted-foreground">{empty}</div>;
   return (
     <div className="space-y-6">

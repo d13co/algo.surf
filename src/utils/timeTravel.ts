@@ -671,10 +671,10 @@ export function getStateChangesSupport(): Promise<boolean> {
  * block, or a txid is not in the round.
  */
 export async function getTxnStateChanges(round: number, txids: string[], signal?: AbortSignal, full = false): Promise<SCRound> {
-  const base = requireDTAlgod().getTxnStateChangesForRound(round).txids(txids);
-  // With full(), also each group's account, holding, asset, app and local state changes.
-  const req = full ? base.full() : base;
   try {
+    const base = requireDTAlgod().getTxnStateChangesForRound(round).txids(txids);
+    // With full(), also each group's account, holding, asset, app and local state changes.
+    const req = full ? base.full() : base;
     return nodeJson<SCRound>(await req.do(undefined, signal ? { signal } : undefined));
   } catch (e) {
     if (signal?.aborted) throw e;
@@ -703,12 +703,13 @@ export async function getDevIncludes(): Promise<DevInclude[]> {
  * (see txnDevInfo.ts). `trace` takes exactly one txid: the traces of its group.
  */
 export async function getTxnDevInfo(round: number, txids: string[], include: DevInclude[], signal?: AbortSignal): Promise<SCDevRound> {
-  const base = requireDTAlgod().getTxnStateChangesForRound(round);
-  const summary = include.filter((k): k is "budget" | "reads" => k !== "trace");
-  let req = summary.length ? base.include(summary) : base;
-  // trace() adds to the include list and sets the one txid; the others narrow by txids.
-  req = include.includes("trace") ? req.trace(txids[0]) : req.txids(txids);
+  const trace = include.includes("trace");
+  // trace() sets the one txid, so the others would be for it alone too.
+  if (trace && (include.length > 1 || txids.length !== 1)) throw new Error("trace is asked for alone, for one transaction");
   try {
+    const base = requireDTAlgod().getTxnStateChangesForRound(round);
+    const summary = include as ("budget" | "reads")[];
+    const req = trace ? base.trace(txids[0]) : (summary.length ? base.include(summary) : base).txids(txids);
     return nodeJson<SCDevRound>(await req.do(undefined, signal ? { signal } : undefined));
   } catch (e) {
     if (signal?.aborted) throw e;

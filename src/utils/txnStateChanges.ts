@@ -172,11 +172,19 @@ export function paysetIndex(answer: SCRound, txid: string): number | undefined {
  * itself); one without changes where it changed no app state, as the
  * answer leaves those out. A top-level txn whose changes net to nothing is
  * left out too, though its inner txns' changes are listed; finding those
- * needs its payset index, which only full deltas give then.
+ * needs its payset index: from its group (full deltas), or, in an answer
+ * for `txid` alone, from any entry, as they're all its own. Undefined where
+ * neither says.
  */
-export function findTxn(answer: SCRound, txid: string, innerPath = ""): SCTxn {
-  const index = paysetIndex(answer, txid);
-  if (index === undefined) return { path: [], txid, changes: [] };
+export function findTxn(answer: SCRound, txid: string, innerPath = ""): SCTxn | undefined {
+  let index = paysetIndex(answer, txid);
+  if (index === undefined) {
+    const roots = new Set(answer.txns.map((t) => Number(t.path[0])));
+    // Nothing changed at all.
+    if (!roots.size) return { path: [], ...(innerPath ? {} : { txid }), changes: [] };
+    if (roots.size > 1 || answer.txns.some((t) => t.txid && t.txid !== txid)) return undefined;
+    index = [...roots][0];
+  }
   const path = innerPath ? innerNodePath(index, innerPath) : [index];
   return answer.txns.find((t) => samePath(t.path, path)) ?? { path, ...(innerPath ? {} : { txid }), changes: [] };
 }

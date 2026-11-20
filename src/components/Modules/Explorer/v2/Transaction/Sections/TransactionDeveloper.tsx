@@ -57,7 +57,7 @@ function Meter({ used, of }: { used: number; of: number }) {
   );
 }
 
-function BudgetTab({ runs, topIndex, txids }: { runs: SCBudgetRun[]; topIndex?: number; txids: string[] }) {
+function BudgetTab({ runs, topIndex, txids, partial }: { runs: SCBudgetRun[]; topIndex?: number; txids: string[]; partial: boolean }) {
   const groupSize = txids.length;
   // A payset index's position in the group, from its top-level run's txid.
   const position = useMemo(() => {
@@ -81,13 +81,15 @@ function BudgetTab({ runs, topIndex, txids }: { runs: SCBudgetRun[]; topIndex?: 
           <div>
             <div className="text-muted-foreground mb-1">This transaction</div>
             {s.appUsed ? <div>{grouped(s.appUsed)} app budget{s.opUps ? <span className="text-muted-foreground">, {s.opUps} op-up {s.opUps === 1 ? "call" : "calls"}</span> : null}</div> : null}
-            {s.clearUsed ? <div>{grouped(s.clearUsed)} clear state budget, its own</div> : null}
+            {s.clearUsed ? <div>{grouped(s.clearUsed)} app budget in clear state programs</div> : null}
             {s.lsigUsed ? <div>{grouped(s.lsigUsed)} logic sig budget</div> : null}
           </div>
         ) : null}
-        {group.groupAppBudget ? (
+        {group.groupAppBudget && !partial ? (
           <div>
-            <div className="text-muted-foreground mb-1">{groupSize > 1 ? "Group's app budget" : "App budget"}</div>
+            <div className="text-muted-foreground mb-1">
+              {groupSize > 1 ? (group.appPooled ? "Group's app budget" : "Group's app budgets, each call its own") : "App budget"}
+            </div>
             <div className="mb-1.5">
               {grouped(group.groupAppUsed)} of {grouped(group.groupAppBudget)} used
               <span className="text-muted-foreground"> ({Math.round((group.groupAppUsed / group.groupAppBudget) * 100)}%)</span>
@@ -95,9 +97,11 @@ function BudgetTab({ runs, topIndex, txids }: { runs: SCBudgetRun[]; topIndex?: 
             <Meter used={group.groupAppUsed} of={group.groupAppBudget} />
           </div>
         ) : null}
-        {group.lsigPool ? (
+        {group.lsigPool && !partial ? (
           <div>
-            <div className="text-muted-foreground mb-1">{groupSize > 1 ? "Group's logic sig budget" : "Logic sig budget"}</div>
+            <div className="text-muted-foreground mb-1">
+              {groupSize > 1 ? (group.lsigPooled ? "Group's logic sig budget" : "Group's logic sig budgets, each its own") : "Logic sig budget"}
+            </div>
             <div className="mb-1.5">
               {grouped(group.groupLsigUsed)} of {grouped(group.lsigPool)} used
               <span className="text-muted-foreground"> ({Math.round((group.groupLsigUsed / group.lsigPool) * 100)}%)</span>
@@ -139,6 +143,11 @@ function BudgetTab({ runs, topIndex, txids }: { runs: SCBudgetRun[]; topIndex?: 
                   <td className="py-1.5 pr-3 text-right font-mono">{grouped(r.cost)}</td>
                   <td className="py-1.5 text-right font-mono whitespace-nowrap">
                     {grouped(r["budget-before"])} → {grouped(r["budget-after"])}
+                    {r.kind === "clear" ? (
+                      <div className="font-sans text-xs text-muted-foreground" title="A clear state program may spend at most this; what it spends comes out of the group's budget too">
+                        its own cap
+                      </div>
+                    ) : null}
                     {added > 0 ? <div className="font-sans text-xs text-muted-foreground">+{grouped(added)} from inner calls</div> : null}
                   </td>
                 </tr>
@@ -147,7 +156,11 @@ function BudgetTab({ runs, topIndex, txids }: { runs: SCBudgetRun[]; topIndex?: 
           </tbody>
         </table>
       </div>
-      {groupSize > 1 ? <Muted>The group's other transactions are dimmed: they share the budget.</Muted> : null}
+      {partial ? (
+        <Muted>Only this transaction's programs: its group's transactions couldn't be read, so the group's budget isn't shown.</Muted>
+      ) : groupSize > 1 ? (
+        <Muted>The group's other transactions are dimmed{group.appPooled ? ": they share the budget" : ""}.</Muted>
+      ) : null}
       {runs.some((r) => r.failed) ? (
         <Muted>A failed clear state program's changes are rolled back, but the block keeps the clear: the account is opted out anyway.</Muted>
       ) : null}
@@ -410,7 +423,8 @@ export default function TransactionDeveloper({ round, txId, groupId }: { round: 
   // Without the group (its read failed), the transaction's own runs.
   const { data: groupInfo, isLoading: groupLoading } = useGroup(groupId ?? "", round);
   const groupTxids = (groupInfo?.transactions ?? []).map((t) => t.id ?? "").filter(Boolean);
-  const txids = groupId && groupTxids.includes(txId) ? groupTxids : [txId];
+  const partial = !!groupId && !groupTxids.includes(txId);
+  const txids = groupId && !partial ? groupTxids : [txId];
   const summary = (includes ?? []).filter((k): k is "budget" | "reads" => k === "budget" || k === "reads");
   const { data, error, isLoading } = useTxnDevInfo(round, txids, summary, !!includes?.length && (!groupId || !groupLoading));
   const topIndex = useTopIndex(data?.budget, data?.reads, txId);
@@ -435,7 +449,7 @@ export default function TransactionDeveloper({ round, txId, groupId }: { round: 
           value: k,
           content:
             k === "budget" ? (
-              body((d) => <BudgetTab runs={d.budget ?? []} topIndex={topIndex} txids={txids} />)
+              body((d) => <BudgetTab runs={d.budget ?? []} topIndex={topIndex} txids={txids} partial={partial} />)
             ) : k === "reads" ? (
               body((d) => <ReadsTab reads={d.reads ?? []} topIndex={topIndex} />)
             ) : (

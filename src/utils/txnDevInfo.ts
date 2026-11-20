@@ -113,24 +113,39 @@ export type DevInclude = "budget" | "reads" | "trace";
 export type BudgetSummary = {
   /** The transaction's approval programs, its inner app calls' included: what it took from the pool. */
   appUsed: number;
-  /** Its clear state programs', which have a budget of their own. */
+  /** Its clear state programs': from the pool too, but each capped at MaxAppProgramCost. */
   clearUsed: number;
   lsigUsed: number;
-  /** All the runs' approval programs (the group's, when the runs are). */
+  /** All the runs' approval and clear state programs (the group's, when the runs are). */
   groupAppUsed: number;
-  /** What they could spend in all: what they used plus what the last one left. */
+  /** What they could spend in all: the pool, what they used plus what was left; unpooled, each app call's own budget summed. */
   groupAppBudget: number;
-  /** The group's logic sig pool, and what its logic sigs used. */
+  /** False before app budgets pooled (consensus v29): each app call had its own. */
+  appPooled: boolean;
+  /** The group's logic sig budget: its pool, or before logic sig budgets pooled, each logic sig's own summed. */
   lsigPool?: number;
+  lsigPooled: boolean;
   groupLsigUsed: number;
   /** The transaction's inner app calls that did next to nothing: called for their budget (op-ups). */
   opUps: number;
 };
 
+/** Every app call's budget, top-level or inner, approval or clear state: what it adds to the pool, or has, unpooled. */
+export const MAX_APP_PROGRAM_COST = 700;
+
 /** An op-up's approval program: little more than `int 1`. */
 export const OP_UP_COST = 4;
 
 const sum = (rs: SCBudgetRun[]) => rs.reduce((t, r) => t + r.cost, 0);
+
+/**
+ * Whether a run draws on the app budget: approval and clear state programs.
+ * A clear state program may spend at most MaxAppProgramCost, and its
+ * `budget-before` is that cap, but what it spends comes out of the pool.
+ */
+const isAppRun = (r: SCBudgetRun) => r.kind !== "logic-sig";
+
+const allSame = (xs: number[]) => xs.every((x) => x === xs[0]);
 
 export function isOpUp(r: SCBudgetRun): boolean {
   return r.path.length > 1 && r.kind === "approval" && r.cost <= OP_UP_COST;
@@ -138,23 +153,40 @@ export function isOpUp(r: SCBudgetRun): boolean {
 
 /**
  * What a transaction's programs spent, and its group's: `runs` are the
- * group's, `topIndex` the transaction's payset index (-1 for the group
- * alone). Clear state programs are left out of the pool throughout: their
- * budget is isolated (each gets MaxAppProgramCost of its own).
+ * group's, in execution order, `topIndex` the transaction's payset index
+ * (-1 for the group alone).
  */
 export function summarizeBudget(runs: SCBudgetRun[], topIndex: number): BudgetSummary {
   const own = runs.filter((r) => Number(r.path[0]) === topIndex);
-  const approvals = runs.filter((r) => r.kind === "approval");
+  const appRuns = runs.filter(isAppRun);
+  const tops = appRuns.filter((r) => r.path.length === 1);
   const lsigs = runs.filter((r) => r.kind === "logic-sig");
-  // The last top-level one ends last: inner programs end inside theirs.
-  const last = approvals.filter((r) => r.path.length === 1).pop();
+  // Unpooled, every app call starts with the same budget of its own (and
+  // there were no inner transactions yet); pooled, each starts with what the
+  // ones before it left, less than they started with as every program costs.
+  // With an approval among them: clear state programs alone all start at
+  // their cap either way.
+  const topApprovals = tops.filter((r) => r.kind === "approval");
+  const appPooled = !(tops.length > 1 && topApprovals.length > 0 && appRuns.length === tops.length && allSame(tops.map((r) => r["budget-before"])));
+  const lsigPooled = !(lsigs.length > 1 && allSame(lsigs.map((r) => r["budget-before"])));
+  // The budget: every app call's MaxAppProgramCost, pooled or not; or, where
+  // more (an app call without a run: a clear state call of a deleted app),
+  // the pool as the runs show it: what was spent by the time the last
+  // top-level approval ended (a run is listed as it starts, so: through its
+  // inner programs, up to the next top-level run), plus what it left.
+  const last = topApprovals[topApprovals.length - 1];
+  const at = last ? runs.indexOf(last) : -1;
+  const next = runs.findIndex((r, i) => i > at && r.path.length === 1);
+  const spentByLast = last ? sum(runs.slice(0, next < 0 ? runs.length : next).filter(isAppRun)) : 0;
   return {
     appUsed: sum(own.filter((r) => r.kind === "approval")),
     clearUsed: sum(own.filter((r) => r.kind === "clear")),
     lsigUsed: sum(own.filter((r) => r.kind === "logic-sig")),
-    groupAppUsed: sum(approvals),
-    groupAppBudget: last ? sum(approvals) + last["budget-after"] : 0,
-    lsigPool: lsigs[0]?.["budget-before"],
+    groupAppUsed: sum(appRuns),
+    groupAppBudget: Math.max(appRuns.length * MAX_APP_PROGRAM_COST, appPooled && last ? spentByLast + last["budget-after"] : 0),
+    appPooled,
+    lsigPool: lsigPooled ? lsigs[0]?.["budget-before"] : lsigs.reduce((t, r) => t + r["budget-before"], 0),
+    lsigPooled,
     groupLsigUsed: sum(lsigs),
     opUps: own.filter(isOpUp).length,
   };
@@ -163,7 +195,7 @@ export function summarizeBudget(runs: SCBudgetRun[], topIndex: number): BudgetSu
 /** What a program's inner app calls added to the budget while it ran: what it ended with, beyond what it and they spent. */
 export function budgetAdded(run: SCBudgetRun, runs: SCBudgetRun[]): number {
   const under = runs.filter(
-    (r) => r.kind === "approval" && r.path.length > run.path.length && run.path.every((x, i) => Number(r.path[i]) === Number(x)),
+    (r) => isAppRun(r) && r.path.length > run.path.length && run.path.every((x, i) => Number(r.path[i]) === Number(x)),
   );
   return run["budget-after"] - run["budget-before"] + run.cost + sum(under);
 }
