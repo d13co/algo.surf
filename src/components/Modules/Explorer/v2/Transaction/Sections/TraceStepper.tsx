@@ -45,6 +45,9 @@ import { useTraceSource } from "./useTraceSource";
 import { LineBreakpoints, lineBpCount, SourceLoc, SourcePanel } from "./SourcePanel";
 import { SourceBar } from "./AddSpec";
 import { OpSearchField, stepHit, useOpSearch } from "./OpSearch";
+import { AsideChip, RangedTeal } from "./TealRanges";
+import { rangeIndex, srcKey, tealRanges, type TealRange } from "src/utils/tealRanges";
+import type { SourceMapping, SrcLine } from "src/utils/arc56Source";
 import { FailureReason, KeyName, OpHints, RunMethod, runFailure, StackName, StateValue, SubName, useSpecNames, type SpecNames } from "./SpecNames";
 import { Code, OpDoc, useAvmOps } from "src/components/Modules/Explorer/v2/TealCode";
 import { describe as describeOp, opIO, popNames, type IOValue, type OpDesc, type Wide } from "src/utils/avmOps";
@@ -154,11 +157,13 @@ function useLabels(T: Stepper, txId: string) {
 // ---------------------------------------------------------------------------
 // Source
 
+const EMPTY_HITS = new Map<number, number>();
+
 const hitText = (h: number) => (!h ? "" : h > 999 ? `${Math.round(h / 100) / 10}k` : String(h));
 
 type LineMark = "cur" | "site" | undefined;
 
-const SourceLine = memo(function SourceLine({ prog, i, hits, bp, mark, match, onGutter, onRun }: {
+const SourceLine = memo(function SourceLine({ prog, i, hits, bp, mark, match, srcL, aside, onGutter, onRun }: {
   prog: Program;
   i: number;
   hits: number;
@@ -166,6 +171,10 @@ const SourceLine = memo(function SourceLine({ prog, i, hits, bp, mark, match, on
   mark: LineMark;
   /** A find bar hit. */
   match?: boolean;
+  /** Its op's source line's key, to light it up with the line (see RangedTeal). */
+  srcL?: string;
+  /** Its op's line, folded into another line's range. */
+  aside?: SrcLine;
   onGutter: (pc: number) => void;
   onRun: (pc: number) => void;
 }) {
@@ -175,6 +184,7 @@ const SourceLine = memo(function SourceLine({ prog, i, hits, bp, mark, match, on
   return (
     <div
       data-i={i}
+      data-l={srcL}
       className={cn(
         // Lines out of view skip layout and paint (a disassembly can run to thousands).
         "grid grid-cols-[1.25rem_4ch_5ch_minmax(0,1fr)] gap-x-2 pr-2 font-mono text-[12px] leading-5 whitespace-pre [content-visibility:auto] [contain-intrinsic-size:auto_20px]",
@@ -207,12 +217,17 @@ const SourceLine = memo(function SourceLine({ prog, i, hits, bp, mark, match, on
       <span className="min-w-0 overflow-hidden text-ellipsis">
         {mark === "cur" ? <span className="text-primary">▶ </span> : null}
         {prog.synthetic ? <span className="text-muted">pc {pc} · no disassembly</span> : <Code text={l.text} tip short />}
+        {aside ? <AsideChip line={aside} /> : null}
       </span>
     </div>
   );
 });
 
-function Source({ T, f, curPc, sitePcs, matchPcs, bps, onGutter, onRun }: {
+/**
+ * The disassembly. With a source mapping (`map`), cut into ranges of ops
+ * from one source line, the line beside each (see RangedTeal).
+ */
+function Source({ T, f, curPc, sitePcs, matchPcs, bps, onGutter, onRun, map, lineBps, onLineBp, onRunLine }: {
   T: Stepper;
   f: Frame;
   curPc?: number;
@@ -221,10 +236,16 @@ function Source({ T, f, curPc, sitePcs, matchPcs, bps, onGutter, onRun }: {
   bps: Set<string>;
   onGutter: (pc: number) => void;
   onRun: (pc: number) => void;
+  map?: SourceMapping;
+  lineBps: Set<string>;
+  onLineBp: (pcs: number[]) => void;
+  onRunLine: (pcs: number[]) => void;
 }) {
   const box = useRef<HTMLDivElement>(null);
   const prog = f.prog;
   const curLine = prog && curPc !== undefined ? prog.pcLine.get(curPc) : undefined;
+  const ranges = useMemo(() => (prog && map && !prog.synthetic ? tealRanges(prog, map) : undefined), [prog, map]);
+  const rangeOf = useMemo(() => (prog && ranges ? rangeIndex(ranges, prog.lines.length) : undefined), [prog, ranges]);
   // Keep the current line in view, scrolling the panel only (not the page).
   useLayoutEffect(() => {
     const el = box.current;
@@ -233,28 +254,52 @@ function Source({ T, f, curPc, sitePcs, matchPcs, bps, onGutter, onRun }: {
     if (!row) return;
     const top = row.offsetTop;
     if (top < el.scrollTop + 20 || top > el.scrollTop + el.clientHeight - 60) el.scrollTop = Math.max(0, top - el.clientHeight / 3);
-  }, [curLine, prog]);
+  }, [curLine, prog, ranges]);
   if (!prog) return <div className="p-3 text-sm text-muted-foreground">No program ran.</div>;
-  const hm = (f.hash && T.hits.get(f.hash)) || new Map<number, number>();
+  const hm = (f.hash && T.hits.get(f.hash)) || EMPTY_HITS;
+  const line = (i: number, r?: TealRange) => {
+    const l = prog.lines[i];
+    const pc = Number(l.pc);
+    const has = l.pc !== undefined;
+    const sl = has && map ? map.byPc.get(pc) : undefined;
+    return (
+      <SourceLine
+        key={i}
+        prog={prog}
+        i={i}
+        hits={has ? hm.get(pc) ?? 0 : 0}
+        bp={has && !!f.hash && bps.has(bpKey(f.hash, pc))}
+        mark={i === curLine ? "cur" : has && sitePcs.has(pc) ? "site" : undefined}
+        match={has && !!matchPcs?.has(pc)}
+        srcL={sl ? srcKey(sl) : undefined}
+        aside={has ? r?.asides?.get(pc) : undefined}
+        onGutter={onGutter}
+        onRun={onRun}
+      />
+    );
+  };
+  if (ranges && rangeOf && map && f.hash) {
+    return (
+      <div ref={box} className="@container relative min-h-0 flex-1 overflow-auto pb-1">
+        {/* Keyed on the program, so a hovered line's highlight doesn't carry over to another program's same file:line. */}
+        <RangedTeal
+          key={f.hash}
+          hash={f.hash}
+          map={map}
+          ranges={ranges}
+          curRange={curLine === undefined ? -1 : rangeOf[curLine]}
+          hm={hm}
+          lineBps={lineBps}
+          onLineBp={onLineBp}
+          onRunLine={onRunLine}
+          renderOps={(r) => Array.from({ length: r.last - r.first + 1 }, (_, j) => line(r.first + j, r))}
+        />
+      </div>
+    );
+  }
   return (
     <div ref={box} className="relative min-h-0 flex-1 overflow-auto py-1">
-      {prog.lines.map((l, i) => {
-        const pc = Number(l.pc);
-        const has = l.pc !== undefined;
-        return (
-          <SourceLine
-            key={i}
-            prog={prog}
-            i={i}
-            hits={has ? hm.get(pc) ?? 0 : 0}
-            bp={has && !!f.hash && bps.has(bpKey(f.hash, pc))}
-            mark={i === curLine ? "cur" : has && sitePcs.has(pc) ? "site" : undefined}
-            match={has && !!matchPcs?.has(pc)}
-            onGutter={onGutter}
-            onRun={onRun}
-          />
-        );
-      })}
+      {prog.lines.map((_, i) => line(i))}
     </div>
   );
 }
@@ -704,6 +749,7 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
   );
   const search = useOpSearch(T, f);
   const matchPcs = f.hash ? search.result?.pcs.get(f.hash) : undefined;
+  const onLineBp = useCallback((pcs: number[]) => f.hash && src.toggleLineBp(f.hash, pcs), [f.hash, src.toggleLineBp]);
   const fMap = src.mapFor(f.hash);
   // In the TypeScript view, Into, Over, Back and Back over step by source line;
   // the op steps (. and ,) go one TEAL op, showing the line's ops.
@@ -916,7 +962,20 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
             <SourcePanel key={`src:${f.hash}`} T={T} f={f} map={fMap} curPc={s ? Number(s.pc) : undefined} showOps={opAt === pos} sitePcs={sitePcs} matchPcs={matchPcs} src={src} bps={bps} onGutter={onGutter} onRunLine={onRunLine} />
 
           ) : (
-            <Source T={T} f={f} curPc={s ? Number(s.pc) : undefined} sitePcs={sitePcs} matchPcs={matchPcs} bps={bps} onGutter={onGutter} onRun={onRun} />
+            <Source
+              T={T}
+              f={f}
+              curPc={s ? Number(s.pc) : undefined}
+              sitePcs={sitePcs}
+              matchPcs={matchPcs}
+              bps={bps}
+              onGutter={onGutter}
+              onRun={onRun}
+              map={src.colOf(f.hash) ? src.lineMap(f.hash) : undefined}
+              lineBps={src.lineBps}
+              onLineBp={onLineBp}
+              onRunLine={onRunLine}
+            />
           )}
         </Panel>
 

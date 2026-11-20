@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { programHash, type SourceMapping } from "./arc56Source";
 import { buildStepper, type Frame } from "./traceStepper";
-import { appPrograms, mapKind, matchOnApp, readSpecFiles, worthSaving } from "./traceSpecs";
+import { appPrograms, fitsBetter, folderSources, folderSpecs, mapKind, matchOnApp, readSpecFiles, worthSaving } from "./traceSpecs";
 import type { SCDevRound } from "./txnDevInfo";
 
 const text = (name: string) => readFileSync(new URL(`./__fixtures__/${name}`, import.meta.url), "utf8");
@@ -106,5 +106,72 @@ describe("trace specs", () => {
     expect((a.result as SourceMapping).errors.size).toBeGreaterThan(0);
     expect(a.save).toBe(true);
     expect(worthSaving("clear", a.result)).toBe(false);
+  });
+});
+
+describe("a chosen folder", () => {
+  const at = (path: string) => ({ name: path.slice(path.lastIndexOf("/") + 1), path });
+  const files = [
+    at("proj/node_modules/lib/artifacts/Escreg.arc56.json"),
+    at("proj/node_modules/lib/contract.algo.ts"),
+    at("proj/smart_contracts/artifacts/mbr/MbrManager.arc56.json"),
+    at("proj/smart_contracts/artifacts/escreg/Escreg.arc56.json"),
+    at("proj/smart_contracts/artifacts/escreg/Escreg.approval.puya.map"),
+    at("proj/smart_contracts/artifacts/escreg/Escreg.clear.puya.map"),
+    at("proj/smart_contracts/artifacts/escreg/Other.approval.puya.map"),
+    at("proj/smart_contracts/artifacts/Escreg.approval.puya.map"),
+    at("proj/Top.arc56.json"),
+    at("proj/smart_contracts/escreg/contract.algo.ts"),
+    at("proj/smart_contracts/mbr-manager/contract.algo.ts"),
+    at("proj/smart_contracts/escreg/deploy-config.ts"),
+  ];
+
+  it("finds its specs outside node_modules, shallowest first, each with the maps beside it named for it", () => {
+    const got = folderSpecs(files).map((c) => [c.spec.path, c.maps.map((m) => m.name)]);
+    expect(got).toEqual([
+      ["proj/Top.arc56.json", []],
+      ["proj/smart_contracts/artifacts/mbr/MbrManager.arc56.json", []],
+      ["proj/smart_contracts/artifacts/escreg/Escreg.arc56.json", ["Escreg.approval.puya.map", "Escreg.clear.puya.map"]],
+    ]);
+  });
+
+  const specPaths = ["smart_contracts/escreg/contract.algo.ts", "smart_contracts/mbr-manager/contract.algo.ts"];
+
+  it("picks the source files at the spec's paths, not other contracts' files of the same name, nor node_modules'", () => {
+    const more = [...files, at("proj/smart_contracts/other/contract.algo.ts"), at("proj/node_modules/x/smart_contracts/escreg/contract.algo.ts")];
+    expect(folderSources(more, specPaths).map((f) => f.path)).toEqual([
+      "proj/smart_contracts/escreg/contract.algo.ts",
+      "proj/smart_contracts/mbr-manager/contract.algo.ts",
+    ]);
+  });
+
+  it("picks them in a folder chosen deeper or under another name", () => {
+    // The contract's own folder: its path below the folder ends a spec path.
+    expect(folderSources([at("escreg/contract.algo.ts"), at("escreg/deploy-config.ts")], specPaths).map((f) => f.path)).toEqual(["escreg/contract.algo.ts"]);
+    // A copy under another name, the file right in it.
+    expect(folderSources([at("copy/contract.algo.ts"), at("copy/sub/contract.algo.ts")], specPaths).map((f) => f.path)).toEqual(["copy/contract.algo.ts"]);
+    // The smart_contracts folder itself.
+    expect(folderSources([at("smart_contracts/escreg/contract.algo.ts"), at("smart_contracts/other/contract.algo.ts")], specPaths).map((f) => f.path)).toEqual([
+      "smart_contracts/escreg/contract.algo.ts",
+    ]);
+  });
+
+  it("reads spec paths with ./, .. and backslashes as their segments, from a folder above the project", () => {
+    const above = [at("code/proj/smart_contracts/escreg/contract.algo.ts"), at("code/proj/smart_contracts/other/contract.algo.ts")];
+    for (const p of ["../smart_contracts/escreg/contract.algo.ts", "./smart_contracts/escreg/contract.algo.ts", "smart_contracts\\escreg\\contract.algo.ts"]) {
+      expect([p, folderSources(above, [p]).map((f) => f.path)]).toEqual([p, ["code/proj/smart_contracts/escreg/contract.algo.ts"]]);
+    }
+  });
+
+  it("ranks fits: exact, then more programs, then a map, then shallower", () => {
+    const fit = (exact: boolean, programs: number, map: boolean, depth: number) => ({ exact, programs, map, depth });
+    expect(fitsBetter(fit(false, 1, false, 9), undefined)).toBe(true);
+    expect(fitsBetter(fit(true, 1, false, 9), fit(false, 2, true, 1))).toBe(true);
+    expect(fitsBetter(fit(true, 2, false, 9), fit(true, 1, true, 1))).toBe(true);
+    // A copy without maps loses to the build output with them, however shallow.
+    expect(fitsBetter(fit(true, 2, false, 3), fit(true, 2, true, 6))).toBe(false);
+    expect(fitsBetter(fit(true, 2, true, 6), fit(true, 2, false, 3))).toBe(true);
+    expect(fitsBetter(fit(true, 2, true, 3), fit(true, 2, true, 6))).toBe(true);
+    expect(fitsBetter(fit(true, 2, true, 6), fit(true, 2, true, 6))).toBe(false);
   });
 });

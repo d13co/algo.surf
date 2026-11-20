@@ -1,6 +1,51 @@
 import { describe, expect, it } from "vitest";
 import type { SrcLine } from "./arc56Source";
-import { fileRows, quotedRows, type Row } from "./sourceRows";
+import { fileRows, isMethodLine, quotedRows, type Row } from "./sourceRows";
+
+describe("method lines", () => {
+  it("are method and function declarations", () => {
+    const yes = [
+      "  public register(appId: uint64): void {",
+      "  private deriveAddrPrefix(appId: uint64): bytes<4> {",
+      "  protected settleMbrCredits(account: Account, mbrBefore: uint64) {",
+      "  public withdrawCredits() {",
+      "  private static async load<T>(x: T): Promise<T> {",
+      "  public longOne(",
+      "  constructor() {",
+      "  increment(): void {",
+      "export function helper(a: uint64): uint64 {",
+      "function helper(",
+      "    def approve(self, amount: UInt64) -> bool:",
+    ];
+    expect(yes.filter((t) => !isMethodLine(t))).toEqual([]);
+  });
+
+  it("aren't calls, statements, decorators, classes or arrow functions", () => {
+    const no = [
+      "    loggedAssert(deficit === 0, errCredit)",
+      "    this.settleMbrCredits(Txn.sender, mbrBefore)",
+      "    if (!this.apps(key).exists) {",
+      "    for (const appId of appIds) {",
+      "    while (i < n) {",
+      "  @abimethod({ readonly: true })",
+      "    items.forEach((x) => {",
+      "    foo(() => {",
+      "    foo(",
+      "  handler = (x: uint64) => {",
+      "export class Escreg extends MbrManager {",
+      "    return this.lookup(address)",
+      "",
+    ];
+    expect(no.filter((t) => isMethodLine(t))).toEqual([]);
+  });
+
+  it("skip long lines, quickly", () => {
+    const start = Date.now();
+    expect(isMethodLine(`foo(${"a):".repeat(20000)}x`)).toBe(false);
+    expect(isMethodLine(`  public f(${"a: uint64, ".repeat(40)}) {`)).toBe(false);
+    expect(Date.now() - start).toBeLessThan(50);
+  });
+});
 
 const F = "a.algo.ts";
 const line = (n: number, text: string, more: Partial<SrcLine> = {}): SrcLine => ({ file: F, line: n, text, pcs: [n * 10], ...more });

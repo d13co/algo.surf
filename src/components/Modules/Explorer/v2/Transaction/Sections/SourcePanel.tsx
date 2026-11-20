@@ -3,7 +3,7 @@ import { ChevronDown, ChevronRight, X } from "lucide-react";
 import { cn } from "src/lib/utils";
 import type { SourceMapping, SrcLine } from "src/utils/arc56Source";
 import { checkSource } from "src/utils/sourceFiles";
-import { fileRows, quotedRows, type Row } from "src/utils/sourceRows";
+import { fileRows, isMethodLine, quotedRows, type Row } from "src/utils/sourceRows";
 import { lineBpKey, linePasses, parseLineBpKey } from "src/utils/sourceStepper";
 import { bpKey, frameAt, lineText, type Frame, type Stepper } from "src/utils/traceStepper";
 import type { TraceSource } from "./useTraceSource";
@@ -33,6 +33,13 @@ function Op({ text }: { text: string }) {
     </>
   );
 }
+
+/** The current line's or op's marker, at the left of its number cell. */
+const CurMark = () => (
+  <span className="absolute left-0 text-primary" aria-label="current">
+    ▶
+  </span>
+);
 
 const Gutter = ({ on, label, onClick }: { on: boolean; label: string; onClick: () => void }) => (
   <button type="button" aria-label={label} className="group flex items-center justify-center cursor-pointer" onClick={onClick}>
@@ -70,7 +77,7 @@ const LineRow = memo(function LineRow({ line, k, text, noOps, cont, hits, bp, ma
         <span />
         <span />
         <span className="text-right text-muted/50">{line.line}</span>
-        <span className="min-w-0 overflow-hidden text-ellipsis text-muted/70">{shown}</span>
+        <span className={cn("min-w-0 overflow-hidden text-ellipsis", isMethodLine(shown) ? "font-medium text-primary" : "text-muted/70")}>{shown}</span>
       </div>
     );
   }
@@ -121,9 +128,12 @@ const LineRow = memo(function LineRow({ line, k, text, noOps, cont, hits, bp, ma
       >
         {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
       </button>
-      <span className="text-right text-muted">{line.line}</span>
-      <span className="min-w-0 overflow-hidden text-ellipsis text-foreground">
-        {mark === "cur" ? <span className="text-primary">▶ </span> : null}
+      {/* The current line's marker sits left of its number, so its text keeps its place. */}
+      <span className="relative text-right text-muted">
+        {mark === "cur" ? <CurMark /> : null}
+        {line.line}
+      </span>
+      <span className={cn("min-w-0 overflow-hidden text-ellipsis", isMethodLine(shown) ? "font-medium text-primary" : "text-foreground")}>
         {shown || <span className="text-muted">(line {line.line})</span>}
       </span>
     </div>
@@ -346,11 +356,13 @@ export function SourcePanel({ T, f, map, curPc, showOps, sitePcs, matchPcs, src,
                       <Gutter on={bp} label={bp ? `Remove the breakpoint at pc ${pc}` : `Stop at pc ${pc}`} onClick={() => onGutter(pc)} />
                       <span className={cn("text-right", matchPcs?.has(pc) ? "text-orange-400" : "text-muted")}>{hitText(h)}</span>
                       <span />
-                      <span className="text-right text-muted">{pc}</span>
+                      <span className="relative text-right text-muted">
+                        {pc === curPc ? <CurMark /> : null}
+                        {pc}
+                      </span>
                       <span className="min-w-0 overflow-hidden text-ellipsis">
                         {/* At the source's size, so it lines up with the line's own indentation. */}
                         <span className="text-[12px]">{indent}</span>
-                        {pc === curPc ? <span className="text-primary">▶ </span> : null}
                         <Op text={lineText(f.prog, pc) ?? ""} />
                       </span>
                     </div>

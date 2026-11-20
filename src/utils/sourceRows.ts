@@ -54,3 +54,27 @@ export function fileRows(file: string, text: string, lines: SrcLine[]): Row[] {
   for (const l of own) if (l.line > fl.length) out.push({ kind: "line", line: l });
   return out;
 }
+
+const MODIFIER = "(?:public|private|protected|static|readonly|override|abstract|async|get|set)\\s+";
+// A class member: modifiers, a name and type parameters, its parameters, an optional return type, then `{` (or `(`, parameters going on below).
+const MEMBER = new RegExp(`^(?:${MODIFIER})*([A-Za-z_$][\\w$]*)\\s*(?:<.*>)?\\s*\\((?:.*\\)\\s*(?::[^=]*?)?\\s*\\{|\\s*)$`);
+const HAS_MODIFIER = new RegExp(`^${MODIFIER}`);
+const NOT_METHODS = new Set(["if", "for", "while", "switch", "catch", "return", "do", "with", "function"]);
+
+/**
+ * Whether a source line declares a method or function, to set it apart:
+ * `public register(appId: uint64): void {`, `export function f(`, `def f(self):`.
+ * Calls, control statements and arrow functions aren't.
+ */
+export function isMethodLine(text: string): boolean {
+  const t = text.trim();
+  // A declaration is short; a long line (minified source) would cost the member pattern time quadratic in its length.
+  if (t.length > 300) return false;
+  if (/^(?:async\s+)?def\s+\w+\s*\(/.test(t)) return true;
+  if (/^(?:export\s+)?(?:default\s+)?(?:async\s+)?function\b/.test(t)) return true;
+  if (t.includes("=>")) return false;
+  const m = MEMBER.exec(t);
+  if (!m || NOT_METHODS.has(m[1])) return false;
+  // Without a modifier, only a whole signature ending in `{`, not one going on below (a call's arguments).
+  return HAS_MODIFIER.test(t) || t.endsWith("{");
+}

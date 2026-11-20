@@ -40,6 +40,12 @@
   }
 }
 
+/* The site is dark only: native scrollbars and form controls follow, and scrollbars are a faint thumb on a clear track. */
+:root {
+  color-scheme: dark;
+  scrollbar-color: rgb(255 255 255 / 0.18) transparent;
+}
+
 /* Logo pulse animations */
 @keyframes bscale {
   25% { transform: scaleY(1.1) scaleX(0.2); }

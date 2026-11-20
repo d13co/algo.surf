@@ -10,7 +10,8 @@ import type { Frame, Program, Stepper } from "src/utils/traceStepper";
  * The debugger's TypeScript view, by program hash: the ARC-56 specs saved
  * for the trace's programs and their mappings, which programs are shown as
  * TypeScript or TEAL, and source-line breakpoints. This browser keeps all
- * three (specs in IndexedDB, the rest in localStorage). A mapping without
+ * three (specs in IndexedDB, the rest in localStorage), and whether the
+ * TEAL view shows the source lines beside the ops. A mapping without
  * source lines (TEAL without `// file:line` comments) still names things
  * (see SpecNames), but has no TypeScript view or source stepping.
  */
@@ -20,7 +21,9 @@ export type View = "ts" | "teal";
 /** A match, and whether this browser stored it (else it lasts for the page). */
 export type Added = ProgramMatch & { stored?: boolean };
 
-const viewKey = (hash: string) => `trace-src-view:${hash}`;
+// A new key since TEAL became the default: adding a spec used to store "ts" under `trace-src-view:`, which would now read as a choice of TypeScript.
+const viewKey = (hash: string) => `trace-view:${hash}`;
+const colKey = (hash: string) => `trace-src-col:${hash}`;
 const lineBpStoreKey = (hash: string) => `trace-src-bp:${hash}`;
 
 function readStore<T>(k: string): T | undefined {
@@ -73,6 +76,8 @@ export function useTraceSource(T: Stepper) {
   const [srcs, setSrcs] = useState<Map<string, ProgSource>>(() => new Map());
   const [views, setViews] = useState<Map<string, View>>(() => new Map());
   const [lineBps, setLineBps] = useState<Set<string>>(() => new Set());
+  /** Programs whose TEAL view hides the source column (shown by default). */
+  const [colsOff, setColsOff] = useState<Set<string>>(() => new Set());
   /** Per program hash without a spec: specs saved for an older version of its app. */
   const [older, setOlder] = useState<Map<string, SpecRecord[]>>(() => new Map());
   const [saved, setSaved] = useState<SpecRecord[]>([]);
@@ -111,7 +116,8 @@ export function useTraceSource(T: Stepper) {
       setSrcs(found);
       setOlder(old);
       setSaved(all);
-      setViews((prev) => new Map(progs.map((p) => [p.hash, prev.get(p.hash) ?? (readStore<View>(viewKey(p.hash)) === "teal" ? "teal" : "ts")])));
+      setViews((prev) => new Map(progs.map((p) => [p.hash, prev.get(p.hash) ?? (readStore<View>(viewKey(p.hash)) === "ts" ? "ts" : "teal")])));
+      setColsOff((prev) => new Set(progs.map((p) => p.hash).filter((h) => prev.has(h) || readStore<boolean>(colKey(h)) === false)));
     })().catch(() => {
       // Storage unreadable: no specs, as before any was added.
     });
@@ -130,13 +136,25 @@ export function useTraceSource(T: Stepper) {
     const m = hash ? srcs.get(hash)?.map : undefined;
     return m?.lines.length ? m : undefined;
   }, [srcs]);
-  const viewOf = useCallback((hash: string | undefined): View => (lineMap(hash) && views.get(hash!) !== "teal" ? "ts" : "teal"), [lineMap, views]);
+  // TEAL (with its source lines beside it) unless TypeScript was chosen.
+  const viewOf = useCallback((hash: string | undefined): View => (lineMap(hash) && views.get(hash!) === "ts" ? "ts" : "teal"), [lineMap, views]);
   const setView = useCallback((hash: string, v: View) => {
     writeStore(viewKey(hash), v);
     setViews((prev) => new Map(prev).set(hash, v));
   }, []);
+  /** Whether the TEAL view shows a program's source lines beside its ops. */
+  const colOf = useCallback((hash: string | undefined) => !!hash && !colsOff.has(hash), [colsOff]);
+  const setCol = useCallback((hash: string, on: boolean) => {
+    writeStore(colKey(hash), on ? undefined : false);
+    setColsOff((prev) => {
+      const next = new Set(prev);
+      if (on) next.delete(hash);
+      else next.add(hash);
+      return next;
+    });
+  }, []);
   /** The mapping of each program shown as TypeScript. */
-  const mapFor: MapFor = useCallback((hash) => (hash && views.get(hash) !== "teal" ? lineMap(hash) : undefined), [lineMap, views]);
+  const mapFor: MapFor = useCallback((hash) => (hash && views.get(hash) === "ts" ? lineMap(hash) : undefined), [lineMap, views]);
 
   const toggleLineBp = useCallback(
     (hash: string, pcs: number[]) =>
@@ -153,7 +171,8 @@ export function useTraceSource(T: Stepper) {
 
   /**
    * Saves the matches worth saving, with the spec's source files that are
-   * theirs, and shows them as TypeScript. `notes` tells about the files.
+   * theirs; they show in the view last chosen for the program (TEAL with
+   * source lines unless TypeScript was). `notes` tells about the files.
    */
   const apply = useCallback(async (ms: ProgramMatch[], spec: SpecInput): Promise<{ added: Added[]; notes: Note[] }> => {
     const added: Added[] = [];
@@ -179,15 +198,14 @@ export function useTraceSource(T: Stepper) {
       }
       const stored = await putSpec(t.rec);
       if (!stored && Object.keys(t.rec.sources ?? {}).length) notes.push({ text: `The ${m.kind} program's source files are kept for this page only too.`, bad: true });
-      if (t.map.lines.length) {
-        writeStore(viewKey(m.hash), "ts");
-        setViews((prev) => new Map(prev).set(m.hash, "ts"));
-      }
       added.push({ ...m, stored });
     }
     setTick((t) => t + 1);
     return { added, notes };
   }, []);
+
+  /** Matches a spec with frame `f`'s program and its app's other one in the trace, without saving. */
+  const matchOnly = useCallback((f: Frame, spec: SpecInput) => matchOnApp(T, f, spec), [T]);
 
   /** Matches a spec with frame `f`'s program and its app's other one in the trace, and saves the matches. */
   const addSpec = useCallback((f: Frame, spec: SpecInput) => apply(matchOnApp(T, f, spec), spec), [T, apply]);
@@ -232,6 +250,7 @@ export function useTraceSource(T: Stepper) {
   const removeSpec = useCallback(async (hash: string): Promise<boolean> => {
     if (!(await deleteSpec(hash))) return false;
     writeStore(viewKey(hash), undefined);
+    writeStore(colKey(hash), undefined);
     writeStore(lineBpStoreKey(hash), undefined);
     setViews((prev) => {
       const next = new Map(prev);
@@ -239,6 +258,11 @@ export function useTraceSource(T: Stepper) {
       return next;
     });
     setLineBps((prev) => new Set([...prev].filter((k) => parseLineBpKey(k).hash !== hash)));
+    setColsOff((prev) => {
+      const next = new Set(prev);
+      next.delete(hash);
+      return next;
+    });
     setTick((t) => t + 1);
     return true;
   }, []);
@@ -253,5 +277,5 @@ export function useTraceSource(T: Stepper) {
       return r;
     };
   }, [T]);
-  return { srcs, older, saved, hashes, viewOf, setView, mapFor, lineMap, lineBps, toggleLineBp, addSpec, tryRecord, addFiles, removeSpec, appPrograms: progsOf };
+  return { srcs, older, saved, hashes, viewOf, setView, colOf, setCol, mapFor, lineMap, lineBps, toggleLineBp, matchOnly, addSpec, tryRecord, addFiles, removeSpec, appPrograms: progsOf };
 }

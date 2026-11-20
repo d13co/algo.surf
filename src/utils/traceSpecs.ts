@@ -1,6 +1,6 @@
 import type { Arc56Contract } from "@algorandfoundation/algokit-utils/types/app-arc56";
 import { matchSpec, type Mismatch, type ProgramKind, type PuyaMap, type SourceMapping } from "./arc56Source";
-import { isSourceName, type MapFile, type SourceFile } from "./sourceFiles";
+import { isSourceName, suffixLength, type MapFile, type SourceFile } from "./sourceFiles";
 import type { Frame, Program, Stepper } from "./traceStepper";
 
 /**
@@ -190,4 +190,64 @@ export function readAddedFiles(files: ReadFile[], saved: Arc56Contract[] = []): 
     out.maps = out.maps.filter((m) => m.kind !== k);
   }
   return out;
+}
+
+/** A file in a chosen folder, before it is read: its name and its path there. */
+export type FolderFile = { name: string; path: string };
+
+const inNodeModules = (path: string) => /(^|\/)node_modules\//.test(path);
+const dirOf = (path: string) => path.slice(0, path.lastIndexOf("/") + 1);
+
+/**
+ * A chosen folder's ARC-56 specs (`X.arc56.json`, not under node_modules),
+ * shallowest first, each with the `.puya.map`s beside it named for it
+ * (`X.approval.puya.map`, `X.clear.puya.map`, `X.puya.map`).
+ */
+export function folderSpecs<F extends FolderFile>(files: F[]): { spec: F; maps: F[] }[] {
+  const kept = files.filter((f) => !inNodeModules(f.path));
+  const depth = (p: string) => p.split("/").length;
+  return kept
+    .filter((f) => /\.arc56\.json$/i.test(f.name))
+    .map((spec) => {
+      const stem = spec.name.replace(/\.arc56\.json$/i, "").toLowerCase();
+      const names = [`${stem}.approval.puya.map`, `${stem}.clear.puya.map`, `${stem}.puya.map`];
+      const d = dirOf(spec.path);
+      return { spec, maps: kept.filter((m) => dirOf(m.path) === d && names.includes(m.name.toLowerCase())) };
+    })
+    .sort((a, b) => depth(a.spec.path) - depth(b.spec.path));
+}
+
+// A path's segment count as suffixLength reads it (backslashes as slashes, `.` and `..` dropped), so the two compare.
+const segCount = (p: string) => suffixLength(p, p);
+
+/**
+ * A chosen folder's source files (not under node_modules) at one of a
+ * spec's source `paths`: a spec path ends with the file's path below the
+ * chosen folder (`smart_contracts/escreg/contract.algo.ts` ends with
+ * `escreg/contract.algo.ts`), or the file's path ends with a spec path.
+ * Another contract's `contract.algo.ts` elsewhere in the folder isn't.
+ */
+export function folderSources<F extends FolderFile>(files: F[], paths: string[]): F[] {
+  return files.filter((f) => {
+    if (!isSourceName(f.name) || inNodeModules(f.path)) return false;
+    const rel = f.path.slice(f.path.indexOf("/") + 1);
+    return paths.some((p) => suffixLength(p, rel) === segCount(rel) || suffixLength(p, f.path) === segCount(p));
+  });
+}
+
+/** How well a folder's spec fits a program: see fitsBetter. */
+export type FolderFit = { exact: boolean; programs: number; map: boolean; depth: number };
+
+/**
+ * Whether fit `a` beats `b`: an exact (bytecode) match first, then more of
+ * the app's programs in the trace matched, then a .puya.map that fits the
+ * program, then the shallower spec. A copy of the spec without its maps
+ * loses to the build output that has them.
+ */
+export function fitsBetter(a: FolderFit, b: FolderFit | undefined): boolean {
+  if (!b) return true;
+  if (a.exact !== b.exact) return a.exact;
+  if (a.programs !== b.programs) return a.programs > b.programs;
+  if (a.map !== b.map) return a.map;
+  return a.depth < b.depth;
 }

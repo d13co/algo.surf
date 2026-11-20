@@ -1,15 +1,16 @@
 import React, { useRef, useState } from "react";
 import { FileCode2, FilePlus2, Upload, X } from "lucide-react";
 import { cn } from "src/lib/utils";
-import { isSourceName, specSourcePaths, type Note } from "src/utils/sourceFiles";
+import { specSourcePaths, type Note } from "src/utils/sourceFiles";
 import type { SpecRecord } from "src/utils/specStore";
-import { readAddedFiles, readSpecFiles, type ReadFile, type SpecInput } from "src/utils/traceSpecs";
+import { fitsBetter, folderSources, folderSpecs, readAddedFiles, readSpecFiles, type FolderFit, type ReadFile, type SpecInput } from "src/utils/traceSpecs";
 import type { Frame } from "src/utils/traceStepper";
 import type { Added, TraceSource } from "./useTraceSource";
 
 /**
- * The source panel's bar: the TypeScript / TEAL switch for a program with a
- * spec with source lines (a spec without them only names things), else "Add ARC-56 spec" (a drop zone and a paste box), specs saved
+ * The source panel's bar: the TEAL / TypeScript switch for a program with a
+ * spec with source lines (a spec without them only names things), else "Add ARC-56 spec" (a drop zone, a
+ * project folder to find the spec in, and a paste box), specs saved
  * for an older version of the app to try, and the saved specs to remove.
  * A saved spec takes more files ("Add files"): its `.puya.map`s and its
  * source files, from files or a folder.
@@ -43,10 +44,11 @@ function matchLines(ms: Added[], spec?: SpecInput): Msg[] {
   return out;
 }
 
-const Seg = ({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) => (
+const Seg = ({ on, onClick, title, children }: { on: boolean; onClick: () => void; title?: string; children: React.ReactNode }) => (
   <button
     type="button"
     aria-pressed={on}
+    title={title}
     onClick={onClick}
     className={cn("px-2 py-0.5 cursor-pointer", on ? "bg-primary/25 text-foreground" : "text-muted-foreground hover:bg-white/5")}
   >
@@ -54,10 +56,17 @@ const Seg = ({ on, onClick, children }: { on: boolean; onClick: () => void; chil
   </button>
 );
 
-/** A file list as read files, with their paths in a chosen folder; `keep` picks which to read (by name and path). */
-async function readList(list: FileList | File[], keep: (name: string, path: string) => boolean = () => true): Promise<ReadFile[]> {
-  const files = [...list].filter((x) => keep(x.name, x.webkitRelativePath ?? ""));
-  return Promise.all(files.map(async (x) => ({ name: x.name, ...(x.webkitRelativePath && { path: x.webkitRelativePath }), text: await x.text() })));
+/** A file list as read files, with their paths in a chosen folder. */
+async function readList(list: FileList | File[]): Promise<ReadFile[]> {
+  return Promise.all([...list].map(readOne));
+}
+
+const readOne = async (x: File): Promise<ReadFile> => ({ name: x.name, ...(x.webkitRelativePath && { path: x.webkitRelativePath }), text: await x.text() });
+
+/** A chosen folder's files, unread, by name and path; and the folder's name. */
+function folderList(list: FileList) {
+  const files = [...list].map((file) => ({ name: file.name, path: file.webkitRelativePath || file.name, file }));
+  return { files, folder: files[0]?.path.split("/")[0] || "The folder" };
 }
 
 const msgClass = (m: Msg) => (m.bad ? "text-red-400" : m.info ? "text-muted-foreground" : "text-green-400");
@@ -71,6 +80,7 @@ export function SourceBar({ f, src }: { f: Frame; src: TraceSource }) {
   const [paste, setPaste] = useState("");
   const [drag, setDrag] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
+  const folderInput = useRef<HTMLInputElement>(null);
 
   const hash = f.hash;
   if (!hash || !src.appPrograms(f).length) return null;
@@ -79,16 +89,16 @@ export function SourceBar({ f, src }: { f: Frame; src: TraceSource }) {
   const view = src.viewOf(hash);
 
   const failed = (e: unknown) => setMsgs([{ text: `Couldn't read the spec: ${e instanceof Error ? e.message : String(e)}`, bad: true }]);
-  const run = async (files: { name: string; text: string }[]) => {
+  const run = async (files: ReadFile[], lead: Msg[] = []) => {
     setBusy(true);
     try {
       const { spec, errors } = readSpecFiles(files);
       if (!spec) {
-        setMsgs(errors.map((text) => ({ text, bad: true })));
+        setMsgs([...lead, ...errors.map((text) => ({ text, bad: true }))]);
         return;
       }
       const { added: ms, notes } = await src.addSpec(f, spec);
-      setMsgs([...errors.map((text) => ({ text, bad: true })), ...matchLines(ms, spec), ...notes]);
+      setMsgs([...lead, ...errors.map((text) => ({ text, bad: true })), ...matchLines(ms, spec), ...notes]);
       if (ms.some((m) => m.current && m.save)) {
         setOpen(false);
         setPaste("");
@@ -133,18 +143,74 @@ export function SourceBar({ f, src }: { f: Frame; src: TraceSource }) {
   // A folder: only its files named as one of the spec's source files are read (not node_modules').
   const onFolder = async (list: FileList | null) => {
     if (!list?.length || !have) return;
-    // The source file names of every saved spec of the app's programs.
-    const names = new Set(
-      src.appPrograms(f).flatMap((p) => {
-        const h = src.srcs.get(p.hash);
-        return h ? specSourcePaths(h.map.lines, h.rec.puyaMap).map((x) => x.slice(x.lastIndexOf("/") + 1).toLowerCase()) : [];
-      }),
-    );
-    const folder = list[0].webkitRelativePath.split("/")[0] || "The folder";
+    // The source paths of every saved spec of the app's programs.
+    const paths = src.appPrograms(f).flatMap((p) => {
+      const h = src.srcs.get(p.hash);
+      return h ? specSourcePaths(h.map.lines, h.rec.puyaMap) : [];
+    });
+    const { files, folder } = folderList(list);
     try {
-      await add(await readList(list, (name, path) => isSourceName(name) && names.has(name.toLowerCase()) && !/(^|\/)node_modules\//.test(path)), folder);
+      await add(await Promise.all(folderSources(files, paths).map((x) => readOne(x.file))), folder);
     } catch (e) {
       failed(e);
+    }
+  };
+  /**
+   * A project or artifacts folder, before any spec: its ARC-56 spec that
+   * fits this program best (see fitsBetter), with the .puya.maps beside it
+   * and the source files at its paths. Only those files are read.
+   */
+  const onSpecFolder = async (list: FileList | null) => {
+    if (!list?.length) return;
+    const { files, folder } = folderList(list);
+    setBusy(true);
+    try {
+      const cands = folderSpecs(files);
+      if (!cands.length) {
+        setMsgs([{ text: `${folder} has no ARC-56 spec (*.arc56.json) outside node_modules.`, bad: true }]);
+        return;
+      }
+      // Every candidate is tried, the best fit kept (see fitsBetter): a spec copy without its maps loses to the build output with them.
+      let best: { files: ReadFile[]; path: string; paths: string[]; fit: FolderFit } | undefined;
+      const unread: string[] = [];
+      for (const c of cands) {
+        const read = await Promise.all([c.spec, ...c.maps].map((x) => readOne(x.file)));
+        const { spec, errors } = readSpecFiles(read);
+        if (!spec) {
+          unread.push(`${c.spec.path}: ${errors.join("; ")}`);
+          continue;
+        }
+        const ms = src.matchOnly(f, spec);
+        const cur = ms.find((m) => m.current);
+        if (!cur?.save || "mismatch" in cur.result) continue;
+        const fit: FolderFit = {
+          exact: !!cur.result.exact,
+          programs: ms.filter((m) => m.save && !("mismatch" in m.result)).length,
+          map: !!cur.puyaMap,
+          depth: c.spec.path.split("/").length,
+        };
+        if (fitsBetter(fit, best?.fit)) {
+          const paths = ms.flatMap((m) => ("mismatch" in m.result ? [] : specSourcePaths(m.result.lines, m.puyaMap)));
+          best = { files: read, path: c.spec.path, paths, fit };
+        }
+      }
+      if (!best) {
+        const list = cands.slice(0, 4).map((c) => c.spec.name).join(", ");
+        setMsgs([
+          { text: `None of the ${cands.length} ARC-56 ${cands.length === 1 ? "spec" : "specs"} in ${folder} (${list}${cands.length > 4 ? ", …" : ""}) matches this program.`, bad: true },
+          ...unread.slice(0, 3).map((text) => ({ text: `Couldn't read ${text}`, bad: true })),
+          ...(unread.length > 3 ? [{ text: `…and ${unread.length - 3} more specs couldn't be read.`, bad: true }] : []),
+        ]);
+        return;
+      }
+      const sources = await Promise.all(folderSources(files, best.paths).map((x) => readOne(x.file)));
+      const maps = best.files.length - 1;
+      const found = [`${maps} .puya.${maps === 1 ? "map" : "maps"}`, `${sources.length} source ${sources.length === 1 ? "file" : "files"}`].filter((t) => !t.startsWith("0 ")).join(" and ");
+      await run([...best.files, ...sources], [{ text: `Using ${best.path}${found ? ` with ${found}` : ""}.`, info: true }]);
+    } catch (e) {
+      failed(e);
+    } finally {
+      setBusy(false);
     }
   };
   const tryOld = async (rec: SpecRecord) => {
@@ -166,8 +232,15 @@ export function SourceBar({ f, src }: { f: Frame; src: TraceSource }) {
           <>
             {have.map.lines.length ? (
               <span className="inline-flex overflow-hidden rounded border border-border/50" role="group" aria-label="Show the program as">
-                <Seg on={view === "ts"} onClick={() => src.setView(hash, "ts")}>TypeScript</Seg>
                 <Seg on={view === "teal"} onClick={() => src.setView(hash, "teal")}>TEAL</Seg>
+                <Seg on={view === "ts"} onClick={() => src.setView(hash, "ts")}>TypeScript</Seg>
+              </span>
+            ) : null}
+            {have.map.lines.length && view === "teal" ? (
+              <span className="inline-flex overflow-hidden rounded border border-border/50">
+                <Seg on={src.colOf(hash)} onClick={() => src.setCol(hash, !src.colOf(hash))} title="Show the source line beside each run of TEAL ops">
+                  Source lines
+                </Seg>
               </span>
             ) : null}
             <span
@@ -255,7 +328,24 @@ export function SourceBar({ f, src }: { f: Frame; src: TraceSource }) {
                 <button type="button" className={smallBtn} disabled={busy} onClick={() => fileInput.current?.click()}>
                   choose files
                 </button>
+                <button
+                  type="button"
+                  className={smallBtn}
+                  disabled={busy}
+                  onClick={() => folderInput.current?.click()}
+                  title="A project or artifacts folder: its *.arc56.json that matches this program is used, with the .puya.maps beside it and its source files. Only those files are read."
+                >
+                  choose folder
+                </button>
                 <input ref={fileInput} type="file" multiple accept=".json,.map,.ts,.py,application/json" className="hidden" aria-label="ARC-56 spec files" onChange={(e) => (onFiles(e.target.files), (e.target.value = ""))} />
+                <input
+                  ref={folderInput}
+                  type="file"
+                  className="hidden"
+                  aria-label="A folder with the ARC-56 spec"
+                  {...{ webkitdirectory: "", directory: "" }}
+                  onChange={(e) => (onSpecFolder(e.target.files), (e.target.value = ""))}
+                />
               </div>
               <div className="flex items-start gap-2">
                 <textarea
