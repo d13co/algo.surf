@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
-import { ChevronDown, ChevronRight, Info } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Bug, ChevronDown, ChevronRight, Info } from "lucide-react";
 import { cn } from "src/lib/utils";
 import { useGroup } from "src/hooks/useGroup";
 import { useDevIncludes, useTxnDevInfo } from "src/hooks/useTxnDevInfo";
@@ -20,6 +21,7 @@ import {
 import TabsUnderline from "src/components/v2/shadcn-studio/tabs/tabs-11";
 import MultiFormatViewer from "src/components/v2/MultiFormatViewer";
 import { Chip } from "src/components/v2/Chips";
+import { Button } from "src/components/v2/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "src/components/v2/ui/tooltip";
 import LinkToApplication from "../../Links/LinkToApplication";
 import LinkToAccount from "../../Links/LinkToAccount";
@@ -389,7 +391,7 @@ function TraceLegend() {
   );
 }
 
-/** Fetched when the tab opens: traces are large. */
+/** Fetched when the tab opens: traces are large. Steps through them in the debugger page. */
 function TracesTab({ round, txId }: { round: number; txId: string }) {
   const { data, error, isLoading } = useTxnDevInfo(round, [txId], ["trace"], true);
   if (error) return <ErrorLine error={error} />;
@@ -398,8 +400,16 @@ function TracesTab({ round, txId }: { round: number; txId: string }) {
   if (!trace) return <Muted>No program ran.</Muted>;
   return (
     <div>
-      <div className="flex justify-end -mb-5">
-        <TraceLegend />
+      <div className="flex items-center gap-3 mb-2">
+        <Button asChild variant="outline" size="sm" className="border-border text-primary hover:bg-primary/10">
+          <Link to={`/debug/${txId}`}>
+            <Bug />
+            Step through it in the debugger
+          </Link>
+        </Button>
+        <span className="ml-auto">
+          <TraceLegend />
+        </span>
       </div>
       <ExecTraceView trace={trace} label="" programs={Object.fromEntries((data.programs ?? []).map((p) => [p.hash, p]))} />
     </div>

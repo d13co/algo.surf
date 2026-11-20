@@ -36,12 +36,12 @@ class PageErrorBoundary extends Component<
   }
 }
 
-function Explorer({ children }: { children: React.ReactNode }): JSX.Element {
+function Explorer({ children, className }: { children: React.ReactNode; className?: string }): JSX.Element {
   return (
     <DateFormatProvider>
       <AlgoMetricsProvider sdk={metricsSDK}>
         <LiveBlocksProvider>
-          <div className="explorer-root">
+          <div className={className ? `explorer-root ${className}` : "explorer-root"}>
             <Header></Header>
             <PageErrorBoundary>
               {children}
