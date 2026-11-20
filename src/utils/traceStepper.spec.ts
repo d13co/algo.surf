@@ -1,3 +1,4 @@
+import { encodeAddress } from "algosdk";
 import { describe, expect, it } from "vitest";
 import {
   applyStep,
@@ -13,7 +14,8 @@ import {
   stepBackOver,
   stepOut,
   stepOver,
-  writesBefore,
+  accesses,
+  stateAccess,
   type Frame,
   type RunState,
 } from "./traceStepper";
@@ -196,12 +198,22 @@ describe("trace stepper", () => {
 
   it("lists state written so far, without a failed clear state program's once it ends", () => {
     const clear = byKind("clear");
-    expect(writesBefore(T, clear.pos[0]).count).toBe(0);
-    expect(writesBefore(T, clear.seqEnd).rows.map((w) => Number(w.c["new-value"]?.uint))).toEqual([9]);
-    expect(writesBefore(T, clear.seqEnd + 1).count).toBe(0);
-    const end = writesBefore(T, T.N - 1);
+    expect(stateAccess(T, "w", clear.pos[0]).count).toBe(0);
+    expect(stateAccess(T, "w", clear.seqEnd).rows.map((r) => Number(r.latest.c["new-value"]?.uint))).toEqual([9]);
+    expect(stateAccess(T, "w", clear.seqEnd + 1).count).toBe(0);
+    const end = stateAccess(T, "w", T.N - 1);
     expect(end.count).toBe(1);
-    expect(end.rows[0]).toMatchObject({ frame: innerF, n: 1 });
+    expect(end.rows[0].latest.frame).toBe(innerF);
+    expect(end.rows[0].all).toHaveLength(1);
+  });
+
+  it("lists every write in total, the rolled back one marked", () => {
+    const all = stateAccess(T, "w");
+    expect(all.count).toBe(2);
+    expect(all.rows.map((r) => [r.latest.frame.kind, r.latest.undoneBy?.kind])).toEqual([
+      ["approval", undefined],
+      ["clear", "clear"],
+    ]);
   });
 
   it("keeps two apps' writes to one key apart without budget runs", () => {
@@ -213,7 +225,134 @@ describe("trace stepper", () => {
         { txid: "C", "exec-trace": { "approval-program-hash": "H1", "approval-program-trace": [write] } },
       ],
     });
-    const rows = writesBefore(T0, T0.N).rows;
-    expect(rows.map((w) => [w.frame.hash, w.n])).toEqual([["H1", 2], ["H2", 1]]);
+    const rows = stateAccess(T0, "w", T0.N).rows;
+    expect(rows.map((r) => [r.latest.frame.hash, r.all.length])).toEqual([["H1", 2], ["H2", 1]]);
+  });
+});
+
+describe("state reads", () => {
+  const b64 = (s: string | Uint8Array) => Buffer.from(s).toString("base64");
+  const bytes = (s: string | Uint8Array): AvmValue => ({ type: 1, bytes: b64(s) });
+  const acct = new Uint8Array(32).fill(7);
+  const box = b64("b");
+  // [op, pops, pushes]: each op's text and effect; the reads take their arguments from the stack the pushes before them built.
+  const ops: [string, number, AvmValue[]][] = [
+    ['pushbytes "k"', 0, [bytes("k")]],
+    ["app_global_get", 1, [u(5)]],
+    ["pushint 1234", 0, [u(1234)]],
+    ['pushbytes "k"', 0, [bytes("k")]],
+    ["app_global_get_ex", 2, [u(6), u(1)]],
+    ["pushbytes 0x07…", 0, [bytes(acct)]],
+    ["pushint 0", 0, [u(0)]],
+    ['pushbytes "k"', 0, [bytes("k")]],
+    ["app_local_get_ex", 3, [bytes(""), u(0)]],
+    ['pushbytes "b"', 0, [bytes("b")]],
+    ["box_get", 1, [bytes(""), u(0)]],
+    ['pushbytes "b"', 0, [bytes("b")]],
+    ["box_len", 1, [u(4), u(1)]],
+    ['pushbytes "b"', 0, [bytes("b")]],
+    ["pushint 0", 0, [u(0)]],
+    ["pushint 2", 0, [u(2)]],
+    ["box_extract", 3, [bytes("ab")]],
+    ['pushbytes "k"', 0, [bytes("k")]],
+    ["app_global_get", 1, [u(5)]],
+    ["app_global_put", 0, []],
+    // Another app's box, by ID; then app 2 of an _ex op: a foreign-app slot.
+    ["pushint 1234", 0, [u(1234)]],
+    ['pushbytes "b"', 0, [bytes("b")]],
+    ["app_box_get", 2, [bytes("xy"), u(1)]],
+    ["pushint 1234", 0, [u(1234)]],
+    ['pushbytes "b"', 0, [bytes("b")]],
+    ["pushint 1", 0, [u(1)]],
+    ["pushint 1", 0, [u(1)]],
+    ["app_box_extract", 4, [bytes("y")]],
+    ["pushint 2", 0, [u(2)]],
+    ['pushbytes "k"', 0, [bytes("k")]],
+    ["app_global_get_ex", 2, [u(0), u(0)]],
+  ];
+  const prog = { hash: "R", lines: ops.map(([text], i) => ({ pc: i + 1, text })) };
+  const steps: TraceStep[] = ops.map(([, pop, adds], i) => ({ pc: i + 1, "stack-pop-count": pop, "stack-additions": adds }));
+  steps[19]["state-changes"] = [{ "app-state-type": "g", operation: "w", key, "new-value": u(1) }];
+  const TR = buildStepper(
+    { traces: [{ txid: "R", "exec-trace": { "approval-program-hash": "R", "approval-program-trace": steps } }], programs: [prog] },
+    [{ path: [0], txid: "R", kind: "approval", "app-id": 77, cost: 20, "budget-before": 700, "budget-after": 680 }],
+  );
+  const rf = TR.frames[0];
+
+  it("finds each read op's key, app, account and what it read, from the stack before it", () => {
+    const rs = accesses(TR, "r");
+    expect(rs.map((a) => a.op)).toEqual([
+      "app_global_get",
+      "app_global_get_ex",
+      "app_local_get_ex",
+      "box_get",
+      "box_len",
+      "box_extract",
+      "app_global_get",
+      "app_box_get",
+      "app_box_extract",
+      "app_global_get_ex",
+    ]);
+    expect(rs.map((a) => a.pos)).toEqual([1, 4, 8, 10, 12, 16, 18, 22, 27, 30].map((i) => rf.pos[i]));
+    expect(rs[0]).toMatchObject({ app: 77, specFrame: rf, c: { "app-state-type": "g", key, "new-value": u(5), "app-id": 77 } });
+    expect(rs[0].exists).toBeUndefined();
+    // The app it names, not the one running: no run of it in the trace, so no spec to name its keys.
+    expect(rs[1]).toMatchObject({ app: 1234, exists: true, c: { "new-value": u(6) } });
+    expect(rs[1].specFrame).toBeUndefined();
+    // App 0: the one running.
+    expect(rs[2]).toMatchObject({ app: 77, exists: false, c: { "app-state-type": "l", account: encodeAddress(acct) } });
+    expect(rs[3]).toMatchObject({ exists: false, c: { "app-state-type": "b", key: box } });
+    expect(rs[4]).toMatchObject({ exists: true, c: { "new-value": u(4) } });
+    expect(rs[5]).toMatchObject({ c: { key: box, "new-value": bytes("ab") } });
+    // Another app's box: its ID under the name, which is under the offset and length for an extract.
+    expect(rs[7]).toMatchObject({ app: 1234, exists: true, c: { "app-state-type": "b", key: box, "new-value": bytes("xy") } });
+    expect(rs[8]).toMatchObject({ app: 1234, c: { key: box, "new-value": bytes("y") } });
+    expect(rs[7].k).toBe(rs[8].k);
+    expect(rs[7].k).not.toBe(rs[3].k);
+    // A low app of an _ex op: a foreign-app slot, not app 2.
+    expect(rs[9]).toMatchObject({ appSlot: 2, app: undefined, exists: false });
+    expect(rs[9].k).not.toBe(rs[1].k);
+  });
+
+  it("names another app's state with that app's run, where the trace has one", () => {
+    const other = { pc: 1, "stack-additions": [u(1)] };
+    const T2 = buildStepper(
+      {
+        traces: [
+          { txid: "R", "exec-trace": { "approval-program-hash": "R", "approval-program-trace": steps } },
+          { txid: "O", "exec-trace": { "approval-program-hash": "O", "approval-program-trace": [other] } },
+        ],
+        programs: [prog],
+      },
+      [
+        { path: [0], txid: "R", kind: "approval", "app-id": 77, cost: 20, "budget-before": 700, "budget-after": 680 },
+        { path: [1], txid: "O", kind: "approval", "app-id": 1234, cost: 1, "budget-before": 680, "budget-after": 679 },
+      ],
+    );
+    const rs = accesses(T2, "r");
+    expect(rs[1].specFrame?.hash).toBe("O");
+    expect(rs[0].specFrame?.hash).toBe("R");
+  });
+
+  it("groups a key's reads, and its reads and writes alike", () => {
+    const rows = stateAccess(TR, "r").rows;
+    // Global k (twice), another app's k, local k, box b (three ops), another app's box b, slot 2's k.
+    expect(rows).toHaveLength(6);
+    expect(rows.find((r) => r.latest.c.key === box && r.latest.app === 77)!.all.map((a) => a.op)).toEqual(["box_get", "box_len", "box_extract"]);
+    const k = rows.find((r) => r.latest.op === "app_global_get")!;
+    expect(k.all.map((a) => a.pos)).toEqual([rf.pos[1], rf.pos[18]]);
+    expect(stateAccess(TR, "w").rows[0].k).toBe(k.k);
+    // Another app's same key is another row.
+    expect(rows.find((r) => r.latest.op === "app_global_get_ex")!.k).not.toBe(k.k);
+    // So far: before the second read, one.
+    expect(stateAccess(TR, "r", rf.pos[18]).rows.find((r) => r.k === k.k)!.all).toHaveLength(1);
+    expect(stateAccess(TR, "r", rf.pos[18]).count).toBe(6);
+    // A read and a write of the app's own key: the same app on both.
+    expect(stateAccess(TR, "w").rows[0].latest.app).toBe(77);
+  });
+
+  it("finds none without the disassembly", () => {
+    const bare = buildStepper({ traces: [{ txid: "R", "exec-trace": { "approval-program-hash": "R", "approval-program-trace": steps } }] });
+    expect(accesses(bare, "r")).toEqual([]);
   });
 });

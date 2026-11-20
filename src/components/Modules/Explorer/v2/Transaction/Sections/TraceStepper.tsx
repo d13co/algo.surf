@@ -31,7 +31,9 @@ import {
   stepBackOver,
   stepOut,
   stepOver,
-  writesBefore,
+  stateAccess,
+  type Access,
+  type AccessRow,
   type Frame,
   type Program,
   type Stepper,
@@ -377,6 +379,200 @@ function Timeline({ T, bpPos, pos, onSeek }: { T: Stepper; bpPos: number[]; pos:
 }
 
 // ---------------------------------------------------------------------------
+// State access
+
+/** Every access in the trace, or those before the position. */
+type AccessMode = "total" | "so-far";
+
+const accountText = (a: string) => (a.startsWith("#") ? `account ${a}` : shortAddr(a));
+
+/** A pressed-or-not button of a small group (the tabs, the mode). */
+function Seg({ on, onClick, title, children }: { on: boolean; onClick: () => void; title?: string; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={on}
+      title={title}
+      onClick={onClick}
+      className={cn("rounded px-1.5 py-0.5 cursor-pointer", on ? "bg-white/10 text-foreground" : "text-muted-foreground hover:text-foreground")}
+    >
+      {children}
+    </button>
+  );
+}
+
+/**
+ * What an access read or wrote: a box's length, an extract's bytes (raw: a
+ * slice), else the value, decoded where the spec of the app whose state it is
+ * says how (none in the trace for another app: raw).
+ */
+function AccessValue({ a, names }: { a: Access; names: SpecNames }) {
+  const v = a.c["new-value"];
+  if (a.op === "delete") return <span className="text-red-400">deleted</span>;
+  if (a.exists === false) return <span className="italic text-muted">missing</span>;
+  if (!v) return <span className="text-muted">nothing (it failed)</span>;
+  if (a.op.endsWith("box_len")) return <>length <Short v={v} /></>;
+  if (a.op.endsWith("box_extract") || !a.specFrame) return <Short v={v} />;
+  return <StateValue names={names} f={a.specFrame} c={a.c} raw={<Short v={v} />} />;
+}
+
+/** The app whose state an access is: its ID, or a slot in the transaction's foreign apps. */
+const accessApp = (a: Access) => (a.appSlot !== undefined ? `foreign app #${a.appSlot}` : a.app !== undefined ? `app ${grouped(a.app)}` : "");
+
+/**
+ * One key: its latest access, which a click goes to, and when it was accessed
+ * more than once, a switch to list every access. The op just run is tinted,
+ * the next op's outlined.
+ */
+function AccessRowView({ row, at, total, open, onToggle, names, where, onSeek }: {
+  row: AccessRow;
+  at: number;
+  total: boolean;
+  open: boolean;
+  onToggle: () => void;
+  names: SpecNames;
+  where: (f: Frame) => string;
+  onSeek: (q: number) => void;
+}) {
+  const a = row.latest;
+  const c = a.c;
+  const n = row.all.length;
+  const undone = (x: Access) => !!x.undoneBy && (total || at > x.undoneBy.seqEnd);
+  const mark = (xs: Access[]) => cn(xs.some((x) => x.pos === at - 1) && "bg-green-400/10", xs.some((x) => x.pos === at) && "ring-1 ring-inset ring-primary/60");
+  const runs = new Set(row.all.map((x) => x.frame.id)).size > 1;
+  return (
+    // In total, dimming the accesses not reached yet, off for now:
+    // <div className={cn(total && row.all[0].pos >= at && "opacity-50")}>
+    <div>
+      <div className="flex items-stretch">
+        <button
+          type="button"
+          title={`Go to the op that ${a.op === "put" || a.op === "delete" ? "wrote" : "read"} it last (${a.op})${undone(a) ? ", rolled back" : ""}`}
+          onClick={() => onSeek(a.pos)}
+          className={cn("min-w-0 flex-1 px-3 py-1 text-left hover:bg-white/5 cursor-pointer", mark(row.all))}
+        >
+          <span className="flex items-baseline gap-2">
+            <span className="text-muted">{STATE_TYPE[c["app-state-type"]]}</span>
+            <span className="min-w-0 truncate font-mono">
+              {a.specFrame ? <KeyName names={names} f={a.specFrame} c={c} fallback={keyLabel(c.key)} /> : keyLabel(c.key)}
+            </span>
+            <span className="ml-auto shrink-0 text-muted">step {grouped(a.pos + 1)}</span>
+          </span>
+          <span className="flex items-baseline gap-2">
+            <span className={cn("min-w-0 truncate font-mono", undone(a) && "line-through")}>
+              <AccessValue a={a} names={names} />
+            </span>
+            <span className="ml-auto shrink-0 text-muted">
+              {accessApp(a)}
+              {c.account ? ` · ${accountText(c.account)}` : ""}
+            </span>
+          </span>
+        </button>
+        {n > 1 ? (
+          <button
+            type="button"
+            aria-expanded={open}
+            title={open ? "Hide its accesses" : `List its ${n} accesses`}
+            onClick={onToggle}
+            className="flex shrink-0 items-center gap-0.5 px-1.5 text-muted hover:bg-white/5 hover:text-foreground cursor-pointer"
+          >
+            ×{n}
+            <ChevronRight className={cn("h-3.5 w-3.5 transition-transform", open && "rotate-90")} />
+          </button>
+        ) : null}
+      </div>
+      {open && n > 1 ? (
+        <ol className="mb-1 ml-3 border-l border-border/40">
+          {row.all.map((x, k) => (
+            <li key={k}>
+              <button
+                type="button"
+                title={undone(x) ? "Rolled back" : "Go to this op"}
+                onClick={() => onSeek(x.pos)}
+                className={cn("flex w-full items-baseline gap-2 py-0.5 pl-2 pr-3 text-left hover:bg-white/5 cursor-pointer", /* total && x.pos >= at && "opacity-50", */ mark([x]))}
+              >
+                <span className="shrink-0 text-muted">step {grouped(x.pos + 1)}</span>
+                <span className="shrink-0 text-muted-foreground">{x.op}</span>
+                <span className={cn("min-w-0 truncate font-mono", undone(x) && "line-through")}>
+                  <AccessValue a={x} names={names} />
+                </span>
+                {runs ? <span className="ml-auto shrink-0 text-muted">{where(x.frame)}</span> : null}
+              </button>
+            </li>
+          ))}
+        </ol>
+      ) : null}
+    </div>
+  );
+}
+
+/** App state read and written, by key: in the whole trace (total) or before the position (so far). */
+function StateAccessPanel({ T, at, mode, onMode, names, where, onSeek }: {
+  T: Stepper;
+  at: number;
+  mode: AccessMode;
+  onMode: (m: AccessMode) => void;
+  names: SpecNames;
+  where: (f: Frame) => string;
+  onSeek: (q: number) => void;
+}) {
+  const [tab, setTab] = useState<"r" | "w">("w");
+  // Each tab's open rows.
+  const [open, setOpen] = useState<Set<string>>(() => new Set());
+  const total = mode === "total";
+  const p = total ? undefined : at;
+  // Reads replay every run: once the page has painted, or at once on the Reads tab.
+  const [readsOn, setReadsOn] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => setReadsOn(true), 0);
+    return () => clearTimeout(id);
+  }, []);
+  const reads = useMemo(() => (readsOn || tab === "r" ? stateAccess(T, "r", p) : undefined), [T, p, readsOn, tab]);
+  const writes = useMemo(() => stateAccess(T, "w", p), [T, p]);
+  const list = (tab === "r" ? reads : writes) ?? { rows: [], count: 0 };
+  const toggle = (k: string) =>
+    setOpen((prev) => {
+      const next = new Set(prev);
+      if (next.has(k)) next.delete(k);
+      else next.add(k);
+      return next;
+    });
+  const what = tab === "r" ? "read" : "written";
+  return (
+    <Panel className="lg:min-h-0 lg:flex-1" title="State access">
+      <div className="flex shrink-0 flex-wrap items-center gap-1 border-b border-border/40 px-2 py-1 text-[11px]">
+        <Seg on={tab === "r"} onClick={() => setTab("r")} title="App state the ops read">
+          Reads {reads?.count ? grouped(reads.count) : ""}
+        </Seg>
+        <Seg on={tab === "w"} onClick={() => setTab("w")} title="App state the ops wrote">
+          Writes {writes.count ? grouped(writes.count) : ""}
+        </Seg>
+        <span className="ml-auto flex gap-0.5">
+          <Seg on={total} onClick={() => onMode("total")} title="Every access in the trace">
+            Total
+          </Seg>
+          <Seg on={!total} onClick={() => onMode("so-far")} title="The accesses before this step">
+            So far
+          </Seg>
+        </span>
+      </div>
+      <div className="max-h-64 min-h-0 overflow-auto py-1 text-xs lg:max-h-none lg:flex-1">
+        {list.rows.length ? (
+          list.rows.map((row) => (
+            <AccessRowView key={row.k} row={row} at={at} total={total} open={open.has(`${tab}|${row.k}`)} onToggle={() => toggle(`${tab}|${row.k}`)} names={names} where={where} onSeek={onSeek} />
+          ))
+        ) : (
+          <Empty>
+            {total ? `No app state ${what} in this trace.` : `No app state ${what} yet. ${tab === "r" ? "Reads" : "Writes"} show here as the trace reaches them.`}
+            {tab === "r" && T.frames.some((f) => f.prog?.synthetic) ? " Reads come from the disassembly, which some of this trace's programs don't have." : ""}
+          </Empty>
+        )}
+      </div>
+    </Panel>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Breakpoints, kept per program in this browser
 
 const bpStoreKey = (hash: string) => `trace-bp:${hash}`;
@@ -415,7 +611,7 @@ function saveBps(T: Stepper, bps: Set<string>) {
 /**
  * Step-through debugging of a transaction group's opcode traces: the
  * disassembly with the next op highlighted, the stack, scratch slots, call
- * stack and app state written so far before it, breakpoints, and stepping
+ * stack, the app state read and written, breakpoints, and stepping
  * into, over, out of and back through subroutines and inner transactions.
  * Opens at `txId`'s first program run.
  */
@@ -463,7 +659,13 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
   // The side panels may lag a little while the timeline is dragged.
   const lagPos = useDeferredValue(pos);
   const calls = useMemo(() => callStack(T, lagPos), [T, lagPos]);
-  const writes = useMemo(() => writesBefore(T, lagPos), [T, lagPos]);
+  // State access shows the whole trace's until the first step, then what came before the position, unless one was picked.
+  const [accessMode, setAccessMode] = useState<AccessMode>("total");
+  const modeSet = useRef(false);
+  const pickMode = useCallback((m: AccessMode) => {
+    modeSet.current = true;
+    setAccessMode(m);
+  }, []);
 
   const toggleBp = useCallback((hash: string, pc: number) => {
     bpsChanged.current = true;
@@ -506,28 +708,36 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
     if (q !== pos) setPos(q);
   }, [T, fMap, pos, src.mapFor]);
   const home = lineStart(T, src.mapFor, 0);
+  // A move by the stepping keys or buttons; the first one switches state access to so far.
+  const step = useCallback(
+    (q: number) => {
+      if (!modeSet.current) pickMode("so-far");
+      seek(q);
+    },
+    [seek, pickMode],
+  );
 
   const act = useMemo(
     () => ({
-      into: () => seek(srcOn ? stepIntoSource(T, src.mapFor, pos, isBp) : pos + 1),
-      back: () => seek(srcOn ? stepBackSource(T, src.mapFor, pos, isBp) : pos - 1),
-      over: () => seek(srcOn ? stepOverSource(T, src.mapFor, pos, isBp) : stepOver(T, pos, isBp)),
-      backOver: () => seek(srcOn ? stepBackOverSource(T, src.mapFor, pos, isBp) : stepBackOver(T, pos, isBp)),
+      into: () => step(srcOn ? stepIntoSource(T, src.mapFor, pos, isBp) : pos + 1),
+      back: () => step(srcOn ? stepBackSource(T, src.mapFor, pos, isBp) : pos - 1),
+      over: () => step(srcOn ? stepOverSource(T, src.mapFor, pos, isBp) : stepOver(T, pos, isBp)),
+      backOver: () => step(srcOn ? stepBackOverSource(T, src.mapFor, pos, isBp) : stepBackOver(T, pos, isBp)),
       opNext: () => {
         if (pos >= T.N - 1) return;
-        seek(pos + 1);
+        step(pos + 1);
         if (srcOn) setOpAt(pos + 1);
       },
       opBack: () => {
         if (pos <= 0) return;
-        seek(pos - 1);
+        step(pos - 1);
         if (srcOn) setOpAt(pos - 1);
       },
-      out: () => seek(stepOut(T, pos, isBp)),
-      cont: () => seek(bpPos.find((q) => q > pos) ?? T.N - 1),
-      revCont: () => seek([...bpPos].reverse().find((q) => q < pos) ?? 0),
-      restart: () => seek(home),
-      end: () => seek(T.N - 1),
+      out: () => step(stepOut(T, pos, isBp)),
+      cont: () => step(bpPos.find((q) => q > pos) ?? T.N - 1),
+      revCont: () => step([...bpPos].reverse().find((q) => q < pos) ?? 0),
+      restart: () => step(home),
+      end: () => step(T.N - 1),
       // The keyboard's way to set one: on the next op's line. In the TypeScript
       // view, its TypeScript line, or for an op without one (a subroutine's
       // proto, the constant blocks), the run's next op's that has one.
@@ -542,7 +752,7 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
         toggleBp(f.hash, Number(s.pc));
       },
     }),
-    [T, pos, isBp, bpPos, seek, s, i, f, home, toggleBp, srcOn, fMap, src.mapFor, src.toggleLineBp],
+    [T, pos, isBp, bpPos, step, s, i, f, home, toggleBp, srcOn, fMap, src.mapFor, src.toggleLineBp],
   );
   const bpList = useMemo(() => bpEntries(T, bps), [T, bps]);
   const nLineBps = lineBpCount(src);
@@ -620,45 +830,7 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
           <RunsList T={T} cur={f} labels={labels} names={names} onSeek={seek} />
         </Panel>
 
-        <Panel className="lg:min-h-0 lg:flex-1" title="State written so far" meta={writes.count ? `${writes.count} ${writes.count === 1 ? "write" : "writes"}` : undefined}>
-          <div className="max-h-64 min-h-0 overflow-auto py-1 text-xs lg:max-h-none lg:flex-1">
-            {writes.rows.length ? (
-              writes.rows.map((w) => {
-                const c = w.c;
-                const app = c["app-id"] ?? w.frame.appId;
-                return (
-                  <button
-                    key={`${w.pos}:${c.key}:${c.account ?? ""}`}
-                    type="button"
-                    title="Go to the op that wrote it"
-                    onClick={() => seek(w.pos)}
-                    className={cn("block w-full px-3 py-1 text-left hover:bg-white/5 cursor-pointer", w.pos === lagPos - 1 && "bg-green-400/10")}
-                  >
-                    <span className="flex items-baseline gap-2">
-                      <span className="text-muted">{STATE_TYPE[c["app-state-type"]]}</span>
-                      <span className="min-w-0 truncate font-mono">
-                        <KeyName names={names} f={w.frame} c={c} fallback={keyLabel(c.key)} />
-                      </span>
-                      <span className="ml-auto shrink-0 text-muted">
-                        step {grouped(w.pos + 1)}
-                        {w.n > 1 ? ` · ×${w.n}` : ""}
-                      </span>
-                    </span>
-                    <span className="flex items-baseline gap-2">
-                      <span className="min-w-0 truncate font-mono">{c.operation === "d" ? <span className="text-red-400">deleted</span> : c["new-value"] ? <StateValue names={names} f={w.frame} c={c} raw={<Short v={c["new-value"]} />} /> : null}</span>
-                      <span className="ml-auto shrink-0 text-muted">
-                        {app !== undefined ? `app ${grouped(app)}` : ""}
-                        {c.account ? ` · ${shortAddr(c.account)}` : ""}
-                      </span>
-                    </span>
-                  </button>
-                );
-              })
-            ) : (
-              <Empty>No app state written yet. Writes show here as the trace reaches them.</Empty>
-            )}
-          </div>
-        </Panel>
+        <StateAccessPanel T={T} at={lagPos} mode={accessMode} onMode={pickMode} names={names} where={labels.where} onSeek={seek} />
 
         <Panel className="lg:max-h-[25%] lg:shrink-0" title="Breakpoints" meta={bpList.length + nLineBps || undefined}>
           <LineBreakpoints T={T} src={src} at={lineBpPos} />
@@ -689,9 +861,10 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
             </span>
           }
         >
-          <SourceBar key={f.hash} f={f} src={src} />
+          {/* Keyed apart from the source below: siblings sharing a key can be duplicated. */}
+          <SourceBar key={`bar:${f.hash}`} f={f} src={src} />
           {fMap ? (
-            <SourcePanel key={f.hash} T={T} f={f} map={fMap} curPc={s ? Number(s.pc) : undefined} showOps={opAt === pos} sitePcs={sitePcs} src={src} bps={bps} onGutter={onGutter} onRunLine={onRunLine} />
+            <SourcePanel key={`src:${f.hash}`} T={T} f={f} map={fMap} curPc={s ? Number(s.pc) : undefined} showOps={opAt === pos} sitePcs={sitePcs} src={src} bps={bps} onGutter={onGutter} onRunLine={onRunLine} />
           ) : (
             <Source T={T} f={f} curPc={s ? Number(s.pc) : undefined} sitePcs={sitePcs} bps={bps} onGutter={onGutter} onRun={onRun} />
           )}

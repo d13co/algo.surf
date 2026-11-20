@@ -1,5 +1,7 @@
+import { encodeAddress } from "algosdk";
 import type { TTInt } from "./timeTravel";
 import type { AvmValue, ExecTrace, SCBudgetRun, SCDevRound, TraceStep } from "./txnDevInfo";
+import type { SCStateType } from "./txnStateChanges";
 
 /**
  * Step-through debugging over a group's opcode traces, as simulate gives them
@@ -62,9 +64,13 @@ export type SubCall = { step: number; pc: number; label: string };
 /** A run's state before one of its ops. */
 export type RunState = { stack: AvmValue[]; scratch: Map<number, ScratchSlot>; calls: SubCall[] };
 
-export type StateWrite = { pos: number; frame: Frame; step: number; c: NonNullable<TraceStep["state-changes"]>[number] };
+export type StateChange = NonNullable<TraceStep["state-changes"]>[number];
+export type StateWrite = { pos: number; frame: Frame; step: number; c: StateChange };
 
-type Analysis = { ck: RunState[]; depth: Int16Array; final: RunState };
+/** An op's read of app state, from its op name and the stack before it: the trace records writes only. */
+type ReadAt = { step: number; op: string; type: SCStateType; key: string; account?: string; appRef?: TTInt; appSlot?: number; value?: AvmValue; exists?: boolean };
+
+type Analysis = { ck: RunState[]; depth: Int16Array; final: RunState; reads: ReadAt[] };
 
 export type Stepper = {
   frames: Frame[];
@@ -287,14 +293,17 @@ function analyze(T: Stepper, f: Frame): Analysis {
   const n = f.steps.length;
   const ck: RunState[] = [];
   const depth = new Int16Array(n + 1);
+  const reads: ReadAt[] = [];
   const st: RunState = { stack: [], scratch: new Map(), calls: [] };
   for (let i = 0; i < n; i++) {
     if (i % CK === 0) ck.push(cloneState(st));
     depth[i] = st.calls.length;
+    const r = readOf(f, i, st.stack);
+    if (r) reads.push(r);
     applyStep(f, i, st);
   }
   depth[n] = 0;
-  a = { ck, depth, final: cloneState(st) };
+  a = { ck, depth, final: cloneState(st), reads };
   T.analysis.set(f.id, a);
   return a;
 }
@@ -396,32 +405,162 @@ export function runTo(T: Stepper, p: number, hash: string, pc: number): number |
   return undefined;
 }
 
-/** A key's latest write before position p, and how many times it was written by then. */
-export type LatestWrite = StateWrite & { n: number };
+// ---------------------------------------------------------------------------
+// State access: app state read and written
 
 /**
- * App state written before position p, the latest write per key, latest
- * first. A failed clear state program's writes, and its inner calls', are
- * left out once it has ended: they were rolled back.
+ * The read ops, with their arguments (bottom to top of the stack): where the
+ * key is, the account and the app for the local and other apps' ones, and
+ * whether the op pushes an exists flag after its value. An `_ex` op's app may
+ * be a foreign-app slot (`ref`); an `app_box_` op's is always the app's ID.
  */
-export function writesBefore(T: Stepper, p: number): { rows: LatestWrite[]; count: number } {
-  const undone = (w: StateWrite) => {
-    for (let f: Frame | undefined = w.frame; f; f = f.parent) if (f.rollback && p > f.seqEnd) return true;
-    return false;
-  };
-  const latest = new Map<string, LatestWrite>();
-  let count = 0;
-  for (const w of T.writes) {
-    if (w.pos >= p) break;
-    if (undone(w)) continue;
-    count++;
-    const c = w.c;
-    // Without the app (no budget runs), its program's: two apps' writes to one key stay apart.
-    const app = c["app-id"] ?? w.frame.appId;
-    const k = `${app !== undefined ? `app:${String(app)}` : `prog:${w.frame.hash}`}|${c["app-state-type"]}|${c.account ?? ""}|${c.key}`;
-    latest.set(k, { ...w, n: (latest.get(k)?.n ?? 0) + 1 });
+const READ_OPS = new Map<string, { type: SCStateType; args: number; key: number; acct?: number; app?: number; ref?: boolean; exists?: boolean }>([
+  ["app_global_get", { type: "g", args: 1, key: 0 }],
+  ["app_global_get_ex", { type: "g", args: 2, app: 0, ref: true, key: 1, exists: true }],
+  ["app_local_get", { type: "l", args: 2, acct: 0, key: 1 }],
+  ["app_local_get_ex", { type: "l", args: 3, acct: 0, app: 1, ref: true, key: 2, exists: true }],
+  ["box_get", { type: "b", args: 1, key: 0, exists: true }],
+  ["box_len", { type: "b", args: 1, key: 0, exists: true }],
+  ["box_extract", { type: "b", args: 3, key: 0 }],
+  ["app_box_get", { type: "b", args: 2, app: 0, key: 1, exists: true }],
+  ["app_box_len", { type: "b", args: 2, app: 0, key: 1, exists: true }],
+  ["app_box_extract", { type: "b", args: 4, app: 0, key: 1 }],
+]);
+
+/**
+ * App IDs this low are forbidden where the protocol forbids low resources, so
+ * an `_ex` op's app this low is a slot in the transaction's foreign apps.
+ * (go-algorand's resolveApp tries the running app, then an app ID it can
+ * reach, then a slot; the trace doesn't say which apps it can reach.)
+ */
+const LAST_SLOT_REF = 255;
+
+/**
+ * An account argument: its address, given as 32 bytes, or `#n`, an index into
+ * the transaction's accounts (0: the sender). The trace doesn't give the
+ * transaction's accounts, so a key read by index and written (by address)
+ * shows as two keys.
+ */
+function accountOf(v: AvmValue): string {
+  if (v.type === 2) return `#${String(v.uint ?? 0)}`;
+  const u = Uint8Array.from(Buffer.from(v.bytes ?? "", "base64"));
+  return u.length === 32 ? encodeAddress(u) : v.bytes ?? "";
+}
+
+/** Op i's read of app state, if it reads any, with the stack before it. Needs the disassembly, for the op's name. */
+function readOf(f: Frame, i: number, stack: AvmValue[]): ReadAt | undefined {
+  const s = f.steps[i];
+  const op = opName(lineText(f.prog, Number(s.pc)));
+  const r = READ_OPS.get(op);
+  if (!r || stack.length < r.args) return undefined;
+  const a = stack.slice(stack.length - r.args);
+  const k = a[r.key];
+  if (k.type !== 1) return undefined;
+  const read: ReadAt = { step: i, op, type: r.type, key: k.bytes ?? "" };
+  if (r.acct !== undefined) read.account = accountOf(a[r.acct]);
+  // 0 is the app running; any other is the app it names, or for an `_ex` op, a low one a foreign-app slot.
+  const app = r.app !== undefined && a[r.app].type === 2 ? a[r.app].uint ?? 0 : 0;
+  if (BigInt(app)) {
+    if (r.ref && BigInt(app) <= LAST_SLOT_REF) read.appSlot = Number(app);
+    else read.appRef = app;
   }
-  return { rows: [...latest.values()].sort((a, b) => b.pos - a.pos), count };
+  // A failing op pushes nothing.
+  const out = s["stack-additions"] ?? [];
+  if (out.length) read.value = out[0];
+  if (r.exists && out.length >= 2) read.exists = !!BigInt(out[1].uint ?? 0);
+  return read;
+}
+
+/** One read or write of a key. */
+export type Access = {
+  /** Its group: the app (or without budget runs, the program), the state type, the account and the key. */
+  k: string;
+  pos: number;
+  frame: Frame;
+  step: number;
+  /** A read's op (box_get, app_global_get_ex …), or "put" or "delete". */
+  op: string;
+  /** The key, the account and the value (read, or written), as a state change has them. */
+  c: StateChange;
+  app?: TTInt;
+  /** For a read by foreign-app slot, the slot (1-based), and no app. */
+  appSlot?: number;
+  /** The run of the app whose state it is, for its spec: its own run, or another run of that app in the trace. */
+  specFrame?: Frame;
+  /** A read's exists flag, where its op pushes one. */
+  exists?: boolean;
+  /** A write a failed clear state program rolls back when it ends: that run. */
+  undoneBy?: Frame;
+};
+
+// Without the app (no budget runs), its program's: two apps' accesses to one key stay apart.
+const accessKey = (app: TTInt | undefined, hash: string | undefined, c: StateChange, slot?: number) =>
+  `${slot !== undefined ? `slot:${slot}` : app !== undefined ? `app:${String(app)}` : `prog:${hash}`}|${c["app-state-type"]}|${c.account ?? ""}|${c.key}`;
+
+/** The run whose spec names app `app`'s state, accessed from run f: f if it is that app's, else a run of that app in the trace. */
+function specFrameOf(T: Stepper, f: Frame, app: TTInt | undefined, own: boolean): Frame | undefined {
+  if (own || (app !== undefined && f.appId !== undefined && String(app) === String(f.appId))) return f;
+  if (app === undefined) return undefined;
+  return T.frames.find((g) => g.appId !== undefined && String(g.appId) === String(app) && g.kind === "approval");
+}
+
+const accessCache = { r: new WeakMap<Stepper, Access[]>(), w: new WeakMap<Stepper, Access[]>() };
+
+/** Every read (r) or write (w) of app state in the trace, in order. Reads need the programs' disassembly. */
+export function accesses(T: Stepper, kind: "r" | "w"): Access[] {
+  let out = accessCache[kind].get(T);
+  if (out) return out;
+  out = [];
+  if (kind === "w") {
+    for (const w of T.writes) {
+      let undoneBy: Frame | undefined;
+      for (let f: Frame | undefined = w.frame; f && !undoneBy; f = f.parent) if (f.rollback) undoneBy = f;
+      const app = w.c["app-id"] ?? w.frame.appId;
+      const specFrame = specFrameOf(T, w.frame, app, w.c["app-id"] === undefined);
+      out.push({ k: accessKey(app, w.frame.hash, w.c), pos: w.pos, frame: w.frame, step: w.step, op: w.c.operation === "d" ? "delete" : "put", c: w.c, app, specFrame, undoneBy });
+    }
+  } else {
+    for (const f of T.frames) {
+      if (f.kind === "none") continue;
+      for (const r of analyze(T, f).reads) {
+        const app = r.appSlot !== undefined ? undefined : r.appRef ?? f.appId;
+        const c: StateChange = { "app-state-type": r.type, operation: "w", key: r.key, account: r.account, "new-value": r.value, "app-id": app };
+        const own = r.appRef === undefined && r.appSlot === undefined;
+        const specFrame = r.appSlot !== undefined ? undefined : specFrameOf(T, f, app, own);
+        out.push({ k: accessKey(app, f.hash, c, r.appSlot), pos: f.pos[r.step], frame: f, step: r.step, op: r.op, c, app, appSlot: r.appSlot, specFrame, exists: r.exists });
+      }
+    }
+    out.sort((a, b) => a.pos - b.pos);
+  }
+  accessCache[kind].set(T, out);
+  return out;
+}
+
+/** A key's accesses, in order, and its latest. */
+export type AccessRow = { k: string; latest: Access; all: Access[] };
+
+/**
+ * App state read (r) or written (w), one row per key, latest first, and how
+ * many accesses there were. With `p`, only those before position p, leaving
+ * out the writes of a failed clear state program (and its inner calls') once
+ * it has ended: they were rolled back. Without, every one in the trace.
+ */
+export function stateAccess(T: Stepper, kind: "r" | "w", p?: number): { rows: AccessRow[]; count: number } {
+  const rows = new Map<string, AccessRow>();
+  let count = 0;
+  for (const a of accesses(T, kind)) {
+    if (p !== undefined) {
+      if (a.pos >= p) break;
+      if (a.undoneBy && p > a.undoneBy.seqEnd) continue;
+    }
+    count++;
+    const r = rows.get(a.k);
+    if (r) {
+      r.all.push(a);
+      r.latest = a;
+    } else rows.set(a.k, { k: a.k, latest: a, all: [a] });
+  }
+  return { rows: [...rows.values()].sort((x, y) => y.latest.pos - x.latest.pos), count };
 }
 
 /** One level of the call stack at a position, innermost first. */
