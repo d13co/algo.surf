@@ -5,6 +5,7 @@ import {
   ArrowUpFromLine,
   ChevronFirst,
   ChevronLeft,
+  ChevronRight,
   Keyboard,
   Redo2,
   SkipBack,
@@ -36,7 +37,7 @@ import {
   type Stepper,
 } from "src/utils/traceStepper";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "src/components/v2/ui/tooltip";
-import { lineBreakpointPositions, mergePositions, runToLine, stepIntoSource, stepOverSource } from "src/utils/sourceStepper";
+import { lineBreakpointPositions, lineStart, mergePositions, runToLine, stepBackOverSource, stepBackSource, stepIntoSource, stepOverSource } from "src/utils/sourceStepper";
 import { alignNames, stackNamesAt } from "src/utils/stackNames";
 import { useTraceSource } from "./useTraceSource";
 import { LineBreakpoints, lineBpCount, SourceLoc, SourcePanel } from "./SourcePanel";
@@ -320,6 +321,7 @@ const KEYS: [string, string][] = [
   ["↑ or U", "step out"],
   ["← or B", "step back"],
   ["Shift+N", "step back over"],
+  [". / ,", "next / previous TEAL op"],
   ["C or F8", "continue"],
   ["Shift+C", "reverse continue"],
   ["F9", "breakpoint on the next op's line"],
@@ -441,7 +443,17 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
   const bpPos = useMemo(() => mergePositions(breakpointPositions(T, bps), lineBpPos), [T, bps, lineBpPos]);
   const bpSet = useMemo(() => new Set(bpPos), [bpPos]);
   const isBp = useCallback((q: number) => bpSet.has(q), [bpSet]);
-  const seek = useCallback((q: number) => setPos(Math.max(0, Math.min(T.N - 1, q))), [T]);
+  // Where a step by op (. or ,) landed, to show its line's ops: any other move clears it.
+  const [opAt, setOpAt] = useState<number>();
+  const moved = useRef(false);
+  const seek = useCallback(
+    (q: number) => {
+      moved.current = true;
+      setOpAt(undefined);
+      setPos(Math.max(0, Math.min(T.N - 1, q)));
+    },
+    [T],
+  );
 
   const f = frameAt(T, pos);
   const i = T.seqS[pos];
@@ -484,26 +496,53 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
     [T, f.hash, seek],
   );
   const fMap = src.mapFor(f.hash);
-  // In the TypeScript view, Into and Over step by source line.
+  // In the TypeScript view, Into, Over, Back and Back over step by source line;
+  // the op steps (. and ,) go one TEAL op, showing the line's ops.
   const srcOn = !!fMap;
+  // Until the first move, once the spec's source lines arrive: open at the run's first op with a line, not its constant blocks.
+  useEffect(() => {
+    if (moved.current || !fMap) return;
+    const q = lineStart(T, src.mapFor, pos);
+    if (q !== pos) setPos(q);
+  }, [T, fMap, pos, src.mapFor]);
+  const home = lineStart(T, src.mapFor, 0);
 
   const act = useMemo(
     () => ({
       into: () => seek(srcOn ? stepIntoSource(T, src.mapFor, pos, isBp) : pos + 1),
-      back: () => seek(pos - 1),
+      back: () => seek(srcOn ? stepBackSource(T, src.mapFor, pos, isBp) : pos - 1),
       over: () => seek(srcOn ? stepOverSource(T, src.mapFor, pos, isBp) : stepOver(T, pos, isBp)),
-      backOver: () => seek(stepBackOver(T, pos, isBp)),
+      backOver: () => seek(srcOn ? stepBackOverSource(T, src.mapFor, pos, isBp) : stepBackOver(T, pos, isBp)),
+      opNext: () => {
+        if (pos >= T.N - 1) return;
+        seek(pos + 1);
+        if (srcOn) setOpAt(pos + 1);
+      },
+      opBack: () => {
+        if (pos <= 0) return;
+        seek(pos - 1);
+        if (srcOn) setOpAt(pos - 1);
+      },
       out: () => seek(stepOut(T, pos, isBp)),
       cont: () => seek(bpPos.find((q) => q > pos) ?? T.N - 1),
       revCont: () => seek([...bpPos].reverse().find((q) => q < pos) ?? 0),
-      restart: () => seek(0),
+      restart: () => seek(home),
       end: () => seek(T.N - 1),
-      // The keyboard's way to set one: on the next op's line.
+      // The keyboard's way to set one: on the next op's line. In the TypeScript
+      // view, its TypeScript line, or for an op without one (a subroutine's
+      // proto, the constant blocks), the run's next op's that has one.
       toggleBp: () => {
-        if (s && f.hash) toggleBp(f.hash, Number(s.pc));
+        if (!s || !f.hash) return;
+        if (fMap) {
+          for (let j = i; j < f.steps.length; j++) {
+            const l = fMap.byPc.get(Number(f.steps[j].pc));
+            if (l) return src.toggleLineBp(f.hash, l.pcs);
+          }
+        }
+        toggleBp(f.hash, Number(s.pc));
       },
     }),
-    [T, pos, isBp, bpPos, seek, s, f.hash, toggleBp, srcOn, src.mapFor],
+    [T, pos, isBp, bpPos, seek, s, i, f, home, toggleBp, srcOn, fMap, src.mapFor, src.toggleLineBp],
   );
   const bpList = useMemo(() => bpEntries(T, bps), [T, bps]);
   const nLineBps = lineBpCount(src);
@@ -537,12 +576,15 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
   return (
     <section className="flex flex-col gap-2 lg:min-h-0 lg:flex-1" aria-label="Trace debugger">
       <div className="flex flex-wrap items-center gap-1.5" role="toolbar" aria-label="Stepping">
-        <ToolButton label="Restart" keys="Home" shortcuts="Home" onClick={act.restart} disabled={pos === 0}><ChevronFirst /></ToolButton>
+        <ToolButton label="Restart" keys="Home" shortcuts="Home" onClick={act.restart} disabled={pos === home}><ChevronFirst /></ToolButton>
         <ToolButton label="Reverse continue: back to the previous breakpoint" keys="Shift+C" shortcuts="Shift+C" onClick={act.revCont} disabled={pos === 0}><SkipBack /></ToolButton>
-        <ToolButton label="Step back" keys="← or B" shortcuts="ArrowLeft B" onClick={act.back} disabled={pos === 0}><ChevronLeft /></ToolButton>
+        <ToolButton label={srcOn ? "Step back a line" : "Step back"} keys="← or B" shortcuts="ArrowLeft B" onClick={act.back} disabled={pos === 0}><ChevronLeft /></ToolButton>
         <ToolButton label="Step into" keys="→ or S" shortcuts="ArrowRight S" onClick={act.into} disabled={pos >= T.N - 1}><ArrowDownToLine />Into{srcOn ? " line" : ""}</ToolButton>
         <ToolButton label="Step over subroutines and inner transactions" keys="↓, N or F10" shortcuts="ArrowDown N F10" onClick={act.over} disabled={pos >= T.N - 1}><Redo2 />Over{srcOn ? " line" : ""}</ToolButton>
         <ToolButton label="Step out of the subroutine or program" keys="↑ or U" shortcuts="ArrowUp U" onClick={act.out} disabled={pos >= T.N - 1}><ArrowUpFromLine />Out</ToolButton>
+        {srcOn ? (
+          <ToolButton label="Step one TEAL op, into subroutines and inner transactions (back one: ,)" keys="." shortcuts=". ," onClick={act.opNext} disabled={pos >= T.N - 1}><ChevronRight />Op</ToolButton>
+        ) : null}
         <ToolButton label="Continue to the next breakpoint" keys="C or F8" shortcuts="C F8" onClick={act.cont} disabled={pos >= T.N - 1}><SkipForward /></ToolButton>
         <span className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
           <span aria-live="polite" aria-atomic="true">
@@ -562,6 +604,7 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
                     <span>{t}</span>
                   </div>
                 ))}
+                <div className="mt-1.5">In the TypeScript view, the steps go by line, and . and , by TEAL op.</div>
                 <div className="mt-1.5">Click a line's gutter for a breakpoint; double-click a line to run to it.</div>
               </TooltipContent>
             </Tooltip>
@@ -648,7 +691,7 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
         >
           <SourceBar key={f.hash} f={f} src={src} />
           {fMap ? (
-            <SourcePanel key={f.hash} T={T} f={f} map={fMap} curPc={s ? Number(s.pc) : undefined} sitePcs={sitePcs} src={src} bps={bps} onGutter={onGutter} onRunLine={onRunLine} />
+            <SourcePanel key={f.hash} T={T} f={f} map={fMap} curPc={s ? Number(s.pc) : undefined} showOps={opAt === pos} sitePcs={sitePcs} src={src} bps={bps} onGutter={onGutter} onRunLine={onRunLine} />
           ) : (
             <Source T={T} f={f} curPc={s ? Number(s.pc) : undefined} sitePcs={sitePcs} bps={bps} onGutter={onGutter} onRun={onRun} />
           )}
@@ -774,8 +817,8 @@ const RunsList = memo(function RunsList({ T, cur, labels, names, onSeek }: {
 const IGNORE_KEYS_IN =
   "input:not([type=range]), textarea, select, [contenteditable], [role=dialog], [role=menu], [role=listbox], [role=combobox], [aria-haspopup]:not([aria-haspopup=false])";
 
-const KEY_ACTIONS: Record<string, "into" | "back" | "over" | "backOver" | "out" | "cont" | "revCont" | "restart" | "end" | "toggleBp"> = {
-  ArrowRight: "into", s: "into", ArrowLeft: "back", b: "back", ArrowDown: "over", n: "over", F10: "over", N: "backOver",
+const KEY_ACTIONS: Record<string, "into" | "back" | "over" | "backOver" | "opNext" | "opBack" | "out" | "cont" | "revCont" | "restart" | "end" | "toggleBp"> = {
+  ArrowRight: "into", s: "into", ArrowLeft: "back", b: "back", ArrowDown: "over", n: "over", F10: "over", N: "backOver", ".": "opNext", ",": "opBack",
   ArrowUp: "out", u: "out", c: "cont", F8: "cont", C: "revCont", Home: "restart", End: "end", F9: "toggleBp",
 };
 

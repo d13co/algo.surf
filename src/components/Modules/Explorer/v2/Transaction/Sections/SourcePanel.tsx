@@ -141,11 +141,13 @@ function shortPaths(paths: string[]): Map<string, string> {
   return out;
 }
 
-export function SourcePanel({ T, f, map, curPc, sitePcs, src, bps, onGutter, onRunLine }: {
+export function SourcePanel({ T, f, map, curPc, showOps, sitePcs, src, bps, onGutter, onRunLine }: {
   T: Stepper;
   f: Frame;
   map: SourceMapping;
   curPc?: number;
+  /** Whether to open the current line's TEAL ops: after a step by op. */
+  showOps?: boolean;
   sitePcs: Set<number>;
   src: TraceSource;
   bps: Set<string>;
@@ -200,6 +202,11 @@ export function SourcePanel({ T, f, map, curPc, sitePcs, src, bps, onGutter, onR
     const top = row.offsetTop;
     if (switched || top < el.scrollTop + 40 || top > el.scrollTop + el.clientHeight - 60) el.scrollTop = Math.max(0, top - el.clientHeight / 3);
   }, [curKey, map, shownFile]);
+
+  // A step by op opens its line, once: closing it again keeps it closed.
+  useEffect(() => {
+    if (showOps && curKey !== undefined) setOpen((p) => (p.has(curKey) ? p : new Set(p).add(curKey)));
+  }, [showOps, curKey]);
 
   const toggle = React.useCallback((k: string) => setOpen((p) => {
     const n = new Set(p);

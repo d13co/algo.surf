@@ -53,7 +53,11 @@ export function stepOverSource(T: Stepper, mapFor: MapFor, p: number, isBp: IsBp
     if (l && (l !== from || backEdge(pc, last))) return q;
     last = pc;
   }
-  return Math.min(T.N - 1, f.seqEnd + 1);
+  // Out of the run, to the next one or back to its caller's: past ops without a line there, as everywhere in a mapped program.
+  let q = Math.min(T.N - 1, f.seqEnd + 1);
+  const g = frameAt(T, q);
+  if (mapFor(g.hash)) while (T.seqF[q] === g.id && q < g.seqEnd && !srcLineAt(T, mapFor, q) && !isBp(q)) q++;
+  return q;
 }
 
 /**
@@ -78,6 +82,84 @@ export function stepIntoSource(T: Stepper, mapFor: MapFor, p: number, isBp: IsBp
     last = pc;
   }
   return T.N - 1;
+}
+
+/**
+ * Whether every walk into by line stops at q, wherever it started: at the
+ * trace's start, a breakpoint, a run's end, any op of a run without a mapping,
+ * and an op whose nearest earlier op with a line (at any depth, in any run) is
+ * in another run or on another line. Whether a walk stops at an op on the same
+ * line as the one before it (a jump back, see backEdge) depends on where the
+ * walk was, so such an op is not one.
+ */
+function alwaysStops(T: Stepper, mapFor: MapFor, q: number, isBp: IsBp): boolean {
+  if (q <= 0 || isBp(q) || isEnd(T, q)) return true;
+  const g = frameAt(T, q);
+  if (!mapFor(g.hash)) return true;
+  const l = srcLineAt(T, mapFor, q);
+  if (!l) return false;
+  for (let r = q - 1; r >= 0; r--) {
+    if (isEnd(T, r) || !mapFor(frameAt(T, r).hash)) return true;
+    const k = srcLineAt(T, mapFor, r);
+    if (k) return frameAt(T, r) !== g || k !== l;
+  }
+  return true;
+}
+
+/**
+ * The reverse of stepIntoSource: where stepping into by line stopped before
+ * reaching p, or from inside a line, where it was entered. Walks forward
+ * from the nearest earlier op that every walk stops at, so it gives the stops
+ * stepIntoSource gives, breakpoints included.
+ */
+export function stepBackSource(T: Stepper, mapFor: MapFor, p: number, isBp: IsBp = none): number {
+  if (p <= 0) return 0;
+  let s = p - 1;
+  while (!alwaysStops(T, mapFor, s, isBp)) s--;
+  for (;;) {
+    const n = stepIntoSource(T, mapFor, s, isBp);
+    if (n >= p) return s;
+    s = n;
+  }
+}
+
+/** Whether op i of run f enters its line when stepping over by line: the nearest earlier op with a line, at the same subroutine depth or less, is on another line, or op i jumped back on its line. */
+function startsLineOver(T: Stepper, map: SourceMapping, f: Frame, i: number): boolean {
+  const pc = (k: number) => Number(f.steps[k].pc);
+  const l = map.byPc.get(pc(i));
+  if (!l) return false;
+  const j = prevOp(T, f, i);
+  if (j >= 0 && backEdge(pc(i), pc(j))) return true;
+  for (let k = j; k >= 0; k = prevOp(T, f, k)) {
+    const m = map.byPc.get(pc(k));
+    if (m) return m !== l;
+  }
+  return true;
+}
+
+/**
+ * Back to where the line being run was entered, or to where the run's line
+ * before it was, at the same subroutine depth or less: the reverse of
+ * stepOverSource, past subroutines and inner transactions. From a run's end,
+ * to its last line outside subroutines, which stepping over it reached the end
+ * from, even when the run failed in a subroutine (stepping back by line goes
+ * there). Stops at a breakpoint on the way.
+ */
+export function stepBackOverSource(T: Stepper, mapFor: MapFor, p: number, isBp: IsBp = none): number {
+  const f = frameAt(T, p);
+  const map = mapFor(f.hash);
+  const d = depthAt(T, p);
+  for (let q = p - 1; q >= f.seqStart; q--) {
+    if (isBp(q)) return q;
+    if (T.seqF[q] !== f.id || depthAt(T, q) > d) continue;
+    if (!map || startsLineOver(T, map, f, T.seqS[q])) return q;
+  }
+  return Math.max(0, f.seqStart - 1);
+}
+
+/** Where to start in the source view: q, or in a run with a mapping where q's op has no line (the constant blocks), the next op that has one. */
+export function lineStart(T: Stepper, mapFor: MapFor, q: number): number {
+  return !mapFor(frameAt(T, q).hash) || srcLineAt(T, mapFor, q) || isEnd(T, q) ? q : stepIntoSource(T, mapFor, q);
 }
 
 /** Op i's nearest earlier op in its run at the same subroutine depth or less: the op before it on the same pass of a line. */
