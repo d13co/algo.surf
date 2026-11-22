@@ -14,10 +14,10 @@ import Link from "../Links/Link";
 import Logo from "../../Header/Logo";
 
 /**
- * /debug/specs: the ARC-56 specs this browser keeps for the debugger, with
- * their .puya.maps and source files, and the apps each matched in a trace.
- * Specs are added here (a folder, a spec, a map); the debugger matches them
- * with a trace's programs and records the apps.
+ * /debug/contracts: the contracts this browser keeps for the debugger: each
+ * an ARC-56 spec with its .puya.maps and source files, and the apps it
+ * matched in a trace. They are added here (a folder, a spec, a map); the
+ * debugger matches them with a trace's programs and records the apps.
  */
 
 type Report = { title: string; notes: Note[] };
@@ -61,8 +61,8 @@ const noteClass = (n: Note) => (n.bad ? "text-red-400" : n.info ? "text-muted-fo
 const dot = (state: "ok" | "warn" | "bad" | "none") =>
   cn("inline-block h-1.5 w-1.5 shrink-0 rounded-full", state === "ok" ? "bg-green-400" : state === "warn" ? "bg-warning" : state === "bad" ? "bg-red-400" : "bg-muted");
 
-export default function SpecLibrary(): JSX.Element {
-  useTitle("ARC-56 specs");
+export default function ContractLibrary(): JSX.Element {
+  useTitle("Contracts");
   const navigate = useNavigate();
   // Back to where it was opened from (the debugger, mostly); opened directly, to the home page in place of this entry.
   const back = () => (((window.history.state as { idx?: number } | null)?.idx ?? 0) > 0 ? navigate(-1) : navigate("/", { replace: true }));
@@ -201,7 +201,7 @@ export default function SpecLibrary(): JSX.Element {
       const n = specs?.length ?? 0;
       const ok = await clearLibrary();
       setConfirmAll(false);
-      setReport(ok ? { title: `Removed all ${plural(n, "spec")}`, notes: [] } : { title: "Couldn't remove the specs", notes: [{ text: "The browser still holds them. Try again, or clear this site's data.", bad: true }] });
+      setReport(ok ? { title: `Removed all ${plural(n, "contract")}`, notes: [] } : { title: "Couldn't remove the contracts", notes: [{ text: "The browser still holds them. Try again, or clear this site's data.", bad: true }] });
       await reload();
     });
   const forget = (s: LibSpec, a: LibApp) =>
@@ -237,18 +237,18 @@ export default function SpecLibrary(): JSX.Element {
         <Link href="/" noStyle className="-ml-3 inline-flex h-12 items-center px-3 py-2 text-base text-muted-foreground header:h-auto">
           <Logo label="debugger" />
         </Link>
-        <span className="text-sm text-muted-foreground">ARC-56 specs</span>
+        <span className="text-sm text-muted-foreground">Contracts</span>
       </header>
 
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div className="min-w-0 max-w-2xl">
-          <h1 className="text-2xl font-bold">ARC-56 specs</h1>
+          <h1 className="text-2xl font-bold">Contracts</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            The debugger matches these specs with the programs in a trace, to show their source beside the TEAL, name methods and state keys, and explain failed asserts. Add a <span className="font-mono">.puya.map</span> to name stack values too.
+            Contracts the debugger knows: their ARC-56 specs, <span className="font-mono">.puya.map</span>s and source files, and the apps each matched. The debugger matches them with the programs in a trace, to show their source beside the TEAL, name methods and state keys, and explain failed asserts. A <span className="font-mono">.puya.map</span> names stack values too.
           </p>
         </div>
         <div className="flex gap-5 tabular-nums">
-          <Count n={specs?.length ?? 0} label={specs?.length === 1 ? "spec" : "specs"} />
+          <Count n={specs?.length ?? 0} label={specs?.length === 1 ? "contract" : "contracts"} />
           <Count n={apps} label={apps === 1 ? "app" : "apps"} />
         </div>
       </div>
@@ -260,7 +260,7 @@ export default function SpecLibrary(): JSX.Element {
         </p>
       </div>
 
-      <section aria-label="Add specs" className={cn("flex flex-col gap-3 rounded-lg border border-dashed border-border/70 bg-background-card p-4", drag && "border-solid border-primary bg-primary/10")}>
+      <section aria-label="Add contracts" className={cn("flex flex-col gap-3 rounded-lg border border-dashed border-border/70 bg-background-card p-4", drag && "border-solid border-primary bg-primary/10")}>
         <div className="flex flex-wrap items-center gap-2">
           <Button disabled={busy} onClick={() => folderInput.current?.click()} title="A project or build output folder: every X.arc56.json in it, with the .puya.maps beside it and its source files">
             <FolderOpen />
@@ -284,7 +284,7 @@ export default function SpecLibrary(): JSX.Element {
             multiple
             accept=".map,.json,.ts,.mts,.py"
             className="hidden"
-            aria-label="Files to add to the spec"
+            aria-label="Files to add to the contract"
             onChange={(e) => (e.target.files?.length && addTo.current && onFiles(fromList(e.target.files), addTo.current), (e.target.value = ""))}
           />
         </div>
@@ -314,11 +314,11 @@ export default function SpecLibrary(): JSX.Element {
       ) : null}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-bold">Saved specs</h2>
+        <h2 className="text-lg font-bold">Saved contracts</h2>
         {specs?.length ? (
           confirmAll ? (
             <span className="inline-flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-              Remove all {plural(specs.length, "spec")} and their files?
+              Remove all {plural(specs.length, "contract")} and their files?
               <Button size="sm" className="h-7 bg-red-500 px-2 text-white hover:bg-red-500/90" disabled={busy} onClick={removeAll}>
                 Remove all
               </Button>
@@ -342,7 +342,7 @@ export default function SpecLibrary(): JSX.Element {
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
               placeholder="Name, app ID, method or file"
-              aria-label="Filter specs"
+              aria-label="Filter contracts"
               className="w-full rounded-md border border-border/50 bg-background-muted py-1.5 pl-8 pr-2 text-sm outline-none focus:border-primary"
             />
           </label>
@@ -353,11 +353,11 @@ export default function SpecLibrary(): JSX.Element {
         <LoadingTile />
       ) : !specs.length ? (
         <div className="rounded-lg border border-border/40 bg-background-card px-4 py-8 text-center text-sm text-muted-foreground">
-          <div className="mb-1 text-base font-semibold text-foreground">No specs yet</div>
+          <div className="mb-1 text-base font-semibold text-foreground">No contracts yet</div>
           Add your contract's build output folder (such as <span className="font-mono">artifacts/</span>) or its project folder to start.
         </div>
       ) : !shown?.length ? (
-        <div className="rounded-lg border border-border/40 bg-background-card px-4 py-8 text-center text-sm text-muted-foreground">No spec matches “{filter}”. Search covers names, app IDs, method names and source paths.</div>
+        <div className="rounded-lg border border-border/40 bg-background-card px-4 py-8 text-center text-sm text-muted-foreground">No contract matches “{filter}”. Search covers names, app IDs, method names and source paths.</div>
       ) : (
         <div className="overflow-hidden rounded-lg border border-border/40 bg-background-card">
           {shown.map((s) => (
@@ -382,7 +382,7 @@ export default function SpecLibrary(): JSX.Element {
       <section className="rounded-lg border border-border/40 px-4 py-3 text-sm text-muted-foreground">
         <h2 className="mb-1 text-sm font-semibold text-foreground">How apps get here</h2>
         <p>
-          When the debugger opens a trace, it matches each app program in it with these specs: by bytecode when a spec has it, else TEAL op by op. A match records the app on the spec, so the specs show which apps they are. An app update changes its program: a spec that doesn't match the new one keeps the app with the program it matched.
+          When the debugger opens a trace, it matches each app program in it with these contracts' specs: by bytecode when a spec has it, else TEAL op by op. A match records the app on the contract, so the contracts show which apps they are. An app update changes its program: a contract that doesn't match the new one keeps the app with the program it matched.
         </p>
       </section>
     </div>
@@ -606,7 +606,7 @@ function Details({ s, info, onForget }: { s: LibSpec; info: Info; onForget: (a: 
         )}
       </section>
       <section className="flex min-w-0 flex-col gap-1.5 md:col-span-2">
-        <H>Apps this spec matched</H>
+        <H>Apps this contract matched</H>
         {apps.length ? (
           <div className="overflow-x-auto rounded border border-border/40">
             <table className="w-full text-xs tabular-nums">

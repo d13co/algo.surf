@@ -91,9 +91,9 @@ export default function TraceDebug(): JSX.Element {
           </span>
         ) : null}
         <Button asChild size="sm" className="ml-auto self-center">
-          <Link href="/debug/specs" noStyle keepRound={false} target="_blank" rel="noopener" title="The ARC-56 specs the debugger matches with programs (opens in a new tab)">
+          <Link href="/debug/contracts" noStyle keepRound={false} target="_blank" rel="noopener" title="The contracts (ARC-56 specs, maps and source files) the debugger matches with programs (opens in a new tab)">
             <FileCode2 />
-            Specs
+            Contracts
           </Link>
         </Button>
       </header>

@@ -5,7 +5,7 @@ import type { Frame, Program, Stepper } from "./traceStepper";
 /**
  * A trace's app programs, which spec matches are worth keeping, and finding
  * a folder's ARC-56 specs, their `.puya.map`s and source files (for the
- * spec library, /debug/specs).
+ * contracts page, /debug/contracts).
  */
 
 /** A file as read for the debugger: its name, its path in a chosen folder, its text. */

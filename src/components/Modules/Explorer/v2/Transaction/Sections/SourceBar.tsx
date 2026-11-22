@@ -9,11 +9,11 @@ import type { TraceSource } from "./useTraceSource";
 /**
  * The source panel's bar: for a program a saved spec matches, the TEAL /
  * source switch (with source lines) and one line naming the spec, linking
- * to it on the specs page; else a hint to add the spec there.
+ * to it on the contracts page; else a hint to add the spec there.
  */
 
-/** The specs page, open at one spec. The debugger opens it in a new tab, keeping its place, and matches new specs when it is back in view. */
-export const specHref = (id?: string) => (id ? `/debug/specs?spec=${id}` : "/debug/specs");
+/** The contracts page, open at one spec. The debugger opens it in a new tab, keeping its place, and matches new specs when it is back in view. */
+export const contractsHref = (id?: string) => (id ? `/debug/contracts?spec=${id}` : "/debug/contracts");
 
 const Seg = ({ on, onClick, title, children }: { on: boolean; onClick: () => void; title?: string; children: React.ReactNode }) => (
   <button
@@ -39,7 +39,7 @@ export function SourceBar({ f, src }: { f: Frame; src: TraceSource }) {
         <FileCode2 className="h-3.5 w-3.5 shrink-0" />
         <span className="min-w-0 truncate" title="A spec shows the program's source, method names and failure messages">
           No saved spec matches this program:{" "}
-          <Link href={specHref()} keepRound={false} target="_blank" rel="noopener">
+          <Link href={contractsHref()} keepRound={false} target="_blank" rel="noopener">
             add its ARC-56 spec
           </Link>
         </span>
@@ -59,7 +59,7 @@ export function SourceBar({ f, src }: { f: Frame; src: TraceSource }) {
     ? `The .puya.map doesn't fit: ${have.map.mapMismatch}`
     : !have.map.lines.length
       ? "Its TEAL has no source lines (no // file:line comments), so there's no source view; its names are used"
-      : "Open this spec on the specs page";
+      : "Open this contract on the contracts page";
 
   return (
     <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border/40 px-3 py-1 text-xs">
@@ -76,7 +76,7 @@ export function SourceBar({ f, src }: { f: Frame; src: TraceSource }) {
           </Seg>
         </span>
       ) : null}
-      <Link href={specHref(have.lib.id)} keepRound={false} target="_blank" rel="noopener" title={title} className="min-w-0 truncate">
+      <Link href={contractsHref(have.lib.id)} keepRound={false} target="_blank" rel="noopener" title={title} className="min-w-0 truncate">
         {have.rec.name} spec
         {facts.length ? <span className="text-muted"> · {facts.join(" · ")}</span> : null}
       </Link>

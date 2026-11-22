@@ -7,7 +7,7 @@ import { folderSources, folderSpecs, mapKind, worthSaving, type FolderFile, type
 import type { Program } from "./traceStepper";
 
 /**
- * The spec library (/debug/specs): ARC-56 specs added on their own, before
+ * The spec library (/debug/contracts): ARC-56 specs added on their own, before
  * any trace, with their `.puya.map`s and source files, and the apps each
  * matched in the debugger. A spec is kept by its JSON's hash; the debugger
  * matches the library's specs with a trace's programs and records each
