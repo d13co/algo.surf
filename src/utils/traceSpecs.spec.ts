@@ -1,8 +1,9 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { programHash, type SourceMapping } from "./arc56Source";
+import { matchSpec, programHash, type SourceMapping } from "./arc56Source";
+import { addFiles, newSpec, pickSpec } from "./specLibrary";
 import { buildStepper, type Frame } from "./traceStepper";
-import { appPrograms, bestFit, fitsBetter, folderSources, folderSpecs, mapKind, matchOnApp, otherApps, readSpecFiles, worthSaving } from "./traceSpecs";
+import { appPrograms, folderSources, folderSpecs, mapKind, worthSaving } from "./traceSpecs";
 import type { SCDevRound } from "./txnDevInfo";
 
 const text = (name: string) => readFileSync(new URL(`./__fixtures__/${name}`, import.meta.url), "utf8");
@@ -34,16 +35,13 @@ describe("trace specs", () => {
   const approval = T.frames.find((f) => f.kind === "approval") as Frame;
   const clear = T.frames.find((f) => f.kind === "clear") as Frame;
 
-  it("reads a spec and its maps from files", () => {
-    const { spec, errors } = readSpecFiles(files);
-    expect(errors).toEqual([]);
-    expect(spec?.name).toBe("Escreg");
-    expect(Object.keys(spec?.maps ?? {})).toEqual(["approval"]);
+  const escreg = JSON.parse(files[0].text);
+  const escregMap = JSON.parse(files[1].text);
+
+  it("names the program a .puya.map maps from its file name", () => {
     expect(mapKind("Escreg.clear.puya.map")).toBe("clear");
     expect(mapKind("ClearingHouse.approval.puya.map")).toBe("approval");
     expect(mapKind("Escreg.puya.map")).toBeUndefined();
-    expect(readSpecFiles([{ name: "x.json", text: "{" }]).errors).toEqual(["x.json: not JSON"]);
-    expect(readSpecFiles([files[1]]).errors[0]).toMatch(/needs its ARC-56 spec/);
   });
 
   it("finds the app's other program in the trace", () => {
@@ -55,109 +53,36 @@ describe("trace specs", () => {
     expect(appPrograms(buildStepper(dev), approval).length).toBe(1);
   });
 
-  it("matches both programs, saving the clear one only with source lines", () => {
-    const { spec } = readSpecFiles(files);
-    const [a, c] = matchOnApp(T, approval, spec!);
-    expect(a).toMatchObject({ kind: "approval", appId: 1006, save: true, current: true });
-    expect((a.result as SourceMapping).exact).toBe(true);
-    expect((a.result as SourceMapping).stackOut?.size).toBeGreaterThan(0);
-    expect(c).toMatchObject({ kind: "clear", save: false });
-    expect((c.result as SourceMapping).lines).toEqual([]);
-    // Added on the clear run: the same two programs, that one first.
-    expect(matchOnApp(T, clear, spec!).map((m) => [m.kind, m.current, m.save])).toEqual([
-      ["clear", true, false],
-      ["approval", false, true],
-    ]);
-  });
-
-  it("reports two specs, or two maps for one program, instead of keeping the last", () => {
-    const two = readSpecFiles([files[0], { ...files[0], name: "Other.arc56.json" }]);
-    expect(two.spec).toBeUndefined();
-    expect(two.errors[0]).toMatch(/2 ARC-56 specs given \(Escreg.arc56.json, Other.arc56.json\)/);
-    const maps = readSpecFiles([...files, { ...files[1], name: "Old.approval.puya.map" }]);
-    expect(maps.spec).toBeUndefined();
-    expect(maps.errors[0]).toMatch(/2 .puya.maps for the approval program/);
-    expect(readSpecFiles([files[0], { ...files[1], name: "a.puya.map" }, { ...files[1], name: "b.puya.map" }]).errors[0]).toMatch(/don't say approval or clear/);
+  it("uses an approval match, exactly and with the map; not a clear match without source lines", () => {
+    const lib = addFiles(newSpec(escreg, undefined, undefined, 0), [{ name: "Escreg.approval.puya.map", map: escregMap }], [], 0).spec;
+    const m = pickSpec(approval.prog!, "approval", [lib])!;
+    expect(m.map.exact).toBe(true);
+    expect(m.map.stackOut?.size).toBeGreaterThan(0);
+    // Puya's default clear program: many apps', with no source lines.
+    expect(pickSpec(clear.prog!, "clear", [lib])).toBeUndefined();
   });
 
   it("tries a map whose name says neither program with both", () => {
-    const { spec } = readSpecFiles([files[0], { name: "Escreg.puya.map", text: files[1].text }]);
-    expect(spec?.unplaced).toBeDefined();
-    expect(spec?.maps).toEqual({});
-    const [a, c] = matchOnApp(T, approval, spec!);
-    expect(a.puyaMap).toBe(spec?.unplaced);
-    expect((a.result as SourceMapping).stackOut?.size).toBeGreaterThan(0);
-    // It doesn't fit the clear program: left out there, without a complaint.
-    expect(c.puyaMap).toBeUndefined();
-    expect((c.result as SourceMapping).mapMismatch).toBeUndefined();
+    const lib = { ...newSpec(escreg, undefined, undefined, 0), maps: { unplaced: { name: "Escreg.puya.map", map: escregMap } } };
+    const m = pickSpec(approval.prog!, "approval", [lib])!;
+    expect(m.puyaMap).toBe(escregMap);
+    expect(m.map.stackOut?.size).toBeGreaterThan(0);
   });
 
-  it("saves an approval match without source lines (for its names), not a clear one", () => {
-    const { spec } = readSpecFiles(files);
-    const teal = new TextDecoder().decode(Uint8Array.from(atob(spec!.arc56.source!.approval), (ch) => ch.charCodeAt(0)));
+  it("uses an approval match without source lines (for its names), not a clear one", () => {
+    const teal = new TextDecoder().decode(Uint8Array.from(atob(escreg.source.approval), (ch) => ch.charCodeAt(0)));
     const bare = teal
       .split("\n")
       .filter((l) => !l.trim().startsWith("//"))
       .join("\n");
-    const arc56 = { ...spec!.arc56, source: { ...spec!.arc56.source!, approval: btoa(bare) } };
-    const [a] = matchOnApp(T, approval, { name: "bare", arc56, maps: {} });
-    expect("mismatch" in a.result).toBe(false);
-    expect((a.result as SourceMapping).lines).toEqual([]);
-    expect((a.result as SourceMapping).errors.size).toBeGreaterThan(0);
-    expect(a.save).toBe(true);
-    expect(worthSaving("clear", a.result)).toBe(false);
-  });
-});
-
-describe("the trace's other apps", () => {
-  const counter = JSON.parse(text("Counter.approval.disassembly.json")) as typeof disasm;
-  // App 1006's approval and clear programs, then app 2000's approval program twice.
-  const three: SCDevRound = {
-    ...dev,
-    traces: [
-      ...dev.traces,
-      { txid: "C", "exec-trace": { "approval-program-hash": counter.hash, "approval-program-trace": [{ pc: 1 }] } },
-      { txid: "D", "exec-trace": { "approval-program-hash": counter.hash, "approval-program-trace": [{ pc: 1 }] } },
-    ],
-    programs: [disasm, clearProg, counter],
-  };
-  const T = buildStepper(three, [
-    ...budget,
-    { path: [2], txid: "C", kind: "approval" as const, "app-id": 2000, cost: 1, "budget-before": 697, "budget-after": 696 },
-    { path: [3], txid: "D", kind: "approval" as const, "app-id": 2000, cost: 1, "budget-before": 696, "budget-after": 695 },
-  ]);
-  const escreg = T.frames.find((f) => f.hash === disasm.hash) as Frame;
-  const ctr = T.frames.find((f) => f.hash === counter.hash) as Frame;
-
-  it("lists each other app once, by its first run", () => {
-    expect(otherApps(T, escreg).map((g) => [g.hash, g.appId])).toEqual([[counter.hash, ctr.appId]]);
-    expect(otherApps(T, escreg)[0]).toBe(ctr);
-    // App 1006's approval and clear programs are one app.
-    expect(otherApps(T, ctr).map((g) => g.hash)).toEqual([disasm.hash]);
-  });
-
-  it("stands for an app by its approval run, even after a clear run", () => {
-    const [a, b, c, d] = three.traces;
-    const T2 = buildStepper({ ...three, traces: [b, a, c, d] }, [
-      { ...budget[1], path: [0] },
-      { ...budget[0], path: [1] },
-      { path: [2], txid: "C", kind: "approval" as const, "app-id": 2000, cost: 1, "budget-before": 697, "budget-after": 696 },
-      { path: [3], txid: "D", kind: "approval" as const, "app-id": 2000, cost: 1, "budget-before": 696, "budget-after": 695 },
-    ]);
-    const ctr2 = T2.frames.find((f) => f.hash === counter.hash) as Frame;
-    expect(otherApps(T2, ctr2).map((g) => g.kind)).toEqual(["approval"]);
-  });
-
-  it("picks each app's spec from a folder's", () => {
-    const escregSpec = readSpecFiles(files).spec!;
-    const counterSpec = readSpecFiles([{ name: "Counter.arc56.json", text: text("Counter.arc56.json") }]).spec!;
-    const cands = [
-      { path: "proj/artifacts/Counter.arc56.json", spec: counterSpec },
-      { path: "proj/artifacts/Escreg.arc56.json", spec: escregSpec },
-    ];
-    expect(bestFit(cands, (spec) => matchOnApp(T, escreg, spec))?.cand.path).toBe("proj/artifacts/Escreg.arc56.json");
-    expect(bestFit(cands, (spec) => matchOnApp(T, ctr, spec))?.cand.path).toBe("proj/artifacts/Counter.arc56.json");
-    expect(bestFit(cands.slice(1), (spec) => matchOnApp(T, ctr, spec))).toBeUndefined();
+    const arc56 = { ...escreg, source: { ...escreg.source, approval: btoa(bare) } };
+    const r = matchSpec(approval.prog!, arc56, "approval");
+    expect("mismatch" in r).toBe(false);
+    expect((r as SourceMapping).lines).toEqual([]);
+    expect((r as SourceMapping).errors.size).toBeGreaterThan(0);
+    expect(worthSaving("approval", r)).toBe(true);
+    expect(worthSaving("clear", r)).toBe(false);
+    expect(pickSpec(approval.prog!, "approval", [newSpec(arc56, undefined, undefined, 0)])).toBeDefined();
   });
 });
 
@@ -213,17 +138,5 @@ describe("a chosen folder", () => {
     for (const p of ["../smart_contracts/escreg/contract.algo.ts", "./smart_contracts/escreg/contract.algo.ts", "smart_contracts\\escreg\\contract.algo.ts"]) {
       expect([p, folderSources(above, [p]).map((f) => f.path)]).toEqual([p, ["code/proj/smart_contracts/escreg/contract.algo.ts"]]);
     }
-  });
-
-  it("ranks fits: exact, then more programs, then a map, then shallower", () => {
-    const fit = (exact: boolean, programs: number, map: boolean, depth: number) => ({ exact, programs, map, depth });
-    expect(fitsBetter(fit(false, 1, false, 9), undefined)).toBe(true);
-    expect(fitsBetter(fit(true, 1, false, 9), fit(false, 2, true, 1))).toBe(true);
-    expect(fitsBetter(fit(true, 2, false, 9), fit(true, 1, true, 1))).toBe(true);
-    // A copy without maps loses to the build output with them, however shallow.
-    expect(fitsBetter(fit(true, 2, false, 3), fit(true, 2, true, 6))).toBe(false);
-    expect(fitsBetter(fit(true, 2, true, 6), fit(true, 2, false, 3))).toBe(true);
-    expect(fitsBetter(fit(true, 2, true, 3), fit(true, 2, true, 6))).toBe(true);
-    expect(fitsBetter(fit(true, 2, true, 6), fit(true, 2, true, 6))).toBe(false);
   });
 });

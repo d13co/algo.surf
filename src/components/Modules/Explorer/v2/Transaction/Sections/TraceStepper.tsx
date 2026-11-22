@@ -46,7 +46,7 @@ import { lineBreakpointPositions, lineStart, mergePositions, runToLine, stepBack
 import { alignNames, frameNamesAt, stackNamesAt } from "src/utils/stackNames";
 import { useTraceSource } from "./useTraceSource";
 import { LineBreakpoints, lineBpCount, SourceLoc, SourcePanel } from "./SourcePanel";
-import { SourceBar } from "./AddSpec";
+import { SourceBar } from "./SourceBar";
 import { OpSearchField, stepHit, useOpSearch } from "./OpSearch";
 import { AsideChip, RangedTeal } from "./TealRanges";
 import { rangeIndex, srcKey, tealRanges, type TealRange } from "src/utils/tealRanges";

@@ -1,11 +1,9 @@
-import { matchSpec, type ProgramKind, type PuyaMap, type SourceMapping, type SrcLine } from "./arc56Source";
-import type { SpecRecord } from "./specStore";
-import type { Program } from "./traceStepper";
+import type { PuyaMap, SrcLine } from "./arc56Source";
 
 /**
- * Source files (`.ts`, `.py`) and `.puya.map`s added to an ARC-56 spec on the
- * debugger: which of the spec's source paths each file is, whether it is
- * the file the program was built from, and merging them into saved specs.
+ * Source files (`.ts`, `.py`) added to an ARC-56 spec: which of the spec's
+ * source paths each file is, and whether it is the file the program was
+ * built from.
  */
 
 /** A dropped or chosen file; `path` is its path in a chosen folder (webkitRelativePath). */
@@ -153,83 +151,4 @@ export function matchSourceFiles(paths: string[], lines: SrcLine[], files: Sourc
     out.matched.push({ file, path, differs: checkSource(lines.filter((l) => l.file === path), file.text) });
   }
   return out;
-}
-
-/** A saved spec of a program in the trace, with its program and mapping: a place to add files to. */
-export type Target = { rec: SpecRecord; prog: Program; map: SourceMapping };
-/** A `.puya.map` to add; `kind` from its name, if it says. */
-export type MapFile = { name: string; kind?: ProgramKind; map: PuyaMap };
-
-const shown = (f: SourceFile) => f.path || f.name;
-const list = (xs: string[]) => (xs.length < 3 ? xs.join(" and ") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
-
-/** Why a `.puya.map` doesn't fit a saved spec's program; undefined when it does. */
-function mapMisfit(t: Target, map: PuyaMap): string | undefined {
-  try {
-    const r = matchSpec(t.prog, t.rec.arc56, t.rec.kind, map);
-    return "mismatch" in r ? r.mismatch : r.mapMismatch;
-  } catch (e) {
-    return e instanceof Error ? e.message : String(e);
-  }
-}
-
-/**
- * Adds `.puya.map`s and source files to saved specs (`targets`: the app's
- * programs that have one). A map is matched again with the program its name
- * says, then the others, and kept with the first it fits. A source file is
- * kept, under its path in the spec's TEAL, in each spec that quotes that
- * path. Gives the records that changed (to save) and what to tell.
- */
-export function mergeFiles(targets: Target[], maps: MapFile[], files: SourceFile[]): { recs: SpecRecord[]; notes: Note[] } {
-  const notes: Note[] = [];
-  const recs = targets.map((t) => ({ ...t.rec }));
-  const changed = new Set<number>();
-
-  for (const m of maps) {
-    // The program its name says first, then the others.
-    const order = targets.map((t, k) => k).sort((a, b) => Number(targets[b].rec.kind === m.kind) - Number(targets[a].rec.kind === m.kind));
-    const whys: string[] = [];
-    const k = order.find((j) => {
-      const why = mapMisfit(targets[j], m.map);
-      if (why) whys.push(`the ${targets[j].rec.kind} program: ${why}`);
-      return !why;
-    });
-    if (k !== undefined) {
-      recs[k].puyaMap = m.map;
-      changed.add(k);
-      const named = m.kind && m.kind !== recs[k].kind ? ` (though its name says ${m.kind})` : "";
-      notes.push({ text: `${m.name} fits the ${recs[k].kind} program${named}: the stack values are named.` });
-    } else if (!targets.length) notes.push({ text: `${m.name}: no saved spec here to add it to.`, bad: true });
-    else notes.push({ text: `${m.name} doesn't fit ${targets.length > 1 ? "either program" : `the ${targets[0].rec.kind} program`} of this spec (${whys.join("; ")}): not added.`, bad: true });
-  }
-
-  const lines = targets.flatMap((t) => t.map.lines);
-  if (files.length && !lines.length) {
-    notes.push({ text: `This spec's TEAL has no source lines (no \`// file:line\` comments), so there is no source view to show ${list(files.map(shown))} in: not added.`, bad: true });
-  } else if (files.length) {
-    // Only the files the TEAL quotes: the source view shows those.
-    const pathsOf = targets.map((t) => [...new Set(t.map.lines.map((l) => l.file))]);
-    const paths = [...new Set(pathsOf.flat())];
-    const r = matchSourceFiles(paths, lines, files);
-    for (const { file, path, differs } of r.matched) {
-      recs.forEach((rec, k) => {
-        if (!pathsOf[k].includes(path)) return;
-        rec.sources = { ...rec.sources, [path]: file.text };
-        changed.add(k);
-      });
-      if (differs) {
-        notes.push({
-          text: `${shown(file)} differs from the build at line ${differs.line}: the spec has “${differs.spec}”, the file “${differs.file}”${differs.more ? ` (and ${differs.more} more ${differs.more === 1 ? "line" : "lines"})` : ""}. Added anyway; it may not be the code that ran.`,
-          bad: true,
-        });
-      } else notes.push({ text: `${shown(file)} is ${path}.` });
-    }
-    for (const a of r.ambiguous) notes.push({ text: `${shown(a.file)} could be ${list(a.paths)}: choose its folder instead, so its path tells which.`, bad: true });
-    for (const d of r.duplicate) notes.push({ text: `${shown(d.file)}: another file given for ${d.path} fits it better; not used.`, info: true });
-    if (r.unrelated.length) notes.push({ text: `Ignored ${list(r.unrelated.map(shown))}: not among the spec's source files.`, info: true });
-    const missing = paths.filter((p) => !recs.some((rec, k) => pathsOf[k].includes(p) && rec.sources?.[p] !== undefined));
-    if (missing.length) notes.push({ text: `Still missing: ${list(missing)}.`, info: true });
-    else if (r.matched.length) notes.push({ text: `Every source file of the spec is added.`, info: true });
-  }
-  return { recs: [...changed].map((k) => recs[k]), notes };
 }

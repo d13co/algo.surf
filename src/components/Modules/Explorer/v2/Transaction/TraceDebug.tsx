@@ -1,12 +1,13 @@
 import React, { useMemo } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, FileCode2 } from "lucide-react";
 import { CoreTransaction } from "src/packages/core-sdk/classes/core/CoreTransaction";
 import { useTransaction } from "src/hooks/useTransaction";
 import { useGroup } from "src/hooks/useGroup";
 import { useDevIncludes, useTxnDevInfo } from "src/hooks/useTxnDevInfo";
 import useTitle from "src/components/Common/UseTitle/UseTitle";
 import LoadingTile from "src/components/v2/LoadingTile";
+import { Button } from "src/components/v2/ui/button";
 import LinkToBlock from "../Links/LinkToBlock";
 import Link from "../Links/Link";
 import Logo from "../../Header/Logo";
@@ -89,6 +90,12 @@ export default function TraceDebug(): JSX.Element {
             {groupTxids.length > 1 ? ` · group of ${groupTxids.length}` : ""}
           </span>
         ) : null}
+        <Button asChild size="sm" className="ml-auto self-center">
+          <Link href="/debug/specs" noStyle keepRound={false} target="_blank" rel="noopener" title="The ARC-56 specs the debugger matches with programs (opens in a new tab)">
+            <FileCode2 />
+            Specs
+          </Link>
+        </Button>
       </header>
       {body}
     </div>

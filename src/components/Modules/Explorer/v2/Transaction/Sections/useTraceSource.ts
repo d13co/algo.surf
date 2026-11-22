@@ -1,25 +1,27 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { matchSpec, type ProgramKind, type SourceMapping } from "src/utils/arc56Source";
-import { mergeFiles, type MapFile, type Note, type SourceFile, type Target } from "src/utils/sourceFiles";
+import { network } from "src/packages/core-sdk/constants";
+import type { ProgramKind, SourceMapping } from "src/utils/arc56Source";
 import { lineBpKey, parseLineBpKey, type MapFor } from "src/utils/sourceStepper";
-import { deleteSpec, getSpec, listSpecs, putSpec, specsForApp, type SpecRecord } from "src/utils/specStore";
-import { appPrograms, isApp, matchOnApp, otherApps, worthSaving, type ProgramMatch, type SpecInput } from "src/utils/traceSpecs";
+import { noteApp, pickSpec, toRecord, type LibApp, type LibSpec } from "src/utils/specLibrary";
+import { listLibrary, updateLibSpec } from "src/utils/specLibraryStore";
+import type { SpecRecord } from "src/utils/specStore";
+import { appPrograms, isApp } from "src/utils/traceSpecs";
 import type { Frame, Program, Stepper } from "src/utils/traceStepper";
 
 /**
- * The debugger's source view, by program hash: the ARC-56 specs saved
- * for the trace's programs and their mappings, which programs are shown as
- * source or TEAL, and source-line breakpoints. This browser keeps all
- * three (specs in IndexedDB, the rest in localStorage), and whether the
+ * The debugger's source view, by program hash: the spec library's specs
+ * (/debug/specs) that match the trace's programs and their mappings, which
+ * programs are shown as source or TEAL, and source-line breakpoints. Each
+ * match is recorded on its library spec, with its app. This browser keeps
+ * all of it (specs in IndexedDB, the rest in localStorage), and whether the
  * TEAL view shows the source lines beside the ops. A mapping without
  * source lines (TEAL without `// file:line` comments) still names things
  * (see SpecNames), but has no source view or source stepping.
  */
 
-export type ProgSource = { rec: SpecRecord; map: SourceMapping };
+/** A program's match: the debugger's record of it, its mapping, and the library spec it came from. */
+export type ProgSource = { rec: SpecRecord; map: SourceMapping; lib: LibSpec };
 export type View = "ts" | "teal";
-/** A match, and whether this browser stored it (else it lasts for the page). */
-export type Added = ProgramMatch & { stored?: boolean };
 
 // A new key since TEAL became the default: adding a spec used to store "ts" under `trace-src-view:`, which would now read as a choice of the source view.
 const viewKey = (hash: string) => `trace-view:${hash}`;
@@ -78,44 +80,50 @@ export function useTraceSource(T: Stepper) {
   const [lineBps, setLineBps] = useState<Set<string>>(() => new Set());
   /** Programs whose TEAL view hides the source column (shown by default). */
   const [colsOff, setColsOff] = useState<Set<string>>(() => new Set());
-  /** Per program hash without a spec: specs saved for an older version of its app. */
-  const [older, setOlder] = useState<Map<string, SpecRecord[]>>(() => new Map());
-  const [saved, setSaved] = useState<SpecRecord[]>([]);
+  /** Bumped when the tab comes back into view: specs added on the specs page (another tab) are matched then. */
   const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const again = () => document.visibilityState === "visible" && setTick((t) => t + 1);
+    document.addEventListener("visibilitychange", again);
+    window.addEventListener("focus", again);
+    return () => {
+      document.removeEventListener("visibilitychange", again);
+      window.removeEventListener("focus", again);
+    };
+  }, []);
 
   // Budget runs arriving later rebuild T with app IDs: load again then.
   useEffect(() => {
     let live = true;
     (async () => {
       const progs = appProgs(T);
+      const libs = await listLibrary(network);
       const found = new Map<string, ProgSource>();
-      const old = new Map<string, SpecRecord[]>();
+      const changed = new Map<string, LibSpec>();
+      const notes = new Map<string, Omit<LibApp, "firstSeen" | "lastSeen">[]>();
+      const now = Date.now();
       for (const p of progs) {
-        let rec = await getSpec(p.hash);
-        let m: SourceMapping | undefined;
-        try {
-          const r = rec ? matchSpec(p.prog, rec.arc56, rec.kind, rec.puyaMap) : undefined;
-          if (r && !("mismatch" in r) && worthSaving(rec!.kind, r)) m = r;
-        } catch {
-          // A stored spec this version can't read: as if there were none.
+        const m = pickSpec(p.prog, p.kind, libs);
+        if (!m) continue;
+        const lib = changed.get(m.lib.id) ?? m.lib;
+        const a = { hash: p.hash, kind: p.kind, ...(p.appId !== undefined && { appId: p.appId }), network, ...(m.map.exact && { exact: true }) };
+        const next = noteApp(lib, a, now);
+        if (next) {
+          changed.set(next.id, next);
+          notes.set(next.id, [...(notes.get(next.id) ?? []), a]);
         }
-        if (rec && m) {
-          // Added before the budget runs named its app: name it now.
-          if (rec.appId === undefined && p.appId !== undefined) {
-            rec = { ...rec, appId: p.appId };
-            await putSpec(rec);
-          }
-          found.set(p.hash, { rec, map: m });
-        } else if (p.appId !== undefined) {
-          const recs = (await specsForApp(p.appId)).filter((r) => r.hash !== p.hash && r.kind === p.kind);
-          if (recs.length) old.set(p.hash, recs);
-        }
+        found.set(p.hash, { rec: toRecord(m, p.hash, p.kind, p.appId), map: m.map, lib: next ?? lib });
       }
-      const all = await listSpecs();
+      // The apps each spec matched, onto the spec as stored now (not one removed meanwhile): best effort.
+      for (const [id, as] of notes) {
+        await updateLibSpec(id, (cur) => {
+          if (!cur) return undefined;
+          const out = as.reduce((x, a) => noteApp(x, a, now) ?? x, cur);
+          return out === cur ? undefined : out;
+        });
+      }
       if (!live) return;
       setSrcs(found);
-      setOlder(old);
-      setSaved(all);
       setViews((prev) => new Map(progs.map((p) => [p.hash, prev.get(p.hash) ?? (readStore<View>(viewKey(p.hash)) === "ts" ? "ts" : "teal")])));
       setColsOff((prev) => new Set(progs.map((p) => p.hash).filter((h) => prev.has(h) || readStore<boolean>(colKey(h)) === false)));
     })().catch(() => {
@@ -169,104 +177,6 @@ export function useTraceSource(T: Stepper) {
     [],
   );
 
-  /**
-   * Saves the matches worth saving, with the spec's source files that are
-   * theirs; they show in the view last chosen for the program (TEAL with
-   * source lines unless the source view was). `notes` tells about the files.
-   */
-  const apply = useCallback(async (ms: ProgramMatch[], spec: SpecInput): Promise<{ added: Added[]; notes: Note[] }> => {
-    const added: Added[] = [];
-    const addedAt = Date.now();
-    const targets: Target[] = [];
-    for (const m of ms) {
-      if (m.save && !("mismatch" in m.result)) {
-        const rec: SpecRecord = { hash: m.hash, kind: m.kind, appId: m.appId, name: spec.name, arc56: spec.arc56, puyaMap: m.puyaMap, addedAt };
-        targets.push({ rec, prog: m.prog, map: m.result });
-      }
-    }
-    let notes: Note[] = [];
-    if (spec.files?.length && targets.length) {
-      const r = mergeFiles(targets, [], spec.files);
-      notes = r.notes;
-      for (const rec of r.recs) targets.find((t) => t.rec.hash === rec.hash)!.rec = rec;
-    }
-    for (const m of ms) {
-      const t = targets.find((x) => x.rec.hash === m.hash);
-      if (!t) {
-        added.push(m);
-        continue;
-      }
-      const stored = await putSpec(t.rec);
-      if (!stored && Object.keys(t.rec.sources ?? {}).length) notes.push({ text: `The ${m.kind} program's source files are kept for this page only too.`, bad: true });
-      added.push({ ...m, stored });
-    }
-    setTick((t) => t + 1);
-    return { added, notes };
-  }, []);
-
-  /** Matches a spec with frame `f`'s program and its app's other one in the trace, without saving. */
-  const matchOnly = useCallback((f: Frame, spec: SpecInput) => matchOnApp(T, f, spec), [T]);
-
-  /** Matches a spec with frame `f`'s program and its app's other one in the trace, and saves the matches. */
-  const addSpec = useCallback((f: Frame, spec: SpecInput) => apply(matchOnApp(T, f, spec), spec), [T, apply]);
-
-  /** Tries a spec saved for another version of the app; saved under this program only if it matches. */
-  const tryRecord = useCallback(
-    (f: Frame, rec: SpecRecord) => {
-      // Its source files too, checked again against this program's spec lines.
-      const files = Object.entries(rec.sources ?? {}).map(([path, text]) => ({ name: path.slice(path.lastIndexOf("/") + 1), path, text }));
-      const spec: SpecInput = { name: rec.name, arc56: rec.arc56, maps: rec.puyaMap ? { [rec.kind]: rec.puyaMap } : {}, ...(files.length && { files }) };
-      return apply(
-        matchOnApp(T, f, spec).filter((m) => m.current),
-        spec,
-      );
-    },
-    [T, apply],
-  );
-
-  /**
-   * Adds `.puya.map`s and source files to the saved specs of frame `f`'s
-   * app (its program, and the other one if saved and in the trace).
-   */
-  const addFiles = useCallback(
-    async (f: Frame, maps: MapFile[], files: SourceFile[]): Promise<Note[]> => {
-      const targets: Target[] = [];
-      for (const p of appPrograms(T, f)) {
-        const have = srcs.get(p.hash);
-        if (have) targets.push({ rec: have.rec, prog: p.prog, map: have.map });
-      }
-      if (!targets.length) return [{ text: "No saved spec for this program to add files to.", bad: true }];
-      const { recs, notes } = mergeFiles(targets, maps, files);
-      for (const rec of recs) {
-        if (!(await putSpec(rec))) notes.push({ text: `The browser didn't store the ${rec.kind} program's spec: kept for this page only.`, bad: true });
-      }
-      if (recs.length) setTick((t) => t + 1);
-      return notes;
-    },
-    [T, srcs],
-  );
-
-  /** Removes a spec, its view choice and its line breakpoints; false when the browser still holds it. */
-  const removeSpec = useCallback(async (hash: string): Promise<boolean> => {
-    if (!(await deleteSpec(hash))) return false;
-    writeStore(viewKey(hash), undefined);
-    writeStore(colKey(hash), undefined);
-    writeStore(lineBpStoreKey(hash), undefined);
-    setViews((prev) => {
-      const next = new Map(prev);
-      next.delete(hash);
-      return next;
-    });
-    setLineBps((prev) => new Set([...prev].filter((k) => parseLineBpKey(k).hash !== hash)));
-    setColsOff((prev) => {
-      const next = new Set(prev);
-      next.delete(hash);
-      return next;
-    });
-    setTick((t) => t + 1);
-    return true;
-  }, []);
-
   const hashes = useMemo(() => new Set(hashList), [hashList]);
   // A frame's programs to match a spec with, worked out once per run.
   const progsOf = useMemo(() => {
@@ -277,7 +187,5 @@ export function useTraceSource(T: Stepper) {
       return r;
     };
   }, [T]);
-  /** The trace's other apps than frame `f`'s: a run of each (see otherApps). */
-  const others = useCallback((f: Frame) => otherApps(T, f), [T]);
-  return { srcs, older, saved, hashes, viewOf, setView, colOf, setCol, mapFor, lineMap, lineBps, toggleLineBp, matchOnly, addSpec, tryRecord, addFiles, removeSpec, appPrograms: progsOf, otherApps: others };
+  return { srcs, hashes, viewOf, setView, colOf, setCol, mapFor, lineMap, lineBps, toggleLineBp, appPrograms: progsOf };
 }
