@@ -13,6 +13,9 @@ import Link from "../Links/Link";
 import Logo from "../../Header/Logo";
 import TraceStepper from "./Sections/TraceStepper";
 
+/** A transaction ID: 52 base32 characters (the SHA-512/256 of the transaction, unpadded). */
+const TXID = /^[A-Z2-7]{52}$/;
+
 function Notice({ children, error }: { children: React.ReactNode; error?: boolean }) {
   return <div className={`mt-6 rounded-lg p-5 bg-background-card text-sm ${error ? "text-red-400" : "text-muted-foreground"}`}>{children}</div>;
 }
@@ -24,17 +27,19 @@ function Notice({ children, error }: { children: React.ReactNode; error?: boolea
  */
 export default function TraceDebug(): JSX.Element {
   const { id = "" } = useParams();
+  // Anything else under /debug/ (a mistyped or retired page) asks the nodes for nothing.
+  const valid = TXID.test(id);
   useTitle(`Debug ${id}`);
   const navigate = useNavigate();
   const { search } = useLocation();
   // Back to where the debugger was opened from: the router's own history entries count up from 0
   // in this tab. Opened directly (nothing of the site's to go back to), to its transaction instead,
-  // in place of this entry so the browser's back doesn't return here.
+  // in place of this entry so the browser's back doesn't return here; without a transaction, home.
   const back = () =>
     ((window.history.state as { idx?: number } | null)?.idx ?? 0) > 0
       ? navigate(-1)
-      : navigate({ pathname: `/transaction/${id}`, search }, { replace: true });
-  const { data: txn, isLoading: txnLoading, error: txnError } = useTransaction(id);
+      : navigate(valid ? { pathname: `/transaction/${id}`, search } : "/", { replace: true });
+  const { data: txn, isLoading: txnLoading, error: txnError } = useTransaction(valid ? id : "");
   const t = useMemo(() => (txn ? new CoreTransaction(txn) : null), [txn]);
   const round = t ? Number(t.getBlock()) : 0;
   const groupId = t?.getGroup() || undefined;
@@ -48,7 +53,13 @@ export default function TraceDebug(): JSX.Element {
   const { data: dev, isLoading: traceLoading, error: traceError } = useTxnDevInfo(round, [id], ["trace"], !!includes?.includes("trace"));
 
   let body: React.ReactNode;
-  if (txnError) body = <Notice error>{(txnError as Error).message}</Notice>;
+  if (!valid) {
+    body = (
+      <Notice error>
+        “{id}” isn't a transaction ID. The debugger is at /debug/ and a transaction's ID; its contracts and specs are on <Link href="/debug/specs">Contracts &amp; Specs</Link>.
+      </Notice>
+    );
+  } else if (txnError) body = <Notice error>{(txnError as Error).message}</Notice>;
   else if (txnLoading || !t || includes === undefined) body = <LoadingTile />;
   else if (!includes.includes("trace")) {
     body = <Notice>The time-travel node doesn't serve opcode traces: they need a dtalgod node with its developer API on.</Notice>;
@@ -80,10 +91,12 @@ export default function TraceDebug(): JSX.Element {
         </Link>
         {/* Shrinks rather than wrapping, down to a few characters, cut in the middle: the head
             truncates and the tail stays. Copying it still gives the whole id. */}
-        <Link href={`/transaction/${id}`} title={id} className="flex min-w-0 max-w-max grow basis-[14ch] text-sm">
-          <span className="truncate">{id.slice(0, -5)}</span>
-          <span className="shrink-0">{id.slice(-5)}</span>
-        </Link>
+        {valid ? (
+          <Link href={`/transaction/${id}`} title={id} className="flex min-w-0 max-w-max grow basis-[14ch] text-sm">
+            <span className="truncate">{id.slice(0, -5)}</span>
+            <span className="shrink-0">{id.slice(-5)}</span>
+          </Link>
+        ) : null}
         {round ? (
           <span className="whitespace-nowrap text-sm text-muted-foreground">
             block <LinkToBlock id={round} />
