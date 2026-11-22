@@ -36,13 +36,14 @@ class PageErrorBoundary extends Component<
   }
 }
 
-function Explorer({ children, className }: { children: React.ReactNode; className?: string }): JSX.Element {
+/** The explorer's providers and page; `header={false}` leaves out the site header, for a page with its own. */
+function Explorer({ children, className, header = true }: { children: React.ReactNode; className?: string; header?: boolean }): JSX.Element {
   return (
     <DateFormatProvider>
       <AlgoMetricsProvider sdk={metricsSDK}>
         <LiveBlocksProvider>
           <div className={className ? `explorer-root ${className}` : "explorer-root"}>
-            <Header></Header>
+            {header ? <Header /> : null}
             <PageErrorBoundary>
               {children}
             </PageErrorBoundary>

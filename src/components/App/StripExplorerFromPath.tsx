@@ -10,7 +10,8 @@ export default function StripExplorerFromPath(): JSX.Element {
         const startsWithExplorerRegex = /\/+explorer\//;
         if (startsWithExplorerRegex.test(location.pathname)) {
             const target = location.pathname.replace(startsWithExplorerRegex, '/');
-            navigate(target);
+            // In place of the old URL: a step back to it would only come here again.
+            navigate(target, { replace: true });
         }
     }, [location]);
 

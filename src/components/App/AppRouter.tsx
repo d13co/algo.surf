@@ -59,7 +59,7 @@ const TraceDebug = lazy(() => import("../Modules/Explorer/v2/Transaction/TraceDe
 
 /**
  * The page around the explorer. The debugger's fills the window: no time
- * travel bar, page width, margins or footer. One tree either way (the
+ * travel bar, site header (it has its own), page width, margins or footer. One tree either way (the
  * wrappers it doesn't need step aside with `display: contents`), so moving
  * to or from the debugger keeps the explorer and its providers mounted.
  */
@@ -72,7 +72,7 @@ function Layout({ children }: { children: React.ReactNode }): JSX.Element {
         <div className={full ? "contents" : "w-full max-w-[1280px]"}>
           <div className={full ? "contents" : "overflow-auto min-h-svh flex flex-col"}>
             <div className={full ? "contents" : "grow mx-5 mt-2.5 md:mx-[100px] md:mt-5"}>
-              <Explorer className={full ? "flex min-h-0 flex-1 flex-col" : undefined}>{children}</Explorer>
+              <Explorer className={full ? "flex min-h-0 flex-1 flex-col" : undefined} header={!full}>{children}</Explorer>
             </div>
             {full ? null : <Footer />}
           </div>
