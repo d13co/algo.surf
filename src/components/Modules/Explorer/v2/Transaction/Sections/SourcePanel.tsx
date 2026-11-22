@@ -6,6 +6,7 @@ import { checkSource } from "src/utils/sourceFiles";
 import { fileRows, isMethodLine, quotedRows, type Row } from "src/utils/sourceRows";
 import { lineBpKey, linePasses, parseLineBpKey } from "src/utils/sourceStepper";
 import { bpKey, frameAt, lineText, type Frame, type Stepper } from "src/utils/traceStepper";
+import { BpGutter } from "./BpGutter";
 import type { TraceSource } from "./useTraceSource";
 import { OpToken } from "src/components/Modules/Explorer/v2/TealCode";
 
@@ -39,12 +40,6 @@ const CurMark = () => (
   <span className="absolute left-0 text-primary" aria-label="current">
     ▶
   </span>
-);
-
-const Gutter = ({ on, label, onClick }: { on: boolean; label: string; onClick: () => void }) => (
-  <button type="button" aria-label={label} className="group flex items-center justify-center cursor-pointer" onClick={onClick}>
-    <span className={cn("h-2.5 w-2.5 rounded-full", on ? "bg-red-500" : "group-hover:bg-red-500/40")} />
-  </button>
 );
 
 /**
@@ -108,7 +103,7 @@ const LineRow = memo(function LineRow({ line, k, text, noOps, cont, hits, bp, ma
     <div
       data-k={k}
       className={cn(
-        "grid grid-cols-[1.25rem_4ch_1rem_5ch_minmax(0,1fr)] gap-x-2 pr-2 font-mono text-[12px] leading-5 whitespace-pre [tab-size:2]",
+        "group/row grid grid-cols-[1.25rem_4ch_1rem_5ch_minmax(0,1fr)] gap-x-2 pr-2 font-mono text-[12px] leading-5 whitespace-pre [tab-size:2]",
         !hits && "opacity-60",
         mark === "cur" && "bg-primary/25",
         mark === "site" && "bg-primary/10",
@@ -117,8 +112,9 @@ const LineRow = memo(function LineRow({ line, k, text, noOps, cont, hits, bp, ma
       onDoubleClick={run}
       title={hits ? `Ran ${hits} ${hits === 1 ? "time" : "times"}. Double-click to run to this line (or back to it, if it doesn't run again)` : "Never ran"}
     >
-      <Gutter on={bp} label={bp ? `Remove the breakpoint on line ${line.line}` : `Stop at line ${line.line}`} onClick={() => onBp(line.pcs)} />
-      <span className={cn("text-right", match ? "text-orange-400" : "text-muted")}>{hitText(hits)}</span>
+      <BpGutter on={bp} focusable hits={hits} label={bp ? `Remove the breakpoint on line ${line.line}` : `Stop at line ${line.line}`} onClick={() => onBp(line.pcs)} className={cn("text-right", match ? "text-orange-400" : "text-muted")}>
+        {hitText(hits)}
+      </BpGutter>
       <button
         type="button"
         aria-label={open ? "Hide its TEAL ops" : "Show its TEAL ops"}
@@ -347,14 +343,15 @@ export function SourcePanel({ T, f, map, curPc, showOps, sitePcs, matchPcs, src,
                     <div
                       key={pc}
                       className={cn(
-                        "grid grid-cols-[1.25rem_4ch_1rem_5ch_minmax(0,1fr)] gap-x-2 pr-2 font-mono text-[11.5px] leading-5 whitespace-pre [tab-size:2]",
+                        "group/row grid grid-cols-[1.25rem_4ch_1rem_5ch_minmax(0,1fr)] gap-x-2 pr-2 font-mono text-[11.5px] leading-5 whitespace-pre [tab-size:2]",
                         !h && "opacity-45",
                         pc === curPc ? "bg-primary/20" : "bg-white/[0.02]",
                         matchPcs?.has(pc) && "shadow-[inset_2px_0_0_#fb923c]",
                       )}
                     >
-                      <Gutter on={bp} label={bp ? `Remove the breakpoint at pc ${pc}` : `Stop at pc ${pc}`} onClick={() => onGutter(pc)} />
-                      <span className={cn("text-right", matchPcs?.has(pc) ? "text-orange-400" : "text-muted")}>{hitText(h)}</span>
+                      <BpGutter on={bp} focusable hits={h} label={bp ? `Remove the breakpoint at pc ${pc}` : `Stop at pc ${pc}`} onClick={() => onGutter(pc)} className={cn("text-right", matchPcs?.has(pc) ? "text-orange-400" : "text-muted")}>
+                        {hitText(h)}
+                      </BpGutter>
                       <span />
                       <span className="relative text-right text-muted">
                         {pc === curPc ? <CurMark /> : null}

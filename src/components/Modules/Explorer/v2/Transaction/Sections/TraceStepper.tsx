@@ -45,6 +45,7 @@ import { useMediaQuery } from "src/hooks/useMediaQuery";
 import { lineBreakpointPositions, lineStart, mergePositions, runToLine, stepBackOverSource, stepBackSource, stepIntoSource, stepOverSource } from "src/utils/sourceStepper";
 import { alignNames, frameNamesAt, stackNamesAt } from "src/utils/stackNames";
 import { useTraceSource } from "./useTraceSource";
+import { BpGutter } from "./BpGutter";
 import { LineBreakpoints, lineBpCount, SourceLoc, SourcePanel } from "./SourcePanel";
 import { SourceBar } from "./SourceBar";
 import { OpSearchField, stepHit, useOpSearch } from "./OpSearch";
@@ -190,7 +191,7 @@ const SourceLine = memo(function SourceLine({ prog, i, hits, bp, mark, match, sr
       data-l={srcL}
       className={cn(
         // Lines out of view skip layout and paint (a disassembly can run to thousands).
-        "grid grid-cols-[1.25rem_4ch_5ch_minmax(0,1fr)] gap-x-2 pr-2 font-mono text-[12px] leading-5 whitespace-pre [content-visibility:auto] [contain-intrinsic-size:auto_20px]",
+        "group/row grid grid-cols-[1.25rem_4ch_5ch_minmax(0,1fr)] gap-x-2 pr-2 font-mono text-[12px] leading-5 whitespace-pre [content-visibility:auto] [contain-intrinsic-size:auto_20px]",
         has && !hits && "opacity-45",
         mark === "cur" && "bg-primary/25",
         mark === "site" && "bg-primary/10",
@@ -200,22 +201,15 @@ const SourceLine = memo(function SourceLine({ prog, i, hits, bp, mark, match, sr
       title={!has ? undefined : hits ? "Double-click to run to here (or back to it, if it doesn't run again)" : "Never ran"}
     >
       {has ? (
-        // Out of the tab order (F9 sets one from the keyboard); a double-click
-        // on it toggles twice and must not also run to the line.
-        <button
-          type="button"
-          tabIndex={-1}
-          aria-label={bp ? `Remove the breakpoint at pc ${pc}` : `Stop at pc ${pc}`}
-          className="group flex items-center justify-center cursor-pointer"
-          onClick={() => onGutter(pc)}
-          onDoubleClick={(e) => e.stopPropagation()}
-        >
-          <span className={cn("h-2.5 w-2.5 rounded-full", bp ? "bg-red-500" : "group-hover:bg-red-500/40")} />
-        </button>
+        <BpGutter on={bp} hits={hits} label={bp ? `Remove the breakpoint at pc ${pc}` : `Stop at pc ${pc}`} onClick={() => onGutter(pc)} className={cn("text-right", match ? "text-orange-400" : "text-muted")}>
+          {hitText(hits)}
+        </BpGutter>
       ) : (
-        <span />
+        <>
+          <span />
+          <span className={cn("text-right", match ? "text-orange-400" : "text-muted")}>{hitText(hits)}</span>
+        </>
       )}
-      <span className={cn("text-right", match ? "text-orange-400" : "text-muted")}>{hitText(hits)}</span>
       <span className="text-right text-muted">{has ? pc : ""}</span>
       <span className="min-w-0 overflow-hidden text-ellipsis">
         {mark === "cur" ? <span className="text-primary">▶ </span> : null}

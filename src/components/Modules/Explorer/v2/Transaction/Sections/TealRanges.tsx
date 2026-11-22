@@ -1,5 +1,6 @@
 import React, { memo, useCallback, useMemo, useRef, useState } from "react";
 import { cn } from "src/lib/utils";
+import { BpGutter } from "./BpGutter";
 import { splitSub, type SourceMapping, type SrcLine } from "src/utils/arc56Source";
 import { lineBpKey } from "src/utils/sourceStepper";
 import { isMethodLine } from "src/utils/sourceRows";
@@ -145,32 +146,25 @@ const RangeSrc = memo(function RangeSrc({ r, text, k, cur, tone, bp, ran, match,
       : l.part && l.text && l.text !== text
         ? `${text}\n\nIts ops: ${l.text}`
         : text;
+  const where = `${l.file}:${l.line}${more ? `-${l.end}` : ""}\n${said}`;
   return (
     <div className={rule}>
       <div
         data-src-l={key}
         data-l={key}
         className={cn(
-          "sticky top-0 grid grid-cols-[0.75rem_4ch_minmax(0,1fr)_auto] items-start gap-x-1.5 pr-2 pl-1 font-mono text-[12px] leading-5",
+          "group/row sticky top-0 grid grid-cols-[0.75rem_4ch_minmax(0,1fr)_auto] items-start gap-x-1.5 pr-2 pl-1 font-mono text-[12px] leading-5",
           "@max-[34rem]:static @max-[34rem]:pl-[calc(1.25rem+4ch+0.5rem)]",
           BG[tone],
           !ran && "opacity-60",
           match && "shadow-[inset_2px_0_0_#fb923c]",
         )}
         onDoubleClick={ran ? () => (window.getSelection()?.removeAllRanges(), onRun(l.pcs)) : undefined}
-        title={`${l.file}:${l.line}${more ? `-${l.end}` : ""}\n${said}${ran ? "\n\nDouble-click to run to this line" : "\n\nNever ran"}`}
+        title={`${where}${ran ? "\n\nDouble-click to run to this line" : "\n\nNever ran"}`}
       >
-        <button
-          type="button"
-          tabIndex={-1}
-          aria-label={bp ? `Remove the breakpoint on line ${l.line}` : `Stop at line ${l.line}`}
-          className="group flex h-5 items-center justify-center cursor-pointer"
-          onClick={() => onBp(l.pcs)}
-          onDoubleClick={(e) => e.stopPropagation()}
-        >
-          <span className={cn("h-2 w-2 rounded-full", bp ? "bg-red-500" : "group-hover:bg-red-500/40")} />
-        </button>
-        <span className={cn("text-right", match ? "text-orange-400" : "text-muted")}>{l.line}</span>
+        <BpGutter on={bp} small note={`${where}\n`} label={bp ? `Remove the breakpoint on line ${l.line}` : `Stop at line ${l.line}`} onClick={() => onBp(l.pcs)} className={cn("h-5 text-right", match ? "text-orange-400" : "text-muted")}>
+          {l.line}
+        </BpGutter>
         <span className={cn("min-w-0 truncate", tint(text))} style={indent(l, 0, base)}>
           {text || <span className="italic text-muted">not quoted</span>}
           {texts.length === 1 && rest > 0 ? <span className="ml-1.5 text-muted">+{rest}</span> : null}
