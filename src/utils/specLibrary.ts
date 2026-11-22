@@ -76,16 +76,21 @@ export function newSpec(arc56: Arc56Contract, file: string | undefined, from: st
 
 const KINDS: ProgramKind[] = ["approval", "clear"];
 
-/** The source lines the spec's TEAL quotes, both programs', one per file and line (no pcs: no program to pair with). */
+/**
+ * The source lines the spec's TEAL quotes, both programs', one per file and
+ * line (no pcs: no program to pair with). TEALScript's quote part of a line
+ * (`part`), as matchSpec marks them, so a file is checked for the part only.
+ */
 export function specLines(arc56: Arc56Contract): SrcLine[] {
   const seen = new Map<string, SrcLine>();
   for (const kind of KINDS) {
     const teal = specTeal(arc56, kind);
     if (!teal) continue;
+    const part = isTealscript(teal);
     for (const o of parseTeal(teal)) {
       if (!o.loc) continue;
       const k = `${o.loc.file}:${o.loc.line}`;
-      if (!seen.has(k)) seen.set(k, { ...o.loc, pcs: [] });
+      if (!seen.has(k)) seen.set(k, { ...o.loc, ...(part && { part: true }), pcs: [] });
     }
   }
   return [...seen.values()];
@@ -251,7 +256,7 @@ function keep(spec: LibSpec, saved: LibSpec[], res: ImportResult, now: number) {
   }
   res.put.push(spec);
   const twin = saved.find((s) => s.name.toLowerCase() === spec.name.toLowerCase());
-  res.notes.push({ text: `${spec.name}: added${withFiles(spec)}${spec.from && spec.from !== spec.file ? ` from ${spec.from}` : ""}.${twin ? " Another version with this name is saved too; both are kept." : ""}` });
+  res.notes.push({ text: `${spec.name}: added${withFiles(spec)}${spec.from && spec.from !== spec.file && !/^https?:\/\//.test(spec.from) ? ` from ${spec.from}` : ""}.${twin ? " Another version with this name is saved too; both are kept." : ""}` });
   const missing = missingSources(spec);
   if (missing.length && Object.keys(spec.sources).length) res.notes.push({ text: `${spec.name}: still missing ${list(missing)}.`, info: true });
 }
@@ -267,43 +272,78 @@ const parse = (text: string): unknown => {
   }
 };
 
+/** Where a folder's specs are taken from, and what to say they came from. */
+export type FolderOpts = {
+  /** A path in the folder (a subfolder or a spec): only specs there are taken. Maps and source files are still found anywhere in the folder. */
+  scope?: string;
+  /** What a spec, by its path, is said to be added from; default its path. */
+  from?: (path: string) => string;
+  /** The folder's name in notes; default its first path segment. */
+  label?: string;
+};
+
+const under = (path: string, scope: string) => path === scope || path.startsWith(`${scope.replace(/\/+$/, "")}/`);
+
 /**
  * A project or build output folder: each `X.arc56.json` (not under
  * node_modules) with the `.puya.map`s beside it named for it and the
  * folder's source files at its paths. Only those files are read.
  */
-export async function importFolder(files: FolderEntry[], saved: LibSpec[], now: number): Promise<ImportResult> {
+export async function importFolder(files: FolderEntry[], saved: LibSpec[], now: number, opts: FolderOpts = {}): Promise<ImportResult> {
   const res: ImportResult = { put: [], notes: [] };
-  const folder = files[0]?.path.split("/")[0] || "The folder";
-  const all = folderSpecs(files);
+  const folder = opts.label ?? (files[0]?.path.split("/")[0] || "The folder");
+  const { scope } = opts;
+  const all = folderSpecs(files).filter((c) => !scope || under(c.spec.path, scope));
   if (!all.length) {
-    res.notes.push({ text: `${folder} has no ARC-56 spec (*.arc56.json) outside node_modules. Build output folders such as artifacts/ hold them.`, bad: true });
+    const text = scope && /\.json$/i.test(scope)
+      ? `${folder}: not an ARC-56 spec. Link to a file named X.arc56.json, or to the folder that holds it.`
+      : `${folder} has no ARC-56 spec (*.arc56.json) outside node_modules. Build output folders such as artifacts/ hold them${opts.label ? "; build output that isn't committed can be added from a local build instead" : ""}.`;
+    res.notes.push({ text, bad: true, none: true });
     return res;
   }
   for (const c of all) {
-    const arc56 = parse(await c.spec.read());
-    if (!isSpecJson(arc56)) {
-      res.notes.push({ text: `${c.spec.path}: not an ARC-56 spec.`, bad: true });
-      continue;
+    try {
+      await importOne(c, files, saved, now, opts, res);
+    } catch (e) {
+      // One spec's files failing to read (a fetch from GitHub, say) leaves the others to be added.
+      res.notes.push({ text: `${c.spec.name}: not added. ${e instanceof Error ? e.message : String(e)}`, bad: true });
     }
-    const maps: LibMap[] = [];
-    for (const m of c.maps) {
-      const map = parse(await m.read());
-      if (isMapJson(map)) maps.push({ name: m.name, map });
-      else res.notes.push({ text: `${m.path}: not a .puya.map.`, bad: true });
-    }
-    let spec = newSpec(arc56, c.spec.name, c.spec.path, now);
-    // The maps first: their `sources` add to the spec's paths.
-    const withMaps = addFiles(spec, maps, [], now);
-    spec = withMaps.spec;
-    res.notes.push(...withMaps.notes.filter((n) => n.bad));
-    const paths = libPaths(spec);
-    const sources = await Promise.all(folderSources(files, paths).map(async (f) => ({ name: f.name, path: f.path, text: await f.read() })));
-    const r = addFiles(spec, [], sources, now);
-    res.notes.push(...r.notes.filter((n) => n.bad));
-    keep(r.spec, saved, res, now);
   }
   return res;
+}
+
+/** One spec of a folder, with its maps and source files, into `res`. */
+async function importOne(c: { spec: FolderEntry; maps: FolderEntry[] }, files: FolderEntry[], saved: LibSpec[], now: number, opts: FolderOpts, res: ImportResult): Promise<void> {
+  const arc56 = parse(await c.spec.read());
+  if (!isSpecJson(arc56)) {
+    res.notes.push({ text: `${c.spec.path}: not an ARC-56 spec.`, bad: true });
+    return;
+  }
+  const maps: LibMap[] = [];
+  // A map that can't be read is left out, as a source file is below; the spec is still added.
+  for (const [i, x] of (await Promise.allSettled(c.maps.map((m) => m.read()))).entries()) {
+    const m = c.maps[i];
+    if (x.status === "rejected") {
+      res.notes.push({ text: `${c.spec.name}: ${x.reason instanceof Error ? x.reason.message : String(x.reason)}`, bad: true });
+      continue;
+    }
+    const map = parse(x.value);
+    if (isMapJson(map)) maps.push({ name: m.name, map });
+    else res.notes.push({ text: `${m.path}: not a .puya.map.`, bad: true });
+  }
+  let spec = newSpec(arc56, c.spec.name, opts.from ? opts.from(c.spec.path) : c.spec.path, now);
+  // The maps first: their `sources` add to the spec's paths.
+  const withMaps = addFiles(spec, maps, [], now);
+  spec = withMaps.spec;
+  res.notes.push(...withMaps.notes.filter((n) => n.bad));
+  const paths = libPaths(spec);
+  // A source file that can't be read (from GitHub, say) is left out; the spec is still added, missing it.
+  const read = await Promise.allSettled(folderSources(files, paths).map(async (f) => ({ name: f.name, path: f.path, text: await f.read() })));
+  const sources = read.flatMap((x) => (x.status === "fulfilled" ? [x.value] : []));
+  for (const x of read) if (x.status === "rejected") res.notes.push({ text: `${c.spec.name}: ${x.reason instanceof Error ? x.reason.message : String(x.reason)}`, bad: true });
+  const r = addFiles(spec, [], sources, now);
+  res.notes.push(...r.notes.filter((n) => n.bad));
+  keep(r.spec, saved, res, now);
 }
 
 const stemOfMap = (name: string) => name.replace(/(\.(approval|clear))?\.puya\.map$/i, "").toLowerCase();

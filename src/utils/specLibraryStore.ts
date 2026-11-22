@@ -56,7 +56,7 @@ export async function updateLibSpec(id: string, fn: (cur: LibSpec | undefined) =
   }
 }
 
-/** Saves a spec from the specs page, merged with what is stored now (see mergeSpec); false when it is kept for this page only. */
+/** Saves a spec from the Contracts & Specs page, merged with what is stored now (see mergeSpec); false when it is kept for this page only. */
 export async function putLibSpec(s: LibSpec): Promise<boolean> {
   return (await updateLibSpec(s.id, (cur) => (cur ? mergeSpec(cur, s) : s))) !== false;
 }

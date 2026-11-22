@@ -83,7 +83,7 @@ export function useTraceSource(T: Stepper) {
   const [lineBps, setLineBps] = useState<Set<string>>(() => new Set());
   /** Programs whose TEAL view hides the source column (shown by default). */
   const [colsOff, setColsOff] = useState<Set<string>>(() => new Set());
-  /** Bumped when the tab comes back into view: specs added on the specs page (another tab) are matched then. */
+  /** Bumped when the tab comes back into view: specs added on the Contracts & Specs page (another tab) are matched then. */
   const [tick, setTick] = useState(0);
   useEffect(() => {
     const again = () => document.visibilityState === "visible" && setTick((t) => t + 1);

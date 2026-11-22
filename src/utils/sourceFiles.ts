@@ -8,7 +8,8 @@ import type { PuyaMap, SrcLine } from "./arc56Source";
 
 /** A dropped or chosen file; `path` is its path in a chosen folder (webkitRelativePath). */
 export type SourceFile = { name: string; path?: string; text: string };
-export type Note = { text: string; bad?: boolean; info?: boolean };
+/** `none`: the note that a folder has no spec to add. */
+export type Note = { text: string; bad?: boolean; info?: boolean; none?: boolean };
 
 const segs = (p: string) => p.replace(/\\/g, "/").split("/").filter((s) => s && s !== "." && s !== "..");
 

@@ -56,7 +56,7 @@ const StripExplorerFromPath = lazy(() => import("./StripExplorerFromPath"));
 const SearchFromPath = lazy(() => import("./SearchFromPath"));
 const SearchResults = lazy(() => import("../Modules/Explorer/Search/SearchResults"));
 const TraceDebug = lazy(() => import("../Modules/Explorer/v2/Transaction/TraceDebug"));
-const SpecLibrary = lazy(() => import("../Modules/Explorer/v2/Transaction/SpecLibrary"));
+const ContractLibrary = lazy(() => import("../Modules/Explorer/v2/Transaction/ContractLibrary"));
 
 /**
  * The page around the explorer. The debugger's fills the window: no time
@@ -283,7 +283,7 @@ function AppRouter(): JSX.Element {
                         />
                         <Route path="/search" element={<SearchResults />} />
                         {/* A literal segment outranks /debug/:id. */}
-                        <Route path="/debug/specs" element={<SpecLibrary />} />
+                        <Route path="/debug/specs" element={<ContractLibrary />} />
                         <Route path="/debug/:id" element={<TraceDebug />} />
                         <Route path="*" element={<SearchFromPath />} />
                       </Routes>

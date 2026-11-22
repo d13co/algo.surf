@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { buildStepper, type Program } from "./traceStepper";
-import { addFiles, fillMissing, isSpecJson, mergeSpec, specId, fromRecords, importFiles, importFolder, libPaths, mapFit, missingSources, newSpec, noteApp, pickSpec, specLang, toRecord, type FolderEntry } from "./specLibrary";
+import { addFiles, fillMissing, isSpecJson, mergeSpec, specId, fromRecords, importFiles, importFolder, libPaths, mapFit, missingSources, newSpec, noteApp, pickSpec, sourceFits, specLang, toRecord, type FolderEntry } from "./specLibrary";
 
 const text = (name: string) => readFileSync(new URL(`./__fixtures__/${name}`, import.meta.url), "utf8");
 const escreg = JSON.parse(text("Escreg.arc56.json"));
@@ -90,6 +90,61 @@ describe("spec library", () => {
     expect(Object.keys(r.put[0].sources)).toEqual([path]);
     expect(r.put[0].from).toBe("proj/artifacts/escreg/Escreg.arc56.json");
     expect((await importFolder([entry("proj/a.ts", "")], [], now)).notes[0].bad).toBe(true);
+  });
+
+  it("takes a TEALScript source file, whose TEAL quotes part of a line, as the one built", async () => {
+    // TEALScript quotes `limit > 0` of `assert(limit > 0, ...)`: not a whole line, as Puya's are.
+    const src = text("counter.algo.ts.txt");
+    const entry = (p: string, body: string): FolderEntry => ({ name: p.slice(p.lastIndexOf("/") + 1), path: p, read: async () => body });
+    const r = await importFolder([entry("proj/contracts/artifacts/Counter.arc56.json", text("Counter.arc56.json")), entry("proj/contracts/counter.algo.ts", src)], [], now);
+    expect(r.notes.filter((n) => n.bad)).toEqual([]);
+    expect(Object.keys(r.put[0].sources)).toEqual(["contracts/counter.algo.ts"]);
+    // Loose, it goes to the saved spec whose lines it has.
+    expect(sourceFits(r.put[0], { name: "counter.algo.ts", text: src })).toBe(true);
+    // Another build's file is still told apart.
+    const other = src.replace("assert(limit > 0, 'limit must be positive');", "assert(limit > 1, 'limit must be positive');");
+    expect(sourceFits(r.put[0], { name: "counter.algo.ts", text: other })).toBe(false);
+  });
+
+  it("reads a folder's specs under a scope only, with source files from anywhere in it", async () => {
+    const path = libPaths(newSpec(escreg, undefined, undefined, now))[0];
+    const entry = (p: string, body: string): FolderEntry => ({ name: p.slice(p.lastIndexOf("/") + 1), path: p, read: async () => body });
+    const files = [
+      entry("repo/artifacts/escreg/Escreg.arc56.json", text("Escreg.arc56.json")),
+      entry("repo/other/Counter.arc56.json", text("Counter.arc56.json")),
+      entry(`repo/${path}`, "// source"),
+    ];
+    const from = (p: string) => `https://github.com/o/r/blob/abc/${p.slice("repo/".length)}`;
+    const r = await importFolder(files, [], now, { scope: "repo/artifacts/", from, label: "o/r@main/artifacts" });
+    expect(r.put.map((s) => s.name)).toEqual(["Escreg"]);
+    expect(Object.keys(r.put[0].sources)).toEqual([path]);
+    expect(r.put[0].from).toBe("https://github.com/o/r/blob/abc/artifacts/escreg/Escreg.arc56.json");
+    // A spec file as the scope: that spec only.
+    const one = await importFolder(files, [], now, { scope: "repo/other/Counter.arc56.json" });
+    expect(one.put.map((s) => s.name)).toEqual(["Counter"]);
+    // Nothing there: the note names the label.
+    const none = await importFolder(files, [], now, { scope: "repo/docs", label: "o/r@main/docs" });
+    expect(none.put).toEqual([]);
+    expect(none.notes[0]).toMatchObject({ bad: true, text: expect.stringMatching(/^o\/r@main\/docs has no ARC-56 spec/) });
+  });
+
+  it("adds a folder's other specs when one can't be read, and a spec without a source file that can't be", async () => {
+    const path = libPaths(newSpec(escreg, undefined, undefined, now))[0];
+    const entry = (p: string, body: string): FolderEntry => ({ name: p.slice(p.lastIndexOf("/") + 1), path: p, read: async () => body });
+    const failing = (p: string, msg: string): FolderEntry => ({ ...entry(p, ""), read: () => Promise.reject(new Error(msg)) });
+    const files = [
+      entry("repo/a/Escreg.arc56.json", text("Escreg.arc56.json")),
+      failing(`repo/${path}`, "Couldn't read it from GitHub (429)."),
+      failing("repo/a/Escreg.approval.puya.map", "Couldn't read the map from GitHub (500)."),
+      failing("repo/b/Counter.arc56.json", "Couldn't read Counter from GitHub (500)."),
+    ];
+    const r = await importFolder(files, [], now);
+    expect(r.put.map((s) => s.name)).toEqual(["Escreg"]);
+    expect(r.put[0].sources).toEqual({});
+    expect(r.put[0].maps).toEqual({});
+    expect(r.notes).toContainEqual({ text: "Escreg.arc56.json: Couldn't read it from GitHub (429).", bad: true });
+    expect(r.notes).toContainEqual({ text: "Escreg.arc56.json: Couldn't read the map from GitHub (500).", bad: true });
+    expect(r.notes).toContainEqual({ text: "Counter.arc56.json: not added. Couldn't read Counter from GitHub (500).", bad: true });
   });
 
   it("picks the spec that matches a program, and records the app", () => {
