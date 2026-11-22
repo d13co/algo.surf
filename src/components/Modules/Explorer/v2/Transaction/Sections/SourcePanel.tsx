@@ -322,8 +322,8 @@ export function SourcePanel({ T, f, map, curPc, showOps, sitePcs, matchPcs, src,
         const k = keyOf(l);
         const isOpen = open.has(k);
         const hits = passes.get(l) ?? 0;
-        // Its ops go one level in from the line's own indentation.
-        const indent = isOpen ? `${/^[ \t]*/.exec(r.text ?? l.text)?.[0] ?? ""}\t` : "";
+        // Its ops start at the line's own indentation, then go in from it (see below).
+        const indent = isOpen ? /^[ \t]*/.exec(r.text ?? l.text)?.[0] ?? "" : "";
         return (
           <React.Fragment key={k}>
             <LineRow
@@ -362,7 +362,8 @@ export function SourcePanel({ T, f, map, curPc, showOps, sitePcs, matchPcs, src,
                       </span>
                       <span className="min-w-0 overflow-hidden text-ellipsis">
                         {/* At the source's size, so it lines up with the line's own indentation. */}
-                        <span className="text-[12px]">{indent}</span>
+                        {/* Then a fixed step in, as the font's spaces are too narrow to show one. */}
+                        <span className="pr-6 text-[12px]">{indent}</span>
                         <Op text={lineText(f.prog, pc) ?? ""} />
                       </span>
                     </div>
