@@ -37,10 +37,10 @@ export function SourceBar({ f, src }: { f: Frame; src: TraceSource }) {
     return (
       <div className="flex shrink-0 items-center gap-1.5 border-b border-border/40 px-3 py-1 text-xs text-muted-foreground">
         <FileCode2 className="h-3.5 w-3.5 shrink-0" />
-        <span className="min-w-0 truncate" title="A spec shows the program's source, method names and failure messages">
-          No saved spec matches this program:{" "}
+        <span className="min-w-0 truncate" title="Its ARC-56 spec shows the program's source, method names and failure messages. Opens in a new tab; the debugger picks it up when you come back.">
+          No contract matches this program. Add it from a folder or GitHub link on{" "}
           <Link href={specsHref()} keepRound={false} target="_blank" rel="noopener">
-            add its ARC-56 spec
+            Contracts &amp; Specs
           </Link>
         </span>
       </div>
