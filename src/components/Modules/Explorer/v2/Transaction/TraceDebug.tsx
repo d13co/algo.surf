@@ -53,6 +53,12 @@ export default function TraceDebug(): JSX.Element {
   const { data: dev, isLoading: traceLoading, error: traceError } = useTxnDevInfo(round, [id], ["trace"], !!includes?.includes("trace"));
 
   let body: React.ReactNode;
+  // In the middle of the space the stepper will fill.
+  const loader = (
+    <div className="flex min-h-[60vh] flex-col justify-center lg:min-h-0 lg:flex-1">
+      <LoadingTile style={{ marginTop: 0 }} />
+    </div>
+  );
   if (!valid) {
     body = (
       <Notice error>
@@ -60,11 +66,11 @@ export default function TraceDebug(): JSX.Element {
       </Notice>
     );
   } else if (txnError) body = <Notice error>{(txnError as Error).message}</Notice>;
-  else if (txnLoading || !t || includes === undefined) body = <LoadingTile />;
+  else if (txnLoading || !t || includes === undefined) body = loader;
   else if (!includes.includes("trace")) {
     body = <Notice>The time-travel node doesn't serve opcode traces: they need a dtalgod node with its developer API on.</Notice>;
   } else if (traceError) body = <Notice error>{(traceError as Error).message}</Notice>;
-  else if (traceLoading || !dev) body = <LoadingTile />;
+  else if (traceLoading || !dev) body = loader;
   else if (!dev.traces?.some((x) => x.txid === id && Object.keys(x["exec-trace"] ?? {}).length)) {
     body = <Notice>No program ran in this transaction.</Notice>;
   } else {
@@ -92,7 +98,7 @@ export default function TraceDebug(): JSX.Element {
         {/* Shrinks rather than wrapping, down to a few characters, cut in the middle: the head
             truncates and the tail stays. Copying it still gives the whole id. */}
         {valid ? (
-          <Link href={`/transaction/${id}`} title={id} className="flex min-w-0 max-w-max grow basis-[14ch] text-sm">
+          <Link href={`/transaction/${id}`} target="_blank" rel="noopener" title={id} className="flex min-w-0 max-w-max grow basis-[14ch] text-sm">
             <span className="truncate">{id.slice(0, -5)}</span>
             <span className="shrink-0">{id.slice(-5)}</span>
           </Link>
@@ -100,7 +106,14 @@ export default function TraceDebug(): JSX.Element {
         {round ? (
           <span className="whitespace-nowrap text-sm text-muted-foreground">
             block <LinkToBlock id={round} />
-            {groupTxids.length > 1 ? ` · group of ${groupTxids.length}` : ""}
+            {groupId && groupTxids.length > 1 ? (
+              <>
+                {" · "}
+                <Link href={`/group/${encodeURIComponent(groupId)}/${round}`} target="_blank" rel="noopener">
+                  group of {groupTxids.length}
+                </Link>
+              </>
+            ) : null}
           </span>
         ) : null}
         <Button asChild size="sm" className="ml-auto self-center">

@@ -105,10 +105,13 @@ export default function AppCallTxnExactStateChanges({
   target,
   hasInnerTxns,
   fallback,
+  embedded = false,
 }: {
   target: StateChangesTarget;
   hasInnerTxns: boolean;
   fallback: React.ReactNode;
+  /** In a tab that names it: no card, no title. */
+  embedded?: boolean;
 }): JSX.Element | null {
   const caps = useStateChangesCaps();
   const { supported } = caps;
@@ -124,7 +127,7 @@ export default function AppCallTxnExactStateChanges({
   if (error) {
     return (
       <>
-        <div className="mt-6 text-xs text-muted-foreground" title={(error as Error).message}>
+        <div className={cn("text-xs text-muted-foreground", !embedded && "mt-6")} title={(error as Error).message}>
           Exact state changes unavailable: {(error as Error).message}
         </div>
         {fallback}
@@ -133,11 +136,11 @@ export default function AppCallTxnExactStateChanges({
   }
 
   return (
-    <div className="mt-6 rounded-lg p-5 bg-background-card">
+    <div className={embedded ? undefined : "mt-6 rounded-lg p-5 bg-background-card"}>
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-2 mb-4">
-        <span className="text-muted-foreground">State changes</span>
+        {embedded ? null : <span className="text-muted-foreground">State changes</span>}
         <span className="text-xs text-muted-foreground">
-          before → after this transaction{hasInnerTxns ? ", including its inner transactions" : ""}
+          before → after this transaction{hasInnerTxns ? ", including any inner transactions" : ""}
         </span>
         {attribution ? <ViewSwitch byTxn={byTxn} setByTxn={setByTxn} /> : null}
       </div>

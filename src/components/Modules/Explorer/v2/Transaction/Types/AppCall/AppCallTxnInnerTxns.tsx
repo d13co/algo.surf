@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { useRoundNavigate } from "src/hooks/useRound";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -352,6 +352,9 @@ function AppCallTxnInnerTxns({
   const params = useParams();
   const txnId = params.id;
   const innerPath = params["*"] || "";
+  // The Developer tab open before an inner txn's dialog, to go back to on close.
+  const devTab = useRef<{ txnId?: string; tab?: string }>({ txnId, tab: params.devTab });
+  if (!innerPath || devTab.current.txnId !== txnId) devTab.current = { txnId, tab: innerPath ? undefined : params.devTab };
 
   const txnInstance = new CoreTransaction(transaction);
   const innerTxns = txnInstance.getInnerTransactions();
@@ -429,7 +432,7 @@ function AppCallTxnInnerTxns({
     if (hasNext) navigate(`/transaction/${txnId}/inner/${flatList[currentIndex + 1].path}`, { replace: true });
   };
   const closeDialog = () => {
-    navigate(`/transaction/${txnId}`, { replace: true });
+    navigate(devTab.current.tab ? `/transaction/${txnId}/developer/${devTab.current.tab}` : `/transaction/${txnId}`, { replace: true });
   };
 
   const handleView = (path: string) => {
@@ -441,12 +444,8 @@ function AppCallTxnInnerTxns({
 
   return (
     <div className="mt-6" id="inner-txns">
-      <h3 className="text-sm font-medium text-muted-foreground mb-3">
-        Inner transactions ({count})
-      </h3>
-
       <div className="rounded-lg p-3 sm:p-5 bg-background-card">
-        <div className="text-sm font-medium mb-1">Current transaction</div>
+        <div className="text-muted-foreground mb-1">Inner transactions ({count})</div>
         <div className="relative">
           <div className="ml-1 pl-1.5 sm:ml-6 sm:pl-4 border-l border-dashed border-muted/40">
             {visibleTxns.map((txn, i) => (

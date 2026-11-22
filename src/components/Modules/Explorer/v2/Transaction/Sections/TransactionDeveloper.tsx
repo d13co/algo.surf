@@ -1,7 +1,9 @@
-import React, { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { useRoundNavigate } from "src/hooks/useRound";
 import { Bug, ChevronDown, ChevronRight, Info } from "lucide-react";
 import { cn } from "src/lib/utils";
+import { CoreTransaction } from "src/packages/core-sdk/classes/core/CoreTransaction";
 import { useGroup } from "src/hooks/useGroup";
 import { useDevIncludes, useTxnDevInfo } from "src/hooks/useTxnDevInfo";
 import { formatUnits } from "src/utils/formatUnits";
@@ -26,6 +28,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "src/co
 import LinkToApplication from "../../Links/LinkToApplication";
 import LinkToAccount from "../../Links/LinkToAccount";
 import { Pending } from "../../Versions/ObjectRoundDiff";
+import { useStateChangesCaps } from "src/hooks/useTxnStateChanges";
+import AppCallTxnExactStateChanges from "../Types/AppCall/AppCallTxnExactStateChanges";
+import AppCallTxnDeltas from "../Types/AppCall/AppCallTxnDeltas";
+import TransactionGroupChanges from "./TransactionGroupChanges";
 
 /** Trace steps shown before "show more". */
 const STEP_PAGE = 300;
@@ -394,7 +400,19 @@ function TraceLegend() {
 /** The debugger page's code, fetched as the pointer or focus nears its link: the trace it needs is already loaded. */
 const preloadDebugger = () => void import("../TraceDebug");
 
-/** Fetched when the tab opens: traces are large. Steps through them in the debugger page. */
+/** Opens the transaction's trace in the debugger page. */
+function DebugButton({ txId, label = "Debug" }: { txId: string; label?: string }) {
+  return (
+    <Button asChild variant="outline" size="sm" className="h-7 gap-1.5 px-2.5 text-xs border-border text-primary hover:bg-primary/10 [&_svg]:size-3.5">
+      <Link to={`/debug/${txId}`} onMouseEnter={preloadDebugger} onFocus={preloadDebugger}>
+        <Bug />
+        {label}
+      </Link>
+    </Button>
+  );
+}
+
+/** Fetched when the tab opens: traces are large. */
 function TracesTab({ round, txId }: { round: number; txId: string }) {
   const { data, error, isLoading } = useTxnDevInfo(round, [txId], ["trace"], true);
   if (error) return <ErrorLine error={error} />;
@@ -403,13 +421,8 @@ function TracesTab({ round, txId }: { round: number; txId: string }) {
   if (!trace) return <Muted>No program ran.</Muted>;
   return (
     <div>
-      <div className="flex items-center gap-3 mb-2">
-        <Button asChild variant="outline" size="sm" className="border-border text-primary hover:bg-primary/10">
-          <Link to={`/debug/${txId}`} onMouseEnter={preloadDebugger} onFocus={preloadDebugger}>
-            <Bug />
-            Step through it in the debugger
-          </Link>
-        </Button>
+      <div className="flex items-center gap-2 mb-2">
+        <DebugButton txId={txId} label="Interactive Debugger" />
         <span className="ml-auto">
           <TraceLegend />
         </span>
@@ -422,16 +435,48 @@ function TracesTab({ round, txId }: { round: number; txId: string }) {
 // ---------------------------------------------------------------------------
 
 const TAB_NAMES: Record<DevInclude, string> = { budget: "Opcode budget", reads: "State reads", trace: "Opcode traces" };
+/** Each tab's URL segment: /transaction/<id>/developer/<slug>. */
+const TAB_SLUGS: Record<DevInclude, string> = { budget: "budget", reads: "reads", trace: "traces" };
+
+type Tab = { name: string; value: string; content: React.ReactNode };
 
 /**
- * For developers, at the end of a transaction page: what its programs did,
- * from the time-travel node's re-evaluation of the block. Each program's
- * opcode cost against the group's pool, the app state it read, and opcode
- * traces. Shown where the node serves any of them.
+ * For developers, after an app call's inner transactions or near the end of
+ * a logic sig's transaction page, from the time-travel
+ * node: an app call's exact state changes, what its transaction (or group)
+ * changed besides app state, and what its programs did on the block's
+ * re-evaluation: each program's opcode cost against the group's pool, the app
+ * state it read, and opcode traces. Shown where the node serves any of them.
  */
-export default function TransactionDeveloper({ round, txId, groupId }: { round: number; txId: string; groupId?: string }): JSX.Element | null {
+export default function TransactionDeveloper({ transaction, round, txId, groupId, appCall }: {
+  /** The indexer's transaction, for an app call's apply data deltas where exact state changes fail. */
+  transaction: any;
+  round: number;
+  txId: string;
+  groupId?: string;
+  appCall: boolean;
+}): JSX.Element | null {
   const includes = useDevIncludes();
-  const [tab, setTab] = useState<DevInclude | undefined>();
+  const caps = useStateChangesCaps();
+  // The open tab is in the URL, so a link opens it; switching replaces the entry, as inner txns do.
+  // An inner txn's dialog has its own URL, without the tab: the one open before it stays open.
+  const params = useParams();
+  const inInner = !!params["*"];
+  const shownTab = useRef<{ txId: string; tab?: string }>({ txId, tab: params.devTab });
+  if (!inInner || shownTab.current.txId !== txId) shownTab.current = { txId, tab: inInner ? undefined : params.devTab };
+  const tab = shownTab.current.tab;
+  const navigate = useRoundNavigate();
+  const cardRef = useRef<HTMLDivElement>(null);
+  // Only a visit to a tab's URL scrolls to it, not switching tabs here. The page
+  // stays mounted from one transaction to the next: each one is its own visit.
+  const visit = useRef({ txId, tab, scrolled: false });
+  if (visit.current.txId !== txId) visit.current = { txId, tab, scrolled: false };
+  const setTab = (v: string) => {
+    visit.current.scrolled = true;
+    navigate(`/transaction/${txId}/developer/${v}`, { replace: true });
+  };
+  const scrollTimer = useRef<number>();
+  useEffect(() => () => window.clearTimeout(scrollTimer.current), []);
   // The group's budget is one pool: ask for all its transactions.
   // Without the group (its read failed), the transaction's own runs.
   const { data: groupInfo, isLoading: groupLoading } = useGroup(groupId ?? "", round);
@@ -442,34 +487,68 @@ export default function TransactionDeveloper({ round, txId, groupId }: { round: 
   const { data, error, isLoading } = useTxnDevInfo(round, txids, summary, !!includes?.length && (!groupId || !groupLoading));
   const topIndex = useTopIndex(data?.budget, data?.reads, txId);
 
-  if (!includes?.length) return null;
-  const active = tab && includes.includes(tab) ? tab : includes[0];
   const body = (content: (d: NonNullable<typeof data>) => React.ReactNode) =>
     error ? <ErrorLine error={error} /> : isLoading || !data ? <Pending className="h-5 w-48" /> : content(data);
+  const tabs: Tab[] = [];
+  if (appCall && caps.supported) {
+    tabs.push({
+      name: "State changes",
+      value: "state-changes",
+      content: (
+        <AppCallTxnExactStateChanges
+          embedded
+          target={{ round, txId }}
+          hasInnerTxns={new CoreTransaction(transaction).hasInnerTransactions()}
+          fallback={<AppCallTxnDeltas transaction={transaction} />}
+        />
+      ),
+    });
+  }
+  if (caps.full) {
+    tabs.push({ name: "Impact", value: "impact", content: <TransactionGroupChanges embedded round={round} txId={txId} groupId={groupId} /> });
+  }
+  for (const k of includes ?? []) {
+    tabs.push({
+      name: TAB_NAMES[k],
+      value: TAB_SLUGS[k],
+      content:
+        k === "budget" ? (
+          body((d) => <BudgetTab runs={d.budget ?? []} topIndex={topIndex} txids={txids} partial={partial} />)
+        ) : k === "reads" ? (
+          body((d) => <ReadsTab reads={d.reads ?? []} topIndex={topIndex} />)
+        ) : (
+          <TracesTab round={round} txId={txId} />
+        ),
+    });
+  }
+
+  // Shown once both capability checks are in, so the tabs (and the first, open by
+  // default) don't change order under the reader as one or the other answers.
+  const ready = includes !== undefined && caps.full !== undefined && tabs.length > 0;
+  // Once the visited tab is there.
+  const visitedTab = visit.current.tab;
+  const visitedReady = ready && !!visitedTab && tabs.some((t) => t.value === visitedTab);
+  useEffect(() => {
+    if (!visitedReady || visit.current.scrolled) return;
+    visit.current.scrolled = true;
+    scrollTimer.current = window.setTimeout(() => cardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 300);
+  }, [visitedReady, txId]);
+
+  if (!ready) return null;
+  const active = tab && tabs.some((t) => t.value === tab) ? tab : tabs[0].value;
 
   return (
-    <div className="mt-6 rounded-lg p-5 bg-background-card">
-      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-3">
+    <div ref={cardRef} id="developer" className="mt-6 rounded-lg p-5 bg-background-card scroll-mt-4">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-1">
         <span className="text-muted-foreground">Developer</span>
         <span className="text-xs text-muted-foreground">from the node's re-evaluation of block {round.toLocaleString()}</span>
+        {includes?.includes("trace") ? (
+          <span className="ml-auto">
+            <DebugButton txId={txId} />
+          </span>
+        ) : null}
       </div>
-      <TabsUnderline
-        className="gap-4"
-        value={active}
-        onValueChange={(v) => setTab(v as DevInclude)}
-        tabs={includes.map((k) => ({
-          name: TAB_NAMES[k],
-          value: k,
-          content:
-            k === "budget" ? (
-              body((d) => <BudgetTab runs={d.budget ?? []} topIndex={topIndex} txids={txids} partial={partial} />)
-            ) : k === "reads" ? (
-              body((d) => <ReadsTab reads={d.reads ?? []} topIndex={topIndex} />)
-            ) : (
-              <TracesTab round={round} txId={txId} />
-            ),
-        }))}
-      />
+      <TabsUnderline className="gap-4" value={active} onValueChange={setTab} tabs={tabs} />
     </div>
   );
 }

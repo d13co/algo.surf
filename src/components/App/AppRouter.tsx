@@ -260,6 +260,10 @@ function AppRouter(): JSX.Element {
                           element={<Transaction></Transaction>}
                         ></Route>
                         <Route
+                          path="/transaction/:id/developer/:devTab"
+                          element={<Transaction></Transaction>}
+                        ></Route>
+                        <Route
                           path="/transaction/:id"
                           element={<Transaction></Transaction>}
                         ></Route>

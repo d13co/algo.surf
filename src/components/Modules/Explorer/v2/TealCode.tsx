@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { CircleHelp } from "lucide-react";
 import { cn } from "src/lib/utils";
 import { AVM_LATEST, avmOpsLoaded, describe, loadAvmOps, modeText, signature, type AvmOps, type OpDesc } from "src/utils/avmOps";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
@@ -38,10 +39,44 @@ function DocText({ text }: { text: string }) {
   );
 }
 
-/** An op's reference: its stack signature, doc, cost and version, and the fields its line names. */
-export function OpDoc({ d, full }: { d: OpDesc; full?: boolean }) {
-  const [more, setMore] = useState(false);
+/** An op's cost, the AVM version it came in, its mode and its group. */
+export function OpMeta({ d }: { d: OpDesc }) {
   const mode = modeText(d.op.mode);
+  return (
+    <div className="text-muted">
+      <span title={`As of AVM v${AVM_LATEST}: a few ops cost differently in earlier versions`}>cost {d.cost}</span> · since v{d.op.v}
+      {mode ? ` · ${mode}` : ""} · {d.op.group}
+    </div>
+  );
+}
+
+/** An op's reference behind a [?]: its signature, docs and fields; `OpMeta` stays out, for its place to show it. */
+export function OpHelp({ d }: { d: OpDesc }) {
+  return (
+    <TooltipProvider>
+      <Tooltip delayDuration={150}>
+        <TooltipTrigger asChild>
+          <button type="button" aria-label={`What ${d.name} does`} className="inline-flex shrink-0 text-muted-foreground hover:text-foreground cursor-help">
+            <CircleHelp className="h-3.5 w-3.5" />
+          </button>
+        </TooltipTrigger>
+        <TooltipPrimitive.Portal>
+          <TooltipContent
+            side="bottom"
+            align="start"
+            className="max-h-[var(--radix-tooltip-content-available-height)] max-w-md overflow-auto whitespace-normal bg-black p-3 font-sans text-xs text-white border-border"
+          >
+            <OpDoc d={d} full meta={false} />
+          </TooltipContent>
+        </TooltipPrimitive.Portal>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+/** An op's reference: its stack signature, doc, the fields its line names, and (`meta`) its cost and version. */
+export function OpDoc({ d, full, meta = true }: { d: OpDesc; full?: boolean; meta?: boolean }) {
+  const [more, setMore] = useState(false);
   const sig = signature(d);
   return (
     <div className="space-y-1">
@@ -77,10 +112,7 @@ export function OpDoc({ d, full }: { d: OpDesc; full?: boolean }) {
           </button>
         )
       ) : null}
-      <div className="text-muted">
-        <span title={`As of AVM v${AVM_LATEST}: a few ops cost differently in earlier versions`}>cost {d.cost}</span> · since v{d.op.v}
-        {mode ? ` · ${mode}` : ""} · {d.op.group}
-      </div>
+      {meta ? <OpMeta d={d} /> : null}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import React from "react";
+import { cn } from "src/lib/utils";
 import { useStateChangesCaps, useTxnStateChanges } from "src/hooks/useTxnStateChanges";
 import { groupOfTxn } from "src/utils/txnStateChanges";
 import { Pending } from "../../Versions/ObjectRoundDiff";
@@ -12,22 +13,33 @@ import GroupChangesView from "../../Group/GroupChangesView";
  * group's: the node applies a group as one unit, so its changes don't split
  * by transaction. Nothing where the node doesn't serve full deltas.
  */
-export default function TransactionGroupChanges({ round, txId, groupId }: { round: number; txId: string; groupId?: string }): JSX.Element | null {
+export default function TransactionGroupChanges({
+  round,
+  txId,
+  groupId,
+  embedded = false,
+}: {
+  round: number;
+  txId: string;
+  groupId?: string;
+  /** In a tab that names it: no card, no title. */
+  embedded?: boolean;
+}): JSX.Element | null {
   const caps = useStateChangesCaps();
   // The same request as the app call's State changes card, so they share it;
   // none without full deltas, where this card shows nothing.
   const { data, error, isLoading } = useTxnStateChanges(round, [txId], { supported: caps.supported && caps.full, full: caps.full });
   if (!caps.full) return null;
   if (error) {
-    return <div className="mt-6 text-xs text-muted-foreground">Changes unavailable: {(error as Error).message}</div>;
+    return <div className={cn("text-xs text-muted-foreground", !embedded && "mt-6")}>Changes unavailable: {(error as Error).message}</div>;
   }
   const group = data ? groupOfTxn(data, txId) : undefined;
   const count = group?.count ?? 1;
 
   return (
-    <div className="mt-6 rounded-lg p-5 bg-background-card">
+    <div className={embedded ? undefined : "mt-6 rounded-lg p-5 bg-background-card"}>
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-4">
-        <span className="text-muted-foreground">Changes</span>
+        {embedded ? null : <span className="text-muted-foreground">Changes</span>}
         <span className="text-xs text-muted-foreground">
           {groupId ? (
             <>

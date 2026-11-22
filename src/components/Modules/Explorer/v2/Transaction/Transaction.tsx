@@ -64,6 +64,20 @@ function Transaction(): JSX.Element {
 
   const xChainOwner = useMemo(() => getXChainOwner(txnObj), [txnObj]);
 
+  // Only app calls and logic sigs run programs.
+  const hasDeveloper =
+    !!txnInstance && (txnInstance.getType() === TXN_TYPES.APP_CALL || txnInstance.isLogicSig()) && !!txnInstance.getId() && !!txnInstance.getBlock();
+
+  const developer = hasDeveloper ? (
+    <TransactionDeveloper
+      transaction={txnObj}
+      round={txnInstance.getBlock()}
+      txId={txnInstance.getId()}
+      groupId={txnInstance.getGroup() || undefined}
+      appCall={txnInstance.getType() === TXN_TYPES.APP_CALL}
+    />
+  ) : null;
+
   useTitle(`Txn ${id}`);
 
   useEffect(() => {
@@ -196,6 +210,8 @@ function Transaction(): JSX.Element {
                   </div>
                 </div>
 
+                <TransactionRekey transaction={txnObj} />
+
                 {txnInstance.getType() === TXN_TYPES.PAYMENT ? (
                   <PaymentTransaction transaction={txnObj} />
                 ) : null}
@@ -216,7 +232,7 @@ function Transaction(): JSX.Element {
                   <KeyRegTransaction transaction={txnObj} />
                 ) : null}
                 {txnInstance.getType() === TXN_TYPES.APP_CALL ? (
-                  <AppCallTransaction transaction={txnObj} />
+                  <AppCallTransaction transaction={txnObj} developer={developer} />
                 ) : null}
                 {txnInstance.getType() === TXN_TYPES.STATE_PROOF ? (
                   <StateProofTransaction transaction={txnObj} />
@@ -224,20 +240,17 @@ function Transaction(): JSX.Element {
                 {txnInstance.getType() === TXN_TYPES.HEARTBEAT ? (
                   <HeartbeatTransaction transaction={txnObj} />
                 ) : null}
-                {/* An app call shows it next to its State changes card. */}
-                {txnInstance.getType() !== TXN_TYPES.APP_CALL && txnInstance.getId() && txnInstance.getBlock() ? (
+                {/* Where there's a Developer card, it's one of its tabs. */}
+                {!hasDeveloper && txnInstance.getId() && txnInstance.getBlock() ? (
                   <TransactionGroupChanges round={txnInstance.getBlock()} txId={txnInstance.getId()} groupId={txnInstance.getGroup() || undefined} />
                 ) : null}
 
-                <TransactionRekey transaction={txnObj} />
                 <TransactionNote transaction={txnObj} />
                 <TransactionMultiSig transaction={txnObj} />
                 <TransactionLogicSig transaction={txnObj} />
                 <TransactionPQSig transaction={txnObj} />
-                {/* Only app calls and logic sigs run programs. */}
-                {(txnInstance.getType() === TXN_TYPES.APP_CALL || txnInstance.isLogicSig()) && txnInstance.getId() && txnInstance.getBlock() ? (
-                  <TransactionDeveloper round={txnInstance.getBlock()} txId={txnInstance.getId()} groupId={txnInstance.getGroup() || undefined} />
-                ) : null}
+                {/* An app call's sits after its inner transactions. */}
+                {txnInstance.getType() !== TXN_TYPES.APP_CALL ? developer : null}
                 <TransactionAdditionalDetails transaction={txnObj} />
               </div>
             )}

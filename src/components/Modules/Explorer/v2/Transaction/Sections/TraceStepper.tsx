@@ -52,7 +52,7 @@ import { AsideChip, RangedTeal } from "./TealRanges";
 import { rangeIndex, srcKey, tealRanges, type TealRange } from "src/utils/tealRanges";
 import type { SourceMapping, SrcLine } from "src/utils/arc56Source";
 import { FailureReason, KeyName, OpHints, RunMethod, runFailure, StackName, StateValue, SubName, useSpecNames, type SpecNames } from "./SpecNames";
-import { Code, OpDoc, useAvmOps } from "src/components/Modules/Explorer/v2/TealCode";
+import { Code, OpHelp, OpMeta, useAvmOps } from "src/components/Modules/Explorer/v2/TealCode";
 import { describe as describeOp, opIO, popNames, type IOValue, type OpDesc, type Wide } from "src/utils/avmOps";
 
 // React 18's (the app renders with createRoot), which the project's React 17 types don't declare.
@@ -1398,8 +1398,11 @@ function NextOp({ T, f, i, stack, d, last, where, names, loc }: {
     <Panel title="Next op" meta={`pc ${s.pc}`}>
       <div className="space-y-1.5 px-3 py-2 text-xs">
         {loc}
-        <div className="max-h-[4.5rem] overflow-auto break-all font-mono text-[13px]">{text !== undefined ? <Code text={text} short /> : <span className="text-muted">pc {s.pc}</span>}</div>
-        {d ? <OpDoc key={`${f.id}:${s.pc}`} d={d} /> : null}
+        <div className="flex items-start gap-1.5">
+          <div className="max-h-[4.5rem] min-w-0 overflow-auto break-all font-mono text-[13px]">{text !== undefined ? <Code text={text} short /> : <span className="text-muted">pc {s.pc}</span>}</div>
+          {d ? <span className="flex h-4 items-center"><OpHelp d={d} /></span> : null}
+        </div>
+        {d ? <OpMeta d={d} /> : null}
         <OpHints names={names} f={f} s={s} top={top} />
         {io.inputs.length || io.outputs.length ? (
           <div className="flex flex-col gap-0.5 font-mono">
