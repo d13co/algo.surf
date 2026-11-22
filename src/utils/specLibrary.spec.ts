@@ -128,6 +128,25 @@ describe("spec library", () => {
     expect(none.notes[0]).toMatchObject({ bad: true, text: expect.stringMatching(/^o\/r@main\/docs has no ARC-56 spec/) });
   });
 
+  it("adds a folder's other specs when one can't be read, and a spec without a source file that can't be", async () => {
+    const path = libPaths(newSpec(escreg, undefined, undefined, now))[0];
+    const entry = (p: string, body: string): FolderEntry => ({ name: p.slice(p.lastIndexOf("/") + 1), path: p, read: async () => body });
+    const failing = (p: string, msg: string): FolderEntry => ({ ...entry(p, ""), read: () => Promise.reject(new Error(msg)) });
+    const files = [
+      entry("repo/a/Escreg.arc56.json", text("Escreg.arc56.json")),
+      failing(`repo/${path}`, "Couldn't read it from GitHub (429)."),
+      failing("repo/a/Escreg.approval.puya.map", "Couldn't read the map from GitHub (500)."),
+      failing("repo/b/Counter.arc56.json", "Couldn't read Counter from GitHub (500)."),
+    ];
+    const r = await importFolder(files, [], now);
+    expect(r.put.map((s) => s.name)).toEqual(["Escreg"]);
+    expect(r.put[0].sources).toEqual({});
+    expect(r.put[0].maps).toEqual({});
+    expect(r.notes).toContainEqual({ text: "Escreg.arc56.json: Couldn't read it from GitHub (429).", bad: true });
+    expect(r.notes).toContainEqual({ text: "Escreg.arc56.json: Couldn't read the map from GitHub (500).", bad: true });
+    expect(r.notes).toContainEqual({ text: "Counter.arc56.json: not added. Couldn't read Counter from GitHub (500).", bad: true });
+  });
+
   it("picks the spec that matches a program, and records the app", () => {
     const e = addFiles(newSpec(escreg, undefined, undefined, now), [{ name: "Escreg.approval.puya.map", map: escregMap }], [], now).spec;
     const c = newSpec(counter, undefined, undefined, now);

@@ -28,6 +28,9 @@ describe("parseGithubLink", () => {
       "git@github.com:algorandfoundation/puya-ts.git",
       "https://github.com/algorandfoundation/puya-ts/issues/12",
       "  https://github.com/algorandfoundation/puya-ts?tab=readme  ",
+      "algorandfoundation/puya-ts#readme",
+      "algorandfoundation/puya-ts?tab=readme",
+      "https://github.com/algorandfoundation/puya-ts/commits",
     ])
       expect(parseGithubLink(s), s).toEqual(repo);
   });
@@ -38,6 +41,20 @@ describe("parseGithubLink", () => {
     expect(parseGithubLink(`https://github.com/o/r/commit/${SHA}`)).toEqual({ owner: "o", repo: "r", kind: "tree", rest: [SHA] });
     expect(parseGithubLink("https://raw.githubusercontent.com/o/r/main/a/X.arc56.json")).toEqual({ owner: "o", repo: "r", kind: "blob", rest: ["main", "a", "X.arc56.json"] });
     expect(parseGithubLink("https://github.com/o/r/tree/main/with%20space")?.rest).toEqual(["main", "with space"]);
+  });
+
+  it("reads a file's raw, blame and edit pages as its blob, a ref's commits as its tree, and refs/heads/ as the branch", () => {
+    const blob = { owner: "o", repo: "r", kind: "blob", rest: ["dev", "a", "X.arc56.json"] };
+    for (const s of [
+      "https://github.com/o/r/raw/refs/heads/dev/a/X.arc56.json",
+      "https://github.com/o/r/raw/dev/a/X.arc56.json",
+      "https://github.com/o/r/blame/dev/a/X.arc56.json",
+      "https://github.com/o/r/edit/dev/a/X.arc56.json",
+      "https://raw.githubusercontent.com/o/r/refs/heads/dev/a/X.arc56.json",
+    ])
+      expect(parseGithubLink(s), s).toEqual(blob);
+    expect(parseGithubLink("https://github.com/o/r/commits/feature/x")).toEqual({ owner: "o", repo: "r", kind: "tree", rest: ["feature", "x"] });
+    expect(parseGithubLink("https://github.com/o/r/tree/refs/tags/v1/artifacts")?.rest).toEqual(["v1", "artifacts"]);
   });
 
   it("rejects what isn't a GitHub repo", () => {
@@ -64,8 +81,24 @@ describe("resolveRef", () => {
     await expect(resolveRef(parseGithubLink("o/r")!, stub({}).f)).rejects.toThrow(/private/);
     const limited = stub({ "https://api.github.com/repos/o/r": () => new Response("", { status: 403, headers: { "x-ratelimit-remaining": "0", "x-ratelimit-reset": "1700000000" } }) });
     await expect(resolveRef(parseGithubLink("o/r")!, limited.f)).rejects.toThrow(/60 requests an hour/);
+    const secondary = stub({ "https://api.github.com/repos/o/r": () => new Response("", { status: 403, headers: { "x-ratelimit-remaining": "40", "retry-after": "60" } }) });
+    await expect(resolveRef(parseGithubLink("o/r")!, secondary.f)).rejects.toThrow(/limiting requests from this network\. Try again after/);
+    const late = (async () => {
+      throw new DOMException("signal timed out", "TimeoutError");
+    }) as typeof fetch;
+    await expect(resolveRef(parseGithubLink("o/r")!, late)).rejects.toThrow("GitHub didn't answer in 30 s for o/r.");
+    // Its time running out while the answer comes.
+    const stalled = stub({ "https://api.github.com/repos/o/r": () => ({ ok: true, status: 200, headers: new Headers(), text: () => Promise.reject(new DOMException("signal timed out", "TimeoutError")) }) as unknown as Response });
+    await expect(resolveRef(parseGithubLink("o/r")!, stalled.f)).rejects.toThrow("GitHub didn't answer in 30 s for o/r.");
     const link: GithubLink = { owner: "o", repo: "r", kind: "tree", rest: ["nope", "a"] };
     await expect(resolveRef(link, stub({}).f)).rejects.toThrow(/no branch, tag or commit nope/);
+  });
+
+  it("says when the repo is empty, or GitHub's answer isn't JSON", async () => {
+    const empty = stub({ "https://api.github.com/repos/o/r": json({ default_branch: "main" }), "https://api.github.com/repos/o/r/commits/main": () => new Response("{}", { status: 409 }) });
+    await expect(resolveRef(parseGithubLink("o/r")!, empty.f)).rejects.toThrow("o/r is empty: it has no commits.");
+    const html = stub({ "https://api.github.com/repos/o/r": () => new Response("<html>", { status: 200 }) });
+    await expect(resolveRef(parseGithubLink("o/r")!, html.f)).rejects.toThrow("GitHub's answer for o/r wasn't JSON.");
   });
 });
 

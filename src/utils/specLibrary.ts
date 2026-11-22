@@ -298,33 +298,52 @@ export async function importFolder(files: FolderEntry[], saved: LibSpec[], now: 
     const text = scope && /\.json$/i.test(scope)
       ? `${folder}: not an ARC-56 spec. Link to a file named X.arc56.json, or to the folder that holds it.`
       : `${folder} has no ARC-56 spec (*.arc56.json) outside node_modules. Build output folders such as artifacts/ hold them${opts.label ? "; build output that isn't committed can be added from a local build instead" : ""}.`;
-    res.notes.push({ text, bad: true });
+    res.notes.push({ text, bad: true, none: true });
     return res;
   }
   for (const c of all) {
-    const arc56 = parse(await c.spec.read());
-    if (!isSpecJson(arc56)) {
-      res.notes.push({ text: `${c.spec.path}: not an ARC-56 spec.`, bad: true });
-      continue;
+    try {
+      await importOne(c, files, saved, now, opts, res);
+    } catch (e) {
+      // One spec's files failing to read (a fetch from GitHub, say) leaves the others to be added.
+      res.notes.push({ text: `${c.spec.name}: not added. ${e instanceof Error ? e.message : String(e)}`, bad: true });
     }
-    const maps: LibMap[] = [];
-    for (const m of c.maps) {
-      const map = parse(await m.read());
-      if (isMapJson(map)) maps.push({ name: m.name, map });
-      else res.notes.push({ text: `${m.path}: not a .puya.map.`, bad: true });
-    }
-    let spec = newSpec(arc56, c.spec.name, opts.from ? opts.from(c.spec.path) : c.spec.path, now);
-    // The maps first: their `sources` add to the spec's paths.
-    const withMaps = addFiles(spec, maps, [], now);
-    spec = withMaps.spec;
-    res.notes.push(...withMaps.notes.filter((n) => n.bad));
-    const paths = libPaths(spec);
-    const sources = await Promise.all(folderSources(files, paths).map(async (f) => ({ name: f.name, path: f.path, text: await f.read() })));
-    const r = addFiles(spec, [], sources, now);
-    res.notes.push(...r.notes.filter((n) => n.bad));
-    keep(r.spec, saved, res, now);
   }
   return res;
+}
+
+/** One spec of a folder, with its maps and source files, into `res`. */
+async function importOne(c: { spec: FolderEntry; maps: FolderEntry[] }, files: FolderEntry[], saved: LibSpec[], now: number, opts: FolderOpts, res: ImportResult): Promise<void> {
+  const arc56 = parse(await c.spec.read());
+  if (!isSpecJson(arc56)) {
+    res.notes.push({ text: `${c.spec.path}: not an ARC-56 spec.`, bad: true });
+    return;
+  }
+  const maps: LibMap[] = [];
+  // A map that can't be read is left out, as a source file is below; the spec is still added.
+  for (const [i, x] of (await Promise.allSettled(c.maps.map((m) => m.read()))).entries()) {
+    const m = c.maps[i];
+    if (x.status === "rejected") {
+      res.notes.push({ text: `${c.spec.name}: ${x.reason instanceof Error ? x.reason.message : String(x.reason)}`, bad: true });
+      continue;
+    }
+    const map = parse(x.value);
+    if (isMapJson(map)) maps.push({ name: m.name, map });
+    else res.notes.push({ text: `${m.path}: not a .puya.map.`, bad: true });
+  }
+  let spec = newSpec(arc56, c.spec.name, opts.from ? opts.from(c.spec.path) : c.spec.path, now);
+  // The maps first: their `sources` add to the spec's paths.
+  const withMaps = addFiles(spec, maps, [], now);
+  spec = withMaps.spec;
+  res.notes.push(...withMaps.notes.filter((n) => n.bad));
+  const paths = libPaths(spec);
+  // A source file that can't be read (from GitHub, say) is left out; the spec is still added, missing it.
+  const read = await Promise.allSettled(folderSources(files, paths).map(async (f) => ({ name: f.name, path: f.path, text: await f.read() })));
+  const sources = read.flatMap((x) => (x.status === "fulfilled" ? [x.value] : []));
+  for (const x of read) if (x.status === "rejected") res.notes.push({ text: `${c.spec.name}: ${x.reason instanceof Error ? x.reason.message : String(x.reason)}`, bad: true });
+  const r = addFiles(spec, [], sources, now);
+  res.notes.push(...r.notes.filter((n) => n.bad));
+  keep(r.spec, saved, res, now);
 }
 
 const stemOfMap = (name: string) => name.replace(/(\.(approval|clear))?\.puya\.map$/i, "").toLowerCase();

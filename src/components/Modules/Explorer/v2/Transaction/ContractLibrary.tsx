@@ -155,6 +155,8 @@ export default function ContractLibrary(): JSX.Element {
     try {
       const gh = await githubFiles(link);
       const r = await importFolder(gh.files, await listLibrary(network), Date.now(), { scope: gh.scope, from: gh.blobUrl, label: gh.label });
+      // Too big to list whole: "no spec" may be wrong, so it's the missing files that are told.
+      if (gh.truncated) r.notes = r.notes.filter((n) => !n.none);
       if (gh.truncated) r.notes.push({ text: `${gh.label}: the repo is too big for GitHub to list whole, so some files may be missing. Link to the folder with the specs instead.`, bad: true });
       await apply(`From ${gh.label}`, r);
     } catch (e) {
@@ -178,6 +180,8 @@ export default function ContractLibrary(): JSX.Element {
   };
   const onLink = useRef<(url: string) => void>();
   onLink.current = (url) => {
+    // Busy with another import: leave the field as it is, as the drop is ignored.
+    if (busyRef.current) return;
     setGhLink(url);
     onGithub(url);
   };
@@ -194,16 +198,17 @@ export default function ContractLibrary(): JSX.Element {
       depth = Math.max(0, depth - 1);
       if (!depth) setDrag(false);
     };
-    const hasLink = (e: DragEvent) => !!e.dataTransfer?.types.includes("text/uri-list") && !(e.target instanceof HTMLInputElement);
+    // A text field takes a drop as text, as ever.
+    const editable = (t: EventTarget | null) => t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement || (t instanceof HTMLElement && t.isContentEditable);
+    const hasLink = (e: DragEvent) => !!e.dataTransfer?.types.includes("text/uri-list") && !editable(e.target);
     const over = (e: DragEvent) => (hasFiles(e) || hasLink(e)) && e.preventDefault();
     const drop = (e: DragEvent) => {
       if (!hasFiles(e)) {
-        // A GitHub link dropped outside a text field: read it as one typed in.
+        // A link dropped outside a text field: read it as one typed in. Any link, as `over` took it: the page doesn't leave for a link that isn't GitHub's, it says so.
+        if (editable(e.target)) return;
         const url = e.dataTransfer?.getData("text/uri-list").split(/\r?\n/).find((l) => l && !l.startsWith("#")) || e.dataTransfer?.getData("text/plain");
-        if (url && !(e.target instanceof HTMLInputElement) && parseGithubLink(url)) {
-          e.preventDefault();
-          onLink.current?.(url.trim());
-        }
+        e.preventDefault();
+        if (url?.trim()) onLink.current?.(url.trim());
         return;
       }
       e.preventDefault();
