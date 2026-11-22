@@ -39,6 +39,9 @@ import {
   type Stepper,
 } from "src/utils/traceStepper";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "src/components/v2/ui/tooltip";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "src/components/v2/ui/resizable";
+import { useDefaultLayout } from "react-resizable-panels";
+import { useMediaQuery } from "src/hooks/useMediaQuery";
 import { lineBreakpointPositions, lineStart, mergePositions, runToLine, stepBackOverSource, stepBackSource, stepIntoSource, stepOverSource } from "src/utils/sourceStepper";
 import { alignNames, frameNamesAt, stackNamesAt } from "src/utils/stackNames";
 import { useTraceSource } from "./useTraceSource";
@@ -320,6 +323,118 @@ function Source({ T, f, curPc, sitePcs, matchPcs, bps, onGutter, onRun, map, sou
     <div ref={box} className="relative min-h-0 flex-1 overflow-auto py-1">
       {prog.lines.map((_, i) => line(i))}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Layout: three columns on wide screens, each resizable, as are the panels
+// stacked in the side columns; one column below that.
+
+/** Panel sizes, kept per layout in this browser: localStorage can be unavailable, and then they aren't. */
+const layoutStorage = {
+  getItem: (k: string) => {
+    try {
+      const v = localStorage.getItem(k);
+      if (v === null) return null;
+      // The library reads it unguarded: anything but sizes by panel id is dropped for the default.
+      const o: unknown = JSON.parse(v);
+      return o && typeof o === "object" && !Array.isArray(o) && Object.values(o).every((x) => typeof x === "number") ? v : null;
+    } catch {
+      return null;
+    }
+  },
+  setItem: (k: string, v: string) => {
+    try {
+      localStorage.setItem(k, v);
+    } catch {
+      // Not kept.
+    }
+  },
+};
+
+/** Only sizes the user picked are kept, not those squeezed to fit a smaller window. */
+const onlySaveAfterUserInteractions = true;
+
+/** A panel short enough to show only its title bar. */
+const ROW_MIN = "2rem";
+
+function DebugPanels({ runs, access, breakpoints, source, nextOp, stack, scratch, calls }: {
+  runs: React.ReactNode;
+  access: React.ReactNode;
+  breakpoints: React.ReactNode;
+  source: React.ReactNode;
+  nextOp: React.ReactNode;
+  stack: React.ReactNode;
+  scratch: React.ReactNode;
+  calls: React.ReactNode;
+}) {
+  const wide = useMediaQuery("(min-width: 64rem)");
+  const cols = useDefaultLayout({ id: "trace-debug:columns", storage: layoutStorage, onlySaveAfterUserInteractions });
+  const left = useDefaultLayout({ id: "trace-debug:left", storage: layoutStorage, onlySaveAfterUserInteractions });
+  const right = useDefaultLayout({ id: "trace-debug:right", storage: layoutStorage, onlySaveAfterUserInteractions });
+
+  // A handle takes focus when it's dragged, and would keep the arrow keys from stepping after:
+  // one dragged with the mouse lets go of it. One reached with Tab keeps it.
+  useEffect(() => {
+    if (!wide) return;
+    const onUp = () => {
+      const a = document.activeElement;
+      if (a instanceof HTMLElement && a.matches("[data-separator]") && !a.matches(":focus-visible")) a.blur();
+    };
+    document.addEventListener("pointerup", onUp);
+    return () => document.removeEventListener("pointerup", onUp);
+  }, [wide]);
+
+  // The two layouts are different trees: crossing between them starts the panels afresh (their
+  // tabs, open rows, picked source file and scroll). The position and breakpoints carry over.
+  if (!wide) {
+    // Stacked: the program first, then where it is, then the runs and the state.
+    return (
+      <div className="grid gap-3">
+        <div className="order-2 flex min-w-0 flex-col gap-3">
+          {runs}
+          {access}
+          {breakpoints}
+        </div>
+        {source}
+        <div className="order-1 flex min-w-0 flex-col gap-3">
+          {nextOp}
+          {stack}
+          {scratch}
+          {calls}
+        </div>
+      </div>
+    );
+  }
+
+  // Each panel's own content scrolls, so the panels' wrappers don't.
+  const cell = "flex min-h-0 min-w-0 flex-col !overflow-hidden";
+  return (
+    <ResizablePanelGroup orientation="horizontal" className="min-h-0 flex-1" defaultLayout={cols.defaultLayout} onLayoutChanged={cols.onLayoutChanged}>
+      <ResizablePanel id="left" defaultSize="24%" minSize="12rem" className={cell}>
+        <ResizablePanelGroup orientation="vertical" className="min-h-0 flex-1" defaultLayout={left.defaultLayout} onLayoutChanged={left.onLayoutChanged}>
+          <ResizablePanel id="runs" defaultSize="40%" minSize={ROW_MIN} className={cell}>{runs}</ResizablePanel>
+          <ResizableHandle />
+          <ResizablePanel id="access" defaultSize="40%" minSize={ROW_MIN} className={cell}>{access}</ResizablePanel>
+          <ResizableHandle />
+          <ResizablePanel id="breakpoints" defaultSize="20%" minSize={ROW_MIN} className={cell}>{breakpoints}</ResizablePanel>
+        </ResizablePanelGroup>
+      </ResizablePanel>
+      <ResizableHandle />
+      <ResizablePanel id="source" defaultSize="46%" minSize="16rem" className={cell}>{source}</ResizablePanel>
+      <ResizableHandle />
+      <ResizablePanel id="right" defaultSize="30%" minSize="14rem" className={cn(cell, "gap-3")}>
+        {/* Its height follows the op it describes, up to half the column, and then it scrolls. */}
+        <div className="max-h-[50%] shrink-0 overflow-auto">{nextOp}</div>
+        <ResizablePanelGroup orientation="vertical" className="min-h-0 flex-1" defaultLayout={right.defaultLayout} onLayoutChanged={right.onLayoutChanged}>
+          <ResizablePanel id="stack" defaultSize="55%" minSize={ROW_MIN} className={cell}>{stack}</ResizablePanel>
+          <ResizableHandle />
+          <ResizablePanel id="scratch" defaultSize="25%" minSize={ROW_MIN} className={cell}>{scratch}</ResizablePanel>
+          <ResizableHandle />
+          <ResizablePanel id="calls" defaultSize="20%" minSize={ROW_MIN} className={cell}>{calls}</ResizablePanel>
+        </ResizablePanelGroup>
+      </ResizablePanel>
+    </ResizablePanelGroup>
   );
 }
 
@@ -849,7 +964,8 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
   const nLineBps = lineBpCount(src);
 
   // Keys work anywhere on the page, except where they mean something else: in
-  // a field, a dialog, a menu or a list, or on a control that opens one.
+  // a field, a dialog, a menu or a list, or on a control that opens one. A
+  // focused resize handle takes the keys it resizes with (arrows, Home, End).
   const actRef = useRef(act);
   actRef.current = act;
   useEffect(() => {
@@ -857,6 +973,8 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
       if (e.metaKey || e.ctrlKey || e.altKey || e.isComposing) return;
       const t = e.target as HTMLElement | null;
       if (t?.closest?.(IGNORE_KEYS_IN)) return;
+      // The handle's own listener, on it, has run by now, and marks the keys it took.
+      if (e.defaultPrevented && t?.closest?.("[data-separator]")) return;
       if (e.key === "F3") {
         if (actRef.current.findStep(e.shiftKey)) e.preventDefault();
         return;
@@ -939,70 +1057,77 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
 
       <Timeline T={T} bpPos={bpPos} hits={search.result?.hits} pos={pos} onSeek={seek} />
 
-      <div className="grid gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(16rem,22rem)_minmax(0,1fr)_minmax(20rem,28rem)]">
-        <div className="order-2 flex min-w-0 flex-col gap-3 lg:order-none lg:min-h-0">
-        <Panel className="lg:min-h-0 lg:flex-1" title="Program runs" meta={`${grouped(T.frames.reduce((t, x) => t + x.steps.length, 0))} ops`}>
-          <RunsList T={T} cur={f} labels={labels} names={names} onSeek={seek} />
-        </Panel>
-
-        <StateAccessPanel T={T} at={lagPos} mode={accessMode} onMode={pickMode} names={names} where={labels.where} onSeek={seek} />
-
-        <Panel className="lg:max-h-[25%] lg:shrink-0" title="Breakpoints" meta={bpList.length + nLineBps || undefined}>
-          <LineBreakpoints T={T} src={src} at={lineBpPos} />
-          {bpList.length || !nLineBps ? <Breakpoints T={T} list={bpList} bpPos={bpPos} onRemove={toggleBp} /> : null}
-        </Panel>
-        </div>
-
-        <Panel
-          className="max-lg:max-h-[75svh] lg:min-h-0"
-          title={`${labels.where(f)} · ${KIND[f.kind]}`}
-          meta={
-            <span className="flex flex-wrap justify-end gap-x-3">
-              {appText(f) ? (
+      <DebugPanels
+        runs={
+          <Panel className="lg:min-h-0 lg:flex-1" title="Program runs" meta={`${grouped(T.frames.reduce((t, x) => t + x.steps.length, 0))} ops`}>
+            <RunsList T={T} cur={f} labels={labels} names={names} onSeek={seek} />
+          </Panel>
+        }
+        access={
+          <StateAccessPanel T={T} at={lagPos} mode={accessMode} onMode={pickMode} names={names} where={labels.where} onSeek={seek} />
+        }
+        breakpoints={
+          <Panel className="lg:min-h-0 lg:flex-1" title="Breakpoints" meta={bpList.length + nLineBps || undefined}>
+            {/* One scroller for both lists. */}
+            <div className="min-h-0 overflow-auto lg:flex-1">
+              <LineBreakpoints T={T} src={src} at={lineBpPos} />
+              {bpList.length || !nLineBps ? <Breakpoints T={T} list={bpList} bpPos={bpPos} onRemove={toggleBp} /> : null}
+            </div>
+          </Panel>
+        }
+        source={
+          <Panel
+            className="max-lg:max-h-[75svh] lg:min-h-0 lg:flex-1"
+            title={`${labels.where(f)} · ${KIND[f.kind]}`}
+            meta={
+              <span className="flex flex-wrap justify-end gap-x-3">
+                {appText(f) ? (
+                  <span>
+                    {appText(f)}
+                    <RunMethod names={names} f={f} />
+                  </span>
+                ) : null}
                 <span>
-                  {appText(f)}
-                  <RunMethod names={names} f={f} />
+                  op {grouped(Math.min(i + 1, f.steps.length))} of {grouped(f.steps.length)}
                 </span>
-              ) : null}
-              <span>
-                op {grouped(Math.min(i + 1, f.steps.length))} of {grouped(f.steps.length)}
+                {f.budget ? (
+                  <span title="Budget left when it started and when it ended">
+                    cost {grouped(f.budget.cost)} · budget {grouped(f.budget["budget-before"])} → {grouped(f.budget["budget-after"])}
+                  </span>
+                ) : null}
+                {f.prog?.synthetic ? <span>no disassembly</span> : null}
               </span>
-              {f.budget ? (
-                <span title="Budget left when it started and when it ended">
-                  cost {grouped(f.budget.cost)} · budget {grouped(f.budget["budget-before"])} → {grouped(f.budget["budget-after"])}
-                </span>
-              ) : null}
-              {f.prog?.synthetic ? <span>no disassembly</span> : null}
-            </span>
-          }
-        >
-          {/* Keyed apart from the source below: siblings sharing a key can be duplicated. */}
-          <SourceBar key={`bar:${f.hash}`} f={f} src={src} />
-          {fMap ? (
-            <SourcePanel key={`src:${f.hash}`} T={T} f={f} map={fMap} curPc={s ? Number(s.pc) : undefined} showOps={opAt === pos} sitePcs={sitePcs} matchPcs={matchPcs} src={src} bps={bps} onGutter={onGutter} onRunLine={onRunLine} />
+            }
+          >
+            {/* Keyed apart from the source below: siblings sharing a key can be duplicated. */}
+            <SourceBar key={`bar:${f.hash}`} f={f} src={src} />
+            {fMap ? (
+              <SourcePanel key={`src:${f.hash}`} T={T} f={f} map={fMap} curPc={s ? Number(s.pc) : undefined} showOps={opAt === pos} sitePcs={sitePcs} matchPcs={matchPcs} src={src} bps={bps} onGutter={onGutter} onRunLine={onRunLine} />
 
-          ) : (
-            <Source
-              T={T}
-              f={f}
-              curPc={s ? Number(s.pc) : undefined}
-              sitePcs={sitePcs}
-              matchPcs={matchPcs}
-              bps={bps}
-              onGutter={onGutter}
-              onRun={onRun}
-              map={src.colOf(f.hash) ? src.lineMap(f.hash) : undefined}
-              sources={f.hash ? src.srcs.get(f.hash)?.rec.sources : undefined}
-              lineBps={src.lineBps}
-              onLineBp={onLineBp}
-              onRunLine={onRunLine}
-            />
-          )}
-        </Panel>
-
-        <div className="order-1 flex min-w-0 flex-col gap-3 lg:order-none lg:min-h-0">
+            ) : (
+              <Source
+                T={T}
+                f={f}
+                curPc={s ? Number(s.pc) : undefined}
+                sitePcs={sitePcs}
+                matchPcs={matchPcs}
+                bps={bps}
+                onGutter={onGutter}
+                onRun={onRun}
+                map={src.colOf(f.hash) ? src.lineMap(f.hash) : undefined}
+                sources={f.hash ? src.srcs.get(f.hash)?.rec.sources : undefined}
+                lineBps={src.lineBps}
+                onLineBp={onLineBp}
+                onRunLine={onRunLine}
+              />
+            )}
+          </Panel>
+        }
+        nextOp={
           <NextOp T={T} f={f} i={i} stack={st.stack} d={opDesc} last={pos >= T.N - 1} where={labels.where} names={names} loc={s && src.lineMap(f.hash) ? <SourceLoc map={src.lineMap(f.hash)!} pc={Number(s.pc)} /> : null} />
-          <Panel className="lg:min-h-[8rem] lg:flex-1" title="Stack" meta={`${n} ${n === 1 ? "value" : "values"}`}>
+        }
+        stack={
+          <Panel className="lg:min-h-0 lg:flex-1" title="Stack" meta={`${n} ${n === 1 ? "value" : "values"}`}>
             <div className="max-h-64 min-h-0 overflow-auto py-1 lg:max-h-none lg:flex-1">
               {n ? (
                 st.stack
@@ -1014,8 +1139,10 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
               )}
             </div>
           </Panel>
-          <Panel className="lg:max-h-[30%] lg:shrink-0" title="Scratch" meta={slots.length ? `${slots.length} ${slots.length === 1 ? "slot" : "slots"}` : undefined}>
-            <div className="max-h-48 min-h-0 overflow-auto py-1 lg:max-h-none">
+        }
+        scratch={
+          <Panel className="lg:min-h-0 lg:flex-1" title="Scratch" meta={slots.length ? `${slots.length} ${slots.length === 1 ? "slot" : "slots"}` : undefined}>
+            <div className="max-h-48 min-h-0 overflow-auto py-1 lg:max-h-none lg:flex-1">
               {slots.length ? (
                 slots.map(([k, x]) => <ValueRow key={`${f.id}:${k}:${x.at}`} v={x.v} index={k} mark={willWrite.has(k) ? "pop" : x.at === i - 1 ? "new" : undefined} />)
               ) : (
@@ -1023,8 +1150,10 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
               )}
             </div>
           </Panel>
-          <Panel className="lg:max-h-[25%] lg:shrink-0" title="Call stack">
-            <div className="min-h-0 overflow-auto py-1 text-xs">
+        }
+        calls={
+          <Panel className="lg:min-h-0 lg:flex-1" title="Call stack">
+            <div className="min-h-0 overflow-auto py-1 text-xs lg:flex-1">
               {calls.map((c, k) => (
                 <button
                   key={k}
@@ -1057,8 +1186,8 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
               ))}
             </div>
           </Panel>
-        </div>
-      </div>
+        }
+      />
     </section>
   );
 }
