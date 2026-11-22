@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { buildStepper, type Program } from "./traceStepper";
-import { addFiles, fillMissing, isSpecJson, mergeSpec, specId, fromRecords, importFiles, importFolder, libPaths, mapFit, missingSources, newSpec, noteApp, pickSpec, specLang, toRecord, type FolderEntry } from "./specLibrary";
+import { addFiles, fillMissing, isSpecJson, mergeSpec, specId, fromRecords, importFiles, importFolder, libPaths, mapFit, missingSources, newSpec, noteApp, pickSpec, sourceFits, specLang, toRecord, type FolderEntry } from "./specLibrary";
 
 const text = (name: string) => readFileSync(new URL(`./__fixtures__/${name}`, import.meta.url), "utf8");
 const escreg = JSON.parse(text("Escreg.arc56.json"));
@@ -90,6 +90,20 @@ describe("spec library", () => {
     expect(Object.keys(r.put[0].sources)).toEqual([path]);
     expect(r.put[0].from).toBe("proj/artifacts/escreg/Escreg.arc56.json");
     expect((await importFolder([entry("proj/a.ts", "")], [], now)).notes[0].bad).toBe(true);
+  });
+
+  it("takes a TEALScript source file, whose TEAL quotes part of a line, as the one built", async () => {
+    // TEALScript quotes `limit > 0` of `assert(limit > 0, ...)`: not a whole line, as Puya's are.
+    const src = text("counter.algo.ts.txt");
+    const entry = (p: string, body: string): FolderEntry => ({ name: p.slice(p.lastIndexOf("/") + 1), path: p, read: async () => body });
+    const r = await importFolder([entry("proj/contracts/artifacts/Counter.arc56.json", text("Counter.arc56.json")), entry("proj/contracts/counter.algo.ts", src)], [], now);
+    expect(r.notes.filter((n) => n.bad)).toEqual([]);
+    expect(Object.keys(r.put[0].sources)).toEqual(["contracts/counter.algo.ts"]);
+    // Loose, it goes to the saved spec whose lines it has.
+    expect(sourceFits(r.put[0], { name: "counter.algo.ts", text: src })).toBe(true);
+    // Another build's file is still told apart.
+    const other = src.replace("assert(limit > 0, 'limit must be positive');", "assert(limit > 1, 'limit must be positive');");
+    expect(sourceFits(r.put[0], { name: "counter.algo.ts", text: other })).toBe(false);
   });
 
   it("reads a folder's specs under a scope only, with source files from anywhere in it", async () => {

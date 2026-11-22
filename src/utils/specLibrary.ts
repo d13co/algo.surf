@@ -76,16 +76,21 @@ export function newSpec(arc56: Arc56Contract, file: string | undefined, from: st
 
 const KINDS: ProgramKind[] = ["approval", "clear"];
 
-/** The source lines the spec's TEAL quotes, both programs', one per file and line (no pcs: no program to pair with). */
+/**
+ * The source lines the spec's TEAL quotes, both programs', one per file and
+ * line (no pcs: no program to pair with). TEALScript's quote part of a line
+ * (`part`), as matchSpec marks them, so a file is checked for the part only.
+ */
 export function specLines(arc56: Arc56Contract): SrcLine[] {
   const seen = new Map<string, SrcLine>();
   for (const kind of KINDS) {
     const teal = specTeal(arc56, kind);
     if (!teal) continue;
+    const part = isTealscript(teal);
     for (const o of parseTeal(teal)) {
       if (!o.loc) continue;
       const k = `${o.loc.file}:${o.loc.line}`;
-      if (!seen.has(k)) seen.set(k, { ...o.loc, pcs: [] });
+      if (!seen.has(k)) seen.set(k, { ...o.loc, ...(part && { part: true }), pcs: [] });
     }
   }
   return [...seen.values()];
