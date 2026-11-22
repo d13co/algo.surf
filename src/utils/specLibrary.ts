@@ -251,7 +251,7 @@ function keep(spec: LibSpec, saved: LibSpec[], res: ImportResult, now: number) {
   }
   res.put.push(spec);
   const twin = saved.find((s) => s.name.toLowerCase() === spec.name.toLowerCase());
-  res.notes.push({ text: `${spec.name}: added${withFiles(spec)}${spec.from && spec.from !== spec.file ? ` from ${spec.from}` : ""}.${twin ? " Another version with this name is saved too; both are kept." : ""}` });
+  res.notes.push({ text: `${spec.name}: added${withFiles(spec)}${spec.from && spec.from !== spec.file && !/^https?:\/\//.test(spec.from) ? ` from ${spec.from}` : ""}.${twin ? " Another version with this name is saved too; both are kept." : ""}` });
   const missing = missingSources(spec);
   if (missing.length && Object.keys(spec.sources).length) res.notes.push({ text: `${spec.name}: still missing ${list(missing)}.`, info: true });
 }
@@ -267,17 +267,33 @@ const parse = (text: string): unknown => {
   }
 };
 
+/** Where a folder's specs are taken from, and what to say they came from. */
+export type FolderOpts = {
+  /** A path in the folder (a subfolder or a spec): only specs there are taken. Maps and source files are still found anywhere in the folder. */
+  scope?: string;
+  /** What a spec, by its path, is said to be added from; default its path. */
+  from?: (path: string) => string;
+  /** The folder's name in notes; default its first path segment. */
+  label?: string;
+};
+
+const under = (path: string, scope: string) => path === scope || path.startsWith(`${scope.replace(/\/+$/, "")}/`);
+
 /**
  * A project or build output folder: each `X.arc56.json` (not under
  * node_modules) with the `.puya.map`s beside it named for it and the
  * folder's source files at its paths. Only those files are read.
  */
-export async function importFolder(files: FolderEntry[], saved: LibSpec[], now: number): Promise<ImportResult> {
+export async function importFolder(files: FolderEntry[], saved: LibSpec[], now: number, opts: FolderOpts = {}): Promise<ImportResult> {
   const res: ImportResult = { put: [], notes: [] };
-  const folder = files[0]?.path.split("/")[0] || "The folder";
-  const all = folderSpecs(files);
+  const folder = opts.label ?? (files[0]?.path.split("/")[0] || "The folder");
+  const { scope } = opts;
+  const all = folderSpecs(files).filter((c) => !scope || under(c.spec.path, scope));
   if (!all.length) {
-    res.notes.push({ text: `${folder} has no ARC-56 spec (*.arc56.json) outside node_modules. Build output folders such as artifacts/ hold them.`, bad: true });
+    const text = scope && /\.json$/i.test(scope)
+      ? `${folder}: not an ARC-56 spec. Link to a file named X.arc56.json, or to the folder that holds it.`
+      : `${folder} has no ARC-56 spec (*.arc56.json) outside node_modules. Build output folders such as artifacts/ hold them${opts.label ? "; build output that isn't committed can be added from a local build instead" : ""}.`;
+    res.notes.push({ text, bad: true });
     return res;
   }
   for (const c of all) {
@@ -292,7 +308,7 @@ export async function importFolder(files: FolderEntry[], saved: LibSpec[], now: 
       if (isMapJson(map)) maps.push({ name: m.name, map });
       else res.notes.push({ text: `${m.path}: not a .puya.map.`, bad: true });
     }
-    let spec = newSpec(arc56, c.spec.name, c.spec.path, now);
+    let spec = newSpec(arc56, c.spec.name, opts.from ? opts.from(c.spec.path) : c.spec.path, now);
     // The maps first: their `sources` add to the spec's paths.
     const withMaps = addFiles(spec, maps, [], now);
     spec = withMaps.spec;

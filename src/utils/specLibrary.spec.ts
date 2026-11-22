@@ -92,6 +92,28 @@ describe("spec library", () => {
     expect((await importFolder([entry("proj/a.ts", "")], [], now)).notes[0].bad).toBe(true);
   });
 
+  it("reads a folder's specs under a scope only, with source files from anywhere in it", async () => {
+    const path = libPaths(newSpec(escreg, undefined, undefined, now))[0];
+    const entry = (p: string, body: string): FolderEntry => ({ name: p.slice(p.lastIndexOf("/") + 1), path: p, read: async () => body });
+    const files = [
+      entry("repo/artifacts/escreg/Escreg.arc56.json", text("Escreg.arc56.json")),
+      entry("repo/other/Counter.arc56.json", text("Counter.arc56.json")),
+      entry(`repo/${path}`, "// source"),
+    ];
+    const from = (p: string) => `https://github.com/o/r/blob/abc/${p.slice("repo/".length)}`;
+    const r = await importFolder(files, [], now, { scope: "repo/artifacts/", from, label: "o/r@main/artifacts" });
+    expect(r.put.map((s) => s.name)).toEqual(["Escreg"]);
+    expect(Object.keys(r.put[0].sources)).toEqual([path]);
+    expect(r.put[0].from).toBe("https://github.com/o/r/blob/abc/artifacts/escreg/Escreg.arc56.json");
+    // A spec file as the scope: that spec only.
+    const one = await importFolder(files, [], now, { scope: "repo/other/Counter.arc56.json" });
+    expect(one.put.map((s) => s.name)).toEqual(["Counter"]);
+    // Nothing there: the note names the label.
+    const none = await importFolder(files, [], now, { scope: "repo/docs", label: "o/r@main/docs" });
+    expect(none.put).toEqual([]);
+    expect(none.notes[0]).toMatchObject({ bad: true, text: expect.stringMatching(/^o\/r@main\/docs has no ARC-56 spec/) });
+  });
+
   it("picks the spec that matches a program, and records the app", () => {
     const e = addFiles(newSpec(escreg, undefined, undefined, now), [{ name: "Escreg.approval.puya.map", map: escregMap }], [], now).spec;
     const c = newSpec(counter, undefined, undefined, now);

@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, ChevronDown, FileJson, FilePlus2, FolderOpen, Lock, Map as MapIcon, Search, Trash2, X } from "lucide-react";
+import { ArrowLeft, ChevronDown, FileJson, FilePlus2, FolderOpen, Github, Lock, Map as MapIcon, Search, Trash2, X } from "lucide-react";
 import { cn } from "src/lib/utils";
 import { network } from "src/packages/core-sdk/constants";
 import useTitle from "src/components/Common/UseTitle/UseTitle";
 import LoadingTile from "src/components/v2/LoadingTile";
 import { Button } from "src/components/v2/ui/button";
+import { GithubError, githubFiles, parseGithubLink } from "src/utils/githubSpecs";
 import type { Note } from "src/utils/sourceFiles";
 import { appKey, compilerLabel, importFiles, importFolder, libPaths, mapFit, specLang, type FolderEntry, type ImportResult, type LibApp, type LibSpec, type MapSlot } from "src/utils/specLibrary";
 import { clearLibrary, deleteLibSpec, listLibrary, putLibSpec, updateLibSpec } from "src/utils/specLibraryStore";
@@ -75,6 +76,7 @@ export default function ContractLibrary(): JSX.Element {
   const [filter, setFilter] = useState("");
   const [open, setOpen] = useState<Set<string>>(() => new Set(focus ? [focus] : []));
   const [drag, setDrag] = useState(false);
+  const [ghLink, setGhLink] = useState("");
   const folderInput = useRef<HTMLInputElement>(null);
   const specInput = useRef<HTMLInputElement>(null);
   const mapInput = useRef<HTMLInputElement>(null);
@@ -144,6 +146,23 @@ export default function ContractLibrary(): JSX.Element {
     const r = importFiles(await asRead(files), saved, Date.now(), t);
     await apply(t ? `Files for ${t.name}` : `${plural(files.length, "file")} read`, r);
   };
+  const doGithub = async (input: string) => {
+    const link = parseGithubLink(input);
+    if (!link) {
+      setReport({ title: "Not a GitHub link", notes: [{ text: `“${input.trim()}”: give a GitHub repo, or a folder or ARC-56 spec in one, such as github.com/owner/repo or github.com/owner/repo/tree/main/artifacts.`, bad: true }] });
+      return;
+    }
+    try {
+      const gh = await githubFiles(link);
+      const r = await importFolder(gh.files, await listLibrary(network), Date.now(), { scope: gh.scope, from: gh.blobUrl, label: gh.label });
+      if (gh.truncated) r.notes.push({ text: `${gh.label}: the repo is too big for GitHub to list whole, so some files may be missing. Link to the folder with the specs instead.`, bad: true });
+      await apply(`From ${gh.label}`, r);
+    } catch (e) {
+      if (!(e instanceof GithubError)) throw e;
+      setReport({ title: "Couldn't read from GitHub", notes: [{ text: e.message, bad: true }] });
+    }
+  };
+  const onGithub = (input: string) => run(() => doGithub(input));
   const onFolder = (files: { file: File; path: string }[]) => run(() => doFolder(files));
   const onFiles = (files: { file: File; path: string }[], target?: LibSpec) => run(() => doFiles(files, target));
   // Files dropped anywhere in the window: elsewhere the browser would open them and leave the page.
@@ -156,6 +175,11 @@ export default function ContractLibrary(): JSX.Element {
       if (folder) await doFolder(files);
       else await doFiles(files);
     });
+  };
+  const onLink = useRef<(url: string) => void>();
+  onLink.current = (url) => {
+    setGhLink(url);
+    onGithub(url);
   };
   useEffect(() => {
     let depth = 0;
@@ -170,9 +194,18 @@ export default function ContractLibrary(): JSX.Element {
       depth = Math.max(0, depth - 1);
       if (!depth) setDrag(false);
     };
-    const over = (e: DragEvent) => hasFiles(e) && e.preventDefault();
+    const hasLink = (e: DragEvent) => !!e.dataTransfer?.types.includes("text/uri-list") && !(e.target instanceof HTMLInputElement);
+    const over = (e: DragEvent) => (hasFiles(e) || hasLink(e)) && e.preventDefault();
     const drop = (e: DragEvent) => {
-      if (!hasFiles(e)) return;
+      if (!hasFiles(e)) {
+        // A GitHub link dropped outside a text field: read it as one typed in.
+        const url = e.dataTransfer?.getData("text/uri-list").split(/\r?\n/).find((l) => l && !l.startsWith("#")) || e.dataTransfer?.getData("text/plain");
+        if (url && !(e.target instanceof HTMLInputElement) && parseGithubLink(url)) {
+          e.preventDefault();
+          onLink.current?.(url.trim());
+        }
+        return;
+      }
       e.preventDefault();
       depth = 0;
       setDrag(false);
@@ -256,7 +289,7 @@ export default function ContractLibrary(): JSX.Element {
       <div className="flex items-start gap-3 rounded-lg border border-border/40 bg-background-muted px-4 py-3 text-sm text-muted-foreground">
         <Lock className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
         <p>
-          <span className="font-semibold text-foreground">Kept in this browser only.</span> Specs, maps and source files you add are read on your device and stored in this browser. They are never uploaded or shared, and clearing this site's data removes them.
+          <span className="font-semibold text-foreground">Kept in this browser only.</span> Specs, maps and source files you add are read on your device and stored in this browser. They are never uploaded or shared, and clearing this site's data removes them. A GitHub link is read by this browser straight from GitHub: the repo's file list, then only the specs, maps and source files it needs.
         </p>
       </div>
 
@@ -288,8 +321,33 @@ export default function ContractLibrary(): JSX.Element {
             onChange={(e) => (e.target.files?.length && addTo.current && onFiles(fromList(e.target.files), addTo.current), (e.target.value = ""))}
           />
         </div>
+        <form
+          className="flex flex-wrap items-center gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (ghLink.trim()) onGithub(ghLink);
+          }}
+        >
+          <label className="relative min-w-0 flex-[1_1_20rem]">
+            <Github className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+            <input
+              type="text"
+              inputMode="url"
+              spellCheck={false}
+              autoComplete="off"
+              value={ghLink}
+              onChange={(e) => setGhLink(e.target.value)}
+              placeholder="github.com/owner/repo, or a folder or spec in it"
+              aria-label="GitHub link: a repo, or a folder or ARC-56 spec in one"
+              className="w-full rounded-md border border-border/50 bg-background-muted py-1.5 pl-8 pr-2 font-mono text-sm outline-none focus:border-primary"
+            />
+          </label>
+          <Button type="submit" variant="muted" disabled={busy || !ghLink.trim()} title="Every X.arc56.json in the repo, or under the linked folder, with its .puya.maps and the source files its TEAL names">
+            From GitHub
+          </Button>
+        </form>
         <p className="text-xs text-muted-foreground">
-          A folder adds every <span className="font-mono">X.arc56.json</span> in it (not under <span className="font-mono">node_modules</span>) with the <span className="font-mono">X.approval.puya.map</span> and <span className="font-mono">X.clear.puya.map</span> beside it and the source files its TEAL names. You can also drop files or folders here.
+          A folder adds every <span className="font-mono">X.arc56.json</span> in it (not under <span className="font-mono">node_modules</span>) with the <span className="font-mono">X.approval.puya.map</span> and <span className="font-mono">X.clear.puya.map</span> beside it and the source files its TEAL names. A GitHub link does the same for a public repo, or the folder or spec it points to, with source files from anywhere in the repo. You can also drop files, folders or a GitHub link here.
         </p>
       </section>
 
@@ -644,7 +702,15 @@ function Details({ s, info, onForget }: { s: LibSpec; info: Info; onForget: (a: 
       </section>
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-0.5 text-xs md:col-span-2">
         <dt className="text-muted">Added from</dt>
-        <dd className="min-w-0 break-all font-mono text-muted-foreground">{s.from ?? s.file ?? "the debugger"}</dd>
+        <dd className="min-w-0 break-all font-mono text-muted-foreground">
+          {s.from?.startsWith("https://github.com/") ? (
+            <a href={s.from} target="_blank" rel="noopener noreferrer" className="hover:text-primary hover:underline">
+              {s.from}
+            </a>
+          ) : (
+            (s.from ?? s.file ?? "the debugger")
+          )}
+        </dd>
         <dt className="text-muted">Spec ID</dt>
         <dd className="min-w-0 break-all font-mono text-muted-foreground" title="SHA-512/256 of the spec JSON">
           {s.id.slice(0, 16)}…
