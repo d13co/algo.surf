@@ -1,7 +1,7 @@
 import type { FolderEntry } from "./specLibrary";
 
 /**
- * Contracts from a public GitHub repo, for the Contracts page: a link to a
+ * Contracts from a public GitHub repo, for the Contracts & Specs page: a link to a
  * repo, a folder in it (`/tree/<ref>/<path>`) or a spec (`/blob/<ref>/<path>`)
  * becomes the repo's files as a chosen folder's (see importFolder), each read
  * from raw.githubusercontent.com at the commit the link resolves to. Only the

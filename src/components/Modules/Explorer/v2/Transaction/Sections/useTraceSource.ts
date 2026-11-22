@@ -10,7 +10,7 @@ import type { Frame, Program, Stepper } from "src/utils/traceStepper";
 
 /**
  * The debugger's source view, by program hash: the spec library's specs
- * (/debug/contracts) that match the trace's programs and their mappings, which
+ * (/debug/specs) that match the trace's programs and their mappings, which
  * programs are shown as source or TEAL, and source-line breakpoints. Each
  * match is recorded on its library spec, with its app. This browser keeps
  * all of it (specs in IndexedDB, the rest in localStorage), and whether the
@@ -83,7 +83,7 @@ export function useTraceSource(T: Stepper) {
   const [lineBps, setLineBps] = useState<Set<string>>(() => new Set());
   /** Programs whose TEAL view hides the source column (shown by default). */
   const [colsOff, setColsOff] = useState<Set<string>>(() => new Set());
-  /** Bumped when the tab comes back into view: specs added on the contracts page (another tab) are matched then. */
+  /** Bumped when the tab comes back into view: specs added on the Contracts & Specs page (another tab) are matched then. */
   const [tick, setTick] = useState(0);
   useEffect(() => {
     const again = () => document.visibilityState === "visible" && setTick((t) => t + 1);

@@ -15,7 +15,7 @@ import Link from "../Links/Link";
 import Logo from "../../Header/Logo";
 
 /**
- * /debug/contracts: the contracts this browser keeps for the debugger: each
+ * /debug/specs: the contracts this browser keeps for the debugger: each
  * an ARC-56 spec with its .puya.maps and source files, and the apps it
  * matched in a trace. They are added here (a folder, a spec, a map); the
  * debugger matches them with a trace's programs and records the apps.
@@ -63,7 +63,7 @@ const dot = (state: "ok" | "warn" | "bad" | "none") =>
   cn("inline-block h-1.5 w-1.5 shrink-0 rounded-full", state === "ok" ? "bg-green-400" : state === "warn" ? "bg-warning" : state === "bad" ? "bg-red-400" : "bg-muted");
 
 export default function ContractLibrary(): JSX.Element {
-  useTitle("Contracts");
+  useTitle("Contracts & Specs");
   const navigate = useNavigate();
   // Back to where it was opened from (the debugger, mostly); opened directly, to the home page in place of this entry.
   const back = () => (((window.history.state as { idx?: number } | null)?.idx ?? 0) > 0 ? navigate(-1) : navigate("/", { replace: true }));
@@ -270,12 +270,12 @@ export default function ContractLibrary(): JSX.Element {
         <Link href="/" noStyle className="-ml-3 inline-flex h-12 items-center px-3 py-2 text-base text-muted-foreground header:h-auto">
           <Logo label="debugger" />
         </Link>
-        <span className="text-sm text-muted-foreground">Contracts</span>
+        <span className="text-sm text-muted-foreground">Contracts &amp; Specs</span>
       </header>
 
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div className="min-w-0 max-w-2xl">
-          <h1 className="text-2xl font-bold">Contracts</h1>
+          <h1 className="text-2xl font-bold">Contracts &amp; Specs</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Contracts the debugger knows: their ARC-56 specs, <span className="font-mono">.puya.map</span>s and source files, and the apps each matched. The debugger matches them with the programs in a trace, to show their source beside the TEAL, name methods and state keys, and explain failed asserts. A <span className="font-mono">.puya.map</span> names stack values too.
           </p>

@@ -283,8 +283,7 @@ function AppRouter(): JSX.Element {
                         />
                         <Route path="/search" element={<SearchResults />} />
                         {/* A literal segment outranks /debug/:id. */}
-                        <Route path="/debug/contracts" element={<ContractLibrary />} />
-                        <Route path="/debug/specs" element={<NavigateKeepingSearch to="/debug/contracts" />} />
+                        <Route path="/debug/specs" element={<ContractLibrary />} />
                         <Route path="/debug/:id" element={<TraceDebug />} />
                         <Route path="*" element={<SearchFromPath />} />
                       </Routes>
