@@ -374,20 +374,6 @@ export function SourcePanel({ T, f, map, curPc, showOps, sitePcs, matchPcs, src,
   );
 }
 
-/** The next op's source location, for the Next op panel. */
-export function SourceLoc({ map, pc }: { map: SourceMapping; pc: number }) {
-  const l = map.byPc.get(pc);
-  if (!l) return <div className="text-muted">No source line: an op the compiler added (a subroutine's prologue, the constant blocks).</div>;
-  return (
-    <div className="min-w-0">
-      <div className="truncate text-muted-foreground" title={l.file}>
-        {base(l.file)}:{l.line}
-      </div>
-      <div className="max-h-[3rem] overflow-auto break-all font-mono text-[12.5px] text-foreground">{l.text}</div>
-    </div>
-  );
-}
-
 /** Source-line breakpoints on the trace's programs, for the Breakpoints panel; `at` is where they stop (lineBreakpointPositions). */
 export function LineBreakpoints({ T, src, at }: { T: Stepper; src: TraceSource; at: number[] }) {
   const list = [...src.lineBps].map((k) => ({ k, ...parseLineBpKey(k) })).filter((b) => src.hashes.has(b.hash));

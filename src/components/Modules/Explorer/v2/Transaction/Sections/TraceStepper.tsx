@@ -46,7 +46,7 @@ import { lineBreakpointPositions, lineStart, mergePositions, runToLine, stepBack
 import { alignNames, frameNamesAt, stackNamesAt } from "src/utils/stackNames";
 import { useTraceSource } from "./useTraceSource";
 import { BpGutter } from "./BpGutter";
-import { LineBreakpoints, lineBpCount, SourceLoc, SourcePanel } from "./SourcePanel";
+import { LineBreakpoints, lineBpCount, SourcePanel } from "./SourcePanel";
 import { SourceBar } from "./SourceBar";
 import { OpSearchField, stepHit, useOpSearch } from "./OpSearch";
 import { AsideChip, RangedTeal } from "./TealRanges";
@@ -1118,7 +1118,7 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
           </Panel>
         }
         nextOp={
-          <NextOp T={T} f={f} i={i} stack={st.stack} d={opDesc} last={pos >= T.N - 1} where={labels.where} names={names} loc={s && src.lineMap(f.hash) ? <SourceLoc map={src.lineMap(f.hash)!} pc={Number(s.pc)} /> : null} />
+          <NextOp T={T} f={f} i={i} stack={st.stack} d={opDesc} last={pos >= T.N - 1} where={labels.where} names={names} />
         }
         stack={
           <Panel className="lg:min-h-0 lg:flex-1" title="Stack" meta={`${n} ${n === 1 ? "value" : "values"}`}>
@@ -1333,7 +1333,7 @@ function IORows({ label, xs, wide, className }: { label: string; xs: IOValue[]; 
 }
 
 /** The op about to run and what it will do, or at a run's end, how it ended. */
-function NextOp({ T, f, i, stack, d, last, where, names, loc }: {
+function NextOp({ T, f, i, stack, d, last, where, names }: {
   T: Stepper;
   f: Frame;
   i: number;
@@ -1344,7 +1344,6 @@ function NextOp({ T, f, i, stack, d, last, where, names, loc }: {
   last: boolean;
   where: (f: Frame) => string;
   names: SpecNames;
-  loc?: React.ReactNode;
 }) {
   const s = f.steps[i];
   const top = stack[stack.length - 1];
@@ -1391,7 +1390,6 @@ function NextOp({ T, f, i, stack, d, last, where, names, loc }: {
   return (
     <Panel title="Next op" meta={`pc ${s.pc}`}>
       <div className="space-y-1.5 px-3 py-2 text-xs">
-        {loc}
         <div className="flex items-start gap-1.5">
           <div className="max-h-[4.5rem] min-w-0 overflow-auto break-all font-mono text-[13px]">{text !== undefined ? <Code text={text} short /> : <span className="text-muted">pc {s.pc}</span>}</div>
           {d ? <span className="flex h-4 items-center"><OpHelp d={d} /></span> : null}
