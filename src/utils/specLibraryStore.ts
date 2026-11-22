@@ -110,6 +110,8 @@ export async function listLibrary(network: string): Promise<LibSpec[]> {
 
 /** Removes a spec. False when IndexedDB still holds it. */
 export async function deleteLibSpec(id: string): Promise<boolean> {
+  // Its records in the old store too, should any be left there: else the next move brings it back.
+  for (const r of await listSpecs()) if (r.arc56 && specId(r.arc56) === id) await deleteSpec(r.hash);
   try {
     await del(id, store);
   } catch {
@@ -126,6 +128,7 @@ export async function deleteLibSpec(id: string): Promise<boolean> {
 
 /** Removes every spec. False when IndexedDB couldn't be emptied: then it still holds them. */
 export async function clearLibrary(): Promise<boolean> {
+  for (const r of await listSpecs()) await deleteSpec(r.hash);
   try {
     await clear(store);
   } catch {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { network } from "src/packages/core-sdk/constants";
 import type { ProgramKind, SourceMapping } from "src/utils/arc56Source";
 import { lineBpKey, parseLineBpKey, type MapFor } from "src/utils/sourceStepper";
@@ -59,18 +59,21 @@ function saveLineBps(hash: string, bps: Set<string>) {
   writeStore(lineBpStoreKey(hash), lines.length ? lines : undefined);
 }
 
-/** The trace's app programs with a disassembly, one per hash, with their app where a run names it. */
-function appProgs(T: Stepper): { hash: string; kind: ProgramKind; prog: Program; appId?: number }[] {
-  const seen = new Map<string, { hash: string; kind: ProgramKind; prog: Program; appId?: number }>();
+/** The trace's app programs with a disassembly, one per hash, with every app the runs name running it (apps can share a program). */
+function appProgs(T: Stepper): { hash: string; kind: ProgramKind; prog: Program; appIds: number[] }[] {
+  const seen = new Map<string, { hash: string; kind: ProgramKind; prog: Program; appIds: number[] }>();
   for (const f of T.frames) {
     if (!isApp(f)) continue;
     const appId = f.appId === undefined ? undefined : Number(f.appId) || undefined;
-    const had = seen.get(f.hash);
-    if (!had) seen.set(f.hash, { hash: f.hash, kind: f.kind, prog: f.prog, appId });
-    else if (had.appId === undefined) had.appId = appId;
+    let had = seen.get(f.hash);
+    if (!had) seen.set(f.hash, (had = { hash: f.hash, kind: f.kind, prog: f.prog, appIds: [] }));
+    if (appId !== undefined && !had.appIds.includes(appId)) had.appIds.push(appId);
   }
   return [...seen.values()];
 }
+
+/** Which library specs, in which version, a run matched with: unchanged, nothing needs matching again. */
+const libSig = (libs: LibSpec[]) => libs.map((l) => `${l.id}:${l.updatedAt}`).join(",");
 
 export type TraceSource = ReturnType<typeof useTraceSource>;
 
@@ -85,12 +88,10 @@ export function useTraceSource(T: Stepper) {
   useEffect(() => {
     const again = () => document.visibilityState === "visible" && setTick((t) => t + 1);
     document.addEventListener("visibilitychange", again);
-    window.addEventListener("focus", again);
-    return () => {
-      document.removeEventListener("visibilitychange", again);
-      window.removeEventListener("focus", again);
-    };
+    return () => document.removeEventListener("visibilitychange", again);
   }, []);
+  /** The last match: its trace, the library as it was, and its results. */
+  const last = useRef<{ T: Stepper; sig: string; srcs: Map<string, ProgSource> }>();
 
   // Budget runs arriving later rebuild T with app IDs: load again then.
   useEffect(() => {
@@ -98,6 +99,10 @@ export function useTraceSource(T: Stepper) {
     (async () => {
       const progs = appProgs(T);
       const libs = await listLibrary(network);
+      const sig = libSig(libs);
+      // Back in view with the library as it was: nothing to match again, and the views keep their mappings (and scroll).
+      if (last.current?.T === T && last.current.sig === sig) return;
+      const prev = last.current?.srcs;
       const found = new Map<string, ProgSource>();
       const changed = new Map<string, LibSpec>();
       const notes = new Map<string, Omit<LibApp, "firstSeen" | "lastSeen">[]>();
@@ -105,14 +110,21 @@ export function useTraceSource(T: Stepper) {
       for (const p of progs) {
         const m = pickSpec(p.prog, p.kind, libs);
         if (!m) continue;
-        const lib = changed.get(m.lib.id) ?? m.lib;
-        const a = { hash: p.hash, kind: p.kind, ...(p.appId !== undefined && { appId: p.appId }), network, ...(m.map.exact && { exact: true }) };
-        const next = noteApp(lib, a, now);
-        if (next) {
-          changed.set(next.id, next);
-          notes.set(next.id, [...(notes.get(next.id) ?? []), a]);
+        let lib = changed.get(m.lib.id) ?? m.lib;
+        for (const appId of p.appIds.length ? p.appIds : [undefined]) {
+          const a = { hash: p.hash, kind: p.kind, ...(appId !== undefined && { appId }), network, ...(m.map.exact && { exact: true }) };
+          const next = noteApp(lib, a, now);
+          if (next) {
+            lib = next;
+            changed.set(next.id, next);
+            notes.set(next.id, [...(notes.get(next.id) ?? []), a]);
+          }
         }
-        found.set(p.hash, { rec: toRecord(m, p.hash, p.kind, p.appId), map: m.map, lib: next ?? lib });
+        const appId = p.appIds[0];
+        // The same spec, unchanged, for the same app: the mapping the views have, so they don't rebuild or scroll.
+        const had = prev?.get(p.hash);
+        const same = had && had.lib.id === m.lib.id && had.lib.updatedAt === m.lib.updatedAt && had.rec.appId === appId;
+        found.set(p.hash, same ? had : { rec: toRecord(m, p.hash, p.kind, appId), map: m.map, lib });
       }
       // The apps each spec matched, onto the spec as stored now (not one removed meanwhile): best effort.
       for (const [id, as] of notes) {
@@ -123,6 +135,7 @@ export function useTraceSource(T: Stepper) {
         });
       }
       if (!live) return;
+      last.current = { T, sig, srcs: found };
       setSrcs(found);
       setViews((prev) => new Map(progs.map((p) => [p.hash, prev.get(p.hash) ?? (readStore<View>(viewKey(p.hash)) === "ts" ? "ts" : "teal")])));
       setColsOff((prev) => new Set(progs.map((p) => p.hash).filter((h) => prev.has(h) || readStore<boolean>(colKey(h)) === false)));

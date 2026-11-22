@@ -197,7 +197,7 @@ export function SourcePanel({ T, f, map, curPc, showOps, sitePcs, matchPcs, src,
 
   const rows = useMemo(() => {
     if (shownFile === undefined) return quotedRows(map.lines, true);
-    if (shownText === undefined) return [...quotedRows(map.lines.filter((l) => l.file === shownFile), false), { kind: "note" as const, k: "note", text: "Only the lines the spec quotes: add this file (Add files) to see all of it." }];
+    if (shownText === undefined) return [...quotedRows(map.lines.filter((l) => l.file === shownFile), false), { kind: "note" as const, k: "note", text: "Only the lines the spec quotes: add this file to the spec on the specs page to see all of it." }];
     return fileRows(shownFile, shownText, map.lines);
   }, [map, shownFile, shownText]);
   const differs = useMemo(() => (shownFile !== undefined && shownText !== undefined ? checkSource(map.lines.filter((l) => l.file === shownFile), shownText) : undefined), [map, shownFile, shownText]);
