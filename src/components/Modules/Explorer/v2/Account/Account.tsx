@@ -43,6 +43,7 @@ import LinkToLsigTemplate from "../Links/LinkToLsigTemplate";
 import DymNFD from "../DymNFD";
 import XChainBadge from "../XChainBadge";
 import AccountFunding from "./AccountFunding";
+import AccountWatchButton from "./AccountWatchButton";
 import { microalgosToAlgos } from "src/utils/common";
 import { toPlainJson } from "src/packages/core-sdk/utils/serialize";
 import { ACCOUNT_EXCLUDE } from "src/packages/core-sdk/clients/accountClient";
@@ -379,7 +380,9 @@ function Account(): JSX.Element {
       <div>
         <RoundNotice />
 
-        {isError ? (
+        {/* A failed refetch keeps the account shown (with its header, and any armed watch); the error
+            page is for an account that never loaded. */}
+        {isError && !accountInfo ? (
           <CustomError error={error?.message} />
         ) : (
           <div>
@@ -409,6 +412,12 @@ function Account(): JSX.Element {
                   : undefined,
               }}
               openIn={{ pageType: "account", id: address }}
+              // Live only: a past round has nothing to follow. Keyed so another account starts unwatched.
+              actions={
+                address && round === undefined ? (
+                  <AccountWatchButton key={address} address={address} label={nfd ?? addressLabel} />
+                ) : null
+              }
             />
 
             {isLoading || !accountInstance ? (

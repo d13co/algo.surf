@@ -28,6 +28,8 @@ interface RecordPageHeaderProps {
   };
   /** Extra elements rendered between the title group and the action buttons (e.g. Block's prev/next nav) */
   children?: React.ReactNode;
+  /** Extra action buttons, rendered first in the action button group (e.g. Account's Watch) */
+  actions?: React.ReactNode;
   /** Whether to apply sm:flex-nowrap (default true) */
   nowrap?: boolean;
 }
@@ -41,6 +43,7 @@ export default function RecordPageHeader({
   jsonViewer,
   openIn,
   children,
+  actions,
   nowrap = true,
 }: RecordPageHeaderProps): JSX.Element {
   const copyRef = useRef<HTMLSpanElement>(null);
@@ -66,6 +69,7 @@ export default function RecordPageHeader({
       </div>
       {children}
       <div className={`flex items-center gap-2.5 shrink-0 ${children ? "ml-auto md:ml-0" : "ml-auto"}`}>
+        {actions}
         <JsonViewer {...jsonViewer} />
         {openIn && <OpenInMenu pageType={openIn.pageType} id={openIn.id as string} />}
       </div>

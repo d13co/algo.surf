@@ -26,6 +26,8 @@ export const ACCOUNT_EXCLUDE = "created-apps-params,created-assets-params";
 // How far getLastSentTransaction looks: up to 3 batches of 50.
 const LAST_SENT_BATCH_SIZE = 50;
 const LAST_SENT_BATCHES = 3;
+// A page of getTransactionsSince: a round's worth for nearly every account.
+const TXNS_SINCE_PAGE_SIZE = 100;
 
 export type A_AccountsResponse = {
     'next-token': string,
@@ -72,6 +74,22 @@ export class AccountClient{
             req.maxRound(maxRound);
         }
         return searchTransactions(req);
+    }
+
+    /**
+     * A page of the transactions involving `address` from `minRound` on,
+     * newest first as every address search, with the round the indexer has
+     * imported up to (`currentRound`), for a watcher to resume from. Decoded
+     * by algosdk alone: the watcher reads no signatures, so the pqsig path is
+     * skipped.
+     */
+    async getTransactionsSince(address: string, minRound: bigint, token?: string, signal?: AbortSignal): Promise<{ transactions: indexerModels.Transaction[]; currentRound: bigint; nextToken?: string }> {
+        const req = this.indexer.searchForTransactions().address(address).minRound(minRound).limit(TXNS_SINCE_PAGE_SIZE);
+        if (token) {
+            req.nextToken(token);
+        }
+        const response = await req.do(undefined, withSignal(signal));
+        return { transactions: response.transactions ?? [], currentRound: response.currentRound, nextToken: response.nextToken || undefined };
     }
 
     /**
