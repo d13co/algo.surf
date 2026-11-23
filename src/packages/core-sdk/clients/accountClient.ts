@@ -52,7 +52,10 @@ export class AccountClient{
     }
 
     async getAccounts(token?: string, limit: number = ACCOUNTS_PAGE_SIZE, signal?: AbortSignal): Promise<A_AccountsResponse> {
-        const req = this.indexer.searchAccounts().limit(limit);
+        // Lists show an account's own fields only (the totals included). Its
+        // holdings, local states and created objects count toward the
+        // indexer's result limit, so one big account would fail the page.
+        const req = this.indexer.searchAccounts().exclude("all").limit(limit);
         if (token) {
             req.nextToken(token);
         }
