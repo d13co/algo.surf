@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useMemo, useRef, useState } from "react";
+import React, { memo, useCallback, useMemo, useRef } from "react";
 import { cn } from "src/lib/utils";
 import { BpGutter } from "./BpGutter";
 import { splitSub, type SourceMapping, type SrcLine } from "src/utils/arc56Source";
@@ -231,7 +231,20 @@ export function RangedTeal({ hash, map, sources, ranges, curRange, hitRanges, hm
   renderOps: (r: TealRange) => React.ReactNode;
 }) {
   const box = useRef<HTMLDivElement>(null);
-  const [hl, setHl] = useState<string>();
+  // The hovered line's highlight is one CSS rule, written straight to the style element:
+  // hovering never re-renders the listing, only the rule changes.
+  const hlStyle = useRef<HTMLStyleElement>(null);
+  const hlRef = useRef<string>();
+  const setHl = useCallback((v?: string) => {
+    if (v === hlRef.current) return;
+    hlRef.current = v;
+    if (!hlStyle.current) return;
+    // A background image, so it tints over the current row's colour and leaves the find bar's inset shadow showing.
+    hlStyle.current.textContent = v
+      ? `[data-teal-src] [data-l="${CSS.escape(v)}"]{background-image:linear-gradient(rgb(252 211 77 / 0.13),rgb(252 211 77 / 0.13))}` +
+        `[data-teal-src] [data-rib="${CSS.escape(v)}"]{fill:rgb(252 211 77 / 0.13)}`
+      : "";
+  }, []);
   const ran = useMemo(() => new Set(map.lines.filter((l) => l.pcs.some((pc) => hm.get(pc)))), [map, hm]);
   const files = useMemo(() => fileLines(sources), [sources]);
 
@@ -254,23 +267,14 @@ export function RangedTeal({ hash, map, sources, ranges, curRange, hitRanges, hm
     const pane = box.current?.parentElement;
     if (el && pane) pane.scrollTop = Math.max(0, el.offsetTop - pane.clientHeight / 3);
     setHl(srcKey(l));
-  }, []);
+  }, [setHl]);
 
-  const onOver = (e: React.MouseEvent) => {
-    const v = (e.target as HTMLElement).closest<HTMLElement>("[data-src-l]")?.dataset.srcL;
-    if (v !== hl) setHl(v);
-  };
+  const onOver = (e: React.MouseEvent) => setHl((e.target as HTMLElement).closest<HTMLElement>("[data-src-l]")?.dataset.srcL);
 
   return (
     <div ref={box} data-teal-src="" onMouseOver={onOver} onMouseLeave={() => setHl(undefined)}>
       {/* One rule lights up the hovered line's ops, so the rows themselves don't re-render. */}
-      {/* A background image, so it tints over the current row's colour and leaves the find bar's inset shadow showing. */}
-      {hl ? (
-        <style>
-          {`[data-teal-src] [data-l="${CSS.escape(hl)}"]{background-image:linear-gradient(rgb(252 211 77 / 0.13),rgb(252 211 77 / 0.13))}` +
-            `[data-teal-src] [data-rib="${CSS.escape(hl)}"]{fill:rgb(252 211 77 / 0.13)}`}
-        </style>
-      ) : null}
+      <style ref={hlStyle} />
       {ranges.map((r, k) => {
         const l = r.line;
         const tone: Tone = k === curRange ? "cur" : !l ? "none" : k % 2 === 1 ? "alt" : "base";

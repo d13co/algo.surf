@@ -297,7 +297,7 @@ export function BoxValueDiff({ before, after, types, full = false }: {
           : { path: [], kind: "changed", before: { $bytes: before }, after: { $bytes: after } };
     return <JsonDiffTree value={{ $change: change }} />;
   }
-  return <HexDiff before={bytes.before} after={bytes.after} full={full} />;
+  return <HexDiff key={String(full)} before={bytes.before} after={bytes.after} full={full} />;
 }
 
 /** A box value's size, and what it was where that changed. */

@@ -34,7 +34,7 @@ export function BpGutter({ on, label, hits, note, onClick, small, focusable, cla
       tabIndex={focusable ? undefined : -1}
       aria-label={ran ? `${label} (${ran.toLowerCase()})` : label}
       title={[note, ran && `${ran}.`, click].filter(Boolean).join("\n")}
-      className="group col-span-2 grid cursor-pointer grid-cols-subgrid items-center"
+      className="group col-span-2 grid cursor-pointer grid-cols-subgrid items-center focus-visible:outline-offset-[-2px]"
       onClick={onClick}
       // A double-click toggles twice, and must not also run to the line as the row's double-click does.
       onDoubleClick={(e) => e.stopPropagation()}

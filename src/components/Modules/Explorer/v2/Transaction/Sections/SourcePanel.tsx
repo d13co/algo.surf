@@ -67,7 +67,7 @@ const LineRow = memo(function LineRow({ line, k, text, noOps, cont, hits, bp, ma
   if (noOps) {
     // Grey, not dimmed like a line whose ops never ran: there is nothing to run here.
     return (
-      <div data-k={k} className="grid grid-cols-[1.25rem_4ch_1rem_5ch_minmax(0,1fr)] gap-x-2 pr-2 font-mono text-[12px] leading-5 whitespace-pre [tab-size:2]">
+      <div data-k={k} className="grid grid-cols-[1.25rem_4ch_1rem_5ch_minmax(0,1fr)] gap-x-2 pr-2 font-mono text-[12px] leading-5 whitespace-pre [tab-size:2] [content-visibility:auto] [contain-intrinsic-size:auto_1.25rem]">
         <span />
         <span />
         <span />
@@ -82,7 +82,7 @@ const LineRow = memo(function LineRow({ line, k, text, noOps, cont, hits, bp, ma
       <div
         data-k={k}
         className={cn(
-          "grid grid-cols-[1.25rem_4ch_1rem_5ch_minmax(0,1fr)] gap-x-2 pr-2 font-mono text-[12px] leading-5 whitespace-pre [tab-size:2]",
+          "grid grid-cols-[1.25rem_4ch_1rem_5ch_minmax(0,1fr)] gap-x-2 pr-2 font-mono text-[12px] leading-5 whitespace-pre [tab-size:2] [content-visibility:auto] [contain-intrinsic-size:auto_1.25rem]",
           !hits && "opacity-60",
           mark === "cur" && "bg-primary/25",
           mark === "site" && "bg-primary/10",
@@ -103,7 +103,7 @@ const LineRow = memo(function LineRow({ line, k, text, noOps, cont, hits, bp, ma
     <div
       data-k={k}
       className={cn(
-        "group/row grid grid-cols-[1.25rem_4ch_1rem_5ch_minmax(0,1fr)] gap-x-2 pr-2 font-mono text-[12px] leading-5 whitespace-pre [tab-size:2]",
+        "group/row grid grid-cols-[1.25rem_4ch_1rem_5ch_minmax(0,1fr)] gap-x-2 pr-2 font-mono text-[12px] leading-5 whitespace-pre [tab-size:2] [content-visibility:auto] [contain-intrinsic-size:auto_1.25rem]",
         !hits && "opacity-60",
         mark === "cur" && "bg-primary/25",
         mark === "site" && "bg-primary/10",
@@ -119,7 +119,7 @@ const LineRow = memo(function LineRow({ line, k, text, noOps, cont, hits, bp, ma
         type="button"
         aria-label={open ? "Hide its TEAL ops" : "Show its TEAL ops"}
         aria-expanded={open}
-        className="flex items-center justify-center text-muted hover:text-foreground cursor-pointer"
+        className="flex items-center justify-center text-muted hover:text-foreground cursor-pointer focus-visible:outline-offset-[-2px]"
         onClick={() => onToggle(k)}
       >
         {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}

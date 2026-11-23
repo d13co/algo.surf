@@ -80,6 +80,8 @@ function BudgetTab({ runs, topIndex, txids, partial }: { runs: SCBudgetRun[]; to
   };
   const s = useMemo(() => (topIndex === undefined ? undefined : summarizeBudget(runs, topIndex)), [runs, topIndex]);
   const group = useMemo(() => summarizeBudget(runs, -1), [runs]);
+  // Each approval run's added budget scans every run: once per runs, not per render.
+  const added = useMemo(() => runs.map((r) => (r.kind === "approval" ? budgetAdded(r, runs) : 0)), [runs]);
   if (!runs.length) return <Muted>No programs ran in this transaction{groupSize > 1 ? "'s group" : ""}.</Muted>;
 
   return (
@@ -134,7 +136,6 @@ function BudgetTab({ runs, topIndex, txids, partial }: { runs: SCBudgetRun[]; to
             {runs.map((r, i) => {
               const mine = Number(r.path[0]) === topIndex;
               const opUp = isOpUp(r);
-              const added = r.kind === "approval" ? budgetAdded(r, runs) : 0;
               return (
                 <tr key={i} className={cn("border-b border-border", !mine && "text-muted-foreground")}>
                   <td className="py-1.5 pr-3 whitespace-nowrap">
@@ -156,7 +157,7 @@ function BudgetTab({ runs, topIndex, txids, partial }: { runs: SCBudgetRun[]; to
                         its own cap
                       </div>
                     ) : null}
-                    {added > 0 ? <div className="font-sans text-xs text-muted-foreground">+{grouped(added)} from inner calls</div> : null}
+                    {added[i] > 0 ? <div className="font-sans text-xs text-muted-foreground">+{grouped(added[i])} from inner calls</div> : null}
                   </td>
                 </tr>
               );
@@ -479,11 +480,13 @@ export default function TransactionDeveloper({ transaction, round, txId, groupId
   useEffect(() => () => window.clearTimeout(scrollTimer.current), []);
   // The group's budget is one pool: ask for all its transactions.
   // Without the group (its read failed), the transaction's own runs.
-  const { data: groupInfo, isLoading: groupLoading } = useGroup(groupId ?? "", round);
+  // The group read is a whole block: only when the node serves budget or reads, the tabs that use it.
+  const summary = (includes ?? []).filter((k): k is "budget" | "reads" => k === "budget" || k === "reads");
+  const needGroup = !!groupId && summary.length > 0;
+  const { data: groupInfo, isLoading: groupLoading } = useGroup(needGroup ? groupId : "", round);
   const groupTxids = (groupInfo?.transactions ?? []).map((t) => t.id ?? "").filter(Boolean);
   const partial = !!groupId && !groupTxids.includes(txId);
   const txids = groupId && !partial ? groupTxids : [txId];
-  const summary = (includes ?? []).filter((k): k is "budget" | "reads" => k === "budget" || k === "reads");
   const { data, error, isLoading } = useTxnDevInfo(round, txids, summary, !!includes?.length && (!groupId || !groupLoading));
   const topIndex = useTopIndex(data?.budget, data?.reads, txId);
 

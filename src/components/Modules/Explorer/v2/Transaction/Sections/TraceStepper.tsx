@@ -834,9 +834,6 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
   const s = f.steps[i];
   const st = useMemo(() => stateAt(T, f, i), [T, f, i]);
   const sitePcs = useMemo(() => new Set(st.calls.map((c) => c.pc)), [st]);
-  // The side panels may lag a little while the timeline is dragged.
-  const lagPos = useDeferredValue(pos);
-  const calls = useMemo(() => callStack(T, lagPos), [T, lagPos]);
   // State access shows the whole trace's until the first step, then what came before the position, unless one was picked.
   const [accessMode, setAccessMode] = useState<AccessMode>("total");
   const modeSet = useRef(false);
@@ -883,7 +880,8 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
   // the op steps (. and ,) go one TEAL op, showing the line's ops.
   const srcOn = !!fMap;
   // Until the first move, once the spec's source lines arrive: open at the run's first op with a line, not its constant blocks.
-  useEffect(() => {
+  // Before paint, so the constant blocks never show first.
+  useLayoutEffect(() => {
     if (moved.current || !fMap) return;
     const q = lineStart(T, src.mapFor, pos);
     if (q !== pos) setPos(q);
@@ -1058,7 +1056,7 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
           </Panel>
         }
         access={
-          <StateAccessPanel T={T} at={lagPos} mode={accessMode} onMode={pickMode} names={names} where={labels.where} onSeek={seek} />
+          <LaggedStateAccess T={T} pos={pos} mode={accessMode} onMode={pickMode} names={names} where={labels.where} onSeek={seek} />
         }
         breakpoints={
           <Panel className="lg:min-h-0 lg:flex-1" title="Breakpoints" meta={bpList.length + nLineBps || undefined}>
@@ -1147,44 +1145,65 @@ export default function TraceStepper({ dev, budget, txId }: { dev: SCDevRound; b
         }
         calls={
           <Panel className="lg:min-h-0 lg:flex-1" title="Call stack">
-            <div className="min-h-0 overflow-auto py-1 text-xs lg:flex-1">
-              {calls.map((c, k) => (
-                <button
-                  key={k}
-                  type="button"
-                  onClick={() => seek(c.pos)}
-                  className={cn("flex w-full items-baseline gap-2 px-3 py-0.5 text-left hover:bg-white/5 cursor-pointer", c.kind !== "run" && "pl-6")}
-                >
-                  {c.kind === "sub" ? (
-                    <>
-                      <SubName names={names} T={T} c={c} />
-                      <span className="ml-auto text-muted">callsub at pc {c.pc}</span>
-                    </>
-                  ) : c.kind === "submit" ? (
-                    <>
-                      <span className="font-mono text-muted-foreground">itxn_submit</span>
-                      <span className="ml-auto text-muted">pc {c.pc}</span>
-                    </>
-                  ) : (
-                    <>
-                      <span className={c.current ? "font-semibold" : undefined}>
-                        {labels.where(c.frame)} · {KIND[c.frame.kind]}
-                      </span>
-                      <span className="ml-auto min-w-0 truncate text-muted">
-                        {appText(c.frame)}
-                        <RunMethod names={names} f={c.frame} />
-                      </span>
-                    </>
-                  )}
-                </button>
-              ))}
-            </div>
+            <CallStackList T={T} pos={pos} names={names} where={labels.where} onSeek={seek} />
           </Panel>
         }
       />
     </section>
   );
 }
+
+/** The side panels lag a little while the timeline is dragged: each defers the position itself, memoized,
+ * so the deferred render is theirs alone, not the whole stepper's again. */
+const LaggedStateAccess = memo(function LaggedStateAccess({ pos, ...rest }: Omit<React.ComponentProps<typeof StateAccessPanel>, "at"> & { pos: number }) {
+  const at = useDeferredValue(pos);
+  return <StateAccessPanel at={at} {...rest} />;
+});
+
+const CallStackList = memo(function CallStackList({ T, pos, names, where, onSeek }: {
+  T: Stepper;
+  pos: number;
+  names: SpecNames;
+  where: (f: Frame) => string;
+  onSeek: (q: number) => void;
+}) {
+  const lagPos = useDeferredValue(pos);
+  const calls = useMemo(() => callStack(T, lagPos), [T, lagPos]);
+  return (
+    <div className="min-h-0 overflow-auto py-1 text-xs lg:flex-1">
+      {calls.map((c, k) => (
+        <button
+          key={k}
+          type="button"
+          onClick={() => onSeek(c.pos)}
+          className={cn("flex w-full items-baseline gap-2 px-3 py-0.5 text-left hover:bg-white/5 cursor-pointer", c.kind !== "run" && "pl-6")}
+        >
+          {c.kind === "sub" ? (
+            <>
+              <SubName names={names} T={T} c={c} />
+              <span className="ml-auto text-muted">callsub at pc {c.pc}</span>
+            </>
+          ) : c.kind === "submit" ? (
+            <>
+              <span className="font-mono text-muted-foreground">itxn_submit</span>
+              <span className="ml-auto text-muted">pc {c.pc}</span>
+            </>
+          ) : (
+            <>
+              <span className={c.current ? "font-semibold" : undefined}>
+                {where(c.frame)} · {KIND[c.frame.kind]}
+              </span>
+              <span className="ml-auto min-w-0 truncate text-muted">
+                {appText(c.frame)}
+                <RunMethod names={names} f={c.frame} />
+              </span>
+            </>
+          )}
+        </button>
+      ))}
+    </div>
+  );
+});
 
 /** The group's program runs, nested by inner transaction; the current one and the ones that ran it highlighted. */
 const RunsList = memo(function RunsList({ T, cur, labels, names, onSeek }: {

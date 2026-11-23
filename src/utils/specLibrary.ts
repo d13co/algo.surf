@@ -301,23 +301,30 @@ export async function importFolder(files: FolderEntry[], saved: LibSpec[], now: 
     res.notes.push({ text, bad: true, none: true });
     return res;
   }
-  for (const c of all) {
-    try {
-      await importOne(c, files, saved, now, opts, res);
-    } catch (e) {
+  // Every spec's files are read at once; they're kept one at a time, in order, as keep() sees the ones before.
+  // Each spec's notes are its own, so a spec that fails part way keeps the ones from before.
+  const notes = all.map((): ImportResult["notes"] => []);
+  const read = await Promise.allSettled(all.map((c, i) => readOne(c, files, now, opts, notes[i])));
+  for (const [i, x] of read.entries()) {
+    res.notes.push(...notes[i]);
+    if (x.status === "rejected") {
       // One spec's files failing to read (a fetch from GitHub, say) leaves the others to be added.
-      res.notes.push({ text: `${c.spec.name}: not added. ${e instanceof Error ? e.message : String(e)}`, bad: true });
+      const e = x.reason;
+      res.notes.push({ text: `${all[i].spec.name}: not added. ${e instanceof Error ? e.message : String(e)}`, bad: true });
+      continue;
     }
+    if (x.value) keep(x.value, saved, res, now);
   }
   return res;
 }
 
-/** One spec of a folder, with its maps and source files, into `res`. */
-async function importOne(c: { spec: FolderEntry; maps: FolderEntry[] }, files: FolderEntry[], saved: LibSpec[], now: number, opts: FolderOpts, res: ImportResult): Promise<void> {
+/** One spec of a folder, with its maps and source files, its notes into `notes`; undefined when it isn't one. */
+async function readOne(c: { spec: FolderEntry; maps: FolderEntry[] }, files: FolderEntry[], now: number, opts: FolderOpts, notes: ImportResult["notes"]): Promise<LibSpec | undefined> {
+  const res = { notes };
   const arc56 = parse(await c.spec.read());
   if (!isSpecJson(arc56)) {
     res.notes.push({ text: `${c.spec.path}: not an ARC-56 spec.`, bad: true });
-    return;
+    return undefined;
   }
   const maps: LibMap[] = [];
   // A map that can't be read is left out, as a source file is below; the spec is still added.
@@ -343,7 +350,7 @@ async function importOne(c: { spec: FolderEntry; maps: FolderEntry[] }, files: F
   for (const x of read) if (x.status === "rejected") res.notes.push({ text: `${c.spec.name}: ${x.reason instanceof Error ? x.reason.message : String(x.reason)}`, bad: true });
   const r = addFiles(spec, [], sources, now);
   res.notes.push(...r.notes.filter((n) => n.bad));
-  keep(r.spec, saved, res, now);
+  return r.spec;
 }
 
 const stemOfMap = (name: string) => name.replace(/(\.(approval|clear))?\.puya\.map$/i, "").toLowerCase();

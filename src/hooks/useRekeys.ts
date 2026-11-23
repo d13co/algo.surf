@@ -4,6 +4,7 @@ import { surfIdxGet, surfIdxRetry } from "src/utils/surfIdx";
 import { abel } from "src/packages/abel/abel";
 import { getAbelAt } from "src/packages/abel/abelAt";
 import { useSurfIdxCaps } from "src/hooks/useSurfIdxCaps";
+import { createLimit } from "src/utils/limit";
 
 /**
  * One (account, authorizer) pair of surf idx's rekey history, seen from one side: `address` is the
@@ -47,6 +48,10 @@ export function useRekeys(address: string | undefined, enabled = true) {
 /** Accounts per abel read of their authorizers. */
 const AUTH_CHUNK = 1000;
 
+/** Abel reads of authorizers in flight at once, across every list: up to 100 chunks would otherwise all go out together.
+ * A list that goes away (another account, another round) drops its queued reads. */
+const authLimit = createLimit(4);
+
 /**
  * The authorizer of each account at the page's round (now when undefined), from abel in bulk: one
  * read per AUTH_CHUNK accounts, in order, so the first rows' come first. A past round needs the
@@ -66,12 +71,15 @@ export function useAuthAddrsOf(accounts: string[], round: number | undefined): M
   return useQueries({
     queries: chunks.map(({ accounts, id }) => ({
       queryKey: ["auth-addrs", round ?? "now", id],
-      queryFn: async () => {
-        const sdk = round === undefined ? abel : getAbelAt();
-        return sdk ? sdk.getAuthAddrs(accounts, round === undefined ? {} : { round }) : null;
-      },
+      queryFn: ({ signal }: { signal: AbortSignal }) =>
+        authLimit(async () => {
+          const sdk = round === undefined ? abel : getAbelAt();
+          return sdk ? sdk.getAuthAddrs(accounts, round === undefined ? {} : { round }) : null;
+        }, signal),
       enabled: accounts.length > 0,
       staleTime: round === undefined ? 60_000 : Infinity,
+      // As useControllingAccounts: a refetch on focus would ask for every chunk again.
+      refetchOnWindowFocus: false,
       meta: { noPersist: true },
     })),
     combine: joinAuthAddrs,
