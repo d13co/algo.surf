@@ -80,7 +80,16 @@ export type TraceSource = ReturnType<typeof useTraceSource>;
 export function useTraceSource(T: Stepper) {
   const [srcs, setSrcs] = useState<Map<string, ProgSource>>(() => new Map());
   const [views, setViews] = useState<Map<string, View>>(() => new Map());
-  const [lineBps, setLineBps] = useState<Set<string>>(() => new Set());
+  // Line breakpoints, per program: read again only when the programs change (not when budget runs rebuild T).
+  // Read with the first render and during the render that changes them, so no frame shows the wrong ones.
+  const hashList = useMemo(() => hashesOf(T), [T]);
+  const hashKey = hashList.join(" ");
+  const [lineBps, setLineBps] = useState<Set<string>>(() => loadLineBps(hashList));
+  const [bpsFor, setBpsFor] = useState(hashKey);
+  if (bpsFor !== hashKey) {
+    setBpsFor(hashKey);
+    setLineBps(loadLineBps(hashList));
+  }
   /** Programs whose TEAL view hides the source column (shown by default). */
   const [colsOff, setColsOff] = useState<Set<string>>(() => new Set());
   /** Bumped when the tab comes back into view: specs added on the Contracts & Specs page (another tab) are matched then. */
@@ -146,11 +155,6 @@ export function useTraceSource(T: Stepper) {
       live = false;
     };
   }, [T, tick]);
-
-  // Line breakpoints, per program: again only when the programs change (not when budget runs rebuild T).
-  const hashList = useMemo(() => hashesOf(T), [T]);
-  const hashKey = hashList.join(" ");
-  useEffect(() => setLineBps(loadLineBps(hashList)), [hashKey]);
 
   /** A program's mapping if it has source lines, whichever view is on. */
   const lineMap = useCallback((hash: string | undefined) => {

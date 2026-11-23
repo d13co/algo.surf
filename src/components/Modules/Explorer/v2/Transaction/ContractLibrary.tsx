@@ -58,6 +58,15 @@ const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? o
 const kb = (n: number) => (n < 1024 ? `${n} B` : n < 1048576 ? `${(n / 1024).toFixed(1)} KB` : `${(n / 1048576).toFixed(1)} MB`);
 const day = (t: number) => new Date(t).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 const when = (t: number) => new Date(t).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+/**
+ * What a reload can change in a spec. Its files usually bump updatedAt, but a merge keeps the later of two
+ * updatedAts, so the file, map slots and sources' sizes count too. Its apps (noteApp, removal) don't bump it.
+ */
+const libSig = (s: LibSpec) => {
+  const maps = Object.entries(s.maps).map(([slot, m]) => `${slot}=${m?.name ?? ""}`).sort().join(",");
+  const sources = Object.entries(s.sources).map(([path, x]) => `${path}=${x.text.length}`).sort().join(",");
+  return `${s.updatedAt}|${s.name}|${s.file ?? ""}|${s.from ?? ""}|${maps}|${sources}|${JSON.stringify(s.apps)}`;
+};
 const noteClass = (n: Note) => (n.bad ? "text-red-400" : n.info ? "text-muted-foreground" : "text-green-400");
 const dot = (state: "ok" | "warn" | "bad" | "none") =>
   cn("inline-block h-1.5 w-1.5 shrink-0 rounded-full", state === "ok" ? "bg-green-400" : state === "warn" ? "bg-warning" : state === "bad" ? "bg-red-400" : "bg-muted");
@@ -83,11 +92,27 @@ export default function ContractLibrary(): JSX.Element {
   const addInput = useRef<HTMLInputElement>(null);
   const addTo = useRef<LibSpec>();
 
-  const reload = useCallback(async () => setSpecs(await listLibrary(network).catch(() => [])), []);
+  // A spec read again but not changed keeps its object, so its row's parsing (memoized on it) isn't redone.
+  const reload = useCallback(async () => {
+    const list = await listLibrary(network).catch(() => []);
+    setSpecs((prev) => {
+      const old = new Map(prev?.map((s) => [s.id, s]));
+      const next = list.map((s) => {
+        const o = old.get(s.id);
+        return o && libSig(o) === libSig(s) ? o : s;
+      });
+      return prev && next.length === prev.length && next.every((s, i) => s === prev[i]) ? prev : next;
+    });
+  }, []);
+  // Coming back to the tab fires both visibilitychange and focus: one read for the two.
+  const backRead = useRef<Promise<void>>();
   useEffect(() => {
     reload();
     // Back in view: the debugger (another tab) may have recorded apps since.
-    const again = () => document.visibilityState === "visible" && reload();
+    const again = () => {
+      if (document.visibilityState !== "visible" || backRead.current) return;
+      backRead.current = reload().finally(() => (backRead.current = undefined));
+    };
     document.addEventListener("visibilitychange", again);
     window.addEventListener("focus", again);
     return () => {

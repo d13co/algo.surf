@@ -2,13 +2,22 @@ import React from "react";
 
 export function usePersistenBooleanState(key: string, defaultValue: boolean): [boolean, (value: boolean) => void] {
   const [state, setState] = React.useState<boolean>(() => {
-    const storedValue = localStorage.getItem(key);
-    return storedValue !== null ? storedValue === 'true' : defaultValue;
+    // Storage can throw (site data blocked, some private modes): fall back to the default.
+    try {
+      const storedValue = localStorage.getItem(key);
+      return storedValue !== null ? storedValue === 'true' : defaultValue;
+    } catch {
+      return defaultValue;
+    }
   });
 
   const setPersistedState = (value: boolean) => {
     setState(value);
-    localStorage.setItem(key, value.toString());
+    try {
+      localStorage.setItem(key, value.toString());
+    } catch {
+      // Not remembered across visits; the state still changes.
+    }
   };
 
   return [state, setPersistedState];

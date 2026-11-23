@@ -1,4 +1,5 @@
 import type { FolderEntry } from "./specLibrary";
+import { createLimit } from "./limit";
 
 /**
  * Contracts from a public GitHub repo, for the Contracts & Specs page: a link to a
@@ -200,17 +201,28 @@ export async function githubFiles(link: GithubLink, f: Fetch = fetch): Promise<G
   if (!res.ok) throw failed(res, `the files of ${name}`);
   const tree = await json<{ tree?: { path: string; type: string }[]; truncated?: boolean }>(res, `the files of ${name}`);
   const root = `${link.repo}/`;
+  // A folder's specs are read at once: a few files at a time, so each read gets its 30 s on a slow link.
+  const rawLimit = createLimit(6);
   const files: FolderEntry[] = (tree.tree ?? [])
     .filter((e) => e.type === "blob")
-    .map((e) => ({
-      name: e.path.slice(e.path.lastIndexOf("/") + 1),
-      path: root + e.path,
-      read: async () => {
-        const r = await get(f, `https://raw.githubusercontent.com/${name}/${sha}/${encPath(e.path)}`, e.path);
-        if (!r.ok) throw new GithubError(limitHit(r) ?? `Couldn't read ${e.path} from GitHub (${r.status}).`);
-        return body(r, e.path);
-      },
-    }));
+    .map((e) => {
+      // Read once: a source file several specs name is fetched for the first and shared with the rest.
+      // A failed read isn't kept: a spec that asks again later tries again.
+      let text: Promise<string> | undefined;
+      return {
+        name: e.path.slice(e.path.lastIndexOf("/") + 1),
+        path: root + e.path,
+        read: () =>
+          (text ??= rawLimit(async () => {
+            const r = await get(f, `https://raw.githubusercontent.com/${name}/${sha}/${encPath(e.path)}`, e.path);
+            if (!r.ok) throw new GithubError(limitHit(r) ?? `Couldn't read ${e.path} from GitHub (${r.status}).`);
+            return body(r, e.path);
+          }).catch((err) => {
+            text = undefined;
+            throw err;
+          })),
+      };
+    });
   const clean = path.replace(/\/+$/, "");
   return {
     files,

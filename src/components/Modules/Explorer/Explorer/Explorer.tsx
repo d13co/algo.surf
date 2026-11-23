@@ -54,4 +54,6 @@ function Explorer({ children, className, header = true }: { children: React.Reac
   );
 }
 
-export default Explorer;
+// Layout re-renders on every navigation (useMatch); its children come from AppRouter and don't change,
+// so without memo every navigation re-renders the providers and every useDateFormat consumer.
+export default React.memo(Explorer);
